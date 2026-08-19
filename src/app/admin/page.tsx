@@ -108,10 +108,14 @@ export default function AdminPage() {
     })
     const data = await res.json()
     if (tipo === 'denuncia') {
-      setNotificacao(data.magicLink
-        ? 'Denúncia aprovada e e-mail enviado à autoridade.'
-        : 'Denúncia aprovada. Nenhum e-mail enviado (entidade sem e-mail cadastrado).')
-      setTimeout(() => setNotificacao(''), 5000)
+      if (data.emailErro) {
+        setNotificacao(`Denúncia aprovada, mas erro no e-mail: ${data.emailErro}`)
+      } else if (data.emailStatus) {
+        setNotificacao(`Denúncia aprovada e e-mail enviado. (ID: ${data.emailStatus})`)
+      } else {
+        setNotificacao('Denúncia aprovada. Nenhum e-mail enviado (entidade sem e-mail cadastrado).')
+      }
+      setTimeout(() => setNotificacao(''), 10000)
     }
     carregarDados()
   }

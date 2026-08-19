@@ -45,28 +45,37 @@ export async function POST(req: NextRequest) {
       magic_token_expira_em: expira.toISOString(),
     }).eq('id', id)
 
+    let emailStatus: string | null = null
+    let emailErro: string | null = null
+
     if (denuncia.entidade?.email) {
-      await resend.emails.send({
+      const { data: emailData, error: emailError } = await resend.emails.send({
         from: 'Portal Frutalense <onboarding@resend.dev>',
         to: denuncia.entidade.email,
-        subject: `[Portal Frutalense] Nova cobranca publica para ${denuncia.entidade.nome}`,
+        subject: `[Portal Frutalense] Nova cobrança pública para ${denuncia.entidade.nome}`,
         html: `
           <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-            <h2 style="color:#1e3a5f">Nova Cobranca Publica</h2>
-            <p><strong>De:</strong> ${denuncia.morador_nome} (${denuncia.morador_cpf_display})</p>
+            <h2 style="color:#1e3a5f">Nova Cobrança Pública</h2>
+            <p><strong>De:</strong> ${denuncia.morador_nome}</p>
             <p><strong>Para:</strong> ${denuncia.entidade.nome} · ${denuncia.entidade.cargo}</p>
             <hr/>
             <blockquote style="border-left:4px solid #1e3a5f;padding-left:16px;color:#374151">${denuncia.mensagem}</blockquote>
             <hr/>
             <p>Para registrar sua resposta oficial, clique no link abaixo:</p>
             <a href="${magicLink}" style="background:#1e3a5f;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block;margin:16px 0">Responder Agora</a>
-            <p style="color:#9ca3af;font-size:12px">Este link e pessoal e expira em 7 dias.</p>
+            <p style="color:#9ca3af;font-size:12px">Este link é pessoal e expira em 7 dias.</p>
           </div>
         `,
       })
+      if (emailError) {
+        console.error('Resend error:', emailError)
+        emailErro = emailError.message
+      } else {
+        emailStatus = emailData?.id || 'enviado'
+      }
     }
 
-    return NextResponse.json({ ok: true, magicLink })
+    return NextResponse.json({ ok: true, magicLink, emailStatus, emailErro })
   } catch (err) {
     console.error(err)
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })
