@@ -14,7 +14,7 @@ export default function Navbar() {
   const pathname = usePathname()
 
   return (
-    <header className="bg-blue-900 text-white shadow-md">
+    <header style={{ backgroundColor: '#1e3a5f' }} className="text-white shadow-md">
       <div className="max-w-5xl mx-auto px-4 py-0 flex items-stretch justify-between">
         <Link href="/" className="font-bold text-lg tracking-tight flex items-center py-4 pr-8 border-r border-blue-800">
           Portal Frutalense
@@ -27,8 +27,8 @@ export default function Navbar() {
               href={href}
               className={`flex items-center px-5 text-sm font-medium border-r border-blue-800 transition-colors
                 ${pathname === href
-                  ? 'bg-blue-700 text-white'
-                  : 'text-blue-200 hover:bg-blue-800 hover:text-white'
+                  ? 'text-white'
+                  : 'text-blue-200 hover:text-white'
                 }`}
             >
               {label}
