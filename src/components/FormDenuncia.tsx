@@ -6,6 +6,7 @@ import { validarCPF, formatarCPF } from '@/lib/cpf'
 import { Entidade } from '@/types'
 
 export default function FormDenuncia() {
+  const [modalAberto, setModalAberto] = useState(false)
   const [entidades, setEntidades] = useState<Entidade[]>([])
   const [nome, setNome] = useState('')
   const [cpf, setCpf] = useState('')
@@ -19,6 +20,12 @@ export default function FormDenuncia() {
     supabase.from('entidades').select('*').eq('ativo', true).order('nome')
       .then(({ data }) => setEntidades(data || []))
   }, [])
+
+  function fechar() {
+    setModalAberto(false)
+    setSucesso(false)
+    setErro('')
+  }
 
   function capitalizarNome(valor: string) {
     return valor.replace(/\b\w/g, (c) => c.toUpperCase())
@@ -68,64 +75,76 @@ export default function FormDenuncia() {
     }
   }
 
-  if (sucesso) {
-    return (
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '24px' }}>
-        <p style={{ fontWeight: 600, color: '#166534', fontSize: '15px' }}>Denúncia enviada com sucesso.</p>
-        <p style={{ color: '#15803d', fontSize: '13px', marginTop: '4px' }}>
-          Sua denúncia foi recebida e será analisada. Se aprovada, será publicada para toda a cidade acompanhar.
-        </p>
-        <button onClick={() => setSucesso(false)} style={{ marginTop: '12px', fontSize: '13px', color: '#166534', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
-          Enviar outra denúncia
-        </button>
-      </div>
-    )
-  }
-
   return (
-    <form onSubmit={handleSubmit} style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <h2 style={{ fontWeight: 600, color: '#111827', fontSize: '15px', margin: 0 }}>Registrar Cobrança</h2>
+    <>
+      <button onClick={() => { setModalAberto(true); setSucesso(false) }}
+        style={{ backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px 20px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
+        Registrar Denúncia
+      </button>
 
-      {erro && (
-        <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>
-          {erro}
+      {modalAberto && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #e5e7eb' }}>
+              <h2 style={{ fontWeight: 700, color: '#111827', margin: 0, fontSize: '15px' }}>Registrar Denúncia</h2>
+              <button onClick={fechar} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#9ca3af', lineHeight: 1, padding: 0 }}>×</button>
+            </div>
+
+            {sucesso ? (
+              <div style={{ padding: '32px', textAlign: 'center' }}>
+                <p style={{ fontWeight: 600, color: '#166534', fontSize: '15px' }}>Denúncia enviada com sucesso.</p>
+                <p style={{ color: '#15803d', fontSize: '13px', marginTop: '4px' }}>
+                  Sua denúncia foi recebida e será analisada. Se aprovada, será publicada para toda a cidade acompanhar.
+                </p>
+                <button onClick={fechar} style={{ marginTop: '16px', fontSize: '13px', color: '#1e3a5f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Fechar</button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {erro && (
+                  <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>
+                    {erro}
+                  </div>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }} className="grid-2col">
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Nome Completo *</label>
+                    <input type="text" value={nome} onChange={(e) => setNome(capitalizarNome(e.target.value))} placeholder="Seu nome completo"
+                      style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>CPF *</label>
+                    <input type="text" value={cpf} onChange={(e) => handleCPF(e.target.value)} placeholder="000.000.000-00" maxLength={14}
+                      style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }} />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Destinatário</label>
+                  <select value={entidadeId} onChange={(e) => setEntidadeId(e.target.value)}
+                    style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', background: 'white', outline: 'none', boxSizing: 'border-box' }}>
+                    <option value="">Selecione (opcional)</option>
+                    {entidades.map((e) => (
+                      <option key={e.id} value={e.id}>{e.nome} — {e.cargo}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Mensagem *</label>
+                  <textarea value={mensagem} onChange={(e) => setMensagem(e.target.value)} rows={5} placeholder="Descreva a situação..."
+                    style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+
+                <button type="submit" disabled={enviando}
+                  style={{ backgroundColor: enviando ? '#9ca3af' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+                  {enviando ? 'Enviando...' : 'Enviar Denúncia'}
+                </button>
+              </form>
+            )}
+          </div>
         </div>
       )}
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }} className="grid-2col">
-        <div>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Nome Completo *</label>
-          <input type="text" value={nome} onChange={(e) => setNome(capitalizarNome(e.target.value))} placeholder="Seu nome completo"
-            style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-        </div>
-        <div>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>CPF *</label>
-          <input type="text" value={cpf} onChange={(e) => handleCPF(e.target.value)} placeholder="000.000.000-00" maxLength={14}
-            style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }} />
-        </div>
-      </div>
-
-      <div>
-        <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Destinatário</label>
-        <select value={entidadeId} onChange={(e) => setEntidadeId(e.target.value)}
-          style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', background: 'white', outline: 'none', boxSizing: 'border-box' }}>
-          <option value="">Selecione (opcional)</option>
-          {entidades.map((e) => (
-            <option key={e.id} value={e.id}>{e.nome} — {e.cargo}</option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Mensagem *</label>
-        <textarea value={mensagem} onChange={(e) => setMensagem(e.target.value)} rows={5} placeholder="Descreva a situação ou cobrança..."
-          style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
-      </div>
-
-      <button type="submit" disabled={enviando} className="btn-full-mobile"
-        style={{ alignSelf: 'flex-start', backgroundColor: enviando ? '#9ca3af' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px 20px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
-        {enviando ? 'Enviando...' : 'Enviar Denúncia'}
-      </button>
-    </form>
+    </>
   )
 }
