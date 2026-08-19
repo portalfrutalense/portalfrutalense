@@ -13,6 +13,7 @@ export default function MapaOcorrencias() {
   const mapaIniciado = useRef(false)
   const mapaObj = useRef<any>(null)
   const leafletObj = useRef<any>(null)
+  const pinDraggavel = useRef<any>(null)
 
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([])
   const [categorias, setCategorias] = useState<CategoriaMapa[]>([])
@@ -82,6 +83,40 @@ export default function MapaOcorrencias() {
     })
   }, [ocorrencias])
 
+  // Pin arrastável para ajuste fino de localização
+  useEffect(() => {
+    if (!mapaObj.current || !leafletObj.current) return
+    const L = leafletObj.current
+    const mapa = mapaObj.current
+
+    if (!coordenadas) {
+      if (pinDraggavel.current) { pinDraggavel.current.remove(); pinDraggavel.current = null }
+      return
+    }
+
+    const iconPin = L.divIcon({
+      className: '',
+      html: `<div style="width:26px;height:26px;border-radius:50%;background:#f97316;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.5);cursor:grab"></div>`,
+      iconSize: [26, 26],
+      iconAnchor: [13, 13],
+    })
+
+    if (pinDraggavel.current) {
+      pinDraggavel.current.setLatLng([coordenadas.lat, coordenadas.lng])
+    } else {
+      pinDraggavel.current = L.marker([coordenadas.lat, coordenadas.lng], { icon: iconPin, draggable: true })
+        .addTo(mapa)
+        .bindPopup('Arraste para ajustar a localização exata.')
+      pinDraggavel.current.on('dragend', (e: any) => {
+        const pos = e.target.getLatLng()
+        setCoordenadas(prev => prev ? { ...prev, lat: pos.lat, lng: pos.lng } : null)
+      })
+    }
+
+    mapa.setView([coordenadas.lat, coordenadas.lng], 17)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coordenadas?.lat, coordenadas?.lng, coordenadas === null])
+
   function handleCPF(valor: string) {
     const limpo = valor.replace(/\D/g, '').slice(0, 11)
     setCpf(limpo ? formatarCPF(limpo) : '')
@@ -123,6 +158,7 @@ export default function MapaOcorrencias() {
       if (!res.ok) throw new Error()
       setSucesso(true)
       setNome(''); setCpf(''); setDescricao(''); setCategoriaId(''); setEndereco(''); setCoordenadas(null)
+      if (pinDraggavel.current) { pinDraggavel.current.remove(); pinDraggavel.current = null }
     } catch {
       setErro('Erro ao enviar. Tente novamente.')
     } finally {
@@ -210,8 +246,9 @@ export default function MapaOcorrencias() {
                     </button>
                   </div>
                   {coordenadas && (
-                    <div style={{ marginTop: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '8px 12px', fontSize: '12px', color: '#166534' }}>
-                      Localizado: {coordenadas.label.split(',').slice(0, 3).join(',')}
+                    <div style={{ marginTop: '8px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '6px', padding: '10px 12px', fontSize: '12px', color: '#92400e' }}>
+                      <p style={{ margin: '0 0 4px', fontWeight: 600 }}>Rua encontrada: {coordenadas.label}</p>
+                      <p style={{ margin: 0 }}>O pin laranja apareceu no mapa. Feche este formulário, arraste o pin para o número exato e reabra para enviar.</p>
                     </div>
                   )}
                 </div>
