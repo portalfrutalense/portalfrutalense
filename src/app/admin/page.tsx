@@ -53,6 +53,7 @@ export default function AdminPage() {
   const [editOcoEndereco, setEditOcoEndereco] = useState('')
   const [editOcoEnderecoLabel, setEditOcoEnderecoLabel] = useState('')
   const [buscandoEndereco, setBuscandoEndereco] = useState(false)
+  const [enderecoReverso, setEnderecoReverso] = useState<Record<string, string>>({})
 
   const client = createClient()
 
@@ -162,6 +163,17 @@ export default function AdminPage() {
       }
     } catch { alert('Erro ao buscar endereço.') }
     finally { setBuscandoEndereco(false) }
+  }
+
+  async function geocodificarReverso(id: string, lat: number, lng: number) {
+    setEnderecoReverso(prev => ({ ...prev, [id]: 'buscando...' }))
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+      const data = await res.json()
+      setEnderecoReverso(prev => ({ ...prev, [id]: data.display_name || 'Endereço não encontrado.' }))
+    } catch {
+      setEnderecoReverso(prev => ({ ...prev, [id]: 'Erro ao buscar endereço.' }))
+    }
   }
 
   async function salvarEdicaoOco(id: string) {
@@ -469,15 +481,26 @@ export default function AdminPage() {
                 ) : (
                   <>
                     <p style={{ fontSize: '14px', color: '#374151', marginBottom: '8px' }}>{o.descricao}</p>
-                    {(o as Ocorrencia & { endereco_label?: string }).endereco_label ? (
-                      <p style={{ fontSize: '12px', color: '#4b5563', marginBottom: '4px' }}>
-                        Endereço: {(o as Ocorrencia & { endereco_label?: string }).endereco_label}
-                      </p>
-                    ) : null}
-                    <p style={{ fontSize: '12px', color: '#9ca3af', fontFamily: 'monospace', marginBottom: '4px' }}>{o.lat.toFixed(5)}, {o.lng.toFixed(5)}</p>
+                    {(() => {
+                      const label = (o as Ocorrencia & { endereco_label?: string }).endereco_label || enderecoReverso[o.id]
+                      if (label) {
+                        return (
+                          <p style={{ fontSize: '12px', color: '#374151', marginBottom: '4px' }}>
+                            <span style={{ color: '#9ca3af' }}>Endereço: </span>{label === 'buscando...' ? <em style={{ color: '#9ca3af' }}>buscando...</em> : label}
+                          </p>
+                        )
+                      }
+                      return (
+                        <button onClick={() => geocodificarReverso(o.id, o.lat, o.lng)}
+                          style={{ fontSize: '12px', color: '#1e3a5f', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline', marginBottom: '4px', display: 'block' }}>
+                          Buscar endereço pelas coordenadas
+                        </button>
+                      )
+                    })()}
+                    <p style={{ fontSize: '11px', color: '#d1d5db', fontFamily: 'monospace', marginBottom: '4px' }}>{o.lat.toFixed(5)}, {o.lng.toFixed(5)}</p>
                     <a href={`https://www.openstreetmap.org/?mlat=${o.lat}&mlon=${o.lng}&zoom=17`} target="_blank" rel="noreferrer"
-                      style={{ fontSize: '12px', color: '#1e3a5f', textDecoration: 'underline', display: 'inline-block', marginBottom: '14px' }}>
-                      Ver localização no mapa
+                      style={{ fontSize: '12px', color: '#9ca3af', textDecoration: 'underline', display: 'inline-block', marginBottom: '14px' }}>
+                      Ver no mapa
                     </a>
                   </>
                 )}
