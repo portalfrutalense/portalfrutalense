@@ -365,15 +365,18 @@ export default function AdminPage() {
                 )}
 
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {d.status === 'pendente' && (
+                  {d.status === 'pendente' ? (
                     <>
                       {btnAcao('Aprovar e enviar link', () => aprovar(d.id, 'denuncia'), 'primario')}
-                      {btnAcao('Rejeitar', () => rejeitar(d.id, 'denuncia'), 'neutro')}
+                      {btnAcao('Excluir', () => excluir(d.id, 'denuncia'), 'perigo')}
+                    </>
+                  ) : (
+                    <>
+                      {editandoDen !== d.id && btnAcao('Editar', () => { setEditandoDen(d.id); setEditDenMsg(d.mensagem) }, 'neutro')}
+                      {btnAcao(d.oculto ? 'Mostrar ao público' : 'Ocultar do público', () => toggleOculto(d.id, 'denuncia', !!d.oculto), 'aviso')}
+                      {btnAcao('Excluir', () => excluir(d.id, 'denuncia'), 'perigo')}
                     </>
                   )}
-                  {editandoDen !== d.id && btnAcao('Editar', () => { setEditandoDen(d.id); setEditDenMsg(d.mensagem) }, 'neutro')}
-                  {btnAcao(d.oculto ? 'Mostrar ao público' : 'Ocultar do público', () => toggleOculto(d.id, 'denuncia', !!d.oculto), 'aviso')}
-                  {btnAcao('Excluir', () => excluir(d.id, 'denuncia'), 'perigo')}
                 </div>
               </div>
             ))}
@@ -509,24 +512,27 @@ export default function AdminPage() {
                 )}
 
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {o.status === 'pendente' && (
+                  {o.status === 'pendente' ? (
                     <>
                       {btnAcao('Publicar no mapa', () => aprovar(o.id, 'ocorrencia'), 'primario')}
-                      {btnAcao('Rejeitar', () => rejeitar(o.id, 'ocorrencia'), 'neutro')}
+                      {btnAcao('Excluir', () => excluir(o.id, 'ocorrencia'), 'perigo')}
+                    </>
+                  ) : (
+                    <>
+                      {editandoOco !== o.id && btnAcao('Editar', () => {
+                        setEditandoOco(o.id)
+                        setEditOcoDesc(o.descricao)
+                        setEditOcoNome(o.morador_nome)
+                        setEditOcoCatId(o.categoria_id)
+                        setEditOcoLat(o.lat.toString())
+                        setEditOcoLng(o.lng.toString())
+                        setEditOcoEndereco('')
+                        setEditOcoEnderecoLabel('')
+                      }, 'neutro')}
+                      {btnAcao(o.oculto ? 'Mostrar ao público' : 'Ocultar do público', () => toggleOculto(o.id, 'ocorrencia', !!o.oculto), 'aviso')}
+                      {btnAcao('Excluir', () => excluir(o.id, 'ocorrencia'), 'perigo')}
                     </>
                   )}
-                  {editandoOco !== o.id && btnAcao('Editar', () => {
-                    setEditandoOco(o.id)
-                    setEditOcoDesc(o.descricao)
-                    setEditOcoNome(o.morador_nome)
-                    setEditOcoCatId(o.categoria_id)
-                    setEditOcoLat(o.lat.toString())
-                    setEditOcoLng(o.lng.toString())
-                    setEditOcoEndereco('')
-                    setEditOcoEnderecoLabel('')
-                  }, 'neutro')}
-                  {btnAcao(o.oculto ? 'Mostrar ao público' : 'Ocultar do público', () => toggleOculto(o.id, 'ocorrencia', !!o.oculto), 'aviso')}
-                  {btnAcao('Excluir', () => excluir(o.id, 'ocorrencia'), 'perigo')}
                 </div>
               </div>
             ))}
