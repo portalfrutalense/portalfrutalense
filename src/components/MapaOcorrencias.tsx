@@ -210,7 +210,7 @@ export default function MapaOcorrencias() {
 
       {/* Mapa */}
       <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb', marginBottom: '16px', position: 'relative', zIndex: 1 }}>
-        <div ref={mapRef} style={{ width: '100%', height: '460px' }} />
+        <div ref={mapRef} style={{ width: '100%', height: 'clamp(300px, 55vw, 460px)' }} />
         <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'white', borderRadius: '6px', padding: '6px 12px', fontSize: '12px', color: '#6b7280', boxShadow: '0 1px 3px rgba(0,0,0,0.15)', zIndex: 1000 }}>
           {ocorrencias.length} ocorrencia(s) no mapa
         </div>

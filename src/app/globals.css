@@ -10,19 +10,22 @@ body {
   font-family: Inter, sans-serif;
 }
 
-.navbar {
-  background-color: #1e3a5f !important;
-  color: white;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-}
-
-.navbar a {
-  color: #bfdbfe;
-  text-decoration: none;
-}
-
-.navbar a:hover,
-.navbar a.active {
-  color: white;
-  background-color: #1e40af;
+/* Responsivo: grid 2 colunas → 1 coluna no mobile */
+@media (max-width: 600px) {
+  .grid-2col {
+    grid-template-columns: 1fr !important;
+  }
+  .grid-3col {
+    grid-template-columns: 1fr !important;
+  }
+  .btn-full-mobile {
+    width: 100% !important;
+    align-self: stretch !important;
+  }
+  .hide-mobile {
+    display: none !important;
+  }
+  .stack-mobile {
+    flex-direction: column !important;
+  }
 }

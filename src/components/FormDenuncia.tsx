@@ -88,7 +88,7 @@ export default function FormDenuncia() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }} className="grid-2col">
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Nome Completo *</label>
           <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Seu nome completo"
@@ -121,7 +121,7 @@ export default function FormDenuncia() {
         </p>
       </div>
 
-      <button type="submit" disabled={enviando}
+      <button type="submit" disabled={enviando} className="btn-full-mobile"
         style={{ alignSelf: 'flex-start', backgroundColor: enviando ? '#9ca3af' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px 20px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
         {enviando ? 'Enviando...' : 'Enviar Denúncia'}
       </button>
