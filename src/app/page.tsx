@@ -10,6 +10,7 @@ async function getDenuncias(): Promise<Denuncia[]> {
     .from('denuncias')
     .select('*, entidade:entidades(*)')
     .in('status', ['aguardando_resposta', 'respondida'])
+    .eq('oculto', false)
     .order('created_at', { ascending: false })
 
   if (error) return []

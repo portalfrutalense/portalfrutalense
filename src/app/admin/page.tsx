@@ -7,6 +7,14 @@ import { Denuncia, Ocorrencia, Entidade, CategoriaMapa } from '@/types'
 
 type Aba = 'denuncias' | 'ocorrencias' | 'entidades' | 'categorias'
 
+const STATUS_LABEL: Record<string, { label: string; cor: string; fundo: string }> = {
+  pendente:            { label: 'Pendente',            cor: '#92400e', fundo: '#fef3c7' },
+  aguardando_resposta: { label: 'Aguardando resposta', cor: '#1e40af', fundo: '#dbeafe' },
+  respondida:          { label: 'Respondida',          cor: '#166534', fundo: '#dcfce7' },
+  rejeitada:           { label: 'Rejeitada',           cor: '#6b7280', fundo: '#f3f4f6' },
+  publicada:           { label: 'Publicada',           cor: '#166534', fundo: '#dcfce7' },
+}
+
 export default function AdminPage() {
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
@@ -15,10 +23,13 @@ export default function AdminPage() {
   const [carregandoAuth, setCarregandoAuth] = useState(true)
   const [aba, setAba] = useState<Aba>('denuncias')
 
-  const [denuncias, setDenuncias] = useState<Denuncia[]>([])
-  const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([])
+  const [denuncias, setDenuncias] = useState<(Denuncia & { oculto?: boolean })[]>([])
+  const [ocorrencias, setOcorrencias] = useState<(Ocorrencia & { oculto?: boolean })[]>([])
   const [entidades, setEntidades] = useState<Entidade[]>([])
   const [categorias, setCategorias] = useState<CategoriaMapa[]>([])
+
+  const [filtroDen, setFiltroDen] = useState<string>('todos')
+  const [filtroOco, setFiltroOco] = useState<string>('todos')
 
   const [novaEntNome, setNovaEntNome] = useState('')
   const [novaEntCargo, setNovaEntCargo] = useState('')
@@ -27,28 +38,24 @@ export default function AdminPage() {
   const [novaCatCor, setNovaCatCor] = useState('#ef4444')
   const [notificacao, setNotificacao] = useState('')
 
+  // Edição inline de denúncia
+  const [editandoDen, setEditandoDen] = useState<string | null>(null)
+  const [editDenMsg, setEditDenMsg] = useState('')
+
+  // Edição inline de ocorrência
+  const [editandoOco, setEditandoOco] = useState<string | null>(null)
+  const [editOcoDesc, setEditOcoDesc] = useState('')
+
   const client = createClient()
 
-  // Verifica sessão existente ao carregar
   useEffect(() => {
     client.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        setAutenticado(true)
-        carregarDados()
-      }
+      if (data.session) { setAutenticado(true); carregarDados() }
       setCarregandoAuth(false)
     })
-
-    // Escuta mudanças de auth
     const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        setAutenticado(true)
-        carregarDados()
-      } else {
-        setAutenticado(false)
-      }
+      if (session) { setAutenticado(true); carregarDados() } else { setAutenticado(false) }
     })
-
     return () => subscription.unsubscribe()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -57,9 +64,7 @@ export default function AdminPage() {
     e.preventDefault()
     setErroLogin('')
     const { error } = await client.auth.signInWithPassword({ email, password: senha })
-    if (error) {
-      setErroLogin('Email ou senha incorretos.')
-    }
+    if (error) setErroLogin('E-mail ou senha incorretos.')
   }
 
   async function handleLogout() {
@@ -68,38 +73,70 @@ export default function AdminPage() {
   }
 
   function carregarDados() {
-    supabase.from('denuncias').select('*, entidade:entidades(*)').eq('status', 'pendente').order('created_at').then(({ data }) => setDenuncias(data as Denuncia[] || []))
-    supabase.from('ocorrencias').select('*, categoria:categorias_mapa(*)').eq('status', 'pendente').order('created_at').then(({ data }) => setOcorrencias(data as Ocorrencia[] || []))
-    supabase.from('entidades').select('*').order('nome').then(({ data }) => setEntidades(data as Entidade[] || []))
-    supabase.from('categorias_mapa').select('*').order('nome').then(({ data }) => setCategorias(data as CategoriaMapa[] || []))
+    supabase.from('denuncias').select('*, entidade:entidades(*)').order('created_at', { ascending: false }).then(({ data }) => setDenuncias((data as (Denuncia & { oculto?: boolean })[]) || []))
+    supabase.from('ocorrencias').select('*, categoria:categorias_mapa(*)').order('created_at', { ascending: false }).then(({ data }) => setOcorrencias((data as (Ocorrencia & { oculto?: boolean })[]) || []))
+    supabase.from('entidades').select('*').order('nome').then(({ data }) => setEntidades((data as Entidade[]) || []))
+    supabase.from('categorias_mapa').select('*').order('nome').then(({ data }) => setCategorias((data as CategoriaMapa[]) || []))
+  }
+
+  async function getToken() {
+    const { data } = await client.auth.getSession()
+    return data.session?.access_token || ''
   }
 
   async function aprovar(id: string, tipo: 'denuncia' | 'ocorrencia') {
-    const session = await client.auth.getSession()
     const res = await fetch('/api/admin/aprovar', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.data.session?.access_token}` },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await getToken()}` },
       body: JSON.stringify({ id, tipo }),
     })
     const data = await res.json()
     if (tipo === 'denuncia') {
-      if (data.magicLink) {
-        setNotificacao('Denúncia aprovada e e-mail enviado à autoridade.')
-      } else {
-        setNotificacao('Denúncia aprovada. Nenhum e-mail enviado (entidade sem e-mail cadastrado).')
-      }
+      setNotificacao(data.magicLink
+        ? 'Denúncia aprovada e e-mail enviado à autoridade.'
+        : 'Denúncia aprovada. Nenhum e-mail enviado (entidade sem e-mail cadastrado).')
       setTimeout(() => setNotificacao(''), 5000)
     }
     carregarDados()
   }
 
   async function rejeitar(id: string, tipo: 'denuncia' | 'ocorrencia') {
-    const session = await client.auth.getSession()
     await fetch('/api/admin/rejeitar', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.data.session?.access_token}` },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await getToken()}` },
       body: JSON.stringify({ id, tipo }),
     })
+    carregarDados()
+  }
+
+  async function excluir(id: string, tipo: 'denuncia' | 'ocorrencia') {
+    if (!confirm('Tem certeza que deseja excluir permanentemente este registro?')) return
+    await fetch('/api/admin/excluir', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await getToken()}` },
+      body: JSON.stringify({ id, tipo }),
+    })
+    carregarDados()
+  }
+
+  async function toggleOculto(id: string, tipo: 'denuncia' | 'ocorrencia', ocultoAtual: boolean) {
+    await fetch('/api/admin/ocultar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await getToken()}` },
+      body: JSON.stringify({ id, tipo, oculto: !ocultoAtual }),
+    })
+    carregarDados()
+  }
+
+  async function salvarEdicaoDen(id: string) {
+    await supabase.from('denuncias').update({ mensagem: editDenMsg }).eq('id', id)
+    setEditandoDen(null)
+    carregarDados()
+  }
+
+  async function salvarEdicaoOco(id: string) {
+    await supabase.from('ocorrencias').update({ descricao: editOcoDesc }).eq('id', id)
+    setEditandoOco(null)
     carregarDados()
   }
 
@@ -129,12 +166,35 @@ export default function AdminPage() {
     carregarDados()
   }
 
-  if (carregandoAuth) {
+  const denPendentes = denuncias.filter(d => d.status === 'pendente').length
+  const ocoPendentes = ocorrencias.filter(o => o.status === 'pendente').length
+
+  const denFiltradas = filtroDen === 'todos' ? denuncias : denuncias.filter(d => d.status === filtroDen)
+  const ocoFiltradas = filtroOco === 'todos' ? ocorrencias : ocorrencias.filter(o => o.status === filtroOco)
+
+  const abas: { key: Aba; label: string; badge?: number }[] = [
+    { key: 'denuncias',   label: 'Denúncias',   badge: denPendentes },
+    { key: 'ocorrencias', label: 'Ocorrências',  badge: ocoPendentes },
+    { key: 'entidades',   label: 'Entidades' },
+    { key: 'categorias',  label: 'Categorias' },
+  ]
+
+  const btnAcao = (label: string, onClick: () => void, variante: 'primario' | 'perigo' | 'neutro' | 'aviso') => {
+    const estilos: Record<string, React.CSSProperties> = {
+      primario: { backgroundColor: '#1e3a5f', color: 'white', border: 'none' },
+      perigo:   { backgroundColor: 'white', color: '#dc2626', border: '1px solid #fecaca' },
+      neutro:   { backgroundColor: 'white', color: '#6b7280', border: '1px solid #e5e7eb' },
+      aviso:    { backgroundColor: 'white', color: '#92400e', border: '1px solid #fde68a' },
+    }
     return (
-      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '14px' }}>
-        Verificando sessao...
-      </div>
+      <button onClick={onClick} style={{ ...estilos[variante], fontSize: '12px', borderRadius: '5px', padding: '5px 12px', fontWeight: 500, cursor: 'pointer' }}>
+        {label}
+      </button>
     )
+  }
+
+  if (carregandoAuth) {
+    return <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '14px' }}>Verificando sessão...</div>
   }
 
   if (!autenticado) {
@@ -146,7 +206,7 @@ export default function AdminPage() {
           {erroLogin && <p style={{ color: '#dc2626', fontSize: '13px', marginBottom: '12px' }}>{erroLogin}</p>}
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Email</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>E-mail</label>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" required
                 style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
             </div>
@@ -164,19 +224,13 @@ export default function AdminPage() {
     )
   }
 
-  const abas: { key: Aba; label: string; count?: number }[] = [
-    { key: 'denuncias', label: 'Denuncias', count: denuncias.length },
-    { key: 'ocorrencias', label: 'Ocorrencias', count: ocorrencias.length },
-    { key: 'entidades', label: 'Entidades' },
-    { key: 'categorias', label: 'Categorias' },
-  ]
-
   return (
     <div>
+      {/* Cabeçalho */}
       <div style={{ marginBottom: '24px', borderBottom: '1px solid #e5e7eb', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', marginBottom: '4px' }}>Painel Master</h1>
-          <p style={{ fontSize: '13px', color: '#6b7280' }}>Moderacao e configuracao do Portal Frutalense.</p>
+          <p style={{ fontSize: '13px', color: '#6b7280' }}>Moderação e configuração do Portal Frutalense.</p>
         </div>
         <button onClick={handleLogout} style={{ fontSize: '13px', color: '#6b7280', background: 'none', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer' }}>
           Sair
@@ -191,85 +245,158 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Tabs */}
+      {/* Abas */}
       <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', marginBottom: '24px' }}>
         {abas.map((a) => (
           <button key={a.key} onClick={() => setAba(a.key)}
-            style={{ padding: '10px 20px', fontSize: '14px', fontWeight: 500, border: 'none', borderBottom: aba === a.key ? '2px solid #1e3a5f' : '2px solid transparent', background: 'none', cursor: 'pointer', color: aba === a.key ? '#1e3a5f' : '#6b7280', marginBottom: '-1px' }}>
+            style={{ padding: '10px 20px', fontSize: '14px', fontWeight: 500, border: 'none', borderBottom: aba === a.key ? '2px solid #1e3a5f' : '2px solid transparent', background: 'none', cursor: 'pointer', color: aba === a.key ? '#1e3a5f' : '#6b7280', marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             {a.label}
-            {a.count !== undefined && (
-              <span style={{ marginLeft: '8px', fontSize: '11px', padding: '2px 6px', borderRadius: '999px', background: a.count > 0 ? '#fee2e2' : '#f3f4f6', color: a.count > 0 ? '#dc2626' : '#6b7280' }}>
-                {a.count}
+            {a.badge !== undefined && (
+              <span style={{ fontSize: '11px', padding: '2px 6px', borderRadius: '999px', background: a.badge > 0 ? '#fee2e2' : '#f3f4f6', color: a.badge > 0 ? '#dc2626' : '#6b7280' }}>
+                {a.badge > 0 ? `${a.badge} novo${a.badge > 1 ? 's' : ''}` : '0'}
               </span>
             )}
           </button>
         ))}
       </div>
 
-      {/* Denuncias */}
+      {/* === DENÚNCIAS === */}
       {aba === 'denuncias' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {denuncias.length === 0 ? (
-            <p style={{ color: '#9ca3af', textAlign: 'center', padding: '64px 0', fontSize: '14px' }}>Nenhuma denuncia pendente.</p>
-          ) : denuncias.map((d) => (
-            <div key={d.id} style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div>
-                  <p style={{ fontWeight: 600, color: '#111827', fontSize: '14px', margin: 0 }}>{d.morador_nome}</p>
-                  <p style={{ fontSize: '12px', color: '#9ca3af', fontFamily: 'monospace', margin: '2px 0' }}>{d.morador_cpf_display}</p>
-                  {d.entidade && <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0' }}>Para: {d.entidade.nome} — {d.entidade.cargo}</p>}
-                </div>
-                <p style={{ fontSize: '12px', color: '#9ca3af' }}>{new Date(d.created_at).toLocaleDateString('pt-BR')}</p>
-              </div>
-              <p style={{ fontSize: '14px', color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap', marginBottom: '16px' }}>{d.mensagem}</p>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => aprovar(d.id, 'denuncia')} style={{ fontSize: '13px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '7px 16px', fontWeight: 600, cursor: 'pointer' }}>
-                  Aprovar e Enviar Link
-                </button>
-                <button onClick={() => rejeitar(d.id, 'denuncia')} style={{ fontSize: '13px', backgroundColor: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 16px', fontWeight: 500, cursor: 'pointer' }}>
-                  Rejeitar
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+        <div>
+          {/* Filtro */}
+          <div style={{ marginBottom: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <span style={{ fontSize: '13px', color: '#6b7280' }}>Filtrar:</span>
+            {['todos', 'pendente', 'aguardando_resposta', 'respondida', 'rejeitada'].map(f => (
+              <button key={f} onClick={() => setFiltroDen(f)}
+                style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '999px', border: '1px solid', cursor: 'pointer', fontWeight: 500, borderColor: filtroDen === f ? '#1e3a5f' : '#e5e7eb', backgroundColor: filtroDen === f ? '#1e3a5f' : 'white', color: filtroDen === f ? 'white' : '#6b7280' }}>
+                {f === 'todos' ? 'Todos' : STATUS_LABEL[f]?.label}
+                {' '}({f === 'todos' ? denuncias.length : denuncias.filter(d => d.status === f).length})
+              </button>
+            ))}
+          </div>
 
-      {/* Ocorrencias */}
-      {aba === 'ocorrencias' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {ocorrencias.length === 0 ? (
-            <p style={{ color: '#9ca3af', textAlign: 'center', padding: '64px 0', fontSize: '14px' }}>Nenhuma ocorrencia pendente.</p>
-          ) : ocorrencias.map((o) => (
-            <div key={o.id} style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <div>
-                  <p style={{ fontWeight: 600, color: '#111827', fontSize: '14px', margin: 0 }}>{o.morador_nome}</p>
-                  {o.categoria && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', marginTop: '4px' }}>
-                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: o.categoria.cor, display: 'inline-block' }} />
-                      {o.categoria.nome}
-                    </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {denFiltradas.length === 0 ? (
+              <p style={{ color: '#9ca3af', textAlign: 'center', padding: '48px 0', fontSize: '14px' }}>Nenhuma denúncia encontrada.</p>
+            ) : denFiltradas.map((d) => (
+              <div key={d.id} style={{ background: 'white', borderRadius: '8px', border: d.oculto ? '1px dashed #d1d5db' : '1px solid #e5e7eb', padding: '18px 20px', opacity: d.oculto ? 0.7 : 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '2px' }}>
+                      <p style={{ fontWeight: 600, color: '#111827', fontSize: '14px', margin: 0 }}>{d.morador_nome}</p>
+                      <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '999px', fontWeight: 500, backgroundColor: STATUS_LABEL[d.status]?.fundo || '#f3f4f6', color: STATUS_LABEL[d.status]?.cor || '#6b7280' }}>
+                        {STATUS_LABEL[d.status]?.label || d.status}
+                      </span>
+                      {d.oculto && <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '999px', backgroundColor: '#f3f4f6', color: '#6b7280' }}>Oculta do público</span>}
+                    </div>
+                    <p style={{ fontSize: '12px', color: '#9ca3af', fontFamily: 'monospace', margin: '2px 0' }}>{d.morador_cpf_display}</p>
+                    {d.entidade && <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0' }}>Para: {d.entidade.nome} — {d.entidade.cargo}</p>}
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#9ca3af', whiteSpace: 'nowrap' }}>{new Date(d.created_at).toLocaleDateString('pt-BR')}</p>
+                </div>
+
+                {editandoDen === d.id ? (
+                  <div style={{ marginBottom: '12px' }}>
+                    <textarea value={editDenMsg} onChange={(e) => setEditDenMsg(e.target.value)} rows={4}
+                      style={{ width: '100%', border: '1px solid #1e3a5f', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box', lineHeight: 1.6 }} />
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                      {btnAcao('Salvar edição', () => salvarEdicaoDen(d.id), 'primario')}
+                      {btnAcao('Cancelar', () => setEditandoDen(null), 'neutro')}
+                    </div>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: '14px', color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap', marginBottom: '14px' }}>{d.mensagem}</p>
+                )}
+
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {d.status === 'pendente' && (
+                    <>
+                      {btnAcao('Aprovar e enviar link', () => aprovar(d.id, 'denuncia'), 'primario')}
+                      {btnAcao('Rejeitar', () => rejeitar(d.id, 'denuncia'), 'neutro')}
+                    </>
                   )}
+                  {editandoDen !== d.id && btnAcao('Editar', () => { setEditandoDen(d.id); setEditDenMsg(d.mensagem) }, 'neutro')}
+                  {btnAcao(d.oculto ? 'Mostrar ao público' : 'Ocultar do público', () => toggleOculto(d.id, 'denuncia', !!d.oculto), 'aviso')}
+                  {btnAcao('Excluir', () => excluir(d.id, 'denuncia'), 'perigo')}
                 </div>
-                <p style={{ fontSize: '12px', color: '#9ca3af' }}>{new Date(o.created_at).toLocaleDateString('pt-BR')}</p>
               </div>
-              <p style={{ fontSize: '14px', color: '#374151', marginBottom: '4px' }}>{o.descricao}</p>
-              <p style={{ fontSize: '12px', color: '#9ca3af', fontFamily: 'monospace', marginBottom: '16px' }}>{o.lat.toFixed(5)}, {o.lng.toFixed(5)}</p>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => aprovar(o.id, 'ocorrencia')} style={{ fontSize: '13px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '7px 16px', fontWeight: 600, cursor: 'pointer' }}>
-                  Publicar no Mapa
-                </button>
-                <button onClick={() => rejeitar(o.id, 'ocorrencia')} style={{ fontSize: '13px', backgroundColor: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 16px', fontWeight: 500, cursor: 'pointer' }}>
-                  Rejeitar
-                </button>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Entidades */}
+      {/* === OCORRÊNCIAS === */}
+      {aba === 'ocorrencias' && (
+        <div>
+          {/* Filtro */}
+          <div style={{ marginBottom: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <span style={{ fontSize: '13px', color: '#6b7280' }}>Filtrar:</span>
+            {['todos', 'pendente', 'publicada', 'rejeitada'].map(f => (
+              <button key={f} onClick={() => setFiltroOco(f)}
+                style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '999px', border: '1px solid', cursor: 'pointer', fontWeight: 500, borderColor: filtroOco === f ? '#1e3a5f' : '#e5e7eb', backgroundColor: filtroOco === f ? '#1e3a5f' : 'white', color: filtroOco === f ? 'white' : '#6b7280' }}>
+                {f === 'todos' ? 'Todos' : STATUS_LABEL[f]?.label}
+                {' '}({f === 'todos' ? ocorrencias.length : ocorrencias.filter(o => o.status === f).length})
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {ocoFiltradas.length === 0 ? (
+              <p style={{ color: '#9ca3af', textAlign: 'center', padding: '48px 0', fontSize: '14px' }}>Nenhuma ocorrência encontrada.</p>
+            ) : ocoFiltradas.map((o) => (
+              <div key={o.id} style={{ background: 'white', borderRadius: '8px', border: o.oculto ? '1px dashed #d1d5db' : '1px solid #e5e7eb', padding: '18px 20px', opacity: o.oculto ? 0.7 : 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                      <p style={{ fontWeight: 600, color: '#111827', fontSize: '14px', margin: 0 }}>{o.morador_nome}</p>
+                      <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '999px', fontWeight: 500, backgroundColor: STATUS_LABEL[o.status]?.fundo || '#f3f4f6', color: STATUS_LABEL[o.status]?.cor || '#6b7280' }}>
+                        {STATUS_LABEL[o.status]?.label || o.status}
+                      </span>
+                      {o.oculto && <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '999px', backgroundColor: '#f3f4f6', color: '#6b7280' }}>Oculta do público</span>}
+                    </div>
+                    {o.categoria && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+                        <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: o.categoria.cor, display: 'inline-block' }} />
+                        {o.categoria.nome}
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#9ca3af', whiteSpace: 'nowrap' }}>{new Date(o.created_at).toLocaleDateString('pt-BR')}</p>
+                </div>
+
+                {editandoOco === o.id ? (
+                  <div style={{ marginBottom: '12px' }}>
+                    <textarea value={editOcoDesc} onChange={(e) => setEditOcoDesc(e.target.value)} rows={3}
+                      style={{ width: '100%', border: '1px solid #1e3a5f', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box', lineHeight: 1.6 }} />
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                      {btnAcao('Salvar edição', () => salvarEdicaoOco(o.id), 'primario')}
+                      {btnAcao('Cancelar', () => setEditandoOco(null), 'neutro')}
+                    </div>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: '14px', color: '#374151', marginBottom: '4px' }}>{o.descricao}</p>
+                )}
+
+                <p style={{ fontSize: '12px', color: '#9ca3af', fontFamily: 'monospace', marginBottom: '14px' }}>{o.lat.toFixed(5)}, {o.lng.toFixed(5)}</p>
+
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {o.status === 'pendente' && (
+                    <>
+                      {btnAcao('Publicar no mapa', () => aprovar(o.id, 'ocorrencia'), 'primario')}
+                      {btnAcao('Rejeitar', () => rejeitar(o.id, 'ocorrencia'), 'neutro')}
+                    </>
+                  )}
+                  {editandoOco !== o.id && btnAcao('Editar', () => { setEditandoOco(o.id); setEditOcoDesc(o.descricao) }, 'neutro')}
+                  {btnAcao(o.oculto ? 'Mostrar ao público' : 'Ocultar do público', () => toggleOculto(o.id, 'ocorrencia', !!o.oculto), 'aviso')}
+                  {btnAcao('Excluir', () => excluir(o.id, 'ocorrencia'), 'perigo')}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* === ENTIDADES === */}
       {aba === 'entidades' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '20px' }}>
@@ -277,7 +404,7 @@ export default function AdminPage() {
             <form onSubmit={salvarEntidade} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                 <input value={novaEntNome} onChange={(e) => setNovaEntNome(e.target.value)} placeholder="Nome" required style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none' }} />
-                <input value={novaEntCargo} onChange={(e) => setNovaEntCargo(e.target.value)} placeholder="Cargo / Orgao" required style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none' }} />
+                <input value={novaEntCargo} onChange={(e) => setNovaEntCargo(e.target.value)} placeholder="Cargo / Órgão" required style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none' }} />
                 <input type="email" value={novaEntEmail} onChange={(e) => setNovaEntEmail(e.target.value)} placeholder="E-mail" required style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none' }} />
               </div>
               <button type="submit" style={{ alignSelf: 'flex-start', backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '8px 18px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '13px' }}>Salvar</button>
@@ -298,14 +425,14 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Categorias */}
+      {/* === CATEGORIAS === */}
       {aba === 'categorias' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '20px' }}>
             <h2 style={{ fontWeight: 600, color: '#111827', fontSize: '15px', marginBottom: '16px' }}>Nova Categoria</h2>
             <form onSubmit={salvarCategoria} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
-                <input value={novaCatNome} onChange={(e) => setNovaCatNome(e.target.value)} placeholder="Nome da categoria (ex: Buraco na Via)" required style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none' }} />
+                <input value={novaCatNome} onChange={(e) => setNovaCatNome(e.target.value)} placeholder="Nome da categoria (ex: Buraco na via)" required style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none' }} />
                 <div>
                   <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Cor do pin</label>
                   <input type="color" value={novaCatCor} onChange={(e) => setNovaCatCor(e.target.value)} style={{ width: '44px', height: '38px', borderRadius: '6px', cursor: 'pointer', border: '1px solid #d1d5db', padding: '2px' }} />

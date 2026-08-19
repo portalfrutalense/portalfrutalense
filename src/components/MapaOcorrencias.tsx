@@ -30,7 +30,7 @@ export default function MapaOcorrencias() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('ocorrencias').select('*, categoria:categorias_mapa(*)').eq('status', 'publicada'),
+      supabase.from('ocorrencias').select('*, categoria:categorias_mapa(*)').eq('status', 'publicada').eq('oculto', false),
       supabase.from('categorias_mapa').select('*').eq('ativo', true).order('nome'),
     ]).then(([{ data: ocs }, { data: cats }]) => {
       setOcorrencias((ocs || []) as Ocorrencia[])
