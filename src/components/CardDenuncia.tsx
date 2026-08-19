@@ -24,7 +24,6 @@ export default function CardDenuncia({ denuncia }: Props) {
       <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', borderBottom: '1px solid #f3f4f6' }}>
         <div>
           <p style={{ fontWeight: 600, color: '#111827', fontSize: '14px', margin: 0 }}>{denuncia.morador_nome}</p>
-          <p style={{ color: '#9ca3af', fontSize: '12px', fontFamily: 'monospace', margin: '2px 0' }}>{denuncia.morador_cpf_display}</p>
           {denuncia.entidade && (
             <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0' }}>
               Para: <strong style={{ color: '#374151' }}>{denuncia.entidade.nome}</strong> — {denuncia.entidade.cargo}

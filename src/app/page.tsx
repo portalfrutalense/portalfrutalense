@@ -26,7 +26,7 @@ export default async function HomePage() {
         <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', marginBottom: '4px' }}>Fórum de Denúncias</h1>
         <p style={{ fontSize: '14px', color: '#6b7280' }}>
           Canal de cobrança direta para autoridades e órgãos públicos de Frutal-MG.
-          Nome e CPF do autor são exibidos para dar credibilidade à denúncia.
+          O nome do autor é exibido para dar credibilidade à denúncia.
         </p>
       </div>
 

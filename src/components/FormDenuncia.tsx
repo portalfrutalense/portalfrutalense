@@ -20,6 +20,10 @@ export default function FormDenuncia() {
       .then(({ data }) => setEntidades(data || []))
   }, [])
 
+  function capitalizarNome(valor: string) {
+    return valor.replace(/\b\w/g, (c) => c.toUpperCase())
+  }
+
   function handleCPF(valor: string) {
     const limpo = valor.replace(/\D/g, '').slice(0, 11)
     setCpf(limpo ? formatarCPF(limpo) : '')
@@ -91,7 +95,7 @@ export default function FormDenuncia() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }} className="grid-2col">
         <div>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Nome Completo *</label>
-          <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Seu nome completo"
+          <input type="text" value={nome} onChange={(e) => setNome(capitalizarNome(e.target.value))} placeholder="Seu nome completo"
             style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
         </div>
         <div>

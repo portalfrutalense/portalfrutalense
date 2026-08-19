@@ -85,7 +85,7 @@ export default function MapaOcorrencias() {
       })
       L.marker([o.lat, o.lng], { icon })
         .addTo(mapa)
-        .bindPopup(`<strong>${o.categoria?.nome || 'Ocorrencia'}</strong><br/>${o.descricao}`)
+        .bindPopup(`<strong>${o.categoria?.nome || 'Ocorrência'}</strong><br/>${o.descricao}`)
     })
   }, [ocorrencias])
 
@@ -117,6 +117,10 @@ export default function MapaOcorrencias() {
     const centro = miniMapObj.current.getCenter()
     setCoordenadas(prev => prev ? { ...prev, lat: centro.lat, lng: centro.lng } : null)
     setLocConfirmada(true)
+  }
+
+  function capitalizarNome(valor: string) {
+    return valor.replace(/\b\w/g, (c) => c.toUpperCase())
   }
 
   function handleCPF(valor: string) {
@@ -156,10 +160,10 @@ export default function MapaOcorrencias() {
       const query = encodeURIComponent(`${endereco}, Frutal, Minas Gerais, Brasil`)
       const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`)
       const data = await res.json()
-      if (!data || data.length === 0) { setErro('Endereco nao encontrado. Tente ser mais especifico.'); return }
+      if (!data || data.length === 0) { setErro('Endereço não encontrado. Tente ser mais específico.'); return }
       setCoordenadas({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), label: endereco.trim() })
     } catch {
-      setErro('Erro ao buscar endereco.')
+      setErro('Erro ao buscar endereço.')
     } finally {
       setBuscando(false)
     }
@@ -168,8 +172,8 @@ export default function MapaOcorrencias() {
   async function handleEnviar(e: React.FormEvent) {
     e.preventDefault()
     setErro('')
-    if (!nome.trim() || nome.trim().split(' ').length < 2) { setErro('Nome completo obrigatorio.'); return }
-    if (!validarCPF(cpf)) { setErro('CPF invalido.'); return }
+    if (!nome.trim() || nome.trim().split(' ').length < 2) { setErro('Nome completo obrigatório.'); return }
+    if (!validarCPF(cpf)) { setErro('CPF inválido.'); return }
     if (!categoriaId) { setErro('Selecione a categoria.'); return }
     if (!descricao.trim() || descricao.trim().length < 10) { setErro('Descreva melhor o problema.'); return }
     if (!coordenadas || !locConfirmada) { setErro('Busque o endereço e confirme a localização no mapa.'); return }
@@ -209,13 +213,13 @@ export default function MapaOcorrencias() {
       <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb', marginBottom: '16px', position: 'relative', zIndex: 1 }}>
         <div ref={mapRef} style={{ width: '100%', height: 'clamp(300px, 55vw, 460px)' }} />
         <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'white', borderRadius: '6px', padding: '6px 12px', fontSize: '12px', color: '#6b7280', boxShadow: '0 1px 3px rgba(0,0,0,0.15)', zIndex: 1000 }}>
-          {ocorrencias.length} ocorrencia(s) no mapa
+          {ocorrencias.length} ocorrência(s) no mapa
         </div>
       </div>
 
       <button onClick={() => { setModalAberto(true); setSucesso(false) }}
         style={{ backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px 20px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
-        Registrar Ocorrencia
+        Registrar Ocorrência
       </button>
 
       {/* Modal */}
@@ -223,14 +227,14 @@ export default function MapaOcorrencias() {
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #e5e7eb' }}>
-              <h2 style={{ fontWeight: 700, color: '#111827', margin: 0, fontSize: '15px' }}>Registrar Ocorrencia</h2>
+              <h2 style={{ fontWeight: 700, color: '#111827', margin: 0, fontSize: '15px' }}>Registrar Ocorrência</h2>
               <button onClick={() => setModalAberto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#9ca3af', lineHeight: 1, padding: 0 }}>×</button>
             </div>
 
             {sucesso ? (
               <div style={{ padding: '32px', textAlign: 'center' }}>
-                <p style={{ fontWeight: 600, color: '#166534' }}>Ocorrencia registrada!</p>
-                <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '4px' }}>Sera publicada no mapa apos aprovacao.</p>
+                <p style={{ fontWeight: 600, color: '#166534' }}>Ocorrência registrada!</p>
+                <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '4px' }}>Será publicada no mapa após aprovação.</p>
                 <button onClick={() => setModalAberto(false)} style={{ marginTop: '16px', fontSize: '13px', color: '#1e3a5f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Fechar</button>
               </div>
             ) : (
@@ -239,7 +243,7 @@ export default function MapaOcorrencias() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Nome Completo *</label>
-                  <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Seu nome completo"
+                  <input type="text" value={nome} onChange={(e) => setNome(capitalizarNome(e.target.value))} placeholder="Seu nome completo"
                     style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
                 </div>
 
@@ -259,7 +263,7 @@ export default function MapaOcorrencias() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Endereco *</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Endereço *</label>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <input type="text" value={endereco} onChange={(e) => setEndereco(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), buscarEndereco())}
@@ -309,14 +313,14 @@ export default function MapaOcorrencias() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Descricao *</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Descrição *</label>
                   <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={3} placeholder="Descreva o problema..."
                     style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
                 </div>
 
                 <button type="submit" disabled={enviando}
                   style={{ backgroundColor: enviando ? '#9ca3af' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
-                  {enviando ? 'Enviando...' : 'Registrar Ocorrencia'}
+                  {enviando ? 'Enviando...' : 'Registrar Ocorrência'}
                 </button>
               </form>
             )}
