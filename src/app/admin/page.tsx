@@ -401,27 +401,27 @@ export default function AdminPage() {
               <p style={{ color: '#9ca3af', textAlign: 'center', padding: '48px 0', fontSize: '14px' }}>Nenhuma ocorrência encontrada.</p>
             ) : ocoFiltradas.map((o) => (
               <div key={o.id} style={{ background: 'white', borderRadius: '8px', border: o.oculto ? '1px dashed #d1d5db' : '1px solid #e5e7eb', padding: '18px 20px', opacity: o.oculto ? 0.7 : 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'flex-start' }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-                      <p style={{ fontWeight: 600, color: '#111827', fontSize: '14px', margin: 0 }}>{o.morador_nome}</p>
-                      <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '999px', fontWeight: 500, backgroundColor: STATUS_LABEL[o.status]?.fundo || '#f3f4f6', color: STATUS_LABEL[o.status]?.cor || '#6b7280' }}>
-                        {STATUS_LABEL[o.status]?.label || o.status}
-                      </span>
-                      {o.oculto && <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '999px', backgroundColor: '#f3f4f6', color: '#6b7280' }}>Oculta do público</span>}
-                    </div>
-                    {o.categoria && (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
-                        <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: o.categoria.cor, display: 'inline-block' }} />
-                        {o.categoria.nome}
-                      </span>
-                    )}
-                  </div>
-                  <p style={{ fontSize: '12px', color: '#9ca3af', whiteSpace: 'nowrap' }}>{new Date(o.created_at).toLocaleDateString('pt-BR')}</p>
+
+                {/* Linha 1: Categoria + Status + Oculto + Data */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  {o.categoria && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 500, color: '#111827' }}>
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: o.categoria.cor, display: 'inline-block', flexShrink: 0 }} />
+                      {o.categoria.nome}
+                    </span>
+                  )}
+                  <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '999px', fontWeight: 500, backgroundColor: STATUS_LABEL[o.status]?.fundo || '#f3f4f6', color: STATUS_LABEL[o.status]?.cor || '#6b7280' }}>
+                    {STATUS_LABEL[o.status]?.label || o.status}
+                  </span>
+                  {o.oculto && <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '999px', backgroundColor: '#f3f4f6', color: '#6b7280' }}>Oculta do público</span>}
+                  <span style={{ fontSize: '12px', color: '#9ca3af', marginLeft: 'auto' }}>{new Date(o.created_at).toLocaleDateString('pt-BR')}</span>
                 </div>
 
-                {/* CPF sempre visível */}
-                <p style={{ fontSize: '12px', color: '#9ca3af', fontFamily: 'monospace', margin: '-4px 0 10px' }}>{formatarCPF(o.morador_cpf)}</p>
+                {/* Linha 2: Nome */}
+                <p style={{ fontSize: '14px', fontWeight: 500, color: '#111827', margin: '0 0 2px' }}>{o.morador_nome}</p>
+
+                {/* Linha 3: CPF */}
+                <p style={{ fontSize: '12px', color: '#9ca3af', fontFamily: 'monospace', margin: '0 0 12px' }}>{formatarCPF(o.morador_cpf)}</p>
 
                 {editandoOco === o.id ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
@@ -445,10 +445,10 @@ export default function AdminPage() {
                         style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', resize: 'none', outline: 'none', boxSizing: 'border-box', lineHeight: 1.6 }} />
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>Localização — buscar por endereço</label>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>Endereço — buscar para atualizar coordenadas</label>
                       <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
                         <input value={editOcoEndereco} onChange={(e) => { setEditOcoEndereco(e.target.value); setEditOcoEnderecoLabel('') }}
-                          placeholder="Ex: Rua das Flores, 123"
+                          placeholder="Ex: Godofredo Magalhães Macedo, 18"
                           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); buscarEnderecoAdmin() } }}
                           style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
                         <button onClick={buscarEnderecoAdmin} disabled={buscandoEndereco}
@@ -458,7 +458,7 @@ export default function AdminPage() {
                       </div>
                       {editOcoEnderecoLabel && (
                         <p style={{ fontSize: '12px', color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '5px', padding: '6px 10px', margin: '0 0 8px' }}>
-                          Encontrado: {editOcoEnderecoLabel}
+                          Coordenadas atualizadas para: {editOcoEnderecoLabel}
                         </p>
                       )}
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -481,28 +481,30 @@ export default function AdminPage() {
                   </div>
                 ) : (
                   <>
-                    <p style={{ fontSize: '14px', color: '#374151', marginBottom: '8px' }}>{o.descricao}</p>
-                    {(() => {
-                      const label = (o as Ocorrencia & { endereco_label?: string }).endereco_label || enderecoReverso[o.id]
-                      if (label) {
+                    {/* Descrição */}
+                    <p style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 3px' }}>Descrição</p>
+                    <p style={{ fontSize: '14px', color: '#374151', lineHeight: 1.6, margin: '0 0 10px' }}>{o.descricao}</p>
+
+                    {/* Endereço */}
+                    <p style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 3px' }}>Endereço</p>
+                    <p style={{ fontSize: '14px', color: '#374151', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      {(() => {
+                        const label = (o as Ocorrencia & { endereco_label?: string }).endereco_label || enderecoReverso[o.id]
+                        if (label && label !== 'buscando...') return <span>{label}</span>
+                        if (label === 'buscando...') return <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>buscando...</span>
                         return (
-                          <p style={{ fontSize: '12px', color: '#374151', marginBottom: '4px' }}>
-                            <span style={{ color: '#9ca3af' }}>Endereço: </span>{label === 'buscando...' ? <em style={{ color: '#9ca3af' }}>buscando...</em> : label}
-                          </p>
+                          <button onClick={() => geocodificarReverso(o.id, o.lat, o.lng)}
+                            style={{ fontSize: '13px', color: '#6b7280', background: 'none', border: '1px solid #e5e7eb', borderRadius: '5px', padding: '3px 10px', cursor: 'pointer' }}>
+                            Buscar pelo GPS
+                          </button>
                         )
-                      }
-                      return (
-                        <button onClick={() => geocodificarReverso(o.id, o.lat, o.lng)}
-                          style={{ fontSize: '12px', color: '#1e3a5f', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline', marginBottom: '4px', display: 'block' }}>
-                          Buscar endereço pelas coordenadas
-                        </button>
-                      )
-                    })()}
-                    <p style={{ fontSize: '11px', color: '#d1d5db', fontFamily: 'monospace', marginBottom: '4px' }}>{o.lat.toFixed(5)}, {o.lng.toFixed(5)}</p>
-                    <a href={`https://www.openstreetmap.org/?mlat=${o.lat}&mlon=${o.lng}&zoom=17`} target="_blank" rel="noreferrer"
-                      style={{ fontSize: '12px', color: '#9ca3af', textDecoration: 'underline', display: 'inline-block', marginBottom: '14px' }}>
-                      Ver no mapa
-                    </a>
+                      })()}
+                      <span style={{ fontSize: '12px', color: '#9ca3af', fontFamily: 'monospace' }}>{o.lat.toFixed(5)}, {o.lng.toFixed(5)}</span>
+                      <a href={`https://www.openstreetmap.org/?mlat=${o.lat}&mlon=${o.lng}&zoom=17`} target="_blank" rel="noreferrer"
+                        style={{ fontSize: '12px', color: '#1e3a5f', textDecoration: 'underline' }}>
+                        Ver no mapa
+                      </a>
+                    </p>
                   </>
                 )}
 
