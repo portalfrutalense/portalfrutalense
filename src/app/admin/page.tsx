@@ -25,6 +25,7 @@ export default function AdminPage() {
   const [novaEntEmail, setNovaEntEmail] = useState('')
   const [novaCatNome, setNovaCatNome] = useState('')
   const [novaCatCor, setNovaCatCor] = useState('#ef4444')
+  const [notificacao, setNotificacao] = useState('')
 
   const client = createClient()
 
@@ -75,11 +76,20 @@ export default function AdminPage() {
 
   async function aprovar(id: string, tipo: 'denuncia' | 'ocorrencia') {
     const session = await client.auth.getSession()
-    await fetch('/api/admin/aprovar', {
+    const res = await fetch('/api/admin/aprovar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.data.session?.access_token}` },
       body: JSON.stringify({ id, tipo }),
     })
+    const data = await res.json()
+    if (tipo === 'denuncia') {
+      if (data.magicLink) {
+        setNotificacao('Denúncia aprovada e e-mail enviado à autoridade.')
+      } else {
+        setNotificacao('Denúncia aprovada. Nenhum e-mail enviado (entidade sem e-mail cadastrado).')
+      }
+      setTimeout(() => setNotificacao(''), 5000)
+    }
     carregarDados()
   }
 
@@ -172,6 +182,14 @@ export default function AdminPage() {
           Sair
         </button>
       </div>
+
+      {/* Notificação */}
+      {notificacao && (
+        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '12px 16px', marginBottom: '20px', fontSize: '14px', color: '#166534', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {notificacao}
+          <button onClick={() => setNotificacao('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#166534', fontSize: '16px', lineHeight: 1, padding: 0 }}>×</button>
+        </div>
+      )}
 
       {/* Tabs */}
       <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', marginBottom: '24px' }}>

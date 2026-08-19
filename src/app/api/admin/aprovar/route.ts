@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
     if (denuncia.entidade?.email) {
       await resend.emails.send({
-        from: 'Portal Frutalense <noreply@frutalense.com.br>',
+        from: 'Portal Frutalense <onboarding@resend.dev>',
         to: denuncia.entidade.email,
         subject: `[Portal Frutalense] Nova cobranca publica para ${denuncia.entidade.nome}`,
         html: `
