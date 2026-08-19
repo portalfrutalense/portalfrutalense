@@ -1,16 +1,21 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Ocorrencia, CategoriaMapa } from '@/types'
 import { validarCPF, formatarCPF } from '@/lib/cpf'
 
+const FRUTAL_LAT = -20.0264
+const FRUTAL_LNG = -48.9383
+
 export default function MapaOcorrencias() {
+  const mapRef = useRef<HTMLDivElement>(null)
+  const mapaInstancia = useRef<any>(null)
+
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([])
   const [categorias, setCategorias] = useState<CategoriaMapa[]>([])
   const [modalAberto, setModalAberto] = useState(false)
 
-  // Form
   const [nome, setNome] = useState('')
   const [cpf, setCpf] = useState('')
   const [descricao, setDescricao] = useState('')
@@ -31,6 +36,55 @@ export default function MapaOcorrencias() {
       setCategorias((cats || []) as CategoriaMapa[])
     })
   }, [])
+
+  // Inicializar mapa Leaflet
+  useEffect(() => {
+    if (!mapRef.current || mapaInstancia.current) return
+
+    import('leaflet').then((L) => {
+      // Fix ícones padrão do Leaflet no Next.js
+      delete (L.Icon.Default.prototype as any)._getIconUrl
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      })
+
+      const mapa = L.map(mapRef.current!).setView([FRUTAL_LAT, FRUTAL_LNG], 14)
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+      }).addTo(mapa)
+
+      mapaInstancia.current = { mapa, L }
+    })
+  }, [])
+
+  // Adicionar pins das ocorrências
+  useEffect(() => {
+    if (!mapaInstancia.current || ocorrencias.length === 0) return
+    const { mapa, L } = mapaInstancia.current
+
+    ocorrencias.forEach((o) => {
+      const cor = o.categoria?.cor || '#3b82f6'
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:14px;height:14px;border-radius:50%;background:${cor};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.4)"></div>`,
+        iconSize: [14, 14],
+        iconAnchor: [7, 7],
+      })
+
+      L.marker([o.lat, o.lng], { icon })
+        .addTo(mapa)
+        .bindPopup(`
+          <div style="font-size:13px;line-height:1.5">
+            <strong style="color:#1e3a5f">${o.categoria?.nome || 'Ocorrencia'}</strong><br/>
+            ${o.descricao}<br/>
+            <span style="font-size:11px;color:#6b7280">${new Date(o.created_at).toLocaleDateString('pt-BR')}</span>
+          </div>
+        `)
+    })
+  }, [ocorrencias])
 
   function handleCPF(valor: string) {
     const limpo = valor.replace(/\D/g, '').slice(0, 11)
@@ -102,6 +156,9 @@ export default function MapaOcorrencias() {
 
   return (
     <div>
+      {/* CSS do Leaflet */}
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
       {/* Legenda */}
       {categorias.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
@@ -114,14 +171,10 @@ export default function MapaOcorrencias() {
         </div>
       )}
 
-      {/* Mapa embed */}
+      {/* Mapa Leaflet */}
       <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb', marginBottom: '16px' }}>
-        <iframe
-          title="Mapa de Ocorrencias - Frutal MG"
-          src="https://www.openstreetmap.org/export/embed.html?bbox=-48.9883,-20.0764,-48.8883,-19.9764&layer=mapnik"
-          style={{ width: '100%', height: '440px', display: 'block' }}
-        />
-        <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'white', borderRadius: '6px', padding: '6px 12px', fontSize: '12px', color: '#6b7280', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <div ref={mapRef} style={{ width: '100%', height: '460px' }} />
+        <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'white', borderRadius: '6px', padding: '6px 12px', fontSize: '12px', color: '#6b7280', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', zIndex: 1000 }}>
           {ocorrencias.length} ocorrencia(s) publicada(s)
         </div>
       </div>
@@ -139,8 +192,8 @@ export default function MapaOcorrencias() {
         <div style={{ position: 'fixed', inset: 0, zIndex: 50, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px', borderBottom: '1px solid #e5e7eb' }}>
-              <h2 style={{ fontWeight: 700, color: '#111827', margin: 0 }}>Registrar Ocorrencia</h2>
-              <button onClick={() => setModalAberto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: '#9ca3af' }}>×</button>
+              <h2 style={{ fontWeight: 700, color: '#111827', margin: 0, fontSize: '16px' }}>Registrar Ocorrencia</h2>
+              <button onClick={() => setModalAberto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#9ca3af', lineHeight: 1 }}>×</button>
             </div>
 
             {sucesso ? (
@@ -150,7 +203,7 @@ export default function MapaOcorrencias() {
                 <button onClick={() => setModalAberto(false)} style={{ marginTop: '16px', fontSize: '13px', color: '#1e3a5f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Fechar</button>
               </div>
             ) : (
-              <form onSubmit={handleEnviar} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <form onSubmit={handleEnviar} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 {erro && (
                   <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>
                     {erro}
@@ -159,22 +212,20 @@ export default function MapaOcorrencias() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Nome Completo *</label>
-                  <input type="text" value={nome} onChange={(e) => setNome(e.target.value)}
-                    placeholder="Seu nome completo"
-                    style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none' }} />
+                  <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Seu nome completo"
+                    style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>CPF *</label>
-                  <input type="text" value={cpf} onChange={(e) => handleCPF(e.target.value)}
-                    placeholder="000.000.000-00" maxLength={14}
-                    style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', fontFamily: 'monospace', outline: 'none' }} />
+                  <input type="text" value={cpf} onChange={(e) => handleCPF(e.target.value)} placeholder="000.000.000-00" maxLength={14}
+                    style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }} />
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Categoria *</label>
                   <select value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)}
-                    style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', background: 'white', outline: 'none' }}>
+                    style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', background: 'white', outline: 'none', boxSizing: 'border-box' }}>
                     <option value="">Selecione</option>
                     {categorias.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
                   </select>
@@ -201,9 +252,8 @@ export default function MapaOcorrencias() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Descricao do Problema *</label>
-                  <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)}
-                    rows={3} placeholder="Descreva o problema..."
-                    style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', resize: 'none', outline: 'none' }} />
+                  <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={3} placeholder="Descreva o problema..."
+                    style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
                 </div>
 
                 <button type="submit" disabled={enviando}
