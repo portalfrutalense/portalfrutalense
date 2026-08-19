@@ -11,6 +11,8 @@ const FRUTAL_LNG = -48.9383
 export default function MapaOcorrencias() {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapaIniciado = useRef(false)
+  const mapaObj = useRef<any>(null)
+  const leafletObj = useRef<any>(null)
 
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([])
   const [categorias, setCategorias] = useState<CategoriaMapa[]>([])
@@ -36,11 +38,11 @@ export default function MapaOcorrencias() {
     })
   }, [])
 
+  // Inicializa o mapa uma vez
   useEffect(() => {
     if (!mapRef.current || mapaIniciado.current) return
     mapaIniciado.current = true
 
-    // Carrega CSS do Leaflet dinamicamente
     const link = document.createElement('link')
     link.rel = 'stylesheet'
     link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
@@ -53,26 +55,30 @@ export default function MapaOcorrencias() {
         iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
         shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
       })
-
       const mapa = L.map(mapRef.current!, { zoomControl: true }).setView([FRUTAL_LAT, FRUTAL_LNG], 14)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(mapa)
+      mapaObj.current = mapa
+      leafletObj.current = L
+    })
+  }, [])
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
-      }).addTo(mapa)
+  // Adiciona pins quando ocorrências carregarem
+  useEffect(() => {
+    if (!mapaObj.current || !leafletObj.current || ocorrencias.length === 0) return
+    const L = leafletObj.current
+    const mapa = mapaObj.current
 
-      // Adiciona pins das ocorrências
-      ocorrencias.forEach((o) => {
-        const cor = o.categoria?.cor || '#3b82f6'
-        const icon = L.divIcon({
-          className: '',
-          html: `<div style="width:14px;height:14px;border-radius:50%;background:${cor};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.5)"></div>`,
-          iconSize: [14, 14],
-          iconAnchor: [7, 7],
-        })
-        L.marker([o.lat, o.lng], { icon })
-          .addTo(mapa)
-          .bindPopup(`<strong>${o.categoria?.nome || 'Ocorrencia'}</strong><br/>${o.descricao}`)
+    ocorrencias.forEach((o) => {
+      const cor = o.categoria?.cor || '#3b82f6'
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:14px;height:14px;border-radius:50%;background:${cor};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.5)"></div>`,
+        iconSize: [14, 14],
+        iconAnchor: [7, 7],
       })
+      L.marker([o.lat, o.lng], { icon })
+        .addTo(mapa)
+        .bindPopup(`<strong>${o.categoria?.nome || 'Ocorrencia'}</strong><br/>${o.descricao}`)
     })
   }, [ocorrencias])
 
