@@ -14,6 +14,10 @@ export default function MapaOcorrencias() {
   const mapaObj = useRef<any>(null)
   const leafletObj = useRef<any>(null)
   const pinDraggavel = useRef<any>(null)
+  const miniMapRef = useRef<HTMLDivElement>(null)
+  const miniMapObj = useRef<any>(null)
+  const miniMapIniciado = useRef(false)
+  const miniPinRef = useRef<any>(null)
 
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([])
   const [categorias, setCategorias] = useState<CategoriaMapa[]>([])
@@ -83,16 +87,11 @@ export default function MapaOcorrencias() {
     })
   }, [ocorrencias])
 
-  // Pin arrastável para ajuste fino de localização
-  useEffect(() => {
-    if (!mapaObj.current || !leafletObj.current) return
-    const L = leafletObj.current
-    const mapa = mapaObj.current
 
-    if (!coordenadas) {
-      if (pinDraggavel.current) { pinDraggavel.current.remove(); pinDraggavel.current = null }
-      return
-    }
+  // Mini-mapa no modal com pin arrastável
+  useEffect(() => {
+    if (!coordenadas || !miniMapRef.current || !leafletObj.current) return
+    const L = leafletObj.current
 
     const iconPin = L.divIcon({
       className: '',
@@ -101,21 +100,32 @@ export default function MapaOcorrencias() {
       iconAnchor: [13, 13],
     })
 
-    if (pinDraggavel.current) {
-      pinDraggavel.current.setLatLng([coordenadas.lat, coordenadas.lng])
-    } else {
-      pinDraggavel.current = L.marker([coordenadas.lat, coordenadas.lng], { icon: iconPin, draggable: true })
-        .addTo(mapa)
-        .bindPopup('Arraste para ajustar a localização exata.')
-      pinDraggavel.current.on('dragend', (e: any) => {
+    if (!miniMapIniciado.current) {
+      miniMapIniciado.current = true
+      const mapa = L.map(miniMapRef.current, { zoomControl: true }).setView([coordenadas.lat, coordenadas.lng], 17)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(mapa)
+      miniMapObj.current = mapa
+
+      miniPinRef.current = L.marker([coordenadas.lat, coordenadas.lng], { icon: iconPin, draggable: true }).addTo(mapa)
+      miniPinRef.current.on('dragend', (e: any) => {
         const pos = e.target.getLatLng()
         setCoordenadas(prev => prev ? { ...prev, lat: pos.lat, lng: pos.lng } : null)
       })
+    } else {
+      miniMapObj.current.setView([coordenadas.lat, coordenadas.lng], 17)
+      miniPinRef.current?.setLatLng([coordenadas.lat, coordenadas.lng])
     }
-
-    mapa.setView([coordenadas.lat, coordenadas.lng], 17)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coordenadas?.lat, coordenadas?.lng, coordenadas === null])
+  }, [coordenadas?.lat, coordenadas?.lng])
+
+  // Resetar mini-mapa ao fechar modal
+  useEffect(() => {
+    if (!modalAberto) {
+      if (miniMapObj.current) { miniMapObj.current.remove(); miniMapObj.current = null }
+      miniMapIniciado.current = false
+      miniPinRef.current = null
+    }
+  }, [modalAberto])
 
   function handleCPF(valor: string) {
     const limpo = valor.replace(/\D/g, '').slice(0, 11)
@@ -268,9 +278,11 @@ export default function MapaOcorrencias() {
                     {buscando ? 'Obtendo localização...' : 'Usar minha localização atual'}
                   </button>
                   {coordenadas && (
-                    <div style={{ marginTop: '8px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '6px', padding: '10px 12px', fontSize: '12px', color: '#92400e' }}>
-                      <p style={{ margin: '0 0 4px', fontWeight: 600 }}>Rua encontrada: {coordenadas.label}</p>
-                      <p style={{ margin: 0 }}>O pin laranja apareceu no mapa. Feche este formulário, arraste o pin para o número exato e reabra para enviar.</p>
+                    <div style={{ marginTop: '8px' }}>
+                      <p style={{ fontSize: '12px', color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '6px 10px', margin: '0 0 6px' }}>
+                        Rua encontrada: <strong>{coordenadas.label}</strong>. Arraste o pin laranja para o local exato.
+                      </p>
+                      <div ref={miniMapRef} style={{ width: '100%', height: '200px', borderRadius: '6px', border: '1px solid #d1d5db', overflow: 'hidden' }} />
                     </div>
                   )}
                 </div>
