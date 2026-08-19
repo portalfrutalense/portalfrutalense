@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { supabase } from '@/lib/supabase'
 import { Denuncia, Ocorrencia, Entidade, CategoriaMapa } from '@/types'
+import { formatarCPF } from '@/lib/cpf'
 
 type Aba = 'denuncias' | 'ocorrencias' | 'entidades' | 'categorias'
 
@@ -50,6 +51,7 @@ export default function AdminPage() {
   const [editOcoLat, setEditOcoLat] = useState('')
   const [editOcoLng, setEditOcoLng] = useState('')
   const [editOcoEndereco, setEditOcoEndereco] = useState('')
+  const [editOcoEnderecoLabel, setEditOcoEnderecoLabel] = useState('')
   const [buscandoEndereco, setBuscandoEndereco] = useState(false)
 
   const client = createClient()
@@ -154,6 +156,7 @@ export default function AdminPage() {
       if (data.length > 0) {
         setEditOcoLat(parseFloat(data[0].lat).toFixed(6))
         setEditOcoLng(parseFloat(data[0].lon).toFixed(6))
+        setEditOcoEnderecoLabel(data[0].display_name)
       } else {
         alert('Endereço não encontrado. Tente ser mais específico.')
       }
@@ -405,7 +408,7 @@ export default function AdminPage() {
                 </div>
 
                 {/* CPF sempre visível */}
-                <p style={{ fontSize: '12px', color: '#9ca3af', fontFamily: 'monospace', margin: '-4px 0 10px' }}>{o.morador_cpf}</p>
+                <p style={{ fontSize: '12px', color: '#9ca3af', fontFamily: 'monospace', margin: '-4px 0 10px' }}>{formatarCPF(o.morador_cpf)}</p>
 
                 {editandoOco === o.id ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
@@ -431,7 +434,7 @@ export default function AdminPage() {
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>Localização — buscar por endereço</label>
                       <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
-                        <input value={editOcoEndereco} onChange={(e) => setEditOcoEndereco(e.target.value)}
+                        <input value={editOcoEndereco} onChange={(e) => { setEditOcoEndereco(e.target.value); setEditOcoEnderecoLabel('') }}
                           placeholder="Ex: Rua das Flores, 123"
                           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); buscarEnderecoAdmin() } }}
                           style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
@@ -440,6 +443,11 @@ export default function AdminPage() {
                           {buscandoEndereco ? '...' : 'Buscar'}
                         </button>
                       </div>
+                      {editOcoEnderecoLabel && (
+                        <p style={{ fontSize: '12px', color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '5px', padding: '6px 10px', margin: '0 0 8px' }}>
+                          Encontrado: {editOcoEnderecoLabel}
+                        </p>
+                      )}
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                         <div>
                           <label style={{ display: 'block', fontSize: '11px', color: '#9ca3af', marginBottom: '3px' }}>Latitude</label>
@@ -480,6 +488,7 @@ export default function AdminPage() {
                     setEditOcoLat(o.lat.toString())
                     setEditOcoLng(o.lng.toString())
                     setEditOcoEndereco('')
+                    setEditOcoEnderecoLabel('')
                   }, 'neutro')}
                   {btnAcao(o.oculto ? 'Mostrar ao público' : 'Ocultar do público', () => toggleOculto(o.id, 'ocorrencia', !!o.oculto), 'aviso')}
                   {btnAcao('Excluir', () => excluir(o.id, 'ocorrencia'), 'perigo')}
