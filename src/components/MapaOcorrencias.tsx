@@ -32,6 +32,7 @@ export default function MapaOcorrencias() {
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState(false)
+  const [locConfirmada, setLocConfirmada] = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -88,44 +89,34 @@ export default function MapaOcorrencias() {
   }, [ocorrencias])
 
 
-  // Mini-mapa no modal com pin arrastável
+  // Mini-mapa estilo iFood: pin fixo no centro, mapa se move
   useEffect(() => {
-    if (!coordenadas || !miniMapRef.current || !leafletObj.current) return
+    if (!coordenadas || !miniMapRef.current || !leafletObj.current || miniMapIniciado.current) return
     const L = leafletObj.current
+    miniMapIniciado.current = true
 
-    const iconPin = L.divIcon({
-      className: '',
-      html: `<div style="width:26px;height:26px;border-radius:50%;background:#f97316;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.5);cursor:grab"></div>`,
-      iconSize: [26, 26],
-      iconAnchor: [13, 13],
-    })
-
-    if (!miniMapIniciado.current) {
-      miniMapIniciado.current = true
-      const mapa = L.map(miniMapRef.current, { zoomControl: true }).setView([coordenadas.lat, coordenadas.lng], 17)
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(mapa)
-      miniMapObj.current = mapa
-
-      miniPinRef.current = L.marker([coordenadas.lat, coordenadas.lng], { icon: iconPin, draggable: true }).addTo(mapa)
-      miniPinRef.current.on('dragend', (e: any) => {
-        const pos = e.target.getLatLng()
-        setCoordenadas(prev => prev ? { ...prev, lat: pos.lat, lng: pos.lng } : null)
-      })
-    } else {
-      miniMapObj.current.setView([coordenadas.lat, coordenadas.lng], 17)
-      miniPinRef.current?.setLatLng([coordenadas.lat, coordenadas.lng])
-    }
+    const mapa = L.map(miniMapRef.current, { zoomControl: true }).setView([coordenadas.lat, coordenadas.lng], 17)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(mapa)
+    miniMapObj.current = mapa
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coordenadas?.lat, coordenadas?.lng])
+  }, [coordenadas !== null])
 
-  // Resetar mini-mapa ao fechar modal
+  // Resetar mini-mapa ao fechar modal ou ao limpar coordenadas
   useEffect(() => {
-    if (!modalAberto) {
+    if (!modalAberto || !coordenadas) {
       if (miniMapObj.current) { miniMapObj.current.remove(); miniMapObj.current = null }
       miniMapIniciado.current = false
       miniPinRef.current = null
+      setLocConfirmada(false)
     }
-  }, [modalAberto])
+  }, [modalAberto, coordenadas])
+
+  function confirmarLocalizacao() {
+    if (!miniMapObj.current) return
+    const centro = miniMapObj.current.getCenter()
+    setCoordenadas(prev => prev ? { ...prev, lat: centro.lat, lng: centro.lng } : null)
+    setLocConfirmada(true)
+  }
 
   function handleCPF(valor: string) {
     const limpo = valor.replace(/\D/g, '').slice(0, 11)
@@ -180,7 +171,7 @@ export default function MapaOcorrencias() {
     if (!validarCPF(cpf)) { setErro('CPF invalido.'); return }
     if (!categoriaId) { setErro('Selecione a categoria.'); return }
     if (!descricao.trim() || descricao.trim().length < 10) { setErro('Descreva melhor o problema.'); return }
-    if (!coordenadas) { setErro('Busque e confirme o endereco.'); return }
+    if (!coordenadas || !locConfirmada) { setErro('Busque o endereço e confirme a localização no mapa.'); return }
     setEnviando(true)
     try {
       const res = await fetch('/api/ocorrencias', {
@@ -190,7 +181,7 @@ export default function MapaOcorrencias() {
       })
       if (!res.ok) throw new Error()
       setSucesso(true)
-      setNome(''); setCpf(''); setDescricao(''); setCategoriaId(''); setEndereco(''); setCoordenadas(null)
+      setNome(''); setCpf(''); setDescricao(''); setCategoriaId(''); setEndereco(''); setCoordenadas(null); setLocConfirmada(false)
       if (pinDraggavel.current) { pinDraggavel.current.remove(); pinDraggavel.current = null }
     } catch {
       setErro('Erro ao enviar. Tente novamente.')
@@ -282,12 +273,36 @@ export default function MapaOcorrencias() {
                     style={{ marginTop: '8px', background: 'none', border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 12px', fontSize: '12px', color: '#374151', cursor: 'pointer', width: '100%' }}>
                     {buscando ? 'Obtendo localização...' : 'Usar minha localização atual'}
                   </button>
-                  {coordenadas && (
+                  {coordenadas && !locConfirmada && (
                     <div style={{ marginTop: '8px' }}>
-                      <p style={{ fontSize: '12px', color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '6px 10px', margin: '0 0 6px' }}>
-                        Rua encontrada: <strong>{coordenadas.label}</strong>. Arraste o pin laranja para o local exato.
+                      <p style={{ fontSize: '12px', color: '#92400e', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '6px', padding: '6px 10px', margin: '0 0 6px' }}>
+                        Mova o mapa até o local exato e toque em <strong>Confirmar localização</strong>.
                       </p>
-                      <div ref={miniMapRef} style={{ width: '100%', height: '200px', borderRadius: '6px', border: '1px solid #d1d5db', overflow: 'hidden' }} />
+                      {/* Container do mapa com pin fixo no centro */}
+                      <div style={{ position: 'relative', width: '100%', height: '220px', borderRadius: '6px', border: '1px solid #d1d5db', overflow: 'hidden' }}>
+                        <div ref={miniMapRef} style={{ width: '100%', height: '100%' }} />
+                        {/* Pin fixo no centro */}
+                        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -100%)', zIndex: 1000, pointerEvents: 'none' }}>
+                          <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M16 0C7.163 0 0 7.163 0 16c0 10.627 14.4 23.04 15.04 23.573a1.333 1.333 0 001.92 0C17.6 39.04 32 26.627 32 16 32 7.163 24.837 0 16 0z" fill="#f97316"/>
+                            <circle cx="16" cy="16" r="7" fill="white"/>
+                          </svg>
+                        </div>
+                        {/* Botão confirmar dentro do mapa */}
+                        <button type="button" onClick={confirmarLocalizacao}
+                          style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '10px 24px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
+                          Confirmar localização
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {coordenadas && locConfirmada && (
+                    <div style={{ marginTop: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '8px 12px', fontSize: '12px', color: '#166534', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>Localização confirmada: <strong>{coordenadas.label}</strong></span>
+                      <button type="button" onClick={() => { setCoordenadas(null); setLocConfirmada(false) }}
+                        style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline', padding: 0, marginLeft: '8px' }}>
+                        Alterar
+                      </button>
                     </div>
                   )}
                 </div>
