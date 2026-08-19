@@ -5,8 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { Ocorrencia, CategoriaMapa } from '@/types'
 import { validarCPF, formatarCPF } from '@/lib/cpf'
 
-const FRUTAL_LAT = -20.0264
-const FRUTAL_LNG = -48.9383
+const FRUTAL_LAT = -20.02752
+const FRUTAL_LNG = -48.92702
 
 export default function MapaOcorrencias() {
   const mapRef = useRef<HTMLDivElement>(null)
