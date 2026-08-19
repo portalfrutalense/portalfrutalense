@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { Denuncia } from '@/types'
-import CardDenuncia from '@/components/CardDenuncia'
 import FormDenuncia from '@/components/FormDenuncia'
+import ListaDenuncias from '@/components/ListaDenuncias'
 
 export const revalidate = 10
 
@@ -37,14 +37,9 @@ export default async function HomePage() {
       {denuncias.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 0', color: '#9ca3af' }}>
           <p style={{ fontSize: '15px' }}>Nenhuma denúncia publicada ainda.</p>
-          <p style={{ fontSize: '13px', marginTop: '4px' }}>Seja o primeiro a registrar uma cobrança.</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {denuncias.map((d) => (
-            <CardDenuncia key={d.id} denuncia={d} />
-          ))}
-        </div>
+        <ListaDenuncias denuncias={denuncias} />
       )}
     </div>
   )
