@@ -72,9 +72,9 @@ export default function MapaOcorrencias() {
       const cor = o.categoria?.cor || '#3b82f6'
       const icon = L.divIcon({
         className: '',
-        html: `<div style="width:14px;height:14px;border-radius:50%;background:${cor};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.5)"></div>`,
-        iconSize: [14, 14],
-        iconAnchor: [7, 7],
+        html: `<div style="width:22px;height:22px;border-radius:50%;background:${cor};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.5)"></div>`,
+        iconSize: [22, 22],
+        iconAnchor: [11, 11],
       })
       L.marker([o.lat, o.lng], { icon })
         .addTo(mapa)
