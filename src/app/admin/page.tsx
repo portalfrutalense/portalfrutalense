@@ -120,6 +120,22 @@ export default function AdminPage() {
     carregarDados()
   }
 
+  async function reenviarLink(id: string) {
+    const res = await fetch('/api/admin/reenviar-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await getToken()}` },
+      body: JSON.stringify({ id }),
+    })
+    const data = await res.json()
+    if (data.emailErro) {
+      setNotificacao(`Erro ao reenviar: ${data.emailErro}`)
+    } else {
+      setNotificacao('Link reenviado com sucesso.')
+    }
+    setTimeout(() => setNotificacao(''), 8000)
+    carregarDados()
+  }
+
   async function aprovarResposta(id: string, acao: 'publicar' | 'recusar') {
     await fetch('/api/admin/aprovar-resposta', {
       method: 'POST',
@@ -407,6 +423,19 @@ export default function AdminPage() {
                   <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '14px 16px', marginBottom: '14px' }}>
                     <p style={{ fontSize: '11px', fontWeight: 700, color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>Resposta publicada</p>
                     <p style={{ fontSize: '14px', color: '#374151', lineHeight: 1.65, whiteSpace: 'pre-wrap', margin: 0 }}>{d.resposta}</p>
+                  </div>
+                )}
+
+                {/* Status do e-mail + reenviar */}
+                {d.status === 'aguardando_resposta' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', padding: '8px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px' }}>
+                    <span style={{ fontSize: '12px', color: '#166534' }}>
+                      ✓ Link enviado
+                      {(d as any).magic_token_expira_em && ` · expira em ${new Date((d as any).magic_token_expira_em).toLocaleDateString('pt-BR')}`}
+                    </span>
+                    <button onClick={() => reenviarLink(d.id)} style={{ marginLeft: 'auto', fontSize: '12px', color: '#1e40af', background: 'none', border: '1px solid #bfdbfe', borderRadius: '5px', padding: '3px 10px', cursor: 'pointer', fontWeight: 500 }}>
+                      Reenviar link
+                    </button>
                   </div>
                 )}
 
