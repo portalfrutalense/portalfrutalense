@@ -352,9 +352,9 @@ export default function AdminPage() {
           <button key={a.key} onClick={() => setAba(a.key)}
             style={{ padding: '10px 20px', fontSize: '14px', fontWeight: 500, border: 'none', borderBottom: aba === a.key ? '2px solid #1e3a5f' : '2px solid transparent', background: 'none', cursor: 'pointer', color: aba === a.key ? '#1e3a5f' : '#6b7280', marginBottom: '-1px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             {a.label}
-            {a.badge !== undefined && (
-              <span style={{ fontSize: '11px', padding: '2px 6px', borderRadius: '999px', background: a.badge > 0 ? '#fee2e2' : '#f3f4f6', color: a.badge > 0 ? '#dc2626' : '#6b7280' }}>
-                {a.badge > 0 ? `${a.badge} novo${a.badge > 1 ? 's' : ''}` : '0'}
+            {a.badge !== undefined && a.badge > 0 && (
+              <span style={{ fontSize: '11px', padding: '2px 6px', borderRadius: '999px', background: '#fee2e2', color: '#dc2626' }}>
+                {a.badge} novo{a.badge > 1 ? 's' : ''}
               </span>
             )}
           </button>
@@ -367,13 +367,15 @@ export default function AdminPage() {
           {/* Filtro */}
           <div style={{ marginBottom: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
             <span style={{ fontSize: '13px', color: '#6b7280' }}>Filtrar:</span>
-            {['todos', 'pendente', 'aguardando_resposta', 'respondida', 'nao_respondida', 'rejeitada'].map(f => (
-              <button key={f} onClick={() => setFiltroDen(f)}
-                style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '999px', border: '1px solid', cursor: 'pointer', fontWeight: 500, borderColor: filtroDen === f ? '#1e3a5f' : '#e5e7eb', backgroundColor: filtroDen === f ? '#1e3a5f' : 'white', color: filtroDen === f ? 'white' : '#6b7280' }}>
-                {f === 'todos' ? 'Todos' : STATUS_LABEL[f]?.label}
-                {' '}({f === 'todos' ? denuncias.length : denuncias.filter(d => d.status === f).length})
-              </button>
-            ))}
+            <select value={filtroDen} onChange={(e) => setFiltroDen(e.target.value)}
+              style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '6px 12px', fontSize: '13px', background: 'white', outline: 'none', color: '#111827' }}>
+              {['todos', 'pendente', 'aguardando_resposta', 'respondida', 'nao_respondida', 'rejeitada'].map(f => (
+                <option key={f} value={f}>
+                  {f === 'todos' ? 'Todos' : STATUS_LABEL[f]?.label}
+                  {' '}({f === 'todos' ? denuncias.length : denuncias.filter(d => d.status === f).length})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -457,13 +459,15 @@ export default function AdminPage() {
           {/* Filtro */}
           <div style={{ marginBottom: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
             <span style={{ fontSize: '13px', color: '#6b7280' }}>Filtrar:</span>
-            {['todos', 'pendente', 'publicada', 'rejeitada'].map(f => (
-              <button key={f} onClick={() => setFiltroOco(f)}
-                style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '999px', border: '1px solid', cursor: 'pointer', fontWeight: 500, borderColor: filtroOco === f ? '#1e3a5f' : '#e5e7eb', backgroundColor: filtroOco === f ? '#1e3a5f' : 'white', color: filtroOco === f ? 'white' : '#6b7280' }}>
-                {f === 'todos' ? 'Todos' : STATUS_LABEL[f]?.label}
-                {' '}({f === 'todos' ? ocorrencias.length : ocorrencias.filter(o => o.status === f).length})
-              </button>
-            ))}
+            <select value={filtroOco} onChange={(e) => setFiltroOco(e.target.value)}
+              style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '6px 12px', fontSize: '13px', background: 'white', outline: 'none', color: '#111827' }}>
+              {['todos', 'pendente', 'publicada', 'rejeitada'].map(f => (
+                <option key={f} value={f}>
+                  {f === 'todos' ? 'Todos' : STATUS_LABEL[f]?.label}
+                  {' '}({f === 'todos' ? ocorrencias.length : ocorrencias.filter(o => o.status === f).length})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
