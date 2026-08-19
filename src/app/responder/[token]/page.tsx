@@ -95,7 +95,9 @@ export default function PageResponder() {
       <div style={{ maxWidth: '560px', width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div style={{ textAlign: 'center' }}>
           <p style={{ fontWeight: 700, color: '#1e3a5f', fontSize: '16px', margin: 0 }}>Portal Frutalense</p>
-          <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '4px 0' }}>Resposta Oficial</h1>
+          <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '4px 0' }}>
+            Resposta Oficial{dados?.entidade ? ` de ${dados.entidade.nome}` : ''}
+          </h1>
           {dados?.entidade && (
             <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
               {dados.entidade.nome} — {dados.entidade.cargo}
