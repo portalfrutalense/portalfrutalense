@@ -46,11 +46,16 @@ export default function CardDenuncia({ denuncia }: Props) {
 
       {denuncia.status === 'respondida' && denuncia.resposta && (
         <div style={{ margin: '0 20px 16px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', padding: '14px 16px' }}>
-          <p style={{ fontSize: '11px', fontWeight: 700, color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>Resposta Oficial</p>
+          <p style={{ fontSize: '11px', fontWeight: 700, color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 2px' }}>Resposta Oficial</p>
+          {denuncia.entidade && (
+            <p style={{ fontSize: '12px', color: '#1e40af', margin: '0 0 10px' }}>
+              {denuncia.entidade.nome} — {denuncia.entidade.cargo}
+            </p>
+          )}
           <p style={{ color: '#1e3a5f', fontSize: '14px', lineHeight: 1.6, whiteSpace: 'pre-wrap', margin: 0 }}>{denuncia.resposta}</p>
           {denuncia.respondido_em && (
-            <p style={{ fontSize: '11px', color: '#93c5fd', marginTop: '8px', margin: '8px 0 0' }}>
-              {new Date(denuncia.respondido_em).toLocaleDateString('pt-BR')}
+            <p style={{ fontSize: '11px', color: '#93c5fd', margin: '8px 0 0' }}>
+              {new Date(denuncia.respondido_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
             </p>
           )}
         </div>
