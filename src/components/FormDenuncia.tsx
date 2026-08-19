@@ -41,8 +41,8 @@ export default function FormDenuncia() {
       setErro('CPF inválido.')
       return
     }
-    if (!mensagem.trim() || mensagem.trim().length < 20) {
-      setErro('Descreva melhor a situação (mínimo 20 caracteres).')
+    if (!mensagem.trim() || mensagem.trim().length < 10) {
+      setErro('Descreva melhor a situação (mínimo 10 caracteres).')
       return
     }
 
@@ -120,9 +120,6 @@ export default function FormDenuncia() {
         <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Mensagem *</label>
         <textarea value={mensagem} onChange={(e) => setMensagem(e.target.value)} rows={5} placeholder="Descreva a situação ou cobrança..."
           style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
-        <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
-          Nome e CPF serão exibidos publicamente se aprovado. Evite ofensas.
-        </p>
       </div>
 
       <button type="submit" disabled={enviando} className="btn-full-mobile"
