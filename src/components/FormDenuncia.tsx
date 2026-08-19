@@ -120,10 +120,10 @@ export default function FormDenuncia() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Destinatário</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Autoridade</label>
                   <select value={entidadeId} onChange={(e) => setEntidadeId(e.target.value)}
                     style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', background: 'white', outline: 'none', boxSizing: 'border-box' }}>
-                    <option value="">Selecione (opcional)</option>
+                    <option value="">Selecione a autoridade (opcional)</option>
                     {entidades.map((e) => (
                       <option key={e.id} value={e.id}>{e.nome} — {e.cargo}</option>
                     ))}

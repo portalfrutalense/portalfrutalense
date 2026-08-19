@@ -34,7 +34,7 @@ export default function ListaDenuncias({ denuncias }: Props) {
             onChange={(e) => setEntidadeId(e.target.value)}
             style={{ flex: 1, maxWidth: '320px', border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 12px', fontSize: '13px', background: 'white', outline: 'none', color: '#111827' }}
           >
-            <option value="">Todas as entidades</option>
+            <option value="">Todas as autoridades</option>
             {entidades.map(e => (
               <option key={e.id} value={e.id}>{e.nome} — {e.cargo}</option>
             ))}

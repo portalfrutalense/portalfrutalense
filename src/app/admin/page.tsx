@@ -114,7 +114,7 @@ export default function AdminPage() {
       } else if (data.emailStatus) {
         setNotificacao(`Denúncia aprovada e e-mail enviado. (ID: ${data.emailStatus})`)
       } else {
-        setNotificacao('Denúncia aprovada. Nenhum e-mail enviado (entidade sem e-mail cadastrado).')
+        setNotificacao('Denúncia aprovada. Nenhum e-mail enviado (autoridade sem e-mail cadastrado).')
       }
       setTimeout(() => setNotificacao(''), 10000)
     }
@@ -243,7 +243,7 @@ export default function AdminPage() {
   }
 
   async function excluirEntidade(id: string) {
-    if (!confirm('Excluir esta entidade?')) return
+    if (!confirm('Excluir esta autoridade?')) return
     await supabase.from('entidades').delete().eq('id', id)
     carregarDados()
   }
@@ -276,7 +276,7 @@ export default function AdminPage() {
   const abas: { key: Aba; label: string; badge?: number }[] = [
     { key: 'denuncias',   label: 'Denúncias',   badge: denPendentes },
     { key: 'ocorrencias', label: 'Ocorrências',  badge: ocoPendentes },
-    { key: 'entidades',   label: 'Entidades' },
+    { key: 'entidades',   label: 'Autoridades' },
     { key: 'categorias',  label: 'Categorias' },
   ]
 
@@ -611,7 +611,7 @@ export default function AdminPage() {
       {aba === 'entidades' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '20px' }}>
-            <h2 style={{ fontWeight: 600, color: '#111827', fontSize: '15px', marginBottom: '16px' }}>Nova Entidade</h2>
+            <h2 style={{ fontWeight: 600, color: '#111827', fontSize: '15px', marginBottom: '16px' }}>Nova Autoridade</h2>
             <form onSubmit={salvarEntidade} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }} className="grid-3col">
                 <input value={novaEntNome} onChange={(e) => setNovaEntNome(e.target.value)} placeholder="Nome" required style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none' }} />
@@ -622,7 +622,7 @@ export default function AdminPage() {
             </form>
           </div>
           <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-            {entidades.length === 0 && <p style={{ color: '#9ca3af', fontSize: '13px', padding: '20px' }}>Nenhuma entidade cadastrada.</p>}
+            {entidades.length === 0 && <p style={{ color: '#9ca3af', fontSize: '13px', padding: '20px' }}>Nenhuma autoridade cadastrada.</p>}
             {entidades.map((e, i) => (
               <div key={e.id} style={{ padding: '14px 20px', borderTop: i > 0 ? '1px solid #f3f4f6' : 'none' }}>
                 {editandoEnt === e.id ? (
