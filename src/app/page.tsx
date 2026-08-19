@@ -3,7 +3,7 @@ import { Denuncia } from '@/types'
 import CardDenuncia from '@/components/CardDenuncia'
 import FormDenuncia from '@/components/FormDenuncia'
 
-export const revalidate = 60
+export const revalidate = 10
 
 async function getDenuncias(): Promise<Denuncia[]> {
   const { data, error } = await supabase
