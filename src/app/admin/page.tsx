@@ -266,7 +266,7 @@ export default function AdminPage() {
     carregarDados()
   }
 
-  const denPendentes = denuncias.filter(d => d.status === 'pendente' || d.status === 'aguardando_aprovacao_resposta').length
+  const denPendentes = denuncias.filter(d => d.status === 'pendente').length
   const ocoPendentes = ocorrencias.filter(o => o.status === 'pendente').length
 
   const denFiltradas = filtroDen === 'todos' ? denuncias : denuncias.filter(d => d.status === filtroDen)
@@ -366,7 +366,7 @@ export default function AdminPage() {
           {/* Filtro */}
           <div style={{ marginBottom: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
             <span style={{ fontSize: '13px', color: '#6b7280' }}>Filtrar:</span>
-            {['todos', 'pendente', 'aguardando_resposta', 'aguardando_aprovacao_resposta', 'respondida', 'rejeitada'].map(f => (
+            {['todos', 'pendente', 'aguardando_resposta', 'respondida', 'rejeitada'].map(f => (
               <button key={f} onClick={() => setFiltroDen(f)}
                 style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '999px', border: '1px solid', cursor: 'pointer', fontWeight: 500, borderColor: filtroDen === f ? '#1e3a5f' : '#e5e7eb', backgroundColor: filtroDen === f ? '#1e3a5f' : 'white', color: filtroDen === f ? 'white' : '#6b7280' }}>
                 {f === 'todos' ? 'Todos' : STATUS_LABEL[f]?.label}
@@ -408,19 +408,6 @@ export default function AdminPage() {
                   <p style={{ fontSize: '14px', color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap', marginBottom: '14px' }}>{d.mensagem}</p>
                 )}
 
-                {/* Resposta aguardando aprovação */}
-                {d.status === 'aguardando_aprovacao_resposta' && d.resposta && (
-                  <div style={{ background: '#fff7ed', border: '1px solid #fde68a', borderRadius: '8px', padding: '14px 16px', marginBottom: '14px' }}>
-                    <p style={{ fontSize: '11px', fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>
-                      ● Resposta aguardando sua aprovação
-                    </p>
-                    <p style={{ fontSize: '14px', color: '#374151', lineHeight: 1.65, whiteSpace: 'pre-wrap', margin: 0 }}>{d.resposta}</p>
-                    <p style={{ fontSize: '11px', color: '#92400e', margin: '8px 0 0', opacity: 0.7 }}>
-                      {d.respondido_em && new Date(d.respondido_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
-                      {(d as any).resposta_ip && ` · IP ${(d as any).resposta_ip}`}
-                    </p>
-                  </div>
-                )}
 
                 {/* Resposta já publicada */}
                 {d.status === 'respondida' && d.resposta && (
@@ -447,12 +434,6 @@ export default function AdminPage() {
                   {d.status === 'pendente' ? (
                     <>
                       {btnAcao('Aprovar e enviar link', () => aprovar(d.id, 'denuncia'), 'primario')}
-                      {btnAcao('Excluir', () => excluir(d.id, 'denuncia'), 'perigo')}
-                    </>
-                  ) : d.status === 'aguardando_aprovacao_resposta' ? (
-                    <>
-                      {btnAcao('Publicar resposta', () => aprovarResposta(d.id, 'publicar'), 'primario')}
-                      {btnAcao('Recusar resposta', () => aprovarResposta(d.id, 'recusar'), 'perigo')}
                       {btnAcao('Excluir', () => excluir(d.id, 'denuncia'), 'perigo')}
                     </>
                   ) : (
