@@ -39,6 +39,12 @@ export default function AdminPage() {
   const [novaCatCor, setNovaCatCor] = useState('#ef4444')
   const [notificacao, setNotificacao] = useState('')
 
+  // Edição inline de entidade
+  const [editandoEnt, setEditandoEnt] = useState<string | null>(null)
+  const [editEntNome, setEditEntNome] = useState('')
+  const [editEntCargo, setEditEntCargo] = useState('')
+  const [editEntEmail, setEditEntEmail] = useState('')
+
   // Edição inline de denúncia
   const [editandoDen, setEditandoDen] = useState<string | null>(null)
   const [editDenMsg, setEditDenMsg] = useState('')
@@ -206,6 +212,12 @@ export default function AdminPage() {
   async function excluirEntidade(id: string) {
     if (!confirm('Excluir esta entidade?')) return
     await supabase.from('entidades').delete().eq('id', id)
+    carregarDados()
+  }
+
+  async function salvarEdicaoEntidade(id: string) {
+    await supabase.from('entidades').update({ nome: editEntNome, cargo: editEntCargo, email: editEntEmail }).eq('id', id)
+    setEditandoEnt(null)
     carregarDados()
   }
 
@@ -557,12 +569,31 @@ export default function AdminPage() {
           <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
             {entidades.length === 0 && <p style={{ color: '#9ca3af', fontSize: '13px', padding: '20px' }}>Nenhuma entidade cadastrada.</p>}
             {entidades.map((e, i) => (
-              <div key={e.id} style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: i > 0 ? '1px solid #f3f4f6' : 'none' }}>
-                <div>
-                  <p style={{ fontWeight: 500, color: '#111827', fontSize: '14px', margin: 0 }}>{e.nome}</p>
-                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0' }}>{e.cargo} · {e.email}</p>
-                </div>
-                <button onClick={() => excluirEntidade(e.id)} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>Excluir</button>
+              <div key={e.id} style={{ padding: '14px 20px', borderTop: i > 0 ? '1px solid #f3f4f6' : 'none' }}>
+                {editandoEnt === e.id ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }} className="grid-3col">
+                      <input value={editEntNome} onChange={(ev) => setEditEntNome(ev.target.value)} placeholder="Nome" style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
+                      <input value={editEntCargo} onChange={(ev) => setEditEntCargo(ev.target.value)} placeholder="Cargo / Órgão" style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
+                      <input type="email" value={editEntEmail} onChange={(ev) => setEditEntEmail(ev.target.value)} placeholder="E-mail" style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {btnAcao('Salvar', () => salvarEdicaoEntidade(e.id), 'primario')}
+                      {btnAcao('Cancelar', () => setEditandoEnt(null), 'neutro')}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <p style={{ fontWeight: 500, color: '#111827', fontSize: '14px', margin: 0 }}>{e.nome}</p>
+                      <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0' }}>{e.cargo} · {e.email}</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {btnAcao('Editar', () => { setEditandoEnt(e.id); setEditEntNome(e.nome); setEditEntCargo(e.cargo); setEditEntEmail(e.email) }, 'neutro')}
+                      {btnAcao('Excluir', () => excluirEntidade(e.id), 'perigo')}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
