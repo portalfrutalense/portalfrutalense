@@ -6,8 +6,9 @@ import Navbar from './Navbar'
 export default function PublicShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isAdmin = pathname.startsWith('/admin')
+  const isLanding = pathname === '/'
 
-  if (isAdmin) return <>{children}</>
+  if (isAdmin || isLanding) return <>{children}</>
 
   return (
     <>
