@@ -4,10 +4,10 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const links = [
-  { href: '/', label: 'Denuncias' },
+  { href: '/', label: 'Denúncias' },
   { href: '/mapa', label: 'Mapa' },
   { href: '/vagas', label: 'Vagas' },
-  { href: '/guia', label: 'Guia Util' },
+  { href: '/guia', label: 'Guia Útil' },
 ]
 
 export default function Navbar() {
@@ -16,7 +16,7 @@ export default function Navbar() {
   return (
     <header style={{ backgroundColor: '#1e3a5f', color: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
       <div style={{ maxWidth: '960px', margin: '0 auto', padding: '0 16px', display: 'flex', alignItems: 'stretch', justifyContent: 'space-between' }}>
-        <Link href="/" style={{ fontWeight: 700, fontSize: '16px', display: 'flex', alignItems: 'center', padding: '16px 24px 16px 0', borderRight: '1px solid #2d5a8f', color: 'white', textDecoration: 'none' }}>
+        <Link href="/" style={{ fontWeight: 700, fontSize: '16px', display: 'flex', alignItems: 'center', padding: '16px 24px 16px 0', borderRight: '1px solid #2d5a8f', color: 'white', textDecoration: 'none', letterSpacing: '-0.01em' }}>
           Portal Frutalense
         </Link>
 
@@ -32,7 +32,7 @@ export default function Navbar() {
                 fontSize: '14px',
                 fontWeight: 500,
                 borderRight: '1px solid #2d5a8f',
-                color: pathname === href ? 'white' : '#bfdbfe',
+                color: pathname === href ? 'white' : '#93c5fd',
                 backgroundColor: pathname === href ? '#1e40af' : 'transparent',
                 textDecoration: 'none',
               }}

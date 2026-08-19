@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { CheckCircle, AlertTriangle, Send } from 'lucide-react'
 
 interface DadosDenuncia {
   id: string
@@ -61,7 +60,7 @@ export default function PageResponder() {
 
   if (carregando) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-400">
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '14px' }}>
         Carregando...
       </div>
     )
@@ -69,13 +68,11 @@ export default function PageResponder() {
 
   if (sucesso) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md w-full text-center">
-          <CheckCircle className="mx-auto text-green-600 mb-4" size={64} />
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Resposta Registrada!</h1>
-          <p className="text-gray-500">
-            Sua resposta oficial foi publicada no Portal Frutalense.
-            Este link não pode mais ser utilizado.
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+        <div style={{ maxWidth: '480px', width: '100%', textAlign: 'center' }}>
+          <p style={{ fontSize: '22px', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>Resposta Registrada</p>
+          <p style={{ fontSize: '14px', color: '#6b7280' }}>
+            Sua resposta oficial foi publicada no Portal Frutalense. Este link não pode mais ser utilizado.
           </p>
         </div>
       </div>
@@ -84,61 +81,49 @@ export default function PageResponder() {
 
   if (erro) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md w-full text-center">
-          <AlertTriangle className="mx-auto text-red-400 mb-4" size={64} />
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Link Inválido</h1>
-          <p className="text-gray-500">{erro}</p>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+        <div style={{ maxWidth: '480px', width: '100%', textAlign: 'center' }}>
+          <p style={{ fontSize: '22px', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>Link Inválido</p>
+          <p style={{ fontSize: '14px', color: '#6b7280' }}>{erro}</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-start justify-center p-4 pt-12">
-      <div className="max-w-xl w-full space-y-6">
-        {/* Header */}
-        <div className="text-center">
-          <p className="text-green-700 font-bold text-xl">🏛️ Portal Frutalense</p>
-          <h1 className="text-2xl font-bold text-gray-800 mt-1">Resposta Oficial</h1>
+    <div style={{ minHeight: '100vh', background: '#f4f6f8', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 16px' }}>
+      <div style={{ maxWidth: '560px', width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontWeight: 700, color: '#1e3a5f', fontSize: '16px', margin: 0 }}>Portal Frutalense</p>
+          <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '4px 0' }}>Resposta Oficial</h1>
           {dados?.entidade && (
-            <p className="text-gray-500 text-sm mt-1">
-              {dados.entidade.nome} · {dados.entidade.cargo}
+            <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+              {dados.entidade.nome} — {dados.entidade.cargo}
             </p>
           )}
         </div>
 
-        {/* Denúncia original */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
+        <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '20px' }}>
+          <p style={{ fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>
             Cobrança de {dados?.morador_nome}
           </p>
-          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+          <p style={{ color: '#374151', fontSize: '14px', lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}>
             {dados?.mensagem}
           </p>
         </div>
 
-        {/* Campo de resposta */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
-          <label className="block text-sm font-semibold text-gray-700">
+        <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#111827' }}>
             Sua Resposta Oficial
           </label>
-          <textarea
-            value={resposta}
-            onChange={(e) => setResposta(e.target.value)}
-            rows={7}
+          <textarea value={resposta} onChange={(e) => setResposta(e.target.value)} rows={7}
             placeholder="Digite aqui seu posicionamento oficial sobre a demanda acima..."
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-          />
-          <p className="text-xs text-gray-400">
+            style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '10px 12px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box', lineHeight: 1.6 }} />
+          <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>
             Sua resposta será publicada publicamente no portal com seu nome e cargo.
           </p>
-          <button
-            onClick={handleEnviar}
-            disabled={enviando}
-            className="flex items-center gap-2 bg-green-700 hover:bg-green-800 disabled:bg-gray-300 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm w-full justify-center"
-          >
-            <Send size={16} />
+          <button onClick={handleEnviar} disabled={enviando}
+            style={{ backgroundColor: enviando ? '#9ca3af' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '12px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
             {enviando ? 'Enviando...' : 'Publicar Resposta Oficial'}
           </button>
         </div>

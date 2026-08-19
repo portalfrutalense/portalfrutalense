@@ -66,12 +66,12 @@ export default function FormDenuncia() {
 
   if (sucesso) {
     return (
-      <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-        <p className="text-green-800 font-semibold">Denúncia enviada com sucesso.</p>
-        <p className="text-green-700 text-sm mt-1">
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '24px' }}>
+        <p style={{ fontWeight: 600, color: '#166534', fontSize: '15px' }}>Denúncia enviada com sucesso.</p>
+        <p style={{ color: '#15803d', fontSize: '13px', marginTop: '4px' }}>
           Sua denúncia foi recebida e será analisada. Se aprovada, será publicada para toda a cidade acompanhar.
         </p>
-        <button onClick={() => setSucesso(false)} className="mt-3 text-sm text-green-700 underline">
+        <button onClick={() => setSucesso(false)} style={{ marginTop: '12px', fontSize: '13px', color: '#166534', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
           Enviar outra denúncia
         </button>
       </div>
@@ -79,46 +79,32 @@ export default function FormDenuncia() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-5 space-y-4">
-      <h2 className="font-semibold text-gray-800">Registrar Cobrança</h2>
+    <form onSubmit={handleSubmit} style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <h2 style={{ fontWeight: 600, color: '#111827', fontSize: '15px', margin: 0 }}>Registrar Cobrança</h2>
 
       {erro && (
-        <div className="text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2 text-sm">
+        <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>
           {erro}
         </div>
       )}
 
-      <div className="grid sm:grid-cols-2 gap-4">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Nome Completo *</label>
-          <input
-            type="text"
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-            placeholder="Seu nome completo"
-            className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Nome Completo *</label>
+          <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Seu nome completo"
+            style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">CPF *</label>
-          <input
-            type="text"
-            value={cpf}
-            onChange={(e) => handleCPF(e.target.value)}
-            placeholder="000.000.000-00"
-            maxLength={14}
-            className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>CPF *</label>
+          <input type="text" value={cpf} onChange={(e) => handleCPF(e.target.value)} placeholder="000.000.000-00" maxLength={14}
+            style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }} />
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">Destinatário</label>
-        <select
-          value={entidadeId}
-          onChange={(e) => setEntidadeId(e.target.value)}
-          className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
+        <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Destinatário</label>
+        <select value={entidadeId} onChange={(e) => setEntidadeId(e.target.value)}
+          style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', background: 'white', outline: 'none', boxSizing: 'border-box' }}>
           <option value="">Selecione (opcional)</option>
           {entidades.map((e) => (
             <option key={e.id} value={e.id}>{e.nome} — {e.cargo}</option>
@@ -127,24 +113,16 @@ export default function FormDenuncia() {
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">Mensagem *</label>
-        <textarea
-          value={mensagem}
-          onChange={(e) => setMensagem(e.target.value)}
-          rows={5}
-          placeholder="Descreva a situação ou cobrança..."
-          className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-        />
-        <p className="text-xs text-gray-400 mt-1">
+        <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Mensagem *</label>
+        <textarea value={mensagem} onChange={(e) => setMensagem(e.target.value)} rows={5} placeholder="Descreva a situação ou cobrança..."
+          style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
+        <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
           Nome e CPF serão exibidos publicamente se aprovado. Evite ofensas.
         </p>
       </div>
 
-      <button
-        type="submit"
-        disabled={enviando}
-        className="bg-blue-800 hover:bg-blue-900 disabled:bg-gray-300 text-white font-semibold px-5 py-2.5 rounded text-sm transition-colors"
-      >
+      <button type="submit" disabled={enviando}
+        style={{ alignSelf: 'flex-start', backgroundColor: enviando ? '#9ca3af' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px 20px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
         {enviando ? 'Enviando...' : 'Enviar Denúncia'}
       </button>
     </form>

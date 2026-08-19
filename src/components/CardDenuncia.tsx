@@ -7,11 +7,11 @@ interface Props {
 const statusConfig = {
   aguardando_resposta: {
     label: 'Aguardando Resposta',
-    className: 'bg-amber-50 text-amber-700 border-amber-200',
+    style: { background: '#fffbeb', color: '#92400e', border: '1px solid #fde68a' },
   },
   respondida: {
     label: 'Respondida',
-    className: 'bg-green-50 text-green-700 border-green-200',
+    style: { background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' },
   },
 }
 
@@ -20,40 +20,37 @@ export default function CardDenuncia({ denuncia }: Props) {
   const data = new Date(denuncia.created_at).toLocaleDateString('pt-BR')
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-      {/* Header */}
-      <div className="px-5 py-4 flex items-start justify-between gap-4 border-b border-gray-100">
+    <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+      <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', borderBottom: '1px solid #f3f4f6' }}>
         <div>
-          <p className="font-semibold text-gray-900 text-sm">{denuncia.morador_nome}</p>
-          <p className="text-gray-400 text-xs font-mono mt-0.5">{denuncia.morador_cpf_display}</p>
+          <p style={{ fontWeight: 600, color: '#111827', fontSize: '14px', margin: 0 }}>{denuncia.morador_nome}</p>
+          <p style={{ color: '#9ca3af', fontSize: '12px', fontFamily: 'monospace', margin: '2px 0' }}>{denuncia.morador_cpf_display}</p>
           {denuncia.entidade && (
-            <p className="text-xs text-gray-500 mt-1">
-              Para: <span className="font-medium text-gray-700">{denuncia.entidade.nome}</span> — {denuncia.entidade.cargo}
+            <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0' }}>
+              Para: <strong style={{ color: '#374151' }}>{denuncia.entidade.nome}</strong> — {denuncia.entidade.cargo}
             </p>
           )}
         </div>
-        <div className="flex flex-col items-end gap-2 shrink-0">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', flexShrink: 0 }}>
           {status && (
-            <span className={`text-xs font-medium px-2.5 py-1 rounded border ${status.className}`}>
+            <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '4px', ...status.style }}>
               {status.label}
             </span>
           )}
-          <span className="text-xs text-gray-400">{data}</span>
+          <span style={{ fontSize: '11px', color: '#9ca3af' }}>{data}</span>
         </div>
       </div>
 
-      {/* Mensagem */}
-      <div className="px-5 py-4">
-        <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{denuncia.mensagem}</p>
+      <div style={{ padding: '16px 20px' }}>
+        <p style={{ color: '#374151', fontSize: '14px', lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}>{denuncia.mensagem}</p>
       </div>
 
-      {/* Resposta */}
       {denuncia.status === 'respondida' && denuncia.resposta && (
-        <div className="mx-5 mb-4 bg-blue-50 border border-blue-100 rounded p-4">
-          <p className="text-xs font-semibold text-blue-800 uppercase tracking-wide mb-2">Resposta Oficial</p>
-          <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{denuncia.resposta}</p>
+        <div style={{ margin: '0 20px 16px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', padding: '14px 16px' }}>
+          <p style={{ fontSize: '11px', fontWeight: 700, color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>Resposta Oficial</p>
+          <p style={{ color: '#1e3a5f', fontSize: '14px', lineHeight: 1.6, whiteSpace: 'pre-wrap', margin: 0 }}>{denuncia.resposta}</p>
           {denuncia.respondido_em && (
-            <p className="text-xs text-gray-400 mt-2">
+            <p style={{ fontSize: '11px', color: '#93c5fd', marginTop: '8px', margin: '8px 0 0' }}>
               {new Date(denuncia.respondido_em).toLocaleDateString('pt-BR')}
             </p>
           )}
