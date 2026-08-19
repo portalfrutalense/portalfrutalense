@@ -9,11 +9,12 @@ import { formatarCPF } from '@/lib/cpf'
 type Aba = 'denuncias' | 'ocorrencias' | 'entidades' | 'categorias'
 
 const STATUS_LABEL: Record<string, { label: string; cor: string; fundo: string }> = {
-  pendente:            { label: 'Pendente',            cor: '#92400e', fundo: '#fef3c7' },
-  aguardando_resposta: { label: 'Aguardando resposta', cor: '#1e40af', fundo: '#dbeafe' },
-  respondida:          { label: 'Respondida',          cor: '#166534', fundo: '#dcfce7' },
-  rejeitada:           { label: 'Rejeitada',           cor: '#6b7280', fundo: '#f3f4f6' },
-  publicada:           { label: 'Publicada',           cor: '#166534', fundo: '#dcfce7' },
+  pendente:                       { label: 'Pendente',               cor: '#92400e', fundo: '#fef3c7' },
+  aguardando_resposta:            { label: 'Aguardando resposta',    cor: '#1e40af', fundo: '#dbeafe' },
+  aguardando_aprovacao_resposta:  { label: 'Aguard. aprovação',      cor: '#b45309', fundo: '#fff7ed' },
+  respondida:                     { label: 'Respondida',             cor: '#166534', fundo: '#dcfce7' },
+  rejeitada:                      { label: 'Rejeitada',              cor: '#6b7280', fundo: '#f3f4f6' },
+  publicada:                      { label: 'Publicada',              cor: '#166534', fundo: '#dcfce7' },
 }
 
 export default function AdminPage() {
@@ -112,6 +113,17 @@ export default function AdminPage() {
         : 'Denúncia aprovada. Nenhum e-mail enviado (entidade sem e-mail cadastrado).')
       setTimeout(() => setNotificacao(''), 5000)
     }
+    carregarDados()
+  }
+
+  async function aprovarResposta(id: string, acao: 'publicar' | 'recusar') {
+    await fetch('/api/admin/aprovar-resposta', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await getToken()}` },
+      body: JSON.stringify({ id, acao }),
+    })
+    setNotificacao(acao === 'publicar' ? 'Resposta publicada com sucesso.' : 'Resposta recusada. Autoridade pode enviar nova resposta.')
+    setTimeout(() => setNotificacao(''), 5000)
     carregarDados()
   }
 
@@ -234,7 +246,7 @@ export default function AdminPage() {
     carregarDados()
   }
 
-  const denPendentes = denuncias.filter(d => d.status === 'pendente').length
+  const denPendentes = denuncias.filter(d => d.status === 'pendente' || d.status === 'aguardando_aprovacao_resposta').length
   const ocoPendentes = ocorrencias.filter(o => o.status === 'pendente').length
 
   const denFiltradas = filtroDen === 'todos' ? denuncias : denuncias.filter(d => d.status === filtroDen)
@@ -334,7 +346,7 @@ export default function AdminPage() {
           {/* Filtro */}
           <div style={{ marginBottom: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
             <span style={{ fontSize: '13px', color: '#6b7280' }}>Filtrar:</span>
-            {['todos', 'pendente', 'aguardando_resposta', 'respondida', 'rejeitada'].map(f => (
+            {['todos', 'pendente', 'aguardando_resposta', 'aguardando_aprovacao_resposta', 'respondida', 'rejeitada'].map(f => (
               <button key={f} onClick={() => setFiltroDen(f)}
                 style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '999px', border: '1px solid', cursor: 'pointer', fontWeight: 500, borderColor: filtroDen === f ? '#1e3a5f' : '#e5e7eb', backgroundColor: filtroDen === f ? '#1e3a5f' : 'white', color: filtroDen === f ? 'white' : '#6b7280' }}>
                 {f === 'todos' ? 'Todos' : STATUS_LABEL[f]?.label}
@@ -376,10 +388,34 @@ export default function AdminPage() {
                   <p style={{ fontSize: '14px', color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap', marginBottom: '14px' }}>{d.mensagem}</p>
                 )}
 
+                {/* Resposta aguardando aprovação */}
+                {d.status === 'aguardando_aprovacao_resposta' && d.resposta && (
+                  <div style={{ background: '#fff7ed', border: '1px solid #fde68a', borderRadius: '8px', padding: '14px 16px', marginBottom: '14px' }}>
+                    <p style={{ fontSize: '11px', fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>
+                      ● Resposta aguardando sua aprovação
+                    </p>
+                    <p style={{ fontSize: '14px', color: '#374151', lineHeight: 1.65, whiteSpace: 'pre-wrap', margin: 0 }}>{d.resposta}</p>
+                  </div>
+                )}
+
+                {/* Resposta já publicada */}
+                {d.status === 'respondida' && d.resposta && (
+                  <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '14px 16px', marginBottom: '14px' }}>
+                    <p style={{ fontSize: '11px', fontWeight: 700, color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>Resposta publicada</p>
+                    <p style={{ fontSize: '14px', color: '#374151', lineHeight: 1.65, whiteSpace: 'pre-wrap', margin: 0 }}>{d.resposta}</p>
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {d.status === 'pendente' ? (
                     <>
                       {btnAcao('Aprovar e enviar link', () => aprovar(d.id, 'denuncia'), 'primario')}
+                      {btnAcao('Excluir', () => excluir(d.id, 'denuncia'), 'perigo')}
+                    </>
+                  ) : d.status === 'aguardando_aprovacao_resposta' ? (
+                    <>
+                      {btnAcao('Publicar resposta', () => aprovarResposta(d.id, 'publicar'), 'primario')}
+                      {btnAcao('Recusar resposta', () => aprovarResposta(d.id, 'recusar'), 'perigo')}
                       {btnAcao('Excluir', () => excluir(d.id, 'denuncia'), 'perigo')}
                     </>
                   ) : (

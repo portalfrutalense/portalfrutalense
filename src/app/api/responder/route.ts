@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Token inválido ou não encontrado.' }, { status: 404 })
   }
 
-  if (data.status === 'respondida') {
+  if (data.status === 'respondida' || data.status === 'aguardando_aprovacao_resposta') {
     return NextResponse.json({ error: 'Esta denúncia já foi respondida.' }, { status: 409 })
   }
 
@@ -44,17 +44,17 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (error || !data) return NextResponse.json({ error: 'Token inválido.' }, { status: 404 })
-    if (data.status === 'respondida') return NextResponse.json({ error: 'Já respondida.' }, { status: 409 })
+    if (data.status === 'respondida' || data.status === 'aguardando_aprovacao_resposta') return NextResponse.json({ error: 'Já respondida.' }, { status: 409 })
     if (data.magic_token_expira_em && new Date(data.magic_token_expira_em) < new Date()) {
       return NextResponse.json({ error: 'Link expirado.' }, { status: 410 })
     }
 
-    // Salva resposta e invalida token
+    // Salva resposta — fica aguardando aprovação do admin
     const { error: updateError } = await supabaseAdmin
       .from('denuncias')
       .update({
         resposta: resposta.trim(),
-        status: 'respondida',
+        status: 'aguardando_aprovacao_resposta',
         respondido_em: new Date().toISOString(),
         magic_token: null,
         magic_token_expira_em: null,
