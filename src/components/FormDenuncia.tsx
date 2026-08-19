@@ -78,8 +78,8 @@ export default function FormDenuncia() {
   return (
     <>
       <button onClick={() => { setModalAberto(true); setSucesso(false) }}
-        style={{ backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px 20px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
-        Registrar Denúncia
+        style={{ backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px 24px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
+        + Registrar Denúncia
       </button>
 
       {modalAberto && (

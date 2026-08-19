@@ -30,14 +30,8 @@ export default async function HomePage() {
         </p>
       </div>
 
-      <div style={{ marginBottom: '32px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px' }}>
         <FormDenuncia />
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-        <div style={{ flex: 1, borderTop: '1px solid #e5e7eb' }} />
-        <span style={{ fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 500 }}>Denúncias Públicas</span>
-        <div style={{ flex: 1, borderTop: '1px solid #e5e7eb' }} />
       </div>
 
       {denuncias.length === 0 ? (
