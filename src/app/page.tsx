@@ -21,33 +21,29 @@ export default async function HomePage() {
 
   return (
     <div>
-      {/* Cabeçalho */}
-      <div className="mb-8 border-b border-gray-200 pb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Fórum de Denúncias</h1>
-        <p className="text-gray-500 text-sm">
-          Canal de cobrança direta para autoridades e órgãos públicos de Frutal-MG.
-          Nome e CPF do autor são exibidos para dar credibilidade à denúncia.
+      <div style={{ marginBottom: '32px', borderBottom: '1px solid #e5e7eb', paddingBottom: '24px' }}>
+        <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', marginBottom: '4px' }}>Forum de Denuncias</h1>
+        <p style={{ fontSize: '14px', color: '#6b7280' }}>
+          Canal de cobranca direta para autoridades e orgaos publicos de Frutal-MG.
+          Nome e CPF do autor sao exibidos para dar credibilidade a denuncia.
         </p>
       </div>
 
-      {/* Formulário */}
       <FormDenuncia />
 
-      {/* Divider */}
-      <div className="flex items-center gap-4 my-8">
-        <div className="flex-1 border-t border-gray-200" />
-        <span className="text-xs text-gray-400 uppercase tracking-widest font-medium">Denúncias Públicas</span>
-        <div className="flex-1 border-t border-gray-200" />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', margin: '32px 0' }}>
+        <div style={{ flex: 1, borderTop: '1px solid #e5e7eb' }} />
+        <span style={{ fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 500 }}>Denuncias Publicas</span>
+        <div style={{ flex: 1, borderTop: '1px solid #e5e7eb' }} />
       </div>
 
-      {/* Lista de denúncias */}
       {denuncias.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
-          <p className="text-base">Nenhuma denúncia publicada ainda.</p>
-          <p className="text-sm mt-1">Seja o primeiro a registrar uma cobrança.</p>
+        <div style={{ textAlign: 'center', padding: '80px 0', color: '#9ca3af' }}>
+          <p style={{ fontSize: '15px' }}>Nenhuma denuncia publicada ainda.</p>
+          <p style={{ fontSize: '13px', marginTop: '4px' }}>Seja o primeiro a registrar uma cobranca.</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {denuncias.map((d) => (
             <CardDenuncia key={d.id} denuncia={d} />
           ))}

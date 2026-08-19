@@ -1,6 +1,28 @@
 @import "tailwindcss";
 
+* {
+  box-sizing: border-box;
+}
+
 body {
   background-color: #f4f6f8 !important;
   color: #1a1a2e !important;
+  font-family: Inter, sans-serif;
+}
+
+.navbar {
+  background-color: #1e3a5f !important;
+  color: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.navbar a {
+  color: #bfdbfe;
+  text-decoration: none;
+}
+
+.navbar a:hover,
+.navbar a.active {
+  color: white;
+  background-color: #1e40af;
 }
