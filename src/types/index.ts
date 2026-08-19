@@ -44,6 +44,7 @@ export interface Ocorrencia {
   lat: number
   lng: number
   foto_url?: string
+  endereco_label?: string
   status: StatusOcorrencia
   categoria_id: string
   categoria?: CategoriaMapa

@@ -118,7 +118,7 @@ export default function MapaOcorrencias() {
       const res = await fetch('/api/ocorrencias', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ morador_nome: nome.trim(), morador_cpf: cpf.replace(/\D/g, ''), descricao: descricao.trim(), lat: coordenadas.lat, lng: coordenadas.lng, categoria_id: categoriaId }),
+        body: JSON.stringify({ morador_nome: nome.trim(), morador_cpf: cpf.replace(/\D/g, ''), descricao: descricao.trim(), lat: coordenadas.lat, lng: coordenadas.lng, categoria_id: categoriaId, endereco_label: coordenadas.label }),
       })
       if (!res.ok) throw new Error()
       setSucesso(true)

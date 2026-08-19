@@ -5,7 +5,7 @@ import { validarCPF } from '@/lib/cpf'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { morador_nome, morador_cpf, descricao, lat, lng, categoria_id, foto_url } = body
+    const { morador_nome, morador_cpf, descricao, lat, lng, categoria_id, foto_url, endereco_label } = body
 
     if (!morador_nome || !morador_cpf || !descricao || !lat || !lng || !categoria_id) {
       return NextResponse.json({ error: 'Campos obrigatórios ausentes.' }, { status: 400 })
@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
       lng,
       categoria_id,
       foto_url: foto_url || null,
+      endereco_label: endereco_label || null,
       status: 'pendente',
     })
 

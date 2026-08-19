@@ -468,8 +468,17 @@ export default function AdminPage() {
                   </div>
                 ) : (
                   <>
-                    <p style={{ fontSize: '14px', color: '#374151', marginBottom: '4px' }}>{o.descricao}</p>
-                    <p style={{ fontSize: '12px', color: '#9ca3af', fontFamily: 'monospace', marginBottom: '14px' }}>{o.lat.toFixed(5)}, {o.lng.toFixed(5)}</p>
+                    <p style={{ fontSize: '14px', color: '#374151', marginBottom: '8px' }}>{o.descricao}</p>
+                    {(o as Ocorrencia & { endereco_label?: string }).endereco_label ? (
+                      <p style={{ fontSize: '12px', color: '#4b5563', marginBottom: '4px' }}>
+                        Endereço: {(o as Ocorrencia & { endereco_label?: string }).endereco_label}
+                      </p>
+                    ) : null}
+                    <p style={{ fontSize: '12px', color: '#9ca3af', fontFamily: 'monospace', marginBottom: '4px' }}>{o.lat.toFixed(5)}, {o.lng.toFixed(5)}</p>
+                    <a href={`https://www.openstreetmap.org/?mlat=${o.lat}&mlon=${o.lng}&zoom=17`} target="_blank" rel="noreferrer"
+                      style={{ fontSize: '12px', color: '#1e3a5f', textDecoration: 'underline', display: 'inline-block', marginBottom: '14px' }}>
+                      Ver localização no mapa
+                    </a>
                   </>
                 )}
 
