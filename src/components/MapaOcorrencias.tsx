@@ -122,6 +122,24 @@ export default function MapaOcorrencias() {
     setCpf(limpo ? formatarCPF(limpo) : '')
   }
 
+  function usarMinhaLocalizacao() {
+    if (!navigator.geolocation) { setErro('Seu dispositivo não suporta geolocalização.'); return }
+    setBuscando(true)
+    setErro('')
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords
+        setCoordenadas({ lat: latitude, lng: longitude, label: endereco.trim() || 'Localização do dispositivo' })
+        setBuscando(false)
+      },
+      () => {
+        setErro('Não foi possível obter sua localização. Verifique as permissões do navegador.')
+        setBuscando(false)
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }
+
   async function buscarEndereco() {
     if (!endereco.trim()) return
     setBuscando(true)
@@ -245,6 +263,10 @@ export default function MapaOcorrencias() {
                       {buscando ? 'Buscando...' : 'Buscar'}
                     </button>
                   </div>
+                  <button type="button" onClick={usarMinhaLocalizacao} disabled={buscando}
+                    style={{ marginTop: '8px', background: 'none', border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 12px', fontSize: '12px', color: '#374151', cursor: 'pointer', width: '100%' }}>
+                    {buscando ? 'Obtendo localização...' : 'Usar minha localização atual'}
+                  </button>
                   {coordenadas && (
                     <div style={{ marginTop: '8px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '6px', padding: '10px 12px', fontSize: '12px', color: '#92400e' }}>
                       <p style={{ margin: '0 0 4px', fontWeight: 600 }}>Rua encontrada: {coordenadas.label}</p>
