@@ -45,6 +45,12 @@ export default function AdminPage() {
   // Edição inline de ocorrência
   const [editandoOco, setEditandoOco] = useState<string | null>(null)
   const [editOcoDesc, setEditOcoDesc] = useState('')
+  const [editOcoNome, setEditOcoNome] = useState('')
+  const [editOcoCatId, setEditOcoCatId] = useState('')
+  const [editOcoLat, setEditOcoLat] = useState('')
+  const [editOcoLng, setEditOcoLng] = useState('')
+  const [editOcoEndereco, setEditOcoEndereco] = useState('')
+  const [buscandoEndereco, setBuscandoEndereco] = useState(false)
 
   const client = createClient()
 
@@ -134,8 +140,34 @@ export default function AdminPage() {
     carregarDados()
   }
 
+  async function buscarEnderecoAdmin() {
+    if (!editOcoEndereco.trim()) return
+    setBuscandoEndereco(true)
+    try {
+      const q = encodeURIComponent(editOcoEndereco + ', Frutal, MG, Brasil')
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1`)
+      const data = await res.json()
+      if (data.length > 0) {
+        setEditOcoLat(parseFloat(data[0].lat).toFixed(6))
+        setEditOcoLng(parseFloat(data[0].lon).toFixed(6))
+      } else {
+        alert('Endereço não encontrado. Tente ser mais específico.')
+      }
+    } catch { alert('Erro ao buscar endereço.') }
+    finally { setBuscandoEndereco(false) }
+  }
+
   async function salvarEdicaoOco(id: string) {
-    await supabase.from('ocorrencias').update({ descricao: editOcoDesc }).eq('id', id)
+    const campos: Record<string, unknown> = {
+      descricao: editOcoDesc,
+      morador_nome: editOcoNome,
+      categoria_id: editOcoCatId,
+    }
+    const lat = parseFloat(editOcoLat)
+    const lng = parseFloat(editOcoLng)
+    if (!isNaN(lat)) campos.lat = lat
+    if (!isNaN(lng)) campos.lng = lng
+    await supabase.from('ocorrencias').update(campos).eq('id', id)
     setEditandoOco(null)
     carregarDados()
   }
@@ -364,20 +396,66 @@ export default function AdminPage() {
                   <p style={{ fontSize: '12px', color: '#9ca3af', whiteSpace: 'nowrap' }}>{new Date(o.created_at).toLocaleDateString('pt-BR')}</p>
                 </div>
 
+                {/* CPF sempre visível */}
+                <p style={{ fontSize: '12px', color: '#9ca3af', fontFamily: 'monospace', margin: '-4px 0 10px' }}>{o.morador_cpf}</p>
+
                 {editandoOco === o.id ? (
-                  <div style={{ marginBottom: '12px' }}>
-                    <textarea value={editOcoDesc} onChange={(e) => setEditOcoDesc(e.target.value)} rows={3}
-                      style={{ width: '100%', border: '1px solid #1e3a5f', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box', lineHeight: 1.6 }} />
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>Nome do morador</label>
+                        <input value={editOcoNome} onChange={(e) => setEditOcoNome(e.target.value)}
+                          style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>Categoria</label>
+                        <select value={editOcoCatId} onChange={(e) => setEditOcoCatId(e.target.value)}
+                          style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', background: 'white' }}>
+                          {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>Descrição</label>
+                      <textarea value={editOcoDesc} onChange={(e) => setEditOcoDesc(e.target.value)} rows={3}
+                        style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', resize: 'none', outline: 'none', boxSizing: 'border-box', lineHeight: 1.6 }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>Localização — buscar por endereço</label>
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
+                        <input value={editOcoEndereco} onChange={(e) => setEditOcoEndereco(e.target.value)}
+                          placeholder="Ex: Rua das Flores, 123"
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); buscarEnderecoAdmin() } }}
+                          style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
+                        <button onClick={buscarEnderecoAdmin} disabled={buscandoEndereco}
+                          style={{ backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '7px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                          {buscandoEndereco ? '...' : 'Buscar'}
+                        </button>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '11px', color: '#9ca3af', marginBottom: '3px' }}>Latitude</label>
+                          <input value={editOcoLat} onChange={(e) => setEditOcoLat(e.target.value)}
+                            style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '6px 10px', fontSize: '12px', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }} />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '11px', color: '#9ca3af', marginBottom: '3px' }}>Longitude</label>
+                          <input value={editOcoLng} onChange={(e) => setEditOcoLng(e.target.value)}
+                            style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '6px 10px', fontSize: '12px', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }} />
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
                       {btnAcao('Salvar edição', () => salvarEdicaoOco(o.id), 'primario')}
                       {btnAcao('Cancelar', () => setEditandoOco(null), 'neutro')}
                     </div>
                   </div>
                 ) : (
-                  <p style={{ fontSize: '14px', color: '#374151', marginBottom: '4px' }}>{o.descricao}</p>
+                  <>
+                    <p style={{ fontSize: '14px', color: '#374151', marginBottom: '4px' }}>{o.descricao}</p>
+                    <p style={{ fontSize: '12px', color: '#9ca3af', fontFamily: 'monospace', marginBottom: '14px' }}>{o.lat.toFixed(5)}, {o.lng.toFixed(5)}</p>
+                  </>
                 )}
-
-                <p style={{ fontSize: '12px', color: '#9ca3af', fontFamily: 'monospace', marginBottom: '14px' }}>{o.lat.toFixed(5)}, {o.lng.toFixed(5)}</p>
 
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {o.status === 'pendente' && (
@@ -386,7 +464,15 @@ export default function AdminPage() {
                       {btnAcao('Rejeitar', () => rejeitar(o.id, 'ocorrencia'), 'neutro')}
                     </>
                   )}
-                  {editandoOco !== o.id && btnAcao('Editar', () => { setEditandoOco(o.id); setEditOcoDesc(o.descricao) }, 'neutro')}
+                  {editandoOco !== o.id && btnAcao('Editar', () => {
+                    setEditandoOco(o.id)
+                    setEditOcoDesc(o.descricao)
+                    setEditOcoNome(o.morador_nome)
+                    setEditOcoCatId(o.categoria_id)
+                    setEditOcoLat(o.lat.toString())
+                    setEditOcoLng(o.lng.toString())
+                    setEditOcoEndereco('')
+                  }, 'neutro')}
                   {btnAcao(o.oculto ? 'Mostrar ao público' : 'Ocultar do público', () => toggleOculto(o.id, 'ocorrencia', !!o.oculto), 'aviso')}
                   {btnAcao('Excluir', () => excluir(o.id, 'ocorrencia'), 'perigo')}
                 </div>
