@@ -30,6 +30,7 @@ export interface Denuncia {
   entidade?: Entidade
   resposta?: string
   respondido_em?: string
+  resposta_ip?: string
   magic_token?: string
   magic_token_expira_em?: string
   created_at: string

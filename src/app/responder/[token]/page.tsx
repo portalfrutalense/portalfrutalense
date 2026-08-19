@@ -124,6 +124,9 @@ export default function PageResponder() {
           <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>
             Sua resposta será publicada publicamente no portal com seu nome e cargo.
           </p>
+          <p style={{ fontSize: '11px', color: '#d1d5db', margin: 0, lineHeight: 1.6 }}>
+            Ao publicar, seu endereço IP, data e hora serão registrados como parte da autenticidade desta declaração oficial, em conformidade com a LGPD.
+          </p>
           <button onClick={handleEnviar} disabled={enviando}
             style={{ backgroundColor: enviando ? '#9ca3af' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '12px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
             {enviando ? 'Enviando...' : 'Publicar Resposta Oficial'}

@@ -53,11 +53,10 @@ export default function CardDenuncia({ denuncia }: Props) {
             </p>
           )}
           <p style={{ color: '#1e3a5f', fontSize: '14px', lineHeight: 1.6, whiteSpace: 'pre-wrap', margin: 0 }}>{denuncia.resposta}</p>
-          {denuncia.respondido_em && (
-            <p style={{ fontSize: '11px', color: '#93c5fd', margin: '8px 0 0' }}>
-              {new Date(denuncia.respondido_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
-            </p>
-          )}
+          <p style={{ fontSize: '11px', color: '#93c5fd', margin: '8px 0 0' }}>
+            {denuncia.respondido_em && new Date(denuncia.respondido_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+            {denuncia.resposta_ip && ` · IP ${denuncia.resposta_ip.replace(/(\d+)\.(\d+)\.(\d+)\.(\d+)/, '$1.$2.xx.xx')}`}
+          </p>
         </div>
       )}
     </div>

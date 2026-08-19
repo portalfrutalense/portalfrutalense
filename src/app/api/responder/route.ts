@@ -49,6 +49,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Link expirado.' }, { status: 410 })
     }
 
+    // Captura IP da entidade
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || req.headers.get('x-real-ip')
+      || 'desconhecido'
+
     // Salva resposta — fica aguardando aprovação do admin
     const { error: updateError } = await supabaseAdmin
       .from('denuncias')
@@ -56,6 +61,7 @@ export async function POST(req: NextRequest) {
         resposta: resposta.trim(),
         status: 'aguardando_aprovacao_resposta',
         respondido_em: new Date().toISOString(),
+        resposta_ip: ip,
         magic_token: null,
         magic_token_expira_em: null,
       })

@@ -415,6 +415,10 @@ export default function AdminPage() {
                       ● Resposta aguardando sua aprovação
                     </p>
                     <p style={{ fontSize: '14px', color: '#374151', lineHeight: 1.65, whiteSpace: 'pre-wrap', margin: 0 }}>{d.resposta}</p>
+                    <p style={{ fontSize: '11px', color: '#92400e', margin: '8px 0 0', opacity: 0.7 }}>
+                      {d.respondido_em && new Date(d.respondido_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                      {(d as any).resposta_ip && ` · IP ${(d as any).resposta_ip}`}
+                    </p>
                   </div>
                 )}
 
