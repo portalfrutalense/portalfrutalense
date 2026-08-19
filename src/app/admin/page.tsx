@@ -30,11 +30,9 @@ export default function AdminPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
-    // Validação simples via API
-    const res = await fetch('/api/admin/aprovar', {
+    const res = await fetch('/api/admin/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-password': senha },
-      body: JSON.stringify({ id: 'test', tipo: 'teste' }),
     })
     if (res.status === 401) {
       setErroLogin('Senha incorreta.')
