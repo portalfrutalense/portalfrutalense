@@ -142,11 +142,16 @@ export default function MapaOcorrencias() {
         setCoordenadas({ lat: latitude, lng: longitude, label: endereco.trim() || 'Localização do dispositivo' })
         setBuscando(false)
       },
-      () => {
-        setErro('Não foi possível obter sua localização. Verifique as permissões do navegador.')
+      (err) => {
+        const msgs: Record<number, string> = {
+          1: 'Permissão negada. Vá em Configurações do Chrome → Configurações do site → Localização e permita este site.',
+          2: 'GPS indisponível no momento. Tente em um local com melhor sinal ou use a busca por endereço.',
+          3: 'Tempo esgotado. Tente novamente.',
+        }
+        setErro(msgs[err.code] || 'Não foi possível obter sua localização.')
         setBuscando(false)
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     )
   }
 
