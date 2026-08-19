@@ -1,15 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase-browser'
 import { supabase } from '@/lib/supabase'
 import { Denuncia, Ocorrencia, Entidade, CategoriaMapa } from '@/types'
 
 type Aba = 'denuncias' | 'ocorrencias' | 'entidades' | 'categorias'
 
 export default function AdminPage() {
+  const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [autenticado, setAutenticado] = useState(false)
   const [erroLogin, setErroLogin] = useState('')
+  const [carregandoAuth, setCarregandoAuth] = useState(true)
   const [aba, setAba] = useState<Aba>('denuncias')
 
   const [denuncias, setDenuncias] = useState<Denuncia[]>([])
@@ -23,18 +26,44 @@ export default function AdminPage() {
   const [novaCatNome, setNovaCatNome] = useState('')
   const [novaCatCor, setNovaCatCor] = useState('#ef4444')
 
+  const client = createClient()
+
+  // Verifica sessão existente ao carregar
+  useEffect(() => {
+    client.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        setAutenticado(true)
+        carregarDados()
+      }
+      setCarregandoAuth(false)
+    })
+
+    // Escuta mudanças de auth
+    const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setAutenticado(true)
+        carregarDados()
+      } else {
+        setAutenticado(false)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
-    const res = await fetch('/api/admin/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-password': senha },
-    })
-    if (res.status === 401) {
-      setErroLogin('Senha incorreta.')
-    } else {
-      setAutenticado(true)
-      carregarDados()
+    setErroLogin('')
+    const { error } = await client.auth.signInWithPassword({ email, password: senha })
+    if (error) {
+      setErroLogin('Email ou senha incorretos.')
     }
+  }
+
+  async function handleLogout() {
+    await client.auth.signOut()
+    setAutenticado(false)
   }
 
   function carregarDados() {
@@ -45,18 +74,20 @@ export default function AdminPage() {
   }
 
   async function aprovar(id: string, tipo: 'denuncia' | 'ocorrencia') {
+    const session = await client.auth.getSession()
     await fetch('/api/admin/aprovar', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-password': senha },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.data.session?.access_token}` },
       body: JSON.stringify({ id, tipo }),
     })
     carregarDados()
   }
 
   async function rejeitar(id: string, tipo: 'denuncia' | 'ocorrencia') {
+    const session = await client.auth.getSession()
     await fetch('/api/admin/rejeitar', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-password': senha },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.data.session?.access_token}` },
       body: JSON.stringify({ id, tipo }),
     })
     carregarDados()
@@ -88,22 +119,33 @@ export default function AdminPage() {
     carregarDados()
   }
 
+  if (carregandoAuth) {
+    return (
+      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '14px' }}>
+        Verificando sessao...
+      </div>
+    )
+  }
+
   if (!autenticado) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="bg-white rounded-lg border border-gray-200 p-8 w-full max-w-sm">
-          <h1 className="text-lg font-bold text-gray-900 mb-1">Painel Master</h1>
-          <p className="text-sm text-gray-500 mb-6">Acesso restrito ao administrador.</p>
-          {erroLogin && <p className="text-red-600 text-sm mb-4">{erroLogin}</p>}
-          <form onSubmit={handleLogin} className="space-y-3">
-            <input
-              type="password"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              placeholder="Senha"
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button type="submit" className="w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold px-4 py-2 rounded text-sm transition-colors">
+      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '32px', width: '100%', maxWidth: '360px' }}>
+          <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#111827', marginBottom: '4px' }}>Painel Master</h1>
+          <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '24px' }}>Acesso restrito ao administrador.</p>
+          {erroLogin && <p style={{ color: '#dc2626', fontSize: '13px', marginBottom: '12px' }}>{erroLogin}</p>}
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Email</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" required
+                style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Senha</label>
+              <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="••••••••" required
+                style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+            <button type="submit" style={{ backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px', marginTop: '4px' }}>
               Entrar
             </button>
           </form>
@@ -121,26 +163,24 @@ export default function AdminPage() {
 
   return (
     <div>
-      <div className="mb-6 border-b border-gray-200 pb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Painel Master</h1>
-        <p className="text-sm text-gray-500 mt-1">Moderação e configuração do Portal Frutalense.</p>
+      <div style={{ marginBottom: '24px', borderBottom: '1px solid #e5e7eb', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', marginBottom: '4px' }}>Painel Master</h1>
+          <p style={{ fontSize: '13px', color: '#6b7280' }}>Moderacao e configuracao do Portal Frutalense.</p>
+        </div>
+        <button onClick={handleLogout} style={{ fontSize: '13px', color: '#6b7280', background: 'none', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer' }}>
+          Sair
+        </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 mb-6">
+      <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', marginBottom: '24px' }}>
         {abas.map((a) => (
-          <button
-            key={a.key}
-            onClick={() => setAba(a.key)}
-            className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px
-              ${aba === a.key
-                ? 'border-blue-700 text-blue-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-          >
+          <button key={a.key} onClick={() => setAba(a.key)}
+            style={{ padding: '10px 20px', fontSize: '14px', fontWeight: 500, border: 'none', borderBottom: aba === a.key ? '2px solid #1e3a5f' : '2px solid transparent', background: 'none', cursor: 'pointer', color: aba === a.key ? '#1e3a5f' : '#6b7280', marginBottom: '-1px' }}>
             {a.label}
             {a.count !== undefined && (
-              <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${a.count > 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'}`}>
+              <span style={{ marginLeft: '8px', fontSize: '11px', padding: '2px 6px', borderRadius: '999px', background: a.count > 0 ? '#fee2e2' : '#f3f4f6', color: a.count > 0 ? '#dc2626' : '#6b7280' }}>
                 {a.count}
               </span>
             )}
@@ -148,27 +188,27 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {/* Denuncias pendentes */}
+      {/* Denuncias */}
       {aba === 'denuncias' && (
-        <div className="space-y-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {denuncias.length === 0 ? (
-            <p className="text-gray-400 text-center py-16">Nenhuma denuncia pendente.</p>
+            <p style={{ color: '#9ca3af', textAlign: 'center', padding: '64px 0', fontSize: '14px' }}>Nenhuma denuncia pendente.</p>
           ) : denuncias.map((d) => (
-            <div key={d.id} className="bg-white rounded-lg border border-gray-200 p-5">
-              <div className="flex justify-between items-start gap-4 mb-3">
+            <div key={d.id} style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <div>
-                  <p className="font-semibold text-gray-900 text-sm">{d.morador_nome}</p>
-                  <p className="text-xs text-gray-400 font-mono">{d.morador_cpf_display}</p>
-                  {d.entidade && <p className="text-xs text-gray-500 mt-1">Para: {d.entidade.nome} — {d.entidade.cargo}</p>}
+                  <p style={{ fontWeight: 600, color: '#111827', fontSize: '14px', margin: 0 }}>{d.morador_nome}</p>
+                  <p style={{ fontSize: '12px', color: '#9ca3af', fontFamily: 'monospace', margin: '2px 0' }}>{d.morador_cpf_display}</p>
+                  {d.entidade && <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0' }}>Para: {d.entidade.nome} — {d.entidade.cargo}</p>}
                 </div>
-                <p className="text-xs text-gray-400 whitespace-nowrap">{new Date(d.created_at).toLocaleDateString('pt-BR')}</p>
+                <p style={{ fontSize: '12px', color: '#9ca3af' }}>{new Date(d.created_at).toLocaleDateString('pt-BR')}</p>
               </div>
-              <p className="text-gray-700 text-sm whitespace-pre-wrap mb-4 leading-relaxed">{d.mensagem}</p>
-              <div className="flex gap-2">
-                <button onClick={() => aprovar(d.id, 'denuncia')} className="text-xs bg-blue-800 hover:bg-blue-900 text-white px-4 py-1.5 rounded font-medium transition-colors">
+              <p style={{ fontSize: '14px', color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap', marginBottom: '16px' }}>{d.mensagem}</p>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => aprovar(d.id, 'denuncia')} style={{ fontSize: '13px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '7px 16px', fontWeight: 600, cursor: 'pointer' }}>
                   Aprovar e Enviar Link
                 </button>
-                <button onClick={() => rejeitar(d.id, 'denuncia')} className="text-xs bg-gray-100 hover:bg-red-50 hover:text-red-700 text-gray-600 px-4 py-1.5 rounded font-medium transition-colors border border-gray-200">
+                <button onClick={() => rejeitar(d.id, 'denuncia')} style={{ fontSize: '13px', backgroundColor: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 16px', fontWeight: 500, cursor: 'pointer' }}>
                   Rejeitar
                 </button>
               </div>
@@ -177,32 +217,32 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Ocorrencias pendentes */}
+      {/* Ocorrencias */}
       {aba === 'ocorrencias' && (
-        <div className="space-y-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {ocorrencias.length === 0 ? (
-            <p className="text-gray-400 text-center py-16">Nenhuma ocorrencia pendente.</p>
+            <p style={{ color: '#9ca3af', textAlign: 'center', padding: '64px 0', fontSize: '14px' }}>Nenhuma ocorrencia pendente.</p>
           ) : ocorrencias.map((o) => (
-            <div key={o.id} className="bg-white rounded-lg border border-gray-200 p-5">
-              <div className="flex justify-between items-start gap-4 mb-2">
+            <div key={o.id} style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <div>
-                  <p className="font-semibold text-gray-900 text-sm">{o.morador_nome}</p>
+                  <p style={{ fontWeight: 600, color: '#111827', fontSize: '14px', margin: 0 }}>{o.morador_nome}</p>
                   {o.categoria && (
-                    <span className="inline-flex items-center gap-1.5 text-xs mt-1">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: o.categoria.cor }} />
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', marginTop: '4px' }}>
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: o.categoria.cor, display: 'inline-block' }} />
                       {o.categoria.nome}
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-gray-400">{new Date(o.created_at).toLocaleDateString('pt-BR')}</p>
+                <p style={{ fontSize: '12px', color: '#9ca3af' }}>{new Date(o.created_at).toLocaleDateString('pt-BR')}</p>
               </div>
-              <p className="text-gray-700 text-sm mb-1">{o.descricao}</p>
-              <p className="text-xs text-gray-400 font-mono mb-4">{o.lat.toFixed(5)}, {o.lng.toFixed(5)}</p>
-              <div className="flex gap-2">
-                <button onClick={() => aprovar(o.id, 'ocorrencia')} className="text-xs bg-blue-800 hover:bg-blue-900 text-white px-4 py-1.5 rounded font-medium transition-colors">
+              <p style={{ fontSize: '14px', color: '#374151', marginBottom: '4px' }}>{o.descricao}</p>
+              <p style={{ fontSize: '12px', color: '#9ca3af', fontFamily: 'monospace', marginBottom: '16px' }}>{o.lat.toFixed(5)}, {o.lng.toFixed(5)}</p>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => aprovar(o.id, 'ocorrencia')} style={{ fontSize: '13px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '7px 16px', fontWeight: 600, cursor: 'pointer' }}>
                   Publicar no Mapa
                 </button>
-                <button onClick={() => rejeitar(o.id, 'ocorrencia')} className="text-xs bg-gray-100 hover:bg-red-50 hover:text-red-700 text-gray-600 px-4 py-1.5 rounded font-medium transition-colors border border-gray-200">
+                <button onClick={() => rejeitar(o.id, 'ocorrencia')} style={{ fontSize: '13px', backgroundColor: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 16px', fontWeight: 500, cursor: 'pointer' }}>
                   Rejeitar
                 </button>
               </div>
@@ -213,30 +253,27 @@ export default function AdminPage() {
 
       {/* Entidades */}
       {aba === 'entidades' && (
-        <div className="space-y-6">
-          <form onSubmit={salvarEntidade} className="bg-white rounded-lg border border-gray-200 p-5">
-            <h2 className="font-semibold text-gray-800 mb-4">Nova Entidade</h2>
-            <div className="grid sm:grid-cols-3 gap-3 mb-3">
-              <input value={novaEntNome} onChange={(e) => setNovaEntNome(e.target.value)} placeholder="Nome" required className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <input value={novaEntCargo} onChange={(e) => setNovaEntCargo(e.target.value)} placeholder="Cargo / Orgao" required className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <input type="email" value={novaEntEmail} onChange={(e) => setNovaEntEmail(e.target.value)} placeholder="E-mail" required className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <button type="submit" className="bg-blue-800 hover:bg-blue-900 text-white font-semibold px-4 py-2 rounded text-sm transition-colors">
-              Salvar
-            </button>
-          </form>
-
-          <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
-            {entidades.length === 0 && <p className="text-gray-400 text-sm p-5">Nenhuma entidade cadastrada.</p>}
-            {entidades.map((e) => (
-              <div key={e.id} className="px-5 py-3 flex items-center justify-between">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '20px' }}>
+            <h2 style={{ fontWeight: 600, color: '#111827', fontSize: '15px', marginBottom: '16px' }}>Nova Entidade</h2>
+            <form onSubmit={salvarEntidade} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                <input value={novaEntNome} onChange={(e) => setNovaEntNome(e.target.value)} placeholder="Nome" required style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none' }} />
+                <input value={novaEntCargo} onChange={(e) => setNovaEntCargo(e.target.value)} placeholder="Cargo / Orgao" required style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none' }} />
+                <input type="email" value={novaEntEmail} onChange={(e) => setNovaEntEmail(e.target.value)} placeholder="E-mail" required style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none' }} />
+              </div>
+              <button type="submit" style={{ alignSelf: 'flex-start', backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '8px 18px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '13px' }}>Salvar</button>
+            </form>
+          </div>
+          <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+            {entidades.length === 0 && <p style={{ color: '#9ca3af', fontSize: '13px', padding: '20px' }}>Nenhuma entidade cadastrada.</p>}
+            {entidades.map((e, i) => (
+              <div key={e.id} style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: i > 0 ? '1px solid #f3f4f6' : 'none' }}>
                 <div>
-                  <p className="font-medium text-gray-800 text-sm">{e.nome}</p>
-                  <p className="text-xs text-gray-500">{e.cargo} · {e.email}</p>
+                  <p style={{ fontWeight: 500, color: '#111827', fontSize: '14px', margin: 0 }}>{e.nome}</p>
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0' }}>{e.cargo} · {e.email}</p>
                 </div>
-                <button onClick={() => excluirEntidade(e.id)} className="text-xs text-red-500 hover:text-red-700 transition-colors">
-                  Excluir
-                </button>
+                <button onClick={() => excluirEntidade(e.id)} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>Excluir</button>
               </div>
             ))}
           </div>
@@ -245,35 +282,30 @@ export default function AdminPage() {
 
       {/* Categorias */}
       {aba === 'categorias' && (
-        <div className="space-y-6">
-          <form onSubmit={salvarCategoria} className="bg-white rounded-lg border border-gray-200 p-5">
-            <h2 className="font-semibold text-gray-800 mb-4">Nova Categoria</h2>
-            <div className="flex gap-3 items-end mb-3">
-              <div className="flex-1">
-                <input value={novaCatNome} onChange={(e) => setNovaCatNome(e.target.value)} placeholder="Nome da categoria (ex: Buraco na Via)" required className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Cor</label>
-                <input type="color" value={novaCatCor} onChange={(e) => setNovaCatCor(e.target.value)} className="w-10 h-10 rounded cursor-pointer border border-gray-300" />
-              </div>
-            </div>
-            <button type="submit" className="bg-blue-800 hover:bg-blue-900 text-white font-semibold px-4 py-2 rounded text-sm transition-colors">
-              Salvar
-            </button>
-          </form>
-
-          <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
-            {categorias.length === 0 && <p className="text-gray-400 text-sm p-5">Nenhuma categoria cadastrada.</p>}
-            {categorias.map((c) => (
-              <div key={c.id} className="px-5 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="w-4 h-4 rounded-full border border-gray-200" style={{ backgroundColor: c.cor }} />
-                  <p className="font-medium text-gray-800 text-sm">{c.nome}</p>
-                  <span className="text-xs text-gray-400 font-mono">{c.cor}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '20px' }}>
+            <h2 style={{ fontWeight: 600, color: '#111827', fontSize: '15px', marginBottom: '16px' }}>Nova Categoria</h2>
+            <form onSubmit={salvarCategoria} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
+                <input value={novaCatNome} onChange={(e) => setNovaCatNome(e.target.value)} placeholder="Nome da categoria (ex: Buraco na Via)" required style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none' }} />
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Cor do pin</label>
+                  <input type="color" value={novaCatCor} onChange={(e) => setNovaCatCor(e.target.value)} style={{ width: '44px', height: '38px', borderRadius: '6px', cursor: 'pointer', border: '1px solid #d1d5db', padding: '2px' }} />
                 </div>
-                <button onClick={() => excluirCategoria(c.id)} className="text-xs text-red-500 hover:text-red-700 transition-colors">
-                  Excluir
-                </button>
+              </div>
+              <button type="submit" style={{ alignSelf: 'flex-start', backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '8px 18px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '13px' }}>Salvar</button>
+            </form>
+          </div>
+          <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+            {categorias.length === 0 && <p style={{ color: '#9ca3af', fontSize: '13px', padding: '20px' }}>Nenhuma categoria cadastrada.</p>}
+            {categorias.map((c, i) => (
+              <div key={c.id} style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: i > 0 ? '1px solid #f3f4f6' : 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: c.cor, display: 'inline-block', border: '1px solid #e5e7eb' }} />
+                  <p style={{ fontWeight: 500, color: '#111827', fontSize: '14px', margin: 0 }}>{c.nome}</p>
+                  <span style={{ fontSize: '11px', color: '#9ca3af', fontFamily: 'monospace' }}>{c.cor}</span>
+                </div>
+                <button onClick={() => excluirCategoria(c.id)} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>Excluir</button>
               </div>
             ))}
           </div>
