@@ -17,12 +17,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body className={`${inter.className} bg-gray-50 min-h-screen`}>
+      <body className={`${inter.className} bg-[#f4f6f8] min-h-screen`}>
         <Navbar />
-        <main className="max-w-5xl mx-auto px-4 py-6">
+        <main className="max-w-5xl mx-auto px-4 py-8">
           {children}
         </main>
-        <footer className="text-center text-sm text-gray-400 py-8 mt-12 border-t">
+        <footer className="text-center text-xs text-gray-400 py-8 mt-12 border-t border-gray-200">
           © {new Date().getFullYear()} Portal Frutalense · Frutal-MG · Transparência e Cidadania
         </footer>
       </body>

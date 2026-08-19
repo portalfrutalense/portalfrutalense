@@ -1,12 +1,6 @@
 @import "tailwindcss";
 
-/* Portal Frutalense - sempre tema claro */
-:root {
-  --background: #f9fafb;
-  --foreground: #171717;
-}
-
 body {
-  background-color: #f9fafb !important;
-  color: #171717 !important;
+  background-color: #f4f6f8 !important;
+  color: #1a1a2e !important;
 }

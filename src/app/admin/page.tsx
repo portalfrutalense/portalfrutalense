@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Denuncia, Ocorrencia, Entidade, CategoriaMapa } from '@/types'
-import { CheckCircle, XCircle, Building2, MapPin, Plus, Trash2, LogIn } from 'lucide-react'
 
 type Aba = 'denuncias' | 'ocorrencias' | 'entidades' | 'categorias'
 
@@ -13,18 +12,14 @@ export default function AdminPage() {
   const [erroLogin, setErroLogin] = useState('')
   const [aba, setAba] = useState<Aba>('denuncias')
 
-  // Dados
   const [denuncias, setDenuncias] = useState<Denuncia[]>([])
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([])
   const [entidades, setEntidades] = useState<Entidade[]>([])
   const [categorias, setCategorias] = useState<CategoriaMapa[]>([])
 
-  // Form entidades
   const [novaEntNome, setNovaEntNome] = useState('')
   const [novaEntCargo, setNovaEntCargo] = useState('')
   const [novaEntEmail, setNovaEntEmail] = useState('')
-
-  // Form categorias
   const [novaCatNome, setNovaCatNome] = useState('')
   const [novaCatCor, setNovaCatCor] = useState('#ef4444')
 
@@ -96,19 +91,20 @@ export default function AdminPage() {
   if (!autenticado) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 w-full max-w-sm">
-          <h1 className="text-xl font-bold text-gray-800 mb-6 text-center">🔐 Painel Master</h1>
-          {erroLogin && <p className="text-red-600 text-sm mb-4 text-center">{erroLogin}</p>}
-          <form onSubmit={handleLogin} className="space-y-4">
+        <div className="bg-white rounded-lg border border-gray-200 p-8 w-full max-w-sm">
+          <h1 className="text-lg font-bold text-gray-900 mb-1">Painel Master</h1>
+          <p className="text-sm text-gray-500 mb-6">Acesso restrito ao administrador.</p>
+          {erroLogin && <p className="text-red-600 text-sm mb-4">{erroLogin}</p>}
+          <form onSubmit={handleLogin} className="space-y-3">
             <input
               type="password"
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
-              placeholder="Senha de administrador"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="Senha"
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <button type="submit" className="flex items-center gap-2 justify-center w-full bg-green-700 hover:bg-green-800 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm">
-              <LogIn size={16} /> Entrar
+            <button type="submit" className="w-full bg-blue-800 hover:bg-blue-900 text-white font-semibold px-4 py-2 rounded text-sm transition-colors">
+              Entrar
             </button>
           </form>
         </div>
@@ -116,51 +112,64 @@ export default function AdminPage() {
     )
   }
 
-  const abas: { key: Aba; label: string }[] = [
-    { key: 'denuncias', label: `📢 Denúncias (${denuncias.length})` },
-    { key: 'ocorrencias', label: `🗺️ Ocorrências (${ocorrencias.length})` },
-    { key: 'entidades', label: '👤 Entidades' },
-    { key: 'categorias', label: '🏷️ Categorias' },
+  const abas: { key: Aba; label: string; count?: number }[] = [
+    { key: 'denuncias', label: 'Denuncias', count: denuncias.length },
+    { key: 'ocorrencias', label: 'Ocorrencias', count: ocorrencias.length },
+    { key: 'entidades', label: 'Entidades' },
+    { key: 'categorias', label: 'Categorias' },
   ]
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">⚙️ Painel Master</h1>
+      <div className="mb-6 border-b border-gray-200 pb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Painel Master</h1>
+        <p className="text-sm text-gray-500 mt-1">Moderação e configuração do Portal Frutalense.</p>
+      </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 flex-wrap">
+      <div className="flex border-b border-gray-200 mb-6">
         {abas.map((a) => (
           <button
             key={a.key}
             onClick={() => setAba(a.key)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${aba === a.key ? 'bg-green-700 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+            className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px
+              ${aba === a.key
+                ? 'border-blue-700 text-blue-700'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
           >
             {a.label}
+            {a.count !== undefined && (
+              <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${a.count > 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'}`}>
+                {a.count}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
-      {/* Fila de Denúncias */}
+      {/* Denuncias pendentes */}
       {aba === 'denuncias' && (
         <div className="space-y-4">
           {denuncias.length === 0 ? (
-            <p className="text-gray-400 text-center py-12">Nenhuma denúncia pendente. 🎉</p>
+            <p className="text-gray-400 text-center py-16">Nenhuma denuncia pendente.</p>
           ) : denuncias.map((d) => (
-            <div key={d.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+            <div key={d.id} className="bg-white rounded-lg border border-gray-200 p-5">
               <div className="flex justify-between items-start gap-4 mb-3">
                 <div>
-                  <p className="font-semibold text-gray-800">{d.morador_nome} <span className="text-gray-400 font-mono text-xs">· {d.morador_cpf_display}</span></p>
-                  {d.entidade && <p className="text-sm text-gray-500">Para: {d.entidade.nome} · {d.entidade.cargo}</p>}
+                  <p className="font-semibold text-gray-900 text-sm">{d.morador_nome}</p>
+                  <p className="text-xs text-gray-400 font-mono">{d.morador_cpf_display}</p>
+                  {d.entidade && <p className="text-xs text-gray-500 mt-1">Para: {d.entidade.nome} — {d.entidade.cargo}</p>}
                 </div>
                 <p className="text-xs text-gray-400 whitespace-nowrap">{new Date(d.created_at).toLocaleDateString('pt-BR')}</p>
               </div>
-              <p className="text-gray-700 text-sm whitespace-pre-wrap mb-4">{d.mensagem}</p>
+              <p className="text-gray-700 text-sm whitespace-pre-wrap mb-4 leading-relaxed">{d.mensagem}</p>
               <div className="flex gap-2">
-                <button onClick={() => aprovar(d.id, 'denuncia')} className="flex items-center gap-1.5 text-sm bg-green-100 hover:bg-green-200 text-green-800 px-3 py-1.5 rounded-lg font-medium transition-colors">
-                  <CheckCircle size={14} /> Aprovar & Enviar Link
+                <button onClick={() => aprovar(d.id, 'denuncia')} className="text-xs bg-blue-800 hover:bg-blue-900 text-white px-4 py-1.5 rounded font-medium transition-colors">
+                  Aprovar e Enviar Link
                 </button>
-                <button onClick={() => rejeitar(d.id, 'denuncia')} className="flex items-center gap-1.5 text-sm bg-red-100 hover:bg-red-200 text-red-800 px-3 py-1.5 rounded-lg font-medium transition-colors">
-                  <XCircle size={14} /> Rejeitar
+                <button onClick={() => rejeitar(d.id, 'denuncia')} className="text-xs bg-gray-100 hover:bg-red-50 hover:text-red-700 text-gray-600 px-4 py-1.5 rounded font-medium transition-colors border border-gray-200">
+                  Rejeitar
                 </button>
               </div>
             </div>
@@ -168,19 +177,19 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Fila de Ocorrências */}
+      {/* Ocorrencias pendentes */}
       {aba === 'ocorrencias' && (
         <div className="space-y-4">
           {ocorrencias.length === 0 ? (
-            <p className="text-gray-400 text-center py-12">Nenhuma ocorrência pendente. 🎉</p>
+            <p className="text-gray-400 text-center py-16">Nenhuma ocorrencia pendente.</p>
           ) : ocorrencias.map((o) => (
-            <div key={o.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+            <div key={o.id} className="bg-white rounded-lg border border-gray-200 p-5">
               <div className="flex justify-between items-start gap-4 mb-2">
                 <div>
-                  <p className="font-semibold text-gray-800">{o.morador_nome}</p>
+                  <p className="font-semibold text-gray-900 text-sm">{o.morador_nome}</p>
                   {o.categoria && (
-                    <span className="inline-flex items-center gap-1 text-xs mt-1 px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: o.categoria.cor + '22', color: o.categoria.cor }}>
-                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: o.categoria.cor }} />
+                    <span className="inline-flex items-center gap-1.5 text-xs mt-1">
+                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: o.categoria.cor }} />
                       {o.categoria.nome}
                     </span>
                   )}
@@ -188,13 +197,13 @@ export default function AdminPage() {
                 <p className="text-xs text-gray-400">{new Date(o.created_at).toLocaleDateString('pt-BR')}</p>
               </div>
               <p className="text-gray-700 text-sm mb-1">{o.descricao}</p>
-              <p className="text-xs text-gray-400 mb-3">📍 {o.lat.toFixed(5)}, {o.lng.toFixed(5)}</p>
+              <p className="text-xs text-gray-400 font-mono mb-4">{o.lat.toFixed(5)}, {o.lng.toFixed(5)}</p>
               <div className="flex gap-2">
-                <button onClick={() => aprovar(o.id, 'ocorrencia')} className="flex items-center gap-1.5 text-sm bg-green-100 hover:bg-green-200 text-green-800 px-3 py-1.5 rounded-lg font-medium transition-colors">
-                  <CheckCircle size={14} /> Publicar no Mapa
+                <button onClick={() => aprovar(o.id, 'ocorrencia')} className="text-xs bg-blue-800 hover:bg-blue-900 text-white px-4 py-1.5 rounded font-medium transition-colors">
+                  Publicar no Mapa
                 </button>
-                <button onClick={() => rejeitar(o.id, 'ocorrencia')} className="flex items-center gap-1.5 text-sm bg-red-100 hover:bg-red-200 text-red-800 px-3 py-1.5 rounded-lg font-medium transition-colors">
-                  <XCircle size={14} /> Rejeitar
+                <button onClick={() => rejeitar(o.id, 'ocorrencia')} className="text-xs bg-gray-100 hover:bg-red-50 hover:text-red-700 text-gray-600 px-4 py-1.5 rounded font-medium transition-colors border border-gray-200">
+                  Rejeitar
                 </button>
               </div>
             </div>
@@ -202,30 +211,31 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Gestão de Entidades */}
+      {/* Entidades */}
       {aba === 'entidades' && (
-        <div className="space-y-4">
-          <form onSubmit={salvarEntidade} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-3">
-            <h2 className="font-semibold text-gray-800">➕ Nova Entidade</h2>
-            <div className="grid sm:grid-cols-3 gap-3">
-              <input value={novaEntNome} onChange={(e) => setNovaEntNome(e.target.value)} placeholder="Nome" required className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-              <input value={novaEntCargo} onChange={(e) => setNovaEntCargo(e.target.value)} placeholder="Cargo / Órgão" required className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-              <input type="email" value={novaEntEmail} onChange={(e) => setNovaEntEmail(e.target.value)} placeholder="E-mail" required className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+        <div className="space-y-6">
+          <form onSubmit={salvarEntidade} className="bg-white rounded-lg border border-gray-200 p-5">
+            <h2 className="font-semibold text-gray-800 mb-4">Nova Entidade</h2>
+            <div className="grid sm:grid-cols-3 gap-3 mb-3">
+              <input value={novaEntNome} onChange={(e) => setNovaEntNome(e.target.value)} placeholder="Nome" required className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input value={novaEntCargo} onChange={(e) => setNovaEntCargo(e.target.value)} placeholder="Cargo / Orgao" required className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input type="email" value={novaEntEmail} onChange={(e) => setNovaEntEmail(e.target.value)} placeholder="E-mail" required className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
-            <button type="submit" className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2 rounded-lg text-sm transition-colors">
-              <Plus size={14} /> Salvar Entidade
+            <button type="submit" className="bg-blue-800 hover:bg-blue-900 text-white font-semibold px-4 py-2 rounded text-sm transition-colors">
+              Salvar
             </button>
           </form>
 
-          <div className="space-y-2">
+          <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
+            {entidades.length === 0 && <p className="text-gray-400 text-sm p-5">Nenhuma entidade cadastrada.</p>}
             {entidades.map((e) => (
-              <div key={e.id} className="bg-white rounded-lg border border-gray-200 px-4 py-3 flex items-center justify-between">
+              <div key={e.id} className="px-5 py-3 flex items-center justify-between">
                 <div>
                   <p className="font-medium text-gray-800 text-sm">{e.nome}</p>
                   <p className="text-xs text-gray-500">{e.cargo} · {e.email}</p>
                 </div>
-                <button onClick={() => excluirEntidade(e.id)} className="text-red-400 hover:text-red-600 transition-colors">
-                  <Trash2 size={16} />
+                <button onClick={() => excluirEntidade(e.id)} className="text-xs text-red-500 hover:text-red-700 transition-colors">
+                  Excluir
                 </button>
               </div>
             ))}
@@ -233,35 +243,36 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Gestão de Categorias */}
+      {/* Categorias */}
       {aba === 'categorias' && (
-        <div className="space-y-4">
-          <form onSubmit={salvarCategoria} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-3">
-            <h2 className="font-semibold text-gray-800">➕ Nova Categoria</h2>
-            <div className="flex gap-3 items-end">
+        <div className="space-y-6">
+          <form onSubmit={salvarCategoria} className="bg-white rounded-lg border border-gray-200 p-5">
+            <h2 className="font-semibold text-gray-800 mb-4">Nova Categoria</h2>
+            <div className="flex gap-3 items-end mb-3">
               <div className="flex-1">
-                <input value={novaCatNome} onChange={(e) => setNovaCatNome(e.target.value)} placeholder="Nome da categoria (ex: Buraco)" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                <input value={novaCatNome} onChange={(e) => setNovaCatNome(e.target.value)} placeholder="Nome da categoria (ex: Buraco na Via)" required className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Cor do pin</label>
-                <input type="color" value={novaCatCor} onChange={(e) => setNovaCatCor(e.target.value)} className="w-12 h-10 rounded cursor-pointer border border-gray-300" />
+                <label className="block text-xs text-gray-500 mb-1">Cor</label>
+                <input type="color" value={novaCatCor} onChange={(e) => setNovaCatCor(e.target.value)} className="w-10 h-10 rounded cursor-pointer border border-gray-300" />
               </div>
             </div>
-            <button type="submit" className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2 rounded-lg text-sm transition-colors">
-              <Plus size={14} /> Salvar Categoria
+            <button type="submit" className="bg-blue-800 hover:bg-blue-900 text-white font-semibold px-4 py-2 rounded text-sm transition-colors">
+              Salvar
             </button>
           </form>
 
-          <div className="space-y-2">
+          <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
+            {categorias.length === 0 && <p className="text-gray-400 text-sm p-5">Nenhuma categoria cadastrada.</p>}
             {categorias.map((c) => (
-              <div key={c.id} className="bg-white rounded-lg border border-gray-200 px-4 py-3 flex items-center justify-between">
+              <div key={c.id} className="px-5 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="w-5 h-5 rounded-full border-2 border-white shadow" style={{ backgroundColor: c.cor }} />
+                  <span className="w-4 h-4 rounded-full border border-gray-200" style={{ backgroundColor: c.cor }} />
                   <p className="font-medium text-gray-800 text-sm">{c.nome}</p>
                   <span className="text-xs text-gray-400 font-mono">{c.cor}</span>
                 </div>
-                <button onClick={() => excluirCategoria(c.id)} className="text-red-400 hover:text-red-600 transition-colors">
-                  <Trash2 size={16} />
+                <button onClick={() => excluirCategoria(c.id)} className="text-xs text-red-500 hover:text-red-700 transition-colors">
+                  Excluir
                 </button>
               </div>
             ))}
