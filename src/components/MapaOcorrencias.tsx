@@ -97,7 +97,7 @@ export default function MapaOcorrencias() {
       const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`)
       const data = await res.json()
       if (!data || data.length === 0) { setErro('Endereco nao encontrado. Tente ser mais especifico.'); return }
-      setCoordenadas({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), label: data[0].display_name })
+      setCoordenadas({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), label: endereco.trim() })
     } catch {
       setErro('Erro ao buscar endereco.')
     } finally {

@@ -157,7 +157,7 @@ export default function AdminPage() {
       if (data.length > 0) {
         setEditOcoLat(parseFloat(data[0].lat).toFixed(6))
         setEditOcoLng(parseFloat(data[0].lon).toFixed(6))
-        setEditOcoEnderecoLabel(data[0].display_name)
+        setEditOcoEnderecoLabel(editOcoEndereco.trim())
       } else {
         alert('Endereço não encontrado. Tente ser mais específico.')
       }
@@ -182,6 +182,7 @@ export default function AdminPage() {
       morador_nome: editOcoNome,
       categoria_id: editOcoCatId,
     }
+    if (editOcoEnderecoLabel) campos.endereco_label = editOcoEnderecoLabel
     const lat = parseFloat(editOcoLat)
     const lng = parseFloat(editOcoLng)
     if (!isNaN(lat)) campos.lat = lat
