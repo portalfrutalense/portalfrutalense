@@ -135,7 +135,11 @@ export default function AdminPage() {
   }
 
   async function salvarEdicaoDen(id: string) {
-    await supabase.from('denuncias').update({ mensagem: editDenMsg }).eq('id', id)
+    await fetch('/api/admin/editar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await getToken()}` },
+      body: JSON.stringify({ id, tipo: 'denuncia', campos: { mensagem: editDenMsg } }),
+    })
     setEditandoDen(null)
     carregarDados()
   }
@@ -167,7 +171,11 @@ export default function AdminPage() {
     const lng = parseFloat(editOcoLng)
     if (!isNaN(lat)) campos.lat = lat
     if (!isNaN(lng)) campos.lng = lng
-    await supabase.from('ocorrencias').update(campos).eq('id', id)
+    await fetch('/api/admin/editar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await getToken()}` },
+      body: JSON.stringify({ id, tipo: 'ocorrencia', campos }),
+    })
     setEditandoOco(null)
     carregarDados()
   }
