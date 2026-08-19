@@ -94,14 +94,12 @@ export default function MapaOcorrencias() {
     setErro('')
     try {
       const query = encodeURIComponent(`${endereco}, Frutal, Minas Gerais, Brasil`)
-      const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-      const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${key}`)
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`)
       const data = await res.json()
-      if (!data.results || data.results.length === 0) { setErro('Endereço não encontrado. Tente ser mais específico.'); return }
-      const { lat, lng } = data.results[0].geometry.location
-      setCoordenadas({ lat, lng, label: endereco.trim() })
+      if (!data || data.length === 0) { setErro('Endereco nao encontrado. Tente ser mais especifico.'); return }
+      setCoordenadas({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), label: endereco.trim() })
     } catch {
-      setErro('Erro ao buscar endereço.')
+      setErro('Erro ao buscar endereco.')
     } finally {
       setBuscando(false)
     }

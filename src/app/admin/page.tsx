@@ -152,13 +152,11 @@ export default function AdminPage() {
     setBuscandoEndereco(true)
     try {
       const q = encodeURIComponent(editOcoEndereco + ', Frutal, MG, Brasil')
-      const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-      const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${q}&key=${key}`)
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1`)
       const data = await res.json()
-      if (data.results && data.results.length > 0) {
-        const { lat, lng } = data.results[0].geometry.location
-        setEditOcoLat(lat.toFixed(6))
-        setEditOcoLng(lng.toFixed(6))
+      if (data.length > 0) {
+        setEditOcoLat(parseFloat(data[0].lat).toFixed(6))
+        setEditOcoLng(parseFloat(data[0].lon).toFixed(6))
         setEditOcoEnderecoLabel(editOcoEndereco.trim())
       } else {
         alert('Endereço não encontrado. Tente ser mais específico.')
