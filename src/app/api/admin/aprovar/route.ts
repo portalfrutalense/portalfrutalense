@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     if (denuncia.entidade?.email) {
       const { data: emailData, error: emailError } = await resend.emails.send({
-        from: 'Portal Frutalense <onboarding@resend.dev>',
+        from: 'Portal Frutalense <noreply@xiiintiedj.resend.app>',
         to: denuncia.entidade.email,
         subject: `[Portal Frutalense] Nova cobrança pública para ${denuncia.entidade.nome}`,
         html: `
