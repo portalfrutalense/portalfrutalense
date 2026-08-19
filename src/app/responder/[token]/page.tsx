@@ -16,6 +16,7 @@ export default function PageResponder() {
   const [erro, setErro] = useState('')
   const [resposta, setResposta] = useState('')
   const [enviando, setEnviando] = useState(false)
+  const [lgpdAceito, setLgpdAceito] = useState(false)
   const [sucesso, setSucesso] = useState(false)
   const [carregando, setCarregando] = useState(true)
 
@@ -124,11 +125,17 @@ export default function PageResponder() {
           <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>
             Sua resposta será publicada publicamente no portal com seu nome e cargo.
           </p>
-          <p style={{ fontSize: '11px', color: '#d1d5db', margin: 0, lineHeight: 1.6 }}>
-            Ao publicar, seu endereço IP, data e hora serão registrados como parte da autenticidade desta declaração oficial, em conformidade com a LGPD.
-          </p>
-          <button onClick={handleEnviar} disabled={enviando}
-            style={{ backgroundColor: enviando ? '#9ca3af' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '12px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '12px', lineHeight: 1.5 }}>
+            <input type="checkbox" checked={lgpdAceito} onChange={(e) => setLgpdAceito(e.target.checked)}
+              style={{ marginTop: '2px', width: '16px', height: '16px', accentColor: '#1e3a5f', flexShrink: 0, cursor: 'pointer' }} />
+            <span style={{ fontSize: '12px', color: '#374151' }}>
+              Estou ciente de que meu endereço IP, data e hora serão registrados como parte da autenticidade desta declaração oficial, em conformidade com a LGPD.
+            </span>
+          </label>
+
+          <button onClick={handleEnviar} disabled={enviando || !lgpdAceito}
+            style={{ backgroundColor: !lgpdAceito ? '#9ca3af' : enviando ? '#9ca3af' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '12px', borderRadius: '6px', border: 'none', cursor: (!lgpdAceito || enviando) ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
             {enviando ? 'Enviando...' : 'Publicar Resposta Oficial'}
           </button>
         </div>
