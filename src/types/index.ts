@@ -1,4 +1,4 @@
-export type StatusDenuncia = 'pendente' | 'aguardando_resposta' | 'aguardando_aprovacao_resposta' | 'respondida' | 'rejeitada'
+export type StatusDenuncia = 'pendente' | 'aguardando_resposta' | 'aguardando_aprovacao_resposta' | 'respondida' | 'rejeitada' | 'nao_respondida'
 export type StatusOcorrencia = 'pendente' | 'publicada' | 'rejeitada' | 'resolvida'
 
 export interface Entidade {

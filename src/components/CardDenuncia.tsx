@@ -13,6 +13,10 @@ const statusConfig = {
     label: 'Respondida',
     style: { background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' },
   },
+  nao_respondida: {
+    label: 'Não Respondida',
+    style: { background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' },
+  },
 }
 
 export default function CardDenuncia({ denuncia }: Props) {

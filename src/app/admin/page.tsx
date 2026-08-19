@@ -14,6 +14,7 @@ const STATUS_LABEL: Record<string, { label: string; cor: string; fundo: string }
   aguardando_aprovacao_resposta:  { label: 'Aguard. aprovação',      cor: '#b45309', fundo: '#fff7ed' },
   respondida:                     { label: 'Respondida',             cor: '#166534', fundo: '#dcfce7' },
   rejeitada:                      { label: 'Rejeitada',              cor: '#6b7280', fundo: '#f3f4f6' },
+  nao_respondida:                 { label: 'Não respondida',         cor: '#dc2626', fundo: '#fef2f2' },
   publicada:                      { label: 'Publicada',              cor: '#166534', fundo: '#dcfce7' },
 }
 
@@ -366,7 +367,7 @@ export default function AdminPage() {
           {/* Filtro */}
           <div style={{ marginBottom: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
             <span style={{ fontSize: '13px', color: '#6b7280' }}>Filtrar:</span>
-            {['todos', 'pendente', 'aguardando_resposta', 'respondida', 'rejeitada'].map(f => (
+            {['todos', 'pendente', 'aguardando_resposta', 'respondida', 'nao_respondida', 'rejeitada'].map(f => (
               <button key={f} onClick={() => setFiltroDen(f)}
                 style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '999px', border: '1px solid', cursor: 'pointer', fontWeight: 500, borderColor: filtroDen === f ? '#1e3a5f' : '#e5e7eb', backgroundColor: filtroDen === f ? '#1e3a5f' : 'white', color: filtroDen === f ? 'white' : '#6b7280' }}>
                 {f === 'todos' ? 'Todos' : STATUS_LABEL[f]?.label}

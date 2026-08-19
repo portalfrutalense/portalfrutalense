@@ -9,7 +9,7 @@ async function getDenuncias(): Promise<Denuncia[]> {
   const { data, error } = await supabase
     .from('denuncias')
     .select('*, entidade:entidades(*)')
-    .in('status', ['aguardando_resposta', 'respondida'])
+    .in('status', ['aguardando_resposta', 'respondida', 'nao_respondida'])
     .eq('oculto', false)
     .order('created_at', { ascending: false })
 
