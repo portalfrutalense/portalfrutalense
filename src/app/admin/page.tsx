@@ -328,14 +328,9 @@ export default function AdminPage() {
   return (
     <div>
       {/* Cabeçalho */}
-      <div style={{ marginBottom: '24px', borderBottom: '1px solid #e5e7eb', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', marginBottom: '4px' }}>Painel Master</h1>
-          <p style={{ fontSize: '13px', color: '#6b7280' }}>Moderação e configuração do Portal Frutalense.</p>
-        </div>
-        <button onClick={handleLogout} style={{ fontSize: '13px', color: '#6b7280', background: 'none', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer' }}>
-          Sair
-        </button>
+      <div style={{ marginBottom: '24px', borderBottom: '1px solid #e5e7eb', paddingBottom: '16px' }}>
+        <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', marginBottom: '4px' }}>Painel Master</h1>
+        <p style={{ fontSize: '13px', color: '#6b7280' }}>Moderação e configuração do Portal Frutalense.</p>
       </div>
 
       {/* Notificação */}

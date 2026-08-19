@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import Navbar from '@/components/Navbar'
+import PublicShell from '@/components/PublicShell'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -23,13 +23,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={`${inter.className} bg-[#f4f6f8] min-h-screen`}>
-        <Navbar />
-        <main className="max-w-5xl mx-auto px-4 py-6 sm:py-8">
+        <PublicShell>
           {children}
-        </main>
-        <footer className="text-center text-xs text-gray-400 py-8 mt-12 border-t border-gray-200">
-          © {new Date().getFullYear()} Portal Frutalense · Frutal-MG · Transparência e Cidadania
-        </footer>
+        </PublicShell>
       </body>
     </html>
   )
