@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       .from('denuncias')
       .update({
         resposta: resposta.trim(),
-        status: 'aguardando_aprovacao_resposta',
+        status: 'respondida',
         respondido_em: new Date().toISOString(),
         resposta_ip: ip,
         magic_token: null,
