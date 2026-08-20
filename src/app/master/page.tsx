@@ -436,14 +436,25 @@ function MasterDemandas() {
   const [demandas, setDemandas] = useState<any[]>([])
   const [filtro, setFiltro] = useState('todos')
   const [notif, setNotif] = useState('')
+  const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [editDescricao, setEditDescricao] = useState('')
 
-  useEffect(() => {
+  function carregarDemandas() {
     sbClient.from('demandas')
       .select('*, categoria:categorias_mapa(*), entidade:entidades(*)')
       .order('created_at', { ascending: false })
       .then(({ data }: any) => setDemandas(data || []))
+  }
+
+  useEffect(() => {
+    carregarDemandas()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  function mostrarNotif(msg: string, erro = false) {
+    setNotif((erro ? 'Erro: ' : '') + msg)
+    setTimeout(() => setNotif(''), 5000)
+  }
 
   async function reenviarLink(id: string) {
     const { data: { session } } = await sbClient.auth.getSession()
@@ -453,8 +464,31 @@ function MasterDemandas() {
       body: JSON.stringify({ demanda_id: id }),
     })
     const d = await res.json()
-    setNotif(d.ok ? 'Link reenviado com sucesso.' : `Erro: ${d.error}`)
-    setTimeout(() => setNotif(''), 5000)
+    d.ok ? mostrarNotif('Link reenviado com sucesso.') : mostrarNotif(d.error, true)
+  }
+
+  async function excluirDemanda(id: string) {
+    if (!confirm('Excluir esta demanda permanentemente? Esta ação não pode ser desfeita.')) return
+    const { error } = await sbClient.from('demandas').delete().eq('id', id)
+    if (error) { mostrarNotif(error.message, true); return }
+    mostrarNotif('Demanda excluída.')
+    carregarDemandas()
+  }
+
+  async function toggleOculto(id: string, ocultoAtual: boolean) {
+    const { error } = await sbClient.from('demandas').update({ oculto: !ocultoAtual }).eq('id', id)
+    if (error) { mostrarNotif(error.message, true); return }
+    mostrarNotif(ocultoAtual ? 'Demanda visível ao público.' : 'Demanda ocultada do público.')
+    carregarDemandas()
+  }
+
+  async function salvarEdicao(id: string) {
+    if (!editDescricao.trim()) return
+    const { error } = await sbClient.from('demandas').update({ descricao: editDescricao.trim() }).eq('id', id)
+    if (error) { mostrarNotif(error.message, true); return }
+    setEditandoId(null)
+    mostrarNotif('Demanda atualizada.')
+    carregarDemandas()
   }
 
   const statusLabel: Record<string, string> = {
@@ -466,11 +500,11 @@ function MasterDemandas() {
   }
 
   const statusCor: Record<string, { bg: string; color: string }> = {
-    pendente: { bg: '#fef3c7', color: '#92400e' },
-    aguardando_resposta: { bg: '#dbeafe', color: '#1e40af' },
-    respondida: { bg: '#dcfce7', color: '#166534' },
-    rejeitada_ia: { bg: '#fef2f2', color: '#dc2626' },
-    resolvida: { bg: '#f0fdf4', color: '#15803d' },
+    pendente:           { bg: '#fef3c7', color: '#92400e' },
+    aguardando_resposta:{ bg: '#dbeafe', color: '#1e40af' },
+    respondida:         { bg: '#dcfce7', color: '#166534' },
+    rejeitada_ia:       { bg: '#fef2f2', color: '#dc2626' },
+    resolvida:          { bg: '#f0fdf4', color: '#15803d' },
   }
 
   const filtradas = filtro === 'todos' ? demandas : demandas.filter(d => d.status === filtro)
@@ -501,53 +535,148 @@ function MasterDemandas() {
 
       {filtradas.map((d: any) => {
         const cor = statusCor[d.status] || { bg: '#f3f4f6', color: '#6b7280' }
+        const oculto = !!d.oculto
+        const editando = editandoId === d.id
+
         return (
-          <div key={d.id} style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '16px 20px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 600, background: cor.bg, color: cor.color, borderRadius: '20px', padding: '3px 10px' }}>
+          <div key={d.id} style={{
+            background: 'white',
+            borderRadius: '10px',
+            border: `1px ${oculto ? 'dashed' : 'solid'} #e5e7eb`,
+            overflow: 'hidden',
+            opacity: oculto ? 0.8 : 1,
+          }}>
+            {/* Corpo do card */}
+            <div style={{ display: 'flex', gap: '16px', padding: '16px 20px' }}>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+
+                {/* Linha 1: status · categoria · data */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 600, background: cor.bg, color: cor.color, borderRadius: '20px', padding: '3px 10px', flexShrink: 0 }}>
                     {statusLabel[d.status] || d.status}
                   </span>
+                  {oculto && (
+                    <span style={{ fontSize: '10px', fontWeight: 600, background: '#f3f4f6', color: '#6b7280', borderRadius: '20px', padding: '3px 10px', flexShrink: 0 }}>
+                      Oculto do público
+                    </span>
+                  )}
                   {d.categoria && (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#6b7280' }}>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.categoria.cor, display: 'inline-block' }} />
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: '#6b7280', fontWeight: 500 }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.categoria.cor, display: 'inline-block', flexShrink: 0 }} />
                       {d.categoria.nome}
                     </span>
                   )}
-                  <span style={{ fontSize: '11px', color: '#9ca3af' }}>{new Date(d.created_at).toLocaleDateString('pt-BR')}</span>
+                  <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                    {new Date(d.created_at).toLocaleDateString('pt-BR')}
+                  </span>
                 </div>
-                <p style={{ fontSize: '14px', fontWeight: 600, color: '#111827', margin: '0 0 4px' }}>{d.descricao}</p>
-                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 2px' }}>
-                  Por <strong>{d.morador_nome}</strong> → <strong>{d.entidade?.nome}</strong> <span style={{ color: '#9ca3af' }}>({d.entidade?.cargo})</span>
-                </p>
-                {d.endereco_label && <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>{d.endereco_label}</p>}
+
+                {/* Linha 2: Nome / Para */}
+                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+                    Nome: <strong style={{ color: '#111827' }}>{d.morador_nome}</strong>
+                    {d.morador_cpf && <span style={{ color: '#9ca3af' }}> · {d.morador_cpf}</span>}
+                  </p>
+                  {d.entidade && (
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+                      Para: <strong style={{ color: '#111827' }}>{d.entidade.nome}</strong>
+                      <span style={{ color: '#9ca3af' }}> ({d.entidade.cargo})</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* Linha 3: descrição (ou campo de edição) */}
+                {editando ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <textarea
+                      value={editDescricao}
+                      onChange={(e) => setEditDescricao(e.target.value)}
+                      rows={3}
+                      style={{ width: '100%', border: '1.5px solid #1e3a5f', borderRadius: '7px', padding: '8px 12px', fontSize: '14px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', lineHeight: 1.5 }}
+                    />
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => salvarEdicao(d.id)}
+                        style={{ fontSize: '12px', fontWeight: 600, background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer' }}>
+                        Salvar
+                      </button>
+                      <button onClick={() => setEditandoId(null)}
+                        style={{ fontSize: '12px', fontWeight: 500, background: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer' }}>
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: '14px', fontWeight: 600, color: '#111827', margin: 0, lineHeight: 1.5 }}>{d.descricao}</p>
+                )}
+
+                {/* Linha 4: endereço */}
+                {d.endereco_label && (
+                  <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>
+                    <strong style={{ color: '#6b7280' }}>Endereço:</strong> {d.endereco_label}
+                  </p>
+                )}
+
+                {/* Linha 5: análise IA */}
                 {d.ia_motivo && (
-                  <p style={{ fontSize: '12px', color: d.status === 'rejeitada_ia' ? '#dc2626' : '#6b7280', margin: '8px 0 0', background: '#f9fafb', borderRadius: '6px', padding: '6px 10px' }}>
-                    IA: {d.ia_motivo}
-                  </p>
+                  <div style={{
+                    fontSize: '12px',
+                    color: d.status === 'rejeitada_ia' ? '#dc2626' : '#6b7280',
+                    background: d.status === 'rejeitada_ia' ? '#fef2f2' : '#f9fafb',
+                    border: `1px solid ${d.status === 'rejeitada_ia' ? '#fecaca' : '#e5e7eb'}`,
+                    borderRadius: '6px',
+                    padding: '7px 10px',
+                    lineHeight: 1.5,
+                  }}>
+                    <strong>Análise IA:</strong> {d.ia_motivo}
+                  </div>
                 )}
+
+                {/* Linha 6: resposta */}
                 {d.resposta && (
-                  <p style={{ fontSize: '12px', color: '#166534', margin: '8px 0 0', background: '#f0fdf4', borderRadius: '6px', padding: '6px 10px' }}>
-                    Resposta: {d.resposta}
-                  </p>
+                  <div style={{ fontSize: '12px', color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '7px 10px', lineHeight: 1.5 }}>
+                    <strong>Resposta:</strong> {d.resposta}
+                  </div>
                 )}
+
               </div>
+
+              {/* Foto */}
               {d.foto_url && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={d.foto_url} alt="Foto" onClick={() => window.open(d.foto_url, '_blank')}
-                  style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0, cursor: 'zoom-in', border: '1px solid #e5e7eb' }} />
+                  style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0, cursor: 'zoom-in', border: '1px solid #e5e7eb', alignSelf: 'flex-start' }} />
               )}
             </div>
+
+            {/* Rodapé link enviado */}
             {d.status === 'aguardando_resposta' && d.link_enviado && (
-              <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '12px', color: '#166534' }}>✓ Link enviado à autoridade</span>
+              <div style={{ padding: '10px 20px', borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '12px', color: '#166534' }}>Link enviado à autoridade</span>
                 <button onClick={() => reenviarLink(d.id)}
                   style={{ fontSize: '12px', color: '#1e40af', background: 'white', border: '1px solid #bfdbfe', borderRadius: '6px', padding: '4px 12px', cursor: 'pointer', fontWeight: 500 }}>
                   Reenviar link
                 </button>
               </div>
             )}
+
+            {/* Rodapé ações */}
+            <div style={{ padding: '10px 20px', borderTop: '1px solid #f3f4f6', background: '#f9fafb', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => { setEditandoId(editando ? null : d.id); setEditDescricao(d.descricao) }}
+                style={{ fontSize: '12px', fontWeight: 500, background: 'white', color: '#374151', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
+                {editando ? 'Cancelar edição' : 'Editar'}
+              </button>
+              <button
+                onClick={() => toggleOculto(d.id, oculto)}
+                style={{ fontSize: '12px', fontWeight: 500, background: 'white', color: oculto ? '#1e40af' : '#92400e', border: `1px solid ${oculto ? '#bfdbfe' : '#fde68a'}`, borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
+                {oculto ? 'Mostrar ao público' : 'Ocultar do público'}
+              </button>
+              <button
+                onClick={() => excluirDemanda(d.id)}
+                style={{ fontSize: '12px', fontWeight: 500, background: 'white', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
+                Excluir
+              </button>
+            </div>
           </div>
         )
       })}
