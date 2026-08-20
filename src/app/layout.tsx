@@ -8,6 +8,9 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Portal Frutalense',
   description: 'Plataforma de cidadania, transparência e gestão de demandas públicas em Frutal-MG',
+  verification: {
+    google: 'lPI_-xfdqfhBGjByM6htLkimhgUlfUZsy8pIVK99K_0',
+  },
 }
 
 export const viewport = {
