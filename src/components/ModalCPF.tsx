@@ -33,9 +33,10 @@ export default function ModalCPF() {
         id: user.id,
         nome: nome.trim(),
         cpf: cpfLimpo,
+        email: user.email || null,
       })
       if (error) throw error
-      setPerfil({ id: user.id, nome: nome.trim(), cpf: cpfLimpo })
+      setPerfil({ id: user.id, nome: nome.trim(), cpf: cpfLimpo, email: user.email || undefined })
     } catch {
       setErro('Erro ao salvar. Tente novamente.')
     } finally {

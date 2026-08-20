@@ -8,6 +8,7 @@ interface Perfil {
   id: string
   nome: string
   cpf: string
+  email?: string
 }
 
 interface AuthContextType {

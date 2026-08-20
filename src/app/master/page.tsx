@@ -441,7 +441,7 @@ function MasterDemandas() {
 
   function carregarDemandas() {
     sbClient.from('demandas')
-      .select('*, categoria:categorias_mapa(*), entidade:entidades(*)')
+      .select('*, categoria:categorias_mapa(*), entidade:entidades(*), perfil:perfis(email)')
       .order('created_at', { ascending: false })
       .then(({ data }: any) => setDemandas(data || []))
   }
@@ -576,6 +576,7 @@ function MasterDemandas() {
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
                     Nome: <strong style={{ color: '#111827' }}>{d.morador_nome}</strong>
                     {d.morador_cpf && <span style={{ color: '#9ca3af' }}> · {d.morador_cpf}</span>}
+                    {d.perfil?.email && <span style={{ color: '#9ca3af' }}> · {d.perfil.email}</span>}
                   </p>
                   {d.entidade && (
                     <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>

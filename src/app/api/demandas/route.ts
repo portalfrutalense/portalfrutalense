@@ -25,8 +25,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Campos obrigatórios ausentes.' }, { status: 400 })
     }
 
-    const { data: perfil } = await supabaseServer.from('perfis').select('nome, cpf').eq('id', user.id).single()
+    const { data: perfil } = await supabaseServer.from('perfis').select('nome, cpf, email').eq('id', user.id).single()
     if (!perfil) return NextResponse.json({ error: 'Perfil não encontrado.' }, { status: 400 })
+
+    // Garante que o email do Auth fica salvo no perfil
+    if (!perfil.email && user.email) {
+      await supabaseServer.from('perfis').update({ email: user.email }).eq('id', user.id)
+    }
 
     const { data: demanda, error } = await supabaseServer.from('demandas').insert({
       user_id: user.id,
