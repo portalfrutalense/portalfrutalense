@@ -9,6 +9,16 @@ import { Demanda, CategoriaMapa, Entidade } from '@/types'
 const FRUTAL_LAT = -20.02752
 const FRUTAL_LNG = -48.92702
 
+function titleCase(str?: string) {
+  if (!str) return ''
+  return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function sentenceCase(str?: string) {
+  if (!str) return ''
+  return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
 async function comprimirFoto(file: File): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image()
@@ -353,22 +363,22 @@ export default function MapaDemandas() {
                 {/* Caixa principal — mesmo padrão do master */}
                 <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                    Nome: <strong style={{ color: '#111827' }}>{demandaSelecionada.morador_nome}</strong>
+                    Nome: <strong style={{ color: '#111827' }}>{titleCase(demandaSelecionada.morador_nome)}</strong>
                   </p>
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                    Para: <strong style={{ color: '#111827' }}>{demandaSelecionada.entidade?.nome}</strong>
-                    {demandaSelecionada.entidade?.cargo && <span> ({demandaSelecionada.entidade.cargo})</span>}
+                    Para: <strong style={{ color: '#111827' }}>{titleCase(demandaSelecionada.entidade?.nome)}</strong>
+                    {demandaSelecionada.entidade?.cargo && <span style={{ color: '#6b7280' }}> ({titleCase(demandaSelecionada.entidade.cargo)})</span>}
                   </p>
                   {demandaSelecionada.endereco_label && (
                     <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                      Endereço: <strong style={{ color: '#111827' }}>{demandaSelecionada.endereco_label}</strong>
+                      Endereço: <span style={{ color: '#111827' }}>{titleCase(demandaSelecionada.endereco_label)}</span>
                     </p>
                   )}
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                    Categoria: <strong style={{ color: '#111827' }}>{demandaSelecionada.categoria?.nome}</strong>
+                    Categoria: <span style={{ color: '#111827' }}>{demandaSelecionada.categoria?.nome}</span>
                   </p>
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                    Demanda: <strong style={{ color: '#111827' }}>{demandaSelecionada.descricao}</strong>
+                    Demanda: <span style={{ color: '#111827' }}>{sentenceCase(demandaSelecionada.descricao)}</span>
                   </p>
                   {demandaSelecionada.foto_url && (
                     // eslint-disable-next-line @next/next/no-img-element
