@@ -8,6 +8,31 @@ import { validarCPF, formatarCPF } from '@/lib/cpf'
 const FRUTAL_LAT = -20.02752
 const FRUTAL_LNG = -48.92702
 
+// Comprime a foto para ~30-80 KB usando canvas
+async function comprimirFoto(file: File): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      const MAX = 600 // px máx em qualquer dimensão
+      const ratio = Math.min(MAX / img.width, MAX / img.height, 1)
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * ratio)
+      canvas.height = Math.round(img.height * ratio)
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      URL.revokeObjectURL(url)
+      canvas.toBlob(
+        (blob) => blob ? resolve(blob) : reject(new Error('Falha ao comprimir')),
+        'image/jpeg',
+        0.25 // qualidade 25% — suficiente para pin no mapa
+      )
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Imagem inválida')) }
+    img.src = url
+  })
+}
+
 export default function MapaOcorrencias() {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapaIniciado = useRef(false)
@@ -34,6 +59,10 @@ export default function MapaOcorrencias() {
   const [sucesso, setSucesso] = useState(false)
   const [locConfirmada, setLocConfirmada] = useState(false)
 
+  // Foto
+  const [fotoFile, setFotoFile] = useState<File | null>(null)
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null)
+
   useEffect(() => {
     Promise.all([
       supabase.from('ocorrencias').select('*, categoria:categorias_mapa(*)').eq('status', 'publicada').eq('oculto', false),
@@ -44,7 +73,7 @@ export default function MapaOcorrencias() {
     })
   }, [])
 
-  // Inicializa o mapa uma vez
+  // Inicializa o mapa
   useEffect(() => {
     if (!mapRef.current || mapaIniciado.current) return
     mapaIniciado.current = true
@@ -77,20 +106,45 @@ export default function MapaOcorrencias() {
 
     ocorrencias.forEach((o) => {
       const cor = o.categoria?.cor || '#3b82f6'
-      const icon = L.divIcon({
-        className: '',
-        html: `<div style="width:22px;height:22px;border-radius:50%;background:${cor};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.5)"></div>`,
-        iconSize: [22, 22],
-        iconAnchor: [11, 11],
-      })
+      const nomeCategoria = o.categoria?.nome || 'Ocorrência'
+      const data = new Date(o.created_at).toLocaleDateString('pt-BR')
+
+      const icon = o.foto_url
+        ? L.divIcon({
+            className: '',
+            html: `
+              <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 3px 6px rgba(0,0,0,.35))">
+                <div style="width:46px;height:46px;border-radius:50%;border:3px solid white;overflow:hidden;flex-shrink:0;">
+                  <img src="${o.foto_url}" style="width:100%;height:100%;object-fit:cover;display:block;" />
+                </div>
+                <div style="width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:10px solid white;margin-top:-2px;"></div>
+              </div>`,
+            iconSize: [46, 58],
+            iconAnchor: [23, 58],
+          })
+        : L.divIcon({
+            className: '',
+            html: `<div style="width:22px;height:22px;border-radius:50%;background:${cor};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.5)"></div>`,
+            iconSize: [22, 22],
+            iconAnchor: [11, 11],
+          })
+
+      const popupContent = `
+        <div style="min-width:180px;max-width:220px;font-family:Inter,system-ui,sans-serif;">
+          <div style="font-size:11px;font-weight:600;color:${cor};margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">${nomeCategoria}</div>
+          <p style="font-size:13px;font-weight:600;color:#111827;margin:0 0 6px;line-height:1.4">${o.descricao}</p>
+          ${o.endereco_label ? `<p style="font-size:11px;color:#6b7280;margin:0 0 8px;">📍 ${o.endereco_label}</p>` : ''}
+          ${o.foto_url ? `<img src="${o.foto_url}" style="width:100%;border-radius:6px;display:block;margin-bottom:8px;object-fit:cover;max-height:140px;" />` : ''}
+          <p style="font-size:10px;color:#9ca3af;margin:0;">${o.morador_nome} · ${data}</p>
+        </div>`
+
       L.marker([o.lat, o.lng], { icon })
         .addTo(mapa)
-        .bindPopup(`<strong>${o.categoria?.nome || 'Ocorrência'}</strong><br/>${o.descricao}`)
+        .bindPopup(popupContent, { maxWidth: 240 })
     })
   }, [ocorrencias])
 
-
-  // Mini-mapa estilo iFood: pin fixo no centro, mapa se move
+  // Mini-mapa estilo iFood
   useEffect(() => {
     if (!coordenadas || !miniMapRef.current || !leafletObj.current || miniMapIniciado.current) return
     const L = leafletObj.current
@@ -102,7 +156,7 @@ export default function MapaOcorrencias() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coordenadas !== null])
 
-  // Resetar mini-mapa ao fechar modal ou ao limpar coordenadas
+  // Resetar mini-mapa ao fechar modal
   useEffect(() => {
     if (!modalAberto || !coordenadas) {
       if (miniMapObj.current) { miniMapObj.current.remove(); miniMapObj.current = null }
@@ -169,6 +223,20 @@ export default function MapaOcorrencias() {
     }
   }
 
+  function handleFotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setFotoFile(file)
+    const reader = new FileReader()
+    reader.onload = (ev) => setFotoPreview(ev.target?.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  function removerFoto() {
+    setFotoFile(null)
+    setFotoPreview(null)
+  }
+
   async function handleEnviar(e: React.FormEvent) {
     e.preventDefault()
     setErro('')
@@ -178,15 +246,48 @@ export default function MapaOcorrencias() {
     if (!descricao.trim() || descricao.trim().length < 10) { setErro('Descreva melhor o problema.'); return }
     if (!coordenadas || !locConfirmada) { setErro('Busque o endereço e confirme a localização no mapa.'); return }
     setEnviando(true)
+
+    let foto_url: string | null = null
+
+    // Upload da foto (comprimida) para o Supabase Storage
+    if (fotoFile) {
+      try {
+        const blob = await comprimirFoto(fotoFile)
+        const ext = 'jpg'
+        const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+        const { error: uploadError } = await supabase.storage
+          .from('ocorrencias-fotos')
+          .upload(path, blob, { contentType: 'image/jpeg', upsert: false })
+        if (uploadError) throw uploadError
+        const { data: urlData } = supabase.storage.from('ocorrencias-fotos').getPublicUrl(path)
+        foto_url = urlData.publicUrl
+      } catch {
+        setErro('Erro ao enviar a foto. Tente novamente ou envie sem foto.')
+        setEnviando(false)
+        return
+      }
+    }
+
     try {
       const res = await fetch('/api/ocorrencias', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ morador_nome: nome.trim(), morador_cpf: cpf.replace(/\D/g, ''), descricao: descricao.trim(), lat: coordenadas.lat, lng: coordenadas.lng, categoria_id: categoriaId, endereco_label: coordenadas.label }),
+        body: JSON.stringify({
+          morador_nome: nome.trim(),
+          morador_cpf: cpf.replace(/\D/g, ''),
+          descricao: descricao.trim(),
+          lat: coordenadas.lat,
+          lng: coordenadas.lng,
+          categoria_id: categoriaId,
+          endereco_label: coordenadas.label,
+          foto_url,
+        }),
       })
       if (!res.ok) throw new Error()
       setSucesso(true)
-      setNome(''); setCpf(''); setDescricao(''); setCategoriaId(''); setEndereco(''); setCoordenadas(null); setLocConfirmada(false)
+      setNome(''); setCpf(''); setDescricao(''); setCategoriaId('')
+      setEndereco(''); setCoordenadas(null); setLocConfirmada(false)
+      setFotoFile(null); setFotoPreview(null)
       if (pinDraggavel.current) { pinDraggavel.current.remove(); pinDraggavel.current = null }
     } catch {
       setErro('Erro ao enviar. Tente novamente.')
@@ -283,17 +384,14 @@ export default function MapaOcorrencias() {
                       <p style={{ fontSize: '12px', color: '#92400e', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '6px', padding: '6px 10px', margin: '0 0 6px' }}>
                         Mova o mapa até o local exato e toque em <strong>Confirmar localização</strong>.
                       </p>
-                      {/* Container do mapa com pin fixo no centro */}
                       <div style={{ position: 'relative', width: '100%', height: '220px', borderRadius: '6px', border: '1px solid #d1d5db', overflow: 'hidden' }}>
                         <div ref={miniMapRef} style={{ width: '100%', height: '100%' }} />
-                        {/* Pin fixo no centro */}
                         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -100%)', zIndex: 1000, pointerEvents: 'none' }}>
-                          <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <svg width="32" height="40" viewBox="0 0 32 40" fill="none">
                             <path d="M16 0C7.163 0 0 7.163 0 16c0 10.627 14.4 23.04 15.04 23.573a1.333 1.333 0 001.92 0C17.6 39.04 32 26.627 32 16 32 7.163 24.837 0 16 0z" fill="#f97316"/>
                             <circle cx="16" cy="16" r="7" fill="white"/>
                           </svg>
                         </div>
-                        {/* Botão confirmar dentro do mapa */}
                         <button type="button" onClick={confirmarLocalizacao}
                           style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '10px 24px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
                           Confirmar localização
@@ -316,6 +414,41 @@ export default function MapaOcorrencias() {
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Descrição *</label>
                   <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={3} placeholder="Descreva o problema..."
                     style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+
+                {/* FOTO */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>
+                    Foto do problema <span style={{ color: '#9ca3af', fontWeight: 400 }}>(opcional)</span>
+                  </label>
+                  {!fotoPreview ? (
+                    <label style={{
+                      display: 'block', border: '2px dashed #d1d5db', borderRadius: '8px',
+                      padding: '20px', textAlign: 'center', cursor: 'pointer',
+                    }}>
+                      <input type="file" accept="image/*" capture="environment" onChange={handleFotoChange} style={{ display: 'none' }} />
+                      <div style={{ fontSize: '24px', marginBottom: '6px' }}>📷</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: 1.5 }}>
+                        <strong style={{ color: '#2563eb' }}>Toque para tirar foto</strong><br />
+                        ou escolher da galeria<br />
+                        <span style={{ fontSize: '10px', color: '#9ca3af' }}>Comprimida automaticamente para ~50 KB</span>
+                      </div>
+                    </label>
+                  ) : (
+                    <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={fotoPreview} alt="Pré-visualização" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', display: 'block' }} />
+                      <button type="button" onClick={removerFoto} style={{
+                        position: 'absolute', top: '8px', right: '8px',
+                        background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none',
+                        borderRadius: '50%', width: '28px', height: '28px', cursor: 'pointer',
+                        fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>×</button>
+                      <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,.5)', color: 'white', fontSize: '10px', padding: '2px 8px', borderRadius: '4px' }}>
+                        Será comprimida ao enviar
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <button type="submit" disabled={enviando}
