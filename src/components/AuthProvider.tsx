@@ -41,6 +41,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   async function carregarPerfil(userId: string) {
     const { data } = await supabase.from('perfis').select('*').eq('id', userId).single()
     setPerfil(data || null)
+    setCarregando(false)
   }
 
   useEffect(() => {
@@ -59,10 +60,6 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  useEffect(() => {
-    if (user !== null) setCarregando(false)
-  }, [user, perfil])
 
   async function sair() {
     await supabase.auth.signOut()
