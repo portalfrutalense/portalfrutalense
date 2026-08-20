@@ -6,7 +6,7 @@ import { useAuth } from './AuthProvider'
 import { validarCPF, formatarCPF } from '@/lib/cpf'
 
 export default function ModalCPF() {
-  const { user, setPerfil } = useAuth()
+  const { user, setPerfil, sair } = useAuth()
   const supabase = createClient()
   const [cpf, setCpf] = useState('')
   const [nome, setNome] = useState(
@@ -99,6 +99,14 @@ export default function ModalCPF() {
             style={{ backgroundColor: enviando ? '#9ca3af' : '#1e3a5f', color: 'white', fontWeight: 700, padding: '13px', borderRadius: '8px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '15px' }}
           >
             {enviando ? 'Salvando...' : 'Confirmar e entrar'}
+          </button>
+
+          <button
+            type="button"
+            onClick={sair}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: '#9ca3af', padding: '4px', textDecoration: 'underline' }}
+          >
+            Sair da conta
           </button>
         </form>
       </div>
