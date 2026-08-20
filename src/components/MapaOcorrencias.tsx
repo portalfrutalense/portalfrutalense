@@ -193,12 +193,13 @@ export default function MapaOcorrencias() {
       )
       tile.addTo(mapa)
       tileAtual.current = tile
-      const labels = L.tileLayer(
-        'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
-        { opacity: 1, zIndex: 10 }
-      )
-      labels.addTo(mapa)
-      tileLabels.current = labels
+      // Ruas + nomes de lugares sobre o satélite
+      const labelGroup = L.layerGroup([
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', { zIndex: 10 }),
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { zIndex: 11 }),
+      ])
+      labelGroup.addTo(mapa)
+      tileLabels.current = labelGroup
     } else {
       const tile = L.tileLayer(
         'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
