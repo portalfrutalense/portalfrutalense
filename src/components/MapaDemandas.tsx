@@ -39,6 +39,7 @@ export default function MapaDemandas() {
   const mapaObj = useRef<any>(null)
   const leafletObj = useRef<any>(null)
   const tileAtual = useRef<any>(null)
+  const markersRef = useRef<any[]>([])
   const miniMapRef = useRef<HTMLDivElement>(null)
   const miniMapObj = useRef<any>(null)
   const miniMapIniciado = useRef(false)
@@ -49,6 +50,10 @@ export default function MapaDemandas() {
   const [categorias, setCategorias] = useState<CategoriaMapa[]>([])
   const [entidades, setEntidades] = useState<Entidade[]>([])
   const [demandaSelecionada, setDemandaSelecionada] = useState<Demanda | null>(null)
+
+  // Filtros
+  const [filtroStatus, setFiltroStatus] = useState('')
+  const [filtroCategoria, setFiltroCategoria] = useState<string | null>(null)
 
   // Form state
   const [etapa, setEtapa] = useState<'fechado' | 'formulario'>('fechado')
@@ -93,7 +98,7 @@ export default function MapaDemandas() {
         shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
       })
       const zoom = window.innerWidth <= 600 ? 13 : 14
-      const mapa = L.map(mapRef.current!, { zoomControl: true }).setView([FRUTAL_LAT, FRUTAL_LNG], zoom)
+      const mapa = L.map(mapRef.current!, { zoomControl: false }).setView([FRUTAL_LAT, FRUTAL_LNG], zoom)
       const tile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' })
       tile.addTo(mapa)
       tileAtual.current = tile
@@ -103,12 +108,23 @@ export default function MapaDemandas() {
     })
   }, [])
 
+  // Renderiza markers conforme filtros
   useEffect(() => {
-    if (!mapaCarregado || !mapaObj.current || !leafletObj.current || demandas.length === 0) return
+    if (!mapaCarregado || !mapaObj.current || !leafletObj.current) return
     const L = leafletObj.current
     const mapa = mapaObj.current
 
-    demandas.forEach((d) => {
+    // Limpa markers anteriores
+    markersRef.current.forEach(m => m.remove())
+    markersRef.current = []
+
+    const filtradas = demandas.filter(d => {
+      if (filtroStatus && d.status !== filtroStatus) return false
+      if (filtroCategoria && d.categoria_id !== filtroCategoria) return false
+      return true
+    })
+
+    filtradas.forEach((d) => {
       const cor = d.categoria?.cor || '#3b82f6'
       const icon = d.foto_url
         ? L.divIcon({
@@ -132,8 +148,9 @@ export default function MapaDemandas() {
         if (!user) { setModalAuth(true); return }
         setDemandaSelecionada(d)
       })
+      markersRef.current.push(marker)
     })
-  }, [demandas, user, mapaCarregado])
+  }, [demandas, user, mapaCarregado, filtroStatus, filtroCategoria])
 
   // Mini-mapa no formulário
   useEffect(() => {
@@ -248,131 +265,230 @@ export default function MapaDemandas() {
     setCoordenadas(null); setLocConfirmada(false); setFotoFile(null); setFotoPreview(null)
   }
 
+  const statusOpcoes: { value: string; label: string }[] = [
+    { value: '', label: 'Todos os status' },
+    { value: 'aguardando_resposta', label: 'Aguardando resposta' },
+    { value: 'respondida', label: 'Respondida' },
+    { value: 'resolvida', label: 'Resolvida' },
+  ]
+
   const statusLabel: Record<string, { label: string; cor: string }> = {
     aguardando_resposta: { label: 'Aguardando resposta', cor: '#f59e0b' },
     respondida: { label: 'Respondida', cor: '#10b981' },
     resolvida: { label: 'Resolvida', cor: '#6b7280' },
   }
 
+  const demandasVisiveis = demandas.filter(d => {
+    if (filtroStatus && d.status !== filtroStatus) return false
+    if (filtroCategoria && d.categoria_id !== filtroCategoria) return false
+    return true
+  })
+
   return (
     <div>
-      {/* Legenda */}
-      {categorias.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
-          {categorias.map((c) => (
-            <span key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '4px 10px', borderRadius: '999px', background: 'white', border: '1px solid #e5e7eb', fontWeight: 500 }}>
-              <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: c.cor, display: 'inline-block' }} />
-              {c.nome}
-            </span>
-          ))}
-        </div>
-      )}
+      {/* Layout principal: sidebar + mapa */}
+      <div className="mapa-layout" style={{ display: 'flex', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
 
-      {/* Mapa */}
-      <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb', marginBottom: '16px', position: 'relative', zIndex: 1 }}>
-        <div ref={mapRef} style={{ width: '100%', height: 'clamp(300px, 55vw, 460px)' }} />
-        <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', zIndex: 1000 }}>
-          <button onClick={alternarCamada} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: '#1e3a5f', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {satelite ? '🗺️ Mapa de ruas' : '🛰️ Satélite'}
-          </button>
-          <div style={{ background: 'white', borderRadius: '6px', padding: '5px 10px', fontSize: '12px', color: '#6b7280', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }}>
-            {demandas.length} demanda(s)
-          </div>
-        </div>
-        {!user && (
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(15,36,64,0.92), transparent)', padding: '40px 24px 20px', zIndex: 1000, textAlign: 'center' }}>
-            <p style={{ color: 'white', fontWeight: 600, fontSize: '14px', margin: '0 0 10px' }}>Faça login para ver as demandas completas</p>
-            <button onClick={() => setModalAuth(true)} style={{ background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
-              Entrar com Google
-            </button>
-          </div>
-        )}
-      </div>
+        {/* SIDEBAR */}
+        <div style={{ width: '260px', flexShrink: 0, background: 'white', borderRight: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', minHeight: 'clamp(300px, 55vw, 500px)' }}>
 
-      {/* Botão registrar */}
-      {user ? (
-        <button onClick={() => setEtapa('formulario')} style={{ backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px 24px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
-          + Registrar Demanda
-        </button>
-      ) : (
-        <button onClick={() => setModalAuth(true)} style={{ backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px 24px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
-          Entrar para registrar uma demanda
-        </button>
-      )}
+          {demandaSelecionada ? (
+            /* ── DETALHE DA DEMANDA ── */
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+              {/* Voltar */}
+              <div style={{ padding: '12px 14px', borderBottom: '1px solid #f3f4f6', flexShrink: 0 }}>
+                <button
+                  onClick={() => setDemandaSelecionada(null)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#1e3a5f', padding: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  ← Voltar
+                </button>
+              </div>
 
-      {/* Card da demanda selecionada */}
-      {demandaSelecionada && (
-        <div style={{ marginTop: '24px', background: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: demandaSelecionada.categoria?.cor || '#3b82f6', display: 'inline-block', flexShrink: 0 }} />
-              <span style={{ fontSize: '13px', fontWeight: 600, color: demandaSelecionada.categoria?.cor || '#3b82f6', textTransform: 'uppercase', letterSpacing: '.04em' }}>{demandaSelecionada.categoria?.nome}</span>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: statusLabel[demandaSelecionada.status]?.cor || '#6b7280', background: '#f3f4f6', borderRadius: '4px', padding: '2px 8px' }}>
-                {statusLabel[demandaSelecionada.status]?.label || demandaSelecionada.status}
-              </span>
-            </div>
-            <button onClick={() => setDemandaSelecionada(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: '#9ca3af', padding: 0 }}>×</button>
-          </div>
+              {/* Conteúdo */}
+              <div style={{ padding: '14px', flex: 1, overflowY: 'auto' }}>
+                {/* Categoria + Status */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600, color: demandaSelecionada.categoria?.cor || '#3b82f6' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: demandaSelecionada.categoria?.cor || '#3b82f6', display: 'inline-block', flexShrink: 0 }} />
+                    {demandaSelecionada.categoria?.nome}
+                  </span>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: statusLabel[demandaSelecionada.status]?.cor || '#6b7280', background: '#f3f4f6', borderRadius: '4px', padding: '2px 7px' }}>
+                    {statusLabel[demandaSelecionada.status]?.label || demandaSelecionada.status}
+                  </span>
+                </div>
 
-          <div style={{ padding: '20px' }}>
-            {demandaSelecionada.foto_url && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={demandaSelecionada.foto_url} alt="Foto da demanda" style={{ width: '100%', borderRadius: '8px', marginBottom: '16px', display: 'block' }} />
-            )}
-            <p style={{ fontSize: '15px', fontWeight: 600, color: '#111827', margin: '0 0 8px', lineHeight: 1.5 }}>{demandaSelecionada.descricao}</p>
-            {demandaSelecionada.endereco_label && (
-              <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 12px' }}>{demandaSelecionada.endereco_label}</p>
-            )}
-            <p style={{ fontSize: '12px', color: '#9ca3af', margin: '0 0 16px' }}>
-              Por <strong style={{ color: '#374151' }}>{demandaSelecionada.morador_nome}</strong> · {new Date(demandaSelecionada.created_at).toLocaleDateString('pt-BR')}
-            </p>
+                {demandaSelecionada.foto_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={demandaSelecionada.foto_url} alt="Foto da demanda" style={{ width: '100%', borderRadius: '6px', marginBottom: '10px', display: 'block' }} />
+                )}
 
-            {/* Autoridade cobrada */}
-            <div style={{ background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '12px 14px', marginBottom: '16px' }}>
-              <p style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.05em', margin: '0 0 4px' }}>Autoridade cobrada</p>
-              <p style={{ fontSize: '14px', fontWeight: 600, color: '#111827', margin: 0 }}>{demandaSelecionada.entidade?.nome}</p>
-              <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0' }}>{demandaSelecionada.entidade?.cargo}</p>
-            </div>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827', margin: '0 0 6px', lineHeight: 1.5 }}>{demandaSelecionada.descricao}</p>
 
-            {/* Resposta */}
-            {demandaSelecionada.resposta && (
-              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '14px' }}>
-                <p style={{ fontSize: '11px', fontWeight: 600, color: '#166534', textTransform: 'uppercase', letterSpacing: '.05em', margin: '0 0 8px' }}>Resposta oficial</p>
-                <p style={{ fontSize: '14px', color: '#166534', margin: 0, lineHeight: 1.6 }}>{demandaSelecionada.resposta}</p>
-                {demandaSelecionada.respondido_em && (
-                  <p style={{ fontSize: '11px', color: '#6b7280', margin: '8px 0 0' }}>{new Date(demandaSelecionada.respondido_em).toLocaleDateString('pt-BR')}</p>
+                {demandaSelecionada.endereco_label && (
+                  <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 8px' }}>{demandaSelecionada.endereco_label}</p>
+                )}
+
+                <p style={{ fontSize: '11px', color: '#9ca3af', margin: '0 0 12px' }}>
+                  Por <strong style={{ color: '#374151' }}>{demandaSelecionada.morador_nome}</strong> · {new Date(demandaSelecionada.created_at).toLocaleDateString('pt-BR')}
+                </p>
+
+                {/* Autoridade */}
+                <div style={{ background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '10px 12px', marginBottom: '10px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.05em', margin: '0 0 3px' }}>Autoridade cobrada</p>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827', margin: 0 }}>{demandaSelecionada.entidade?.nome}</p>
+                  <p style={{ fontSize: '11px', color: '#6b7280', margin: '2px 0 0' }}>{demandaSelecionada.entidade?.cargo}</p>
+                </div>
+
+                {/* Resposta */}
+                {demandaSelecionada.resposta && (
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '7px', padding: '12px', marginBottom: '10px' }}>
+                    <p style={{ fontSize: '10px', fontWeight: 600, color: '#166534', textTransform: 'uppercase', letterSpacing: '.05em', margin: '0 0 6px' }}>Resposta oficial</p>
+                    <p style={{ fontSize: '13px', color: '#166534', margin: 0, lineHeight: 1.6 }}>{demandaSelecionada.resposta}</p>
+                    {demandaSelecionada.respondido_em && (
+                      <p style={{ fontSize: '11px', color: '#6b7280', margin: '6px 0 0' }}>{new Date(demandaSelecionada.respondido_em).toLocaleDateString('pt-BR')}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Ações do próprio usuário */}
+                {user && demandaSelecionada.user_id === user.id && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingTop: '10px', borderTop: '1px solid #f3f4f6' }}>
+                    <button
+                      onClick={async () => {
+                        if (!confirm('Marcar esta demanda como resolvida?')) return
+                        await supabase.from('demandas').update({ status: 'resolvida' }).eq('id', demandaSelecionada.id)
+                        setDemandas(prev => prev.filter(d => d.id !== demandaSelecionada.id))
+                        setDemandaSelecionada(null)
+                      }}
+                      style={{ fontSize: '12px', color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '7px', cursor: 'pointer', fontWeight: 500 }}>
+                      Marcar como resolvida
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!confirm('Excluir esta demanda? Esta ação não pode ser desfeita.')) return
+                        await supabase.from('demandas').delete().eq('id', demandaSelecionada.id)
+                        setDemandas(prev => prev.filter(d => d.id !== demandaSelecionada.id))
+                        setDemandaSelecionada(null)
+                      }}
+                      style={{ fontSize: '12px', color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px', cursor: 'pointer', fontWeight: 500 }}>
+                      Excluir
+                    </button>
+                  </div>
                 )}
               </div>
-            )}
+            </div>
+          ) : (
+            /* ── FILTROS ── */
+            <>
+              {/* Topo: título + descrição + filtros */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '18px 14px 12px' }}>
+                <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#0f2440', margin: '0 0 6px', lineHeight: 1.3 }}>Mapa de Demandas</h2>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 16px', lineHeight: 1.5 }}>
+                  Demandas dos cidadãos de Frutal-MG direcionadas às autoridades públicas.
+                </p>
 
-            {/* Ações do próprio usuário */}
-            {user && demandaSelecionada.user_id === user.id && (
-              <div style={{ display: 'flex', gap: '8px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f3f4f6' }}>
-                <button
-                  onClick={async () => {
-                    if (!confirm('Marcar esta demanda como resolvida?')) return
-                    await supabase.from('demandas').update({ status: 'resolvida' }).eq('id', demandaSelecionada.id)
-                    setDemandas(prev => prev.filter(d => d.id !== demandaSelecionada.id))
-                    setDemandaSelecionada(null)
-                  }}
-                  style={{ fontSize: '13px', color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '7px 14px', cursor: 'pointer', fontWeight: 500 }}>
-                  Marcar como resolvida
-                </button>
-                <button
-                  onClick={async () => {
-                    if (!confirm('Excluir esta demanda? Esta ação não pode ser desfeita.')) return
-                    await supabase.from('demandas').delete().eq('id', demandaSelecionada.id)
-                    setDemandas(prev => prev.filter(d => d.id !== demandaSelecionada.id))
-                    setDemandaSelecionada(null)
-                  }}
-                  style={{ fontSize: '13px', color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px 14px', cursor: 'pointer', fontWeight: 500 }}>
-                  Excluir
-                </button>
+                {/* Filtro de status */}
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#374151', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Status</label>
+                  <select
+                    value={filtroStatus}
+                    onChange={(e) => setFiltroStatus(e.target.value)}
+                    style={{ width: '100%', fontSize: '13px', fontWeight: 500, color: '#374151', background: 'white', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 28px 8px 10px', cursor: 'pointer', outline: 'none', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', boxSizing: 'border-box' }}>
+                    {statusOpcoes.map(o => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Filtro de categoria */}
+                {categorias.length > 0 && (
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#374151', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '8px' }}>Categoria</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {categorias.map((c) => {
+                        const ativo = filtroCategoria === c.id
+                        return (
+                          <button
+                            key={c.id}
+                            onClick={() => setFiltroCategoria(ativo ? null : c.id)}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: '5px',
+                              fontSize: '12px', fontWeight: 500, padding: '4px 10px',
+                              borderRadius: '999px', cursor: 'pointer', border: '1.5px solid',
+                              borderColor: ativo ? c.cor : '#e5e7eb',
+                              background: ativo ? c.cor + '18' : 'white',
+                              color: ativo ? c.cor : '#4b5563',
+                              transition: 'all 0.15s',
+                            }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: c.cor, display: 'inline-block', flexShrink: 0 }} />
+                            {c.nome}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+
+              {/* Contador + Zoom */}
+              <div style={{ padding: '10px 14px', borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '11px', color: '#9ca3af' }}>{demandasVisiveis.length} demanda{demandasVisiveis.length !== 1 ? 's' : ''}</span>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <button
+                    onClick={() => mapaObj.current?.zoomIn()}
+                    style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', fontSize: '16px', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+                    +
+                  </button>
+                  <button
+                    onClick={() => mapaObj.current?.zoomOut()}
+                    style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', fontSize: '16px', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+                    −
+                  </button>
+                </div>
+              </div>
+
+              {/* Botão registrar */}
+              <div style={{ padding: '12px 14px', borderTop: '1px solid #f3f4f6' }}>
+                {user ? (
+                  <button
+                    onClick={() => setEtapa('formulario')}
+                    style={{ width: '100%', backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px' }}>
+                    + Registrar Demanda
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setModalAuth(true)}
+                    style={{ width: '100%', backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px' }}>
+                    Entrar para registrar
+                  </button>
+                )}
+              </div>
+            </>
+          )}
         </div>
-      )}
+
+        {/* MAPA */}
+        <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
+          <div ref={mapRef} style={{ width: '100%', height: '100%', minHeight: 'clamp(300px, 55vw, 500px)' }} />
+
+          {/* Controles sobrepostos */}
+          <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', zIndex: 1000 }}>
+            <button onClick={alternarCamada} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: '#1e3a5f', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {satelite ? '🗺️ Mapa de ruas' : '🛰️ Satélite'}
+            </button>
+          </div>
+
+          {/* Banner de login */}
+          {!user && (
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(15,36,64,0.92), transparent)', padding: '40px 24px 20px', zIndex: 1000, textAlign: 'center' }}>
+              <p style={{ color: 'white', fontWeight: 600, fontSize: '14px', margin: '0 0 10px' }}>Faça login para ver as demandas completas</p>
+              <button onClick={() => setModalAuth(true)} style={{ background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
+                Entrar com Google
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Modal de auth */}
       {modalAuth && <ModalAuth onFechar={() => setModalAuth(false)} />}
@@ -398,7 +514,6 @@ export default function MapaDemandas() {
               <form onSubmit={handleEnviar} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 {erro && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
 
-                {/* Nome travado */}
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Cidadão</label>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '8px 12px', background: '#f0fdf4' }}>
@@ -478,7 +593,6 @@ export default function MapaDemandas() {
                     style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
                 </div>
 
-                {/* Foto */}
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>
                     Foto <span style={{ color: '#9ca3af', fontWeight: 400 }}>(opcional)</span>
@@ -507,6 +621,13 @@ export default function MapaDemandas() {
           </div>
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 640px) {
+          .mapa-layout { flex-direction: column !important; }
+          .mapa-layout > div:first-child { width: 100% !important; border-right: none !important; border-bottom: 1px solid #e5e7eb; }
+        }
+      `}</style>
     </div>
   )
 }
