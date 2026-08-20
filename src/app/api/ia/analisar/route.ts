@@ -88,13 +88,6 @@ Não inclua nada além do JSON.`
       console.error('Erro ao parsear resposta da IA:', texto)
     }
 
-    await supabaseServer.from('ia_historico').insert({
-      demanda_id,
-      decisao,
-      motivo,
-      modelo: 'gemini-3.5-flash-lite',
-    })
-
     if (decisao === 'aprovada') {
       const token = gerarToken()
       const expiracao = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()

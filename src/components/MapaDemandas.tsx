@@ -220,9 +220,9 @@ export default function MapaDemandas() {
       try {
         const blob = await comprimirFoto(fotoFile)
         const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
-        const { error: uploadError } = await supabase.storage.from('ocorrencias-fotos').upload(path, blob, { contentType: 'image/jpeg' })
+        const { error: uploadError } = await supabase.storage.from('demandas-fotos').upload(path, blob, { contentType: 'image/jpeg' })
         if (uploadError) throw uploadError
-        foto_url = supabase.storage.from('ocorrencias-fotos').getPublicUrl(path).data.publicUrl
+        foto_url = supabase.storage.from('demandas-fotos').getPublicUrl(path).data.publicUrl
       } catch { setErro('Erro ao enviar foto.'); setEnviando(false); return }
     }
 
