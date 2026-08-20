@@ -195,8 +195,8 @@ export default function MapaOcorrencias() {
       tileAtual.current = tile
       // Ruas + nomes de lugares sobre o satélite
       const labelGroup = L.layerGroup([
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', { zIndex: 10 }),
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { zIndex: 11 }),
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', { zIndex: 10, maxNativeZoom: 19, tileSize: 256 }),
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { zIndex: 11, maxNativeZoom: 19, tileSize: 256 }),
       ])
       labelGroup.addTo(mapa)
       tileLabels.current = labelGroup
