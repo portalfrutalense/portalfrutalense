@@ -44,6 +44,9 @@ export default function MapaOcorrencias() {
   const miniMapIniciado = useRef(false)
   const miniPinRef = useRef<any>(null)
 
+  const tileAtual = useRef<any>(null)
+  const [satelite, setSatelite] = useState(false)
+
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([])
   const [categorias, setCategorias] = useState<CategoriaMapa[]>([])
   const [modalAberto, setModalAberto] = useState(false)
@@ -92,7 +95,9 @@ export default function MapaOcorrencias() {
       })
       const zoomInicial = window.innerWidth <= 600 ? 13 : 14
       const mapa = L.map(mapRef.current!, { zoomControl: true }).setView([FRUTAL_LAT, FRUTAL_LNG], zoomInicial)
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(mapa)
+      const tile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' })
+      tile.addTo(mapa)
+      tileAtual.current = tile
       mapaObj.current = mapa
       leafletObj.current = L
     })
@@ -171,6 +176,22 @@ export default function MapaOcorrencias() {
     const centro = miniMapObj.current.getCenter()
     setCoordenadas(prev => prev ? { ...prev, lat: centro.lat, lng: centro.lng } : null)
     setLocConfirmada(true)
+  }
+
+  function alternarCamada() {
+    if (!mapaObj.current || !leafletObj.current) return
+    const L = leafletObj.current
+    const mapa = mapaObj.current
+    if (tileAtual.current) { tileAtual.current.remove() }
+    const novoSatelite = !satelite
+    const url = novoSatelite
+      ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+      : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+    const attribution = novoSatelite ? '© Esri, Maxar, Earthstar Geographics' : '© OpenStreetMap'
+    const tile = L.tileLayer(url, { attribution })
+    tile.addTo(mapa)
+    tileAtual.current = tile
+    setSatelite(novoSatelite)
   }
 
   function capitalizarNome(valor: string) {
@@ -313,8 +334,18 @@ export default function MapaOcorrencias() {
       {/* Mapa */}
       <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb', marginBottom: '16px', position: 'relative', zIndex: 1 }}>
         <div ref={mapRef} style={{ width: '100%', height: 'clamp(300px, 55vw, 460px)' }} />
-        <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'white', borderRadius: '6px', padding: '6px 12px', fontSize: '12px', color: '#6b7280', boxShadow: '0 1px 3px rgba(0,0,0,0.15)', zIndex: 1000 }}>
-          {ocorrencias.length} ocorrência(s) no mapa
+        <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', zIndex: 1000 }}>
+          <button onClick={alternarCamada} style={{
+            background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px',
+            padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: '#1e3a5f',
+            cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+            display: 'flex', alignItems: 'center', gap: '6px',
+          }}>
+            {satelite ? '🗺️ Mapa de ruas' : '🛰️ Satélite'}
+          </button>
+          <div style={{ background: 'white', borderRadius: '6px', padding: '5px 10px', fontSize: '12px', color: '#6b7280', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }}>
+            {ocorrencias.length} ocorrência(s)
+          </div>
         </div>
       </div>
 
