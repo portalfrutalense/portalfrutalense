@@ -53,7 +53,7 @@ export default function MapaDemandas() {
 
   // Filtros
   const [filtroStatus, setFiltroStatus] = useState('')
-  const [filtroCategoria, setFiltroCategoria] = useState<string | null>(null)
+  const [filtroCategoria, setFiltroCategoria] = useState('')
 
   // Form state
   const [etapa, setEtapa] = useState<'fechado' | 'formulario'>('fechado')
@@ -121,6 +121,7 @@ export default function MapaDemandas() {
     const filtradas = demandas.filter(d => {
       if (filtroStatus && d.status !== filtroStatus) return false
       if (filtroCategoria && d.categoria_id !== filtroCategoria) return false
+
       return true
     })
 
@@ -403,29 +404,16 @@ export default function MapaDemandas() {
                 {/* Filtro de categoria */}
                 {categorias.length > 0 && (
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#374151', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '8px' }}>Categoria</label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                      {categorias.map((c) => {
-                        const ativo = filtroCategoria === c.id
-                        return (
-                          <button
-                            key={c.id}
-                            onClick={() => setFiltroCategoria(ativo ? null : c.id)}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: '5px',
-                              fontSize: '12px', fontWeight: 500, padding: '4px 10px',
-                              borderRadius: '999px', cursor: 'pointer', border: '1.5px solid',
-                              borderColor: ativo ? c.cor : '#e5e7eb',
-                              background: ativo ? c.cor + '18' : 'white',
-                              color: ativo ? c.cor : '#4b5563',
-                              transition: 'all 0.15s',
-                            }}>
-                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: c.cor, display: 'inline-block', flexShrink: 0 }} />
-                            {c.nome}
-                          </button>
-                        )
-                      })}
-                    </div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#374151', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Categoria</label>
+                    <select
+                      value={filtroCategoria}
+                      onChange={(e) => setFiltroCategoria(e.target.value)}
+                      style={{ width: '100%', fontSize: '13px', fontWeight: 500, color: '#374151', background: 'white', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 28px 8px 10px', cursor: 'pointer', outline: 'none', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', boxSizing: 'border-box' }}>
+                      <option value="">Todas as categorias</option>
+                      {categorias.map((c) => (
+                        <option key={c.id} value={c.id}>{c.nome}</option>
+                      ))}
+                    </select>
                   </div>
                 )}
               </div>
