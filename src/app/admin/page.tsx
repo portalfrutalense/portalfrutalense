@@ -554,6 +554,15 @@ export default function AdminPage() {
                     <p style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 3px' }}>Descrição</p>
                     <p style={{ fontSize: '14px', color: '#374151', lineHeight: 1.6, margin: '0 0 10px' }}>{o.descricao}</p>
 
+                    {/* Foto */}
+                    {o.foto_url && (
+                      <div style={{ marginBottom: '12px' }}>
+                        <p style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 6px' }}>Foto</p>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={o.foto_url} alt="Foto da ocorrência" style={{ maxWidth: '100%', borderRadius: '8px', display: 'block', border: '1px solid #e5e7eb' }} />
+                      </div>
+                    )}
+
                     {/* Endereço */}
                     <p style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 3px' }}>Endereço</p>
                     <p style={{ fontSize: '14px', color: '#374151', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>

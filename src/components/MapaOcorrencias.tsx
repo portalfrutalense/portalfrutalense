@@ -113,14 +113,14 @@ export default function MapaOcorrencias() {
         ? L.divIcon({
             className: '',
             html: `
-              <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 3px 6px rgba(0,0,0,.35))">
-                <div style="width:46px;height:46px;border-radius:50%;border:3px solid white;overflow:hidden;flex-shrink:0;">
+              <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 2px 5px rgba(0,0,0,.35))">
+                <div style="width:32px;height:32px;border-radius:50%;border:2px solid white;overflow:hidden;flex-shrink:0;">
                   <img src="${o.foto_url}" style="width:100%;height:100%;object-fit:cover;display:block;" />
                 </div>
-                <div style="width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:10px solid white;margin-top:-2px;"></div>
+                <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid white;margin-top:-1px;"></div>
               </div>`,
-            iconSize: [46, 58],
-            iconAnchor: [23, 58],
+            iconSize: [32, 41],
+            iconAnchor: [16, 41],
           })
         : L.divIcon({
             className: '',
@@ -134,7 +134,7 @@ export default function MapaOcorrencias() {
           <div style="font-size:11px;font-weight:600;color:${cor};margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">${nomeCategoria}</div>
           <p style="font-size:13px;font-weight:600;color:#111827;margin:0 0 6px;line-height:1.4">${o.descricao}</p>
           ${o.endereco_label ? `<p style="font-size:11px;color:#6b7280;margin:0 0 8px;">📍 ${o.endereco_label}</p>` : ''}
-          ${o.foto_url ? `<img src="${o.foto_url}" style="width:100%;border-radius:6px;display:block;margin-bottom:8px;object-fit:cover;max-height:140px;" />` : ''}
+          ${o.foto_url ? `<img src="${o.foto_url}" style="width:100%;border-radius:6px;display:block;margin-bottom:8px;" />` : ''}
           <p style="font-size:10px;color:#9ca3af;margin:0;">${o.morador_nome} · ${data}</p>
         </div>`
 
