@@ -606,15 +606,8 @@ export default function MapaDemandas() {
                       <p style={{ fontSize: '12px', color: '#92400e', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '6px', padding: '6px 10px', margin: '0 0 6px' }}>
                         Mova o mapa até o local exato e toque em <strong>Confirmar localização</strong>.
                       </p>
-                      <div style={{ position: 'relative', width: '100%', height: '220px', borderRadius: '6px', border: '1px solid #d1d5db', overflow: 'hidden' }}>
-                        <div ref={miniMapRef} style={{ width: '100%', height: '100%' }} />
-                        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -100%)', zIndex: 1000, pointerEvents: 'none' }}>
-                          <svg width="32" height="40" viewBox="0 0 32 40" fill="none">
-                            <path d="M16 0C7.163 0 0 7.163 0 16c0 10.627 14.4 23.04 15.04 23.573a1.333 1.333 0 001.92 0C17.6 39.04 32 26.627 32 16 32 7.163 24.837 0 16 0z" fill="#f97316"/>
-                            <circle cx="16" cy="16" r="7" fill="white"/>
-                          </svg>
-                        </div>
-                        {/* Botão satélite mini-mapa */}
+                      <div style={{ position: 'relative', width: '100%' }}>
+                        {/* Botão satélite fora do overflow:hidden */}
                         <button type="button" onClick={() => {
                           if (!miniMapObj.current || !leafletObj.current) return
                           const L = leafletObj.current
@@ -626,14 +619,23 @@ export default function MapaDemandas() {
                           t.addTo(miniMapObj.current)
                           miniTileAtual.current = t
                           setMiniSatelite(novo)
-                        }} style={{ position: 'absolute', top: '8px', right: '8px', zIndex: 1000, background: 'white', border: '1px solid #d1d5db', borderRadius: '4px', padding: '4px 8px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', color: '#374151', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>
+                        }} style={{ position: 'absolute', top: '6px', right: '6px', zIndex: 1001, background: 'white', border: '1px solid #d1d5db', borderRadius: '4px', padding: '4px 8px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', color: '#374151', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>
                           {miniSatelite ? '🗺 Mapa' : '🛰 Satélite'}
                         </button>
+                      <div style={{ position: 'relative', width: '100%', height: '220px', borderRadius: '6px', border: '1px solid #d1d5db', overflow: 'hidden' }}>
+                        <div ref={miniMapRef} style={{ width: '100%', height: '100%' }} />
+                        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -100%)', zIndex: 1000, pointerEvents: 'none' }}>
+                          <svg width="32" height="40" viewBox="0 0 32 40" fill="none">
+                            <path d="M16 0C7.163 0 0 7.163 0 16c0 10.627 14.4 23.04 15.04 23.573a1.333 1.333 0 001.92 0C17.6 39.04 32 26.627 32 16 32 7.163 24.837 0 16 0z" fill="#f97316"/>
+                            <circle cx="16" cy="16" r="7" fill="white"/>
+                          </svg>
+                        </div>
                         <button type="button" onClick={confirmarLocalizacao}
                           style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '10px 24px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
                           Confirmar localização
                         </button>
                       </div>
+                      </div>{/* fecha wrapper externo */}
                     </div>
                   )}
                   {coordenadas && locConfirmada && (
