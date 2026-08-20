@@ -1,10 +1,10 @@
-export const metadata = { title: 'Termos de Uso — Portal Frutalense' }
+﻿export const metadata = { title: 'Termos de Uso — Fala Frutal' }
 
 export default function TermosDeUso() {
   return (
     <main style={{ maxWidth: '720px', margin: '0 auto', padding: '48px 24px', fontFamily: 'Inter, system-ui, sans-serif', color: '#111827', lineHeight: 1.7 }}>
       <div style={{ marginBottom: '32px' }}>
-        <span style={{ fontSize: '12px', fontWeight: 600, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '.08em' }}>Portal Frutalense</span>
+        <span style={{ fontSize: '12px', fontWeight: 600, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '.08em' }}>Fala Frutal</span>
         <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#111827', margin: '8px 0 4px' }}>Termos de Uso e Serviço</h1>
         <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Última atualização: agosto de 2026</p>
       </div>
@@ -12,14 +12,14 @@ export default function TermosDeUso() {
       <section style={{ marginBottom: '32px' }}>
         <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#1e3a5f', marginBottom: '8px' }}>1. Aceitação dos termos</h2>
         <p style={{ margin: 0, fontSize: '15px', color: '#374151' }}>
-          Ao acessar ou utilizar o Portal Frutalense, você concorda com estes Termos de Uso. Se não concordar com alguma parte, pedimos que não utilize a plataforma.
+          Ao acessar ou utilizar o Fala Frutal, você concorda com estes Termos de Uso. Se não concordar com alguma parte, pedimos que não utilize a plataforma.
         </p>
       </section>
 
       <section style={{ marginBottom: '32px' }}>
-        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#1e3a5f', marginBottom: '8px' }}>2. O que é o Portal Frutalense</h2>
+        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#1e3a5f', marginBottom: '8px' }}>2. O que é o Fala Frutal</h2>
         <p style={{ margin: 0, fontSize: '15px', color: '#374151' }}>
-          O Portal Frutalense é uma plataforma digital de transparência cívica voltada para o município de Frutal — MG. Permite que cidadãos registrem denúncias, sinalizem ocorrências urbanas e acompanhem as respostas das autoridades públicas.
+          O Fala Frutal é uma plataforma digital de transparência cívica voltada para o município de Frutal — MG. Permite que cidadãos registrem denúncias, sinalizem ocorrências urbanas e acompanhem as respostas das autoridades públicas.
         </p>
       </section>
 
@@ -38,21 +38,21 @@ export default function TermosDeUso() {
       <section style={{ marginBottom: '32px' }}>
         <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#1e3a5f', marginBottom: '8px' }}>4. Conteúdo publicado</h2>
         <p style={{ margin: 0, fontSize: '15px', color: '#374151' }}>
-          Todo conteúdo registrado (denúncias, ocorrências e fotos) passa por análise antes de ser publicado. O Portal Frutalense reserva-se o direito de recusar ou remover qualquer conteúdo que viole estes termos, seja falso, ofensivo ou inadequado, sem aviso prévio.
+          Todo conteúdo registrado (denúncias, ocorrências e fotos) passa por análise antes de ser publicado. O Fala Frutal reserva-se o direito de recusar ou remover qualquer conteúdo que viole estes termos, seja falso, ofensivo ou inadequado, sem aviso prévio.
         </p>
       </section>
 
       <section style={{ marginBottom: '32px' }}>
         <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#1e3a5f', marginBottom: '8px' }}>5. Responsabilidade pelo conteúdo</h2>
         <p style={{ margin: 0, fontSize: '15px', color: '#374151' }}>
-          O conteúdo publicado é de responsabilidade do cidadão que o registrou. O Portal Frutalense não se responsabiliza por informações falsas ou imprecisas enviadas pelos usuários, mas tomará as medidas necessárias para remover conteúdo inadequado quando identificado ou reportado.
+          O conteúdo publicado é de responsabilidade do cidadão que o registrou. O Fala Frutal não se responsabiliza por informações falsas ou imprecisas enviadas pelos usuários, mas tomará as medidas necessárias para remover conteúdo inadequado quando identificado ou reportado.
         </p>
       </section>
 
       <section style={{ marginBottom: '32px' }}>
         <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#1e3a5f', marginBottom: '8px' }}>6. Disponibilidade do serviço</h2>
         <p style={{ margin: 0, fontSize: '15px', color: '#374151' }}>
-          O Portal Frutalense é oferecido gratuitamente e pode sofrer interrupções para manutenção ou melhorias. Não garantimos disponibilidade contínua e ininterrupta da plataforma.
+          O Fala Frutal é oferecido gratuitamente e pode sofrer interrupções para manutenção ou melhorias. Não garantimos disponibilidade contínua e ininterrupta da plataforma.
         </p>
       </section>
 
@@ -71,8 +71,9 @@ export default function TermosDeUso() {
       </section>
 
       <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '24px', marginTop: '16px' }}>
-        <a href="/" style={{ fontSize: '13px', color: '#2563eb', textDecoration: 'none' }}>Voltar ao Portal Frutalense</a>
+        <a href="/" style={{ fontSize: '13px', color: '#2563eb', textDecoration: 'none' }}>Voltar ao Fala Frutal</a>
       </div>
     </main>
   )
 }
+

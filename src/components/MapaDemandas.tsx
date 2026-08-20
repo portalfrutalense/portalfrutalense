@@ -53,9 +53,11 @@ export default function MapaDemandas() {
   const miniMapRef = useRef<HTMLDivElement>(null)
   const miniMapObj = useRef<any>(null)
   const miniMapIniciado = useRef(false)
+  const miniTileAtual = useRef<any>(null)
 
   const [mapaCarregado, setMapaCarregado] = useState(false)
   const [satelite, setSatelite] = useState(false)
+  const [miniSatelite, setMiniSatelite] = useState(false)
   const [demandas, setDemandas] = useState<Demanda[]>([])
   const [categorias, setCategorias] = useState<CategoriaMapa[]>([])
   const [entidades, setEntidades] = useState<Entidade[]>([])
@@ -105,7 +107,7 @@ export default function MapaDemandas() {
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
         iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        shadowUrl: '',
       })
       const zoom = window.innerWidth <= 600 ? 13 : 14
       const mapa = L.map(mapRef.current!, { zoomControl: false }).setView([FRUTAL_LAT, FRUTAL_LNG], zoom)
@@ -169,7 +171,9 @@ export default function MapaDemandas() {
     const L = leafletObj.current
     miniMapIniciado.current = true
     const mapa = L.map(miniMapRef.current, { zoomControl: true }).setView([coordenadas.lat, coordenadas.lng], 17)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(mapa)
+    const tile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' })
+    tile.addTo(mapa)
+    miniTileAtual.current = tile
     miniMapObj.current = mapa
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coordenadas !== null])
@@ -610,6 +614,21 @@ export default function MapaDemandas() {
                             <circle cx="16" cy="16" r="7" fill="white"/>
                           </svg>
                         </div>
+                        {/* Botão satélite mini-mapa */}
+                        <button type="button" onClick={() => {
+                          if (!miniMapObj.current || !leafletObj.current) return
+                          const L = leafletObj.current
+                          if (miniTileAtual.current) miniTileAtual.current.remove()
+                          const novo = !miniSatelite
+                          const t = novo
+                            ? L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' })
+                            : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' })
+                          t.addTo(miniMapObj.current)
+                          miniTileAtual.current = t
+                          setMiniSatelite(novo)
+                        }} style={{ position: 'absolute', top: '8px', right: '8px', zIndex: 1000, background: 'white', border: '1px solid #d1d5db', borderRadius: '4px', padding: '4px 8px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', color: '#374151', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>
+                          {miniSatelite ? '🗺 Mapa' : '🛰 Satélite'}
+                        </button>
                         <button type="button" onClick={confirmarLocalizacao}
                           style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '10px 24px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
                           Confirmar localização

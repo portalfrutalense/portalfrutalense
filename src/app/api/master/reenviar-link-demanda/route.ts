@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 import { gerarToken } from '@/lib/token'
@@ -45,13 +45,13 @@ export async function POST(req: NextRequest) {
     const linkResposta = `${process.env.NEXT_PUBLIC_SITE_URL}/responder/${novoToken}`
 
     await resend.emails.send({
-      from: 'Portal Frutalense <onboarding@resend.dev>',
+      from: 'Fala Frutal <onboarding@resend.dev>',
       to: emailAutoridade,
-      subject: `[REENVIO] Demanda aguardando sua resposta — Portal Frutalense`,
+      subject: `[REENVIO] Demanda aguardando sua resposta — Fala Frutal`,
       html: `
         <div style="font-family:Inter,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;">
           <div style="background:#1e3a5f;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
-            <h1 style="color:white;font-size:18px;margin:0;">Portal Frutalense</h1>
+            <h1 style="color:white;font-size:18px;margin:0;">Fala Frutal</h1>
             <p style="color:rgba(255,255,255,0.6);font-size:13px;margin:4px 0 0;">Frutal-MG · Transparência e Cidadania</p>
           </div>
           <div style="background:white;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:24px;">
@@ -79,3 +79,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })
   }
 }
+

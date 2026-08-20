@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase-browser'
@@ -198,7 +198,7 @@ export default function MasterPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div>
               <p style={{ fontSize: '13px', fontWeight: 700, color: 'white', margin: 0 }}>Painel Master</p>
-              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', margin: 0 }}>Portal Frutalense</p>
+              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', margin: 0 }}>Fala Frutal</p>
             </div>
           </div>
         </div>
@@ -253,7 +253,7 @@ export default function MasterPage() {
             <div>
               <div style={{ marginBottom: '28px' }}>
                 <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>Dashboard</h1>
-                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Visão geral do Portal Frutalense.</p>
+                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Visão geral do Fala Frutal.</p>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '32px' }}>
@@ -817,3 +817,4 @@ function MasterIA() {
     </div>
   )
 }
+

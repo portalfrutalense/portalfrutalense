@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { useState } from 'react'
@@ -17,7 +17,7 @@ export default function Navbar() {
         <div style={{ padding: '0 16px 0 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '52px', gap: '12px' }}>
           {/* Logo */}
           <Link href="/" style={{ fontWeight: 700, fontSize: '16px', color: 'white', textDecoration: 'none', letterSpacing: '-0.01em', flexShrink: 0 }}>
-            Portal Frutalense
+            Fala Frutal
           </Link>
 
           {/* Auth — igual em todos os tamanhos */}
@@ -44,3 +44,4 @@ export default function Navbar() {
     </>
   )
 }
+

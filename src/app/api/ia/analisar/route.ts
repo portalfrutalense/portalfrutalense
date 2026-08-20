@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
 import { gerarToken } from '@/lib/token'
 import { Resend } from 'resend'
@@ -106,19 +106,19 @@ Não inclua nada além do JSON.`
       if (emailAutoridade) {
         const linkResposta = `${process.env.NEXT_PUBLIC_SITE_URL}/responder/${token}`
         await resend.emails.send({
-          from: 'Portal Frutalense <onboarding@resend.dev>',
+          from: 'Fala Frutal <onboarding@resend.dev>',
           to: emailAutoridade,
-          subject: `Nova demanda para ${demanda.entidade?.nome} — Portal Frutalense`,
+          subject: `Nova demanda para ${demanda.entidade?.nome} — Fala Frutal`,
           html: `
             <div style="font-family:Inter,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;">
               <div style="background:#1e3a5f;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
-                <h1 style="color:white;font-size:18px;margin:0;">Portal Frutalense</h1>
+                <h1 style="color:white;font-size:18px;margin:0;">Fala Frutal</h1>
                 <p style="color:rgba(255,255,255,0.6);font-size:13px;margin:4px 0 0;">Frutal-MG · Transparência e Cidadania</p>
               </div>
               <div style="background:white;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:24px;">
                 <p style="font-size:15px;color:#111827;">Olá, <strong>${demanda.entidade?.nome}</strong>,</p>
                 <p style="font-size:14px;color:#374151;line-height:1.6;">
-                  O cidadão <strong>${demanda.morador_nome}</strong> registrou uma demanda direcionada a você no Portal Frutalense.
+                  O cidadão <strong>${demanda.morador_nome}</strong> registrou uma demanda direcionada a você no Fala Frutal.
                 </p>
                 <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:16px 0;">
                   <p style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px;">Descrição da demanda</p>
@@ -149,3 +149,4 @@ Não inclua nada além do JSON.`
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })
   }
 }
+
