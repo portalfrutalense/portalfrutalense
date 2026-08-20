@@ -637,7 +637,9 @@ function MasterDemandas() {
                       </div>
                     </div>
                   ) : (
-                    <p style={{ fontSize: '12px', fontWeight: 400, color: '#111827', margin: 0, lineHeight: 1.5 }}>{d.descricao || '—'}</p>
+                    <p style={{ fontSize: '12px', fontWeight: 400, color: '#111827', margin: 0, lineHeight: 1.5 }}>
+                      <strong style={{ color: '#6b7280', fontWeight: 400 }}>Demanda:</strong> {d.descricao || '—'}
+                    </p>
                   )}
                 </div>
 
