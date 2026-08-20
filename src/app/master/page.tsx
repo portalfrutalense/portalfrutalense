@@ -479,25 +479,48 @@ function MasterDemandas() {
     d.ok ? mostrarNotif('Link reenviado com sucesso.') : mostrarNotif(d.error, true)
   }
 
+  async function getToken() {
+    const { data: { session } } = await sbClient.auth.getSession()
+    return session?.access_token
+  }
+
   async function excluirDemanda(id: string) {
     if (!confirm('Excluir esta demanda permanentemente? Esta ação não pode ser desfeita.')) return
-    const { error } = await sbClient.from('demandas').delete().eq('id', id)
-    if (error) { mostrarNotif(error.message, true); return }
+    const token = await getToken()
+    const res = await fetch('/api/master/demanda', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ demanda_id: id }),
+    })
+    const d = await res.json()
+    if (!d.ok) { mostrarNotif(d.error, true); return }
     mostrarNotif('Demanda excluída.')
     carregarDemandas()
   }
 
   async function toggleOculto(id: string, ocultoAtual: boolean) {
-    const { error } = await sbClient.from('demandas').update({ oculto: !ocultoAtual }).eq('id', id)
-    if (error) { mostrarNotif(error.message, true); return }
+    const token = await getToken()
+    const res = await fetch('/api/master/demanda', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ demanda_id: id, oculto: !ocultoAtual }),
+    })
+    const d = await res.json()
+    if (!d.ok) { mostrarNotif(d.error, true); return }
     mostrarNotif(ocultoAtual ? 'Demanda visível ao público.' : 'Demanda ocultada do público.')
     carregarDemandas()
   }
 
   async function salvarEdicao(id: string) {
     if (!editDescricao.trim()) return
-    const { error } = await sbClient.from('demandas').update({ descricao: editDescricao.trim() }).eq('id', id)
-    if (error) { mostrarNotif(error.message, true); return }
+    const token = await getToken()
+    const res = await fetch('/api/master/demanda', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ demanda_id: id, descricao: editDescricao.trim() }),
+    })
+    const d = await res.json()
+    if (!d.ok) { mostrarNotif(d.error, true); return }
     setEditandoId(null)
     mostrarNotif('Demanda atualizada.')
     carregarDemandas()
