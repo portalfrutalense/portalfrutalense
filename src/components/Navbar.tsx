@@ -18,27 +18,31 @@ export default function Navbar() {
 
   const nomeExibido = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || 'Usuário'
 
+  const isLanding = pathname === '/'
+
   return (
     <>
       <header style={{ backgroundColor: '#1e3a5f', color: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
-        <div style={{ maxWidth: '960px', margin: '0 auto', padding: '0 16px', display: 'flex', alignItems: 'stretch', justifyContent: 'space-between', minHeight: '52px' }}>
+        <div style={{ maxWidth: isLanding ? 'none' : '960px', margin: '0 auto', padding: isLanding ? '0 32px' : '0 16px', display: 'flex', alignItems: 'stretch', justifyContent: 'space-between', minHeight: '52px' }}>
           {/* Logo */}
           <Link href="/" style={{ fontWeight: 700, fontSize: '16px', display: 'flex', alignItems: 'center', padding: '0 20px 0 0', color: 'white', textDecoration: 'none', letterSpacing: '-0.01em', flexShrink: 0 }}>
             Portal Frutalense
           </Link>
 
-          {/* Links desktop */}
-          <nav style={{ display: 'flex', alignItems: 'stretch', flex: 1 }} className="hide-mobile">
-            {links.map(({ href, label }) => (
-              <Link key={href} href={href} style={{
-                display: 'flex', alignItems: 'center', padding: '0 20px', fontSize: '14px', fontWeight: 500,
-                borderRight: '1px solid #2d5a8f', color: pathname === href ? 'white' : '#93c5fd',
-                backgroundColor: pathname === href ? '#1e40af' : 'transparent', textDecoration: 'none',
-              }}>
-                {label}
-              </Link>
-            ))}
-          </nav>
+          {/* Links desktop — ocultos na landing */}
+          {!isLanding && (
+            <nav style={{ display: 'flex', alignItems: 'stretch', flex: 1 }} className="hide-mobile">
+              {links.map(({ href, label }) => (
+                <Link key={href} href={href} style={{
+                  display: 'flex', alignItems: 'center', padding: '0 20px', fontSize: '14px', fontWeight: 500,
+                  borderRight: '1px solid #2d5a8f', color: pathname === href ? 'white' : '#93c5fd',
+                  backgroundColor: pathname === href ? '#1e40af' : 'transparent', textDecoration: 'none',
+                }}>
+                  {label}
+                </Link>
+              ))}
+            </nav>
+          )}
 
           {/* Auth desktop */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '16px' }} className="hide-mobile">
