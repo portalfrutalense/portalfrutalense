@@ -722,7 +722,7 @@ function MasterDemandas() {
               {/* Data — alinhada à direita, no final */}
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <span style={{ fontSize: '11px', color: '#9ca3af' }}>
-                  Criado em {new Date(d.created_at).toLocaleDateString('pt-BR')}
+                  Criada em {new Date(d.created_at).toLocaleDateString('pt-BR')}
                 </span>
               </div>
 
