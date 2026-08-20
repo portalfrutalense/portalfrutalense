@@ -91,7 +91,7 @@ export default function PageResponder() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f6f8', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 16px' }}>
+    <div style={{ minHeight: '100vh', background: '#f4f6f8', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 'clamp(24px,5vw,48px) 16px' }}>
       <div style={{ maxWidth: '560px', width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div style={{ textAlign: 'center' }}>
           <p style={{ fontWeight: 700, color: '#1e3a5f', fontSize: '16px', margin: 0 }}>Portal Frutalense</p>

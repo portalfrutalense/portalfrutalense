@@ -10,6 +10,24 @@ body {
   font-family: Inter, sans-serif;
 }
 
+/* Previne overflow horizontal global */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Imagens e iframes responsivos */
+img, iframe, video {
+  max-width: 100%;
+}
+
+/* Inputs e botões com tamanho mínimo de toque */
+@media (max-width: 640px) {
+  input, select, textarea, button {
+    font-size: 16px !important; /* previne zoom automático no iOS */
+  }
+}
+
 /* Responsivo: grid 2 colunas → 1 coluna no mobile */
 @media (max-width: 600px) {
   .grid-2col {
@@ -27,5 +45,11 @@ body {
   }
   .stack-mobile {
     flex-direction: column !important;
+  }
+  /* Tabelas com scroll horizontal */
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
   }
 }

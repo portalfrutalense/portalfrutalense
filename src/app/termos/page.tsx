@@ -2,7 +2,7 @@
 
 export default function TermosDeUso() {
   return (
-    <main style={{ maxWidth: '720px', margin: '0 auto', padding: '48px 24px', fontFamily: 'Inter, system-ui, sans-serif', color: '#111827', lineHeight: 1.7 }}>
+    <main style={{ maxWidth: '720px', margin: '0 auto', padding: 'clamp(24px,5vw,48px) clamp(16px,4vw,24px)', fontFamily: 'Inter, system-ui, sans-serif', color: '#111827', lineHeight: 1.7 }}>
       <div style={{ marginBottom: '32px' }}>
         <span style={{ fontSize: '12px', fontWeight: 600, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '.08em' }}>Fala Frutal</span>
         <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#111827', margin: '8px 0 4px' }}>Termos de Uso e Serviço</h1>

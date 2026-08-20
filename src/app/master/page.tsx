@@ -258,7 +258,7 @@ export default function MasterPage() {
                 <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Visão geral do Fala Frutal.</p>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '32px' }}>
+              <div className="master-card-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '32px' }}>
                 {[
                   { label: 'Total de demandas', valor: stats.total, cor: '#1e3a5f', fundo: '#eff6ff' },
                   { label: 'Pendentes (IA)', valor: stats.pendente, cor: '#92400e', fundo: '#fef3c7' },
@@ -279,7 +279,7 @@ export default function MasterPage() {
           {secao === 'demandas' && (
             <div>
               {/* Header da seção */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', gap: '12px', flexWrap: 'wrap' }}>
+              <div className="master-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', gap: '12px', flexWrap: 'wrap' }}>
                 <div>
                   <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>
                     {configurando ? 'Configurações' : 'Mapa de Demandas'}
@@ -434,10 +434,15 @@ export default function MasterPage() {
 
       <style>{`
         @media (max-width: 640px) {
-          .master-sidebar { transform: translateX(-100%); transition: transform 0.25s ease; }
+          .master-sidebar { transform: translateX(-100%); transition: transform 0.25s ease; width: 220px !important; }
           .master-sidebar.open { transform: translateX(0); }
           .master-main { margin-left: 0 !important; }
           .master-topbar { display: flex !important; }
+          .master-header-row { flex-direction: column !important; align-items: flex-start !important; }
+          .master-header-actions { width: 100%; }
+          .master-card-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .master-form-row { flex-direction: column !important; }
+          .master-config-tabs { overflow-x: auto; }
         }
       `}</style>
     </div>

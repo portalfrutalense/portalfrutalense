@@ -15,7 +15,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   if (isMapa) return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <Navbar />
-      <main style={{ flex: 1, overflow: 'hidden', padding: '16px', display: 'flex', flexDirection: 'column' }}>
+      <main style={{ flex: 1, overflow: 'hidden', padding: 'clamp(8px,2vw,16px)', display: 'flex', flexDirection: 'column' }}>
         {children}
       </main>
     </div>

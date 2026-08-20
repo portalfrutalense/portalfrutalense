@@ -336,7 +336,7 @@ export default function MapaDemandas() {
       <div className="mapa-layout" style={{ display: 'flex', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', flex: 1 }}>
 
         {/* SIDEBAR */}
-        <div style={{ width: '260px', flexShrink: 0, background: 'white', borderRight: '1px solid #d1d5db', display: 'flex', flexDirection: 'column', minHeight: 'clamp(300px, 55vw, 500px)' }}>
+        <div className="mapa-sidebar" style={{ width: '260px', flexShrink: 0, background: 'white', borderRight: '1px solid #d1d5db', display: 'flex', flexDirection: 'column', minHeight: 'clamp(300px, 55vw, 500px)', overflowY: 'auto' }}>
 
           {demandaSelecionada ? (
             /* ── DETALHE DA DEMANDA ── */
@@ -685,7 +685,7 @@ export default function MapaDemandas() {
       <style>{`
         @media (max-width: 640px) {
           .mapa-layout { flex-direction: column-reverse !important; }
-          .mapa-layout > div:first-child { width: 100% !important; border-right: none !important; border-top: 1px solid #e5e7eb; }
+          .mapa-sidebar { width: 100% !important; border-right: none !important; border-top: 1px solid #e5e7eb; min-height: unset !important; max-height: 420px; overflow-y: auto; }
           .mapa-map-div { min-height: 380px !important; }
         }
       `}</style>
