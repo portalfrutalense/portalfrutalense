@@ -553,14 +553,19 @@ function MasterDemandas() {
         </div>
       )}
 
-      {/* Filtros */}
-      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-        {['todos', 'pendente', 'aguardando_resposta', 'respondida', 'rejeitada_ia'].map(f => (
-          <button key={f} onClick={() => setFiltro(f)}
-            style={{ fontSize: '12px', padding: '6px 14px', borderRadius: '20px', border: '1.5px solid', borderColor: filtro === f ? '#1e3a5f' : '#e5e7eb', background: filtro === f ? '#1e3a5f' : 'white', color: filtro === f ? 'white' : '#6b7280', cursor: 'pointer', fontWeight: filtro === f ? 600 : 400 }}>
-            {f === 'todos' ? `Todas (${demandas.length})` : `${statusLabel[f]} (${demandas.filter(d => d.status === f).length})`}
-          </button>
-        ))}
+      {/* Filtro dropdown */}
+      <div>
+        <select
+          value={filtro}
+          onChange={(e) => setFiltro(e.target.value)}
+          style={{ fontSize: '13px', fontWeight: 500, color: '#374151', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 32px 8px 12px', cursor: 'pointer', outline: 'none', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}
+        >
+          {(['todos', 'pendente', 'aguardando_resposta', 'respondida', 'rejeitada_ia'] as const).map(f => (
+            <option key={f} value={f}>
+              {f === 'todos' ? `Todas (${demandas.length})` : `${statusLabel[f]} (${demandas.filter(d => d.status === f).length})`}
+            </option>
+          ))}
+        </select>
       </div>
 
       {filtradas.length === 0 && (
