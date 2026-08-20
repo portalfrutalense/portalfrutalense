@@ -66,13 +66,30 @@ export default function AdminPage() {
 
   const client = createClient()
 
+  const EMAIL_MASTER = 'portalfrutalense@gmail.com'
+
+  function verificarAcesso(session: any) {
+    if (session && session.user?.email === EMAIL_MASTER) {
+      setAutenticado(true)
+      carregarDados()
+    } else if (session) {
+      // Logado mas não é o master — faz logout
+      client.auth.signOut()
+      setErroLogin('Acesso negado. Somente o administrador pode entrar aqui.')
+      setAutenticado(false)
+    } else {
+      setAutenticado(false)
+    }
+  }
+
   useEffect(() => {
     client.auth.getSession().then(({ data }) => {
-      if (data.session) { setAutenticado(true); carregarDados() }
+      verificarAcesso(data.session)
       setCarregandoAuth(false)
     })
     const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
-      if (session) { setAutenticado(true); carregarDados() } else { setAutenticado(false) }
+      verificarAcesso(session)
+      setCarregandoAuth(false)
     })
     return () => subscription.unsubscribe()
   // eslint-disable-next-line react-hooks/exhaustive-deps
