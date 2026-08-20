@@ -31,7 +31,7 @@ export default function Navbar() {
                 </button>
               </>
             ) : (
-              <button onClick={() => setModalAuth(true)} style={{ fontSize: '13px', fontWeight: 600, color: 'white', background: '#2563eb', border: 'none', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer' }}>
+              <button onClick={() => setModalAuth(true)} style={{ fontSize: '13px', color: '#93c5fd', background: 'none', border: '1px solid #2d5a8f', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
                 Entrar
               </button>
             )}
