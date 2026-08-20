@@ -1,51 +1,28 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { useAuth } from './AuthProvider'
 import ModalAuth from './ModalAuth'
 
-const links = [
-  { href: '/mapa', label: 'Mapa de Demandas' },
-]
-
 export default function Navbar() {
-  const pathname = usePathname()
   const [menuAberto, setMenuAberto] = useState(false)
   const [modalAuth, setModalAuth] = useState(false)
   const { user, perfil, sair } = useAuth()
 
   const nomeExibido = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || 'Usuário'
 
-  const isLanding = pathname === '/'
-
   return (
     <>
       <header style={{ backgroundColor: '#1e3a5f', color: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
-        <div style={{ maxWidth: isLanding ? 'none' : '960px', margin: '0 auto', padding: isLanding ? '0 32px' : '0 16px', display: 'flex', alignItems: 'stretch', justifyContent: 'space-between', minHeight: '52px' }}>
+        <div style={{ padding: '0 32px', display: 'flex', alignItems: 'stretch', justifyContent: 'space-between', minHeight: '52px' }}>
           {/* Logo */}
-          <Link href="/" style={{ fontWeight: 700, fontSize: '16px', display: 'flex', alignItems: 'center', padding: '0 20px 0 0', color: 'white', textDecoration: 'none', letterSpacing: '-0.01em', flexShrink: 0 }}>
+          <Link href="/" style={{ fontWeight: 700, fontSize: '16px', display: 'flex', alignItems: 'center', color: 'white', textDecoration: 'none', letterSpacing: '-0.01em', flexShrink: 0 }}>
             Portal Frutalense
           </Link>
 
-          {/* Links desktop — ocultos na landing */}
-          {!isLanding && (
-            <nav style={{ display: 'flex', alignItems: 'stretch', flex: 1 }} className="hide-mobile">
-              {links.map(({ href, label }) => (
-                <Link key={href} href={href} style={{
-                  display: 'flex', alignItems: 'center', padding: '0 20px', fontSize: '14px', fontWeight: 500,
-                  borderRight: '1px solid #2d5a8f', color: pathname === href ? 'white' : '#93c5fd',
-                  backgroundColor: pathname === href ? '#1e40af' : 'transparent', textDecoration: 'none',
-                }}>
-                  {label}
-                </Link>
-              ))}
-            </nav>
-          )}
-
           {/* Auth desktop */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '16px' }} className="hide-mobile">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} className="hide-mobile">
             {user ? (
               <>
                 <span style={{ fontSize: '13px', color: '#93c5fd' }}>Olá, {nomeExibido}</span>
@@ -74,17 +51,7 @@ export default function Navbar() {
         {/* Menu mobile */}
         {menuAberto && (
           <nav style={{ borderTop: '1px solid #2d5a8f', backgroundColor: '#1e3a5f' }} className="show-mobile">
-            {links.map(({ href, label }) => (
-              <Link key={href} href={href} onClick={() => setMenuAberto(false)} style={{
-                display: 'block', padding: '14px 16px', fontSize: '15px', fontWeight: 500,
-                color: pathname === href ? 'white' : '#93c5fd',
-                backgroundColor: pathname === href ? '#1e40af' : 'transparent',
-                textDecoration: 'none', borderBottom: '1px solid #2d5a8f',
-              }}>
-                {label}
-              </Link>
-            ))}
-            <div style={{ padding: '12px 16px', borderTop: '1px solid #2d5a8f' }}>
+            <div style={{ padding: '12px 16px' }}>
               {user ? (
                 <button onClick={sair} style={{ fontSize: '14px', color: '#93c5fd', background: 'none', border: '1px solid #2d5a8f', borderRadius: '6px', padding: '8px 16px', cursor: 'pointer', width: '100%' }}>
                   Sair ({nomeExibido})
