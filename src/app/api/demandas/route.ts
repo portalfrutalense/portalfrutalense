@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-admin'
+import { supabaseServer } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 
-// Verifica se o usuário está autenticado
 async function getUser(req: NextRequest) {
   const token = req.headers.get('Authorization')?.replace('Bearer ', '')
   if (!token) return null
@@ -26,12 +25,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Campos obrigatórios ausentes.' }, { status: 400 })
     }
 
-    // Busca perfil do usuário
-    const { data: perfil } = await supabaseAdmin.from('perfis').select('nome, cpf').eq('id', user.id).single()
+    const { data: perfil } = await supabaseServer.from('perfis').select('nome, cpf').eq('id', user.id).single()
     if (!perfil) return NextResponse.json({ error: 'Perfil não encontrado.' }, { status: 400 })
 
-    // Insere a demanda
-    const { data: demanda, error } = await supabaseAdmin.from('demandas').insert({
+    const { data: demanda, error } = await supabaseServer.from('demandas').insert({
       user_id: user.id,
       morador_nome: perfil.nome,
       morador_cpf: perfil.cpf,
@@ -50,14 +47,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Erro ao salvar.' }, { status: 500 })
     }
 
-    // Responde primeiro, depois aguarda análise da IA
     const resposta = NextResponse.json({ ok: true, id: demanda.id }, { status: 201 })
 
-    // Chama a IA aguardando para garantir execução no Vercel
     try {
       await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/ia/analisar`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-internal-key': process.env.ADMIN_PASSWORD! },
+        headers: { 'Content-Type': 'application/json', 'x-internal-key': process.env.INTERNAL_SECRET! },
         body: JSON.stringify({ demanda_id: demanda.id }),
       })
     } catch (e) {
@@ -82,8 +77,7 @@ export async function GET(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser(token)
   if (!user) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
 
-  // Busca demandas do usuário
-  const { data } = await supabaseAdmin
+  const { data } = await supabaseServer
     .from('demandas')
     .select('*, categoria:categorias_mapa(*), entidade:entidades(*)')
     .eq('user_id', user.id)

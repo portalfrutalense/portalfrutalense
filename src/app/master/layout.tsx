@@ -4,6 +4,6 @@ export const metadata: Metadata = {
   title: 'Painel Master · Portal Frutalense',
 }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function MasterLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }

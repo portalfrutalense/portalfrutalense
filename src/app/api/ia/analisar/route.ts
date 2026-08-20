@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-admin'
+import { supabaseServer } from '@/lib/supabase-server'
 import { gerarToken } from '@/lib/token'
 import { Resend } from 'resend'
 
@@ -12,26 +12,25 @@ const RIGOR_INSTRUCAO: Record<string, string> = {
 }
 
 export async function POST(req: NextRequest) {
-  // Verificação interna
+  // Verificação interna — chave entre APIs
   const key = req.headers.get('x-internal-key')
-  if (key !== process.env.ADMIN_PASSWORD) {
+  if (key !== process.env.INTERNAL_SECRET) {
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
   }
 
   try {
     const { demanda_id } = await req.json()
 
-    // Busca demanda e config da IA
     const [{ data: demanda }, { data: config }] = await Promise.all([
-      supabaseAdmin.from('demandas')
+      supabaseServer.from('demandas')
         .select('*, categoria:categorias_mapa(nome), entidade:entidades(nome, cargo, email)')
         .eq('id', demanda_id).single(),
-      supabaseAdmin.from('ia_config').select('*').eq('id', 1).single(),
+      supabaseServer.from('ia_config').select('*').eq('id', 1).single(),
     ])
 
     if (!demanda) return NextResponse.json({ error: 'Demanda não encontrada.' }, { status: 404 })
 
-    // Se IA desativada, mantém pendente para admin aprovar manualmente
+    // Se IA desativada, mantém pendente para aprovação manual
     if (!config?.ativo) {
       return NextResponse.json({ ok: true, decisao: 'ia_desativada' })
     }
@@ -40,7 +39,6 @@ export async function POST(req: NextRequest) {
     const promptBase = config?.prompt || 'Analise a demanda do cidadão.'
     const instrucaoRigor = RIGOR_INSTRUCAO[rigor] || RIGOR_INSTRUCAO.moderado
 
-    // Monta prompt para o Gemini
     const prompt = `${promptBase}
 
 ${instrucaoRigor}
@@ -57,7 +55,6 @@ Responda APENAS com um JSON no formato:
 
 Não inclua nada além do JSON.`
 
-    // Chama Gemini
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
@@ -91,8 +88,7 @@ Não inclua nada além do JSON.`
       console.error('Erro ao parsear resposta da IA:', texto)
     }
 
-    // Salva no histórico
-    await supabaseAdmin.from('ia_historico').insert({
+    await supabaseServer.from('ia_historico').insert({
       demanda_id,
       decisao,
       motivo,
@@ -100,11 +96,10 @@ Não inclua nada além do JSON.`
     })
 
     if (decisao === 'aprovada') {
-      // Gera magic token para a autoridade
       const token = gerarToken()
-      const expiracao = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 dias
+      const expiracao = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
-      await supabaseAdmin.from('demandas').update({
+      await supabaseServer.from('demandas').update({
         status: 'aguardando_resposta',
         ia_decisao: 'aprovada',
         ia_motivo: motivo,
@@ -114,7 +109,6 @@ Não inclua nada além do JSON.`
         link_enviado: true,
       }).eq('id', demanda_id)
 
-      // Envia e-mail para a autoridade
       const emailAutoridade = demanda.entidade?.email
       if (emailAutoridade) {
         const linkResposta = `${process.env.NEXT_PUBLIC_SITE_URL}/responder/${token}`
@@ -148,8 +142,7 @@ Não inclua nada além do JSON.`
         })
       }
     } else {
-      // Rejeitada pela IA
-      await supabaseAdmin.from('demandas').update({
+      await supabaseServer.from('demandas').update({
         status: 'rejeitada_ia',
         ia_decisao: 'rejeitada',
         ia_motivo: motivo,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-admin'
+import { supabaseServer } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 import { gerarToken } from '@/lib/token'
 import { Resend } from 'resend'
@@ -8,7 +8,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 const EMAIL_MASTER = 'portalfrutalense@gmail.com'
 
 export async function POST(req: NextRequest) {
-  // Verifica se é o admin logado
+  // Verifica se é o master logado
   const token = req.headers.get('authorization')?.replace('Bearer ', '')
   if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     const { demanda_id } = await req.json()
     if (!demanda_id) return NextResponse.json({ error: 'demanda_id obrigatório.' }, { status: 400 })
 
-    const { data: demanda, error } = await supabaseAdmin
+    const { data: demanda, error } = await supabaseServer
       .from('demandas')
       .select('*, entidade:entidades(nome, cargo, email)')
       .eq('id', demanda_id)
@@ -32,18 +32,17 @@ export async function POST(req: NextRequest) {
     const emailAutoridade = demanda.entidade?.email
     if (!emailAutoridade) return NextResponse.json({ error: 'Autoridade sem e-mail cadastrado.' }, { status: 400 })
 
-    // Gera novo token
-    const token = gerarToken()
+    const novoToken = gerarToken()
     const expiracao = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
-    await supabaseAdmin.from('demandas').update({
-      magic_token: token,
+    await supabaseServer.from('demandas').update({
+      magic_token: novoToken,
       magic_token_expira_em: expiracao,
       link_enviado: true,
       status: 'aguardando_resposta',
     }).eq('id', demanda_id)
 
-    const linkResposta = `${process.env.NEXT_PUBLIC_SITE_URL}/responder/${token}`
+    const linkResposta = `${process.env.NEXT_PUBLIC_SITE_URL}/responder/${novoToken}`
 
     await resend.emails.send({
       from: 'Portal Frutalense <onboarding@resend.dev>',

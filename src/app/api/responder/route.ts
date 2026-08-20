@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-admin'
+import { supabaseServer } from '@/lib/supabase-server'
 
 // GET: valida o token e retorna dados da demanda
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get('token')
   if (!token) return NextResponse.json({ error: 'Token ausente.' }, { status: 400 })
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await supabaseServer
     .from('demandas')
     .select('id, descricao, morador_nome, entidade:entidades(nome, cargo), status, magic_token_expira_em')
     .eq('magic_token', token)
@@ -24,7 +24,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Este link expirou.' }, { status: 410 })
   }
 
-  // Mapeia para o campo que o front-end usa (mensagem → descricao)
   return NextResponse.json({ ...data, mensagem: (data as any).descricao })
 }
 
@@ -37,7 +36,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Dados inválidos.' }, { status: 400 })
     }
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabaseServer
       .from('demandas')
       .select('id, status, magic_token_expira_em')
       .eq('magic_token', token)
@@ -55,7 +54,7 @@ export async function POST(req: NextRequest) {
       || req.headers.get('x-real-ip')
       || 'desconhecido'
 
-    const { error: updateError } = await supabaseAdmin
+    const { error: updateError } = await supabaseServer
       .from('demandas')
       .update({
         resposta: resposta.trim(),
