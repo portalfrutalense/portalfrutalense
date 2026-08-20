@@ -778,7 +778,8 @@ function AdminDemandas({ senha }: { senha: string }) {
   }, [])
 
   async function reenviarLink(id: string) {
-    const res = await fetch('/api/admin/reenviar-link-demanda', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${senha}` }, body: JSON.stringify({ demanda_id: id }) })
+    const { data: { session } } = await sbClient.auth.getSession()
+    const res = await fetch('/api/admin/reenviar-link-demanda', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` }, body: JSON.stringify({ demanda_id: id }) })
     const d = await res.json()
     setNotif(d.ok ? 'Link reenviado.' : `Erro: ${d.error}`)
     setTimeout(() => setNotif(''), 5000)

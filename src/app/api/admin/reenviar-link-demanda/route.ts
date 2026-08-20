@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { createClient } from '@supabase/supabase-js'
 import { gerarToken } from '@/lib/token'
 import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
+const EMAIL_MASTER = 'portalfrutalense@gmail.com'
 
 export async function POST(req: NextRequest) {
-  // Verifica senha de admin
-  const auth = req.headers.get('authorization')?.replace('Bearer ', '')
-  if (auth !== process.env.ADMIN_PASSWORD) {
+  // Verifica se é o admin logado
+  const token = req.headers.get('authorization')?.replace('Bearer ', '')
+  if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+  const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+  const { data: { user } } = await sb.auth.getUser(token)
+  if (!user || user.email !== EMAIL_MASTER) {
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
   }
 
