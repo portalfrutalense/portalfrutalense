@@ -273,10 +273,16 @@ export default function MapaDemandas() {
     { value: 'resolvida', label: 'Resolvida' },
   ]
 
-  const statusLabel: Record<string, { label: string; cor: string }> = {
-    aguardando_resposta: { label: 'Aguardando resposta', cor: '#f59e0b' },
-    respondida: { label: 'Respondida', cor: '#10b981' },
-    resolvida: { label: 'Resolvida', cor: '#6b7280' },
+  const statusLabel: Record<string, string> = {
+    aguardando_resposta: 'Aguardando resposta',
+    respondida: 'Respondida',
+    resolvida: 'Resolvida',
+  }
+
+  const statusCor: Record<string, { bg: string; color: string }> = {
+    aguardando_resposta: { bg: '#dbeafe', color: '#1e40af' },
+    respondida:          { bg: '#dcfce7', color: '#166534' },
+    resolvida:           { bg: '#f3f4f6', color: '#6b7280' },
   }
 
   const demandasVisiveis = demandas.filter(d => {
@@ -306,54 +312,58 @@ export default function MapaDemandas() {
               </div>
 
               {/* Conteúdo */}
-              <div style={{ padding: '14px', flex: 1, overflowY: 'auto' }}>
-                {/* Categoria + Status */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600, color: demandaSelecionada.categoria?.cor || '#3b82f6' }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: demandaSelecionada.categoria?.cor || '#3b82f6', display: 'inline-block', flexShrink: 0 }} />
-                    {demandaSelecionada.categoria?.nome}
-                  </span>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: statusLabel[demandaSelecionada.status]?.cor || '#6b7280', background: '#f3f4f6', borderRadius: '4px', padding: '2px 7px' }}>
-                    {statusLabel[demandaSelecionada.status]?.label || demandaSelecionada.status}
+              <div style={{ padding: '14px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+
+                {/* Badge de status */}
+                <div>
+                  <span style={{
+                    fontSize: '11px', fontWeight: 600, borderRadius: '20px', padding: '3px 10px',
+                    background: statusCor[demandaSelecionada.status]?.bg || '#f3f4f6',
+                    color: statusCor[demandaSelecionada.status]?.color || '#6b7280',
+                  }}>
+                    {statusLabel[demandaSelecionada.status] || demandaSelecionada.status}
                   </span>
                 </div>
 
-                {demandaSelecionada.foto_url && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={demandaSelecionada.foto_url} alt="Foto da demanda" style={{ width: '100%', borderRadius: '6px', marginBottom: '10px', display: 'block' }} />
-                )}
-
-                <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827', margin: '0 0 6px', lineHeight: 1.5 }}>{demandaSelecionada.descricao}</p>
-
-                {demandaSelecionada.endereco_label && (
-                  <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 8px' }}>{demandaSelecionada.endereco_label}</p>
-                )}
-
-                <p style={{ fontSize: '11px', color: '#9ca3af', margin: '0 0 12px' }}>
-                  Por <strong style={{ color: '#374151' }}>{demandaSelecionada.morador_nome}</strong> · {new Date(demandaSelecionada.created_at).toLocaleDateString('pt-BR')}
-                </p>
-
-                {/* Autoridade */}
-                <div style={{ background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '10px 12px', marginBottom: '10px' }}>
-                  <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.05em', margin: '0 0 3px' }}>Autoridade cobrada</p>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827', margin: 0 }}>{demandaSelecionada.entidade?.nome}</p>
-                  <p style={{ fontSize: '11px', color: '#6b7280', margin: '2px 0 0' }}>{demandaSelecionada.entidade?.cargo}</p>
+                {/* Caixa principal — mesmo padrão do master */}
+                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+                    Nome: <strong style={{ color: '#111827' }}>{demandaSelecionada.morador_nome}</strong>
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+                    Para: <strong style={{ color: '#111827' }}>{demandaSelecionada.entidade?.nome}</strong>
+                    {demandaSelecionada.entidade?.cargo && <span> ({demandaSelecionada.entidade.cargo})</span>}
+                  </p>
+                  {demandaSelecionada.endereco_label && (
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+                      Endereço: <strong style={{ color: '#111827' }}>{demandaSelecionada.endereco_label}</strong>
+                    </p>
+                  )}
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+                    Categoria: <strong style={{ color: '#111827' }}>{demandaSelecionada.categoria?.nome}</strong>
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+                    Demanda: <strong style={{ color: '#111827' }}>{demandaSelecionada.descricao}</strong>
+                  </p>
+                  {demandaSelecionada.foto_url && (
+                    <button
+                      onClick={() => window.open(demandaSelecionada.foto_url!, '_blank')}
+                      style={{ alignSelf: 'flex-start', marginTop: '2px', fontSize: '12px', fontWeight: 500, color: '#1e40af', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
+                      Ver foto
+                    </button>
+                  )}
                 </div>
 
                 {/* Resposta */}
                 {demandaSelecionada.resposta && (
-                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '7px', padding: '12px', marginBottom: '10px' }}>
-                    <p style={{ fontSize: '10px', fontWeight: 600, color: '#166534', textTransform: 'uppercase', letterSpacing: '.05em', margin: '0 0 6px' }}>Resposta oficial</p>
-                    <p style={{ fontSize: '13px', color: '#166534', margin: 0, lineHeight: 1.6 }}>{demandaSelecionada.resposta}</p>
-                    {demandaSelecionada.respondido_em && (
-                      <p style={{ fontSize: '11px', color: '#6b7280', margin: '6px 0 0' }}>{new Date(demandaSelecionada.respondido_em).toLocaleDateString('pt-BR')}</p>
-                    )}
+                  <div style={{ fontSize: '12px', color: '#6b7280', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 10px', lineHeight: 1.5 }}>
+                    <strong>Resposta:</strong> {demandaSelecionada.resposta}
                   </div>
                 )}
 
                 {/* Ações do próprio usuário */}
                 {user && demandaSelecionada.user_id === user.id && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingTop: '10px', borderTop: '1px solid #f3f4f6' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <button
                       onClick={async () => {
                         if (!confirm('Marcar esta demanda como resolvida?')) return
@@ -376,6 +386,13 @@ export default function MapaDemandas() {
                     </button>
                   </div>
                 )}
+
+                {/* Criada em */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                    Criada em {new Date(demandaSelecionada.created_at).toLocaleDateString('pt-BR')}
+                  </span>
+                </div>
               </div>
             </div>
           ) : (
