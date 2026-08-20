@@ -123,7 +123,7 @@ export default function MapaDemandas() {
           })
         : L.divIcon({
             className: '',
-            html: `<div style="width:22px;height:22px;border-radius:50%;background:${cor};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.5)"></div>`,
+            html: `<div style="width:22px;height:22px;border-radius:50%;background:${cor};box-shadow:0 2px 6px rgba(0,0,0,0.4)"></div>`,
             iconSize: [22, 22], iconAnchor: [11, 11],
           })
 
