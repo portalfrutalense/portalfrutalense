@@ -327,9 +327,9 @@ export default function MapaDemandas() {
   })
 
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Layout principal: sidebar + mapa */}
-      <div className="mapa-layout" style={{ display: 'flex', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+      <div className="mapa-layout" style={{ display: 'flex', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', flex: 1 }}>
 
         {/* SIDEBAR */}
         <div style={{ width: '260px', flexShrink: 0, background: 'white', borderRight: '1px solid #d1d5db', display: 'flex', flexDirection: 'column', minHeight: 'clamp(300px, 55vw, 500px)' }}>
