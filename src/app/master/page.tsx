@@ -132,9 +132,6 @@ export default function MasterPage() {
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
         <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', padding: '36px 32px', width: '100%', maxWidth: '360px', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
           <div style={{ marginBottom: '28px' }}>
-            <div style={{ width: '40px', height: '40px', background: '#1e3a5f', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-            </div>
             <h1 style={{ fontSize: '20px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>Painel Master</h1>
             <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Acesso restrito ao administrador.</p>
           </div>
@@ -168,17 +165,9 @@ export default function MasterPage() {
   }
 
   // ── PAINEL ────────────────────────────────────────────────
-  const navItems: { key: SecaoMaster; label: string; icon: React.ReactNode }[] = [
-    {
-      key: 'dashboard',
-      label: 'Dashboard',
-      icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
-    },
-    {
-      key: 'demandas',
-      label: 'Mapa de Demandas',
-      icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>,
-    },
+  const navItems: { key: SecaoMaster; label: string }[] = [
+    { key: 'dashboard', label: 'Dashboard' },
+    { key: 'demandas',  label: 'Mapa de Demandas' },
   ]
 
   return (
@@ -199,9 +188,6 @@ export default function MasterPage() {
         {/* Logo */}
         <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '32px', height: '32px', background: 'rgba(255,255,255,0.12)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <svg width="16" height="16" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-            </div>
             <div>
               <p style={{ fontSize: '13px', fontWeight: 700, color: 'white', margin: 0 }}>Painel Master</p>
               <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', margin: 0 }}>Portal Frutalense</p>
@@ -223,7 +209,6 @@ export default function MasterPage() {
                 marginBottom: '2px', textAlign: 'left',
               }}
             >
-              {item.icon}
               {item.label}
             </button>
           ))}
@@ -232,7 +217,6 @@ export default function MasterPage() {
         {/* Sair */}
         <div style={{ padding: '12px 10px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
           <button onClick={() => client.auth.signOut()} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'transparent', color: 'rgba(255,255,255,0.4)', fontSize: '13px', fontWeight: 500 }}>
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
             Sair
           </button>
         </div>
@@ -243,8 +227,8 @@ export default function MasterPage() {
 
         {/* Topbar mobile */}
         <div className="master-topbar" style={{ display: 'none', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#1e3a5f', position: 'sticky', top: 0, zIndex: 50 }}>
-          <button onClick={() => setMenuAberto(!menuAberto)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '4px', display: 'flex' }}>
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          <button onClick={() => setMenuAberto(!menuAberto)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '4px 8px', fontSize: '13px', fontWeight: 600 }}>
+            Menu
           </button>
           <span style={{ fontSize: '14px', fontWeight: 700, color: 'white' }}>Painel Master</span>
         </div>
@@ -283,15 +267,15 @@ export default function MasterPage() {
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                   <button onClick={() => { setSecao('demandas'); setConfigurando(false) }}
                     style={{ fontSize: '13px', fontWeight: 600, color: '#1e3a5f', background: '#eff6ff', border: '1px solid #dbeafe', borderRadius: '8px', padding: '10px 16px', cursor: 'pointer' }}>
-                    🗺️ Ver demandas
+                    Ver demandas
                   </button>
                   <button onClick={() => { setSecao('demandas'); setConfigurando(true); setAbaConfig('autoridades') }}
                     style={{ fontSize: '13px', fontWeight: 600, color: '#374151', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px 16px', cursor: 'pointer' }}>
-                    ⚙️ Configurar autoridades
+                    Configurar autoridades
                   </button>
                   <button onClick={() => { setSecao('demandas'); setConfigurando(true); setAbaConfig('ia') }}
                     style={{ fontSize: '13px', fontWeight: 600, color: '#374151', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px 16px', cursor: 'pointer' }}>
-                    🤖 Configurar IA
+                    Configurar IA
                   </button>
                 </div>
               </div>
@@ -315,13 +299,11 @@ export default function MasterPage() {
                   {configurando ? (
                     <button onClick={() => setConfigurando(false)}
                       style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: '#374151', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer' }}>
-                      <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-                      Voltar às demandas
+                      Voltar as demandas
                     </button>
                   ) : (
                     <button onClick={() => { setConfigurando(true); setAbaConfig('autoridades') }}
                       style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: '#374151', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer' }}>
-                      <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
                       Configurar
                     </button>
                   )}
@@ -337,7 +319,7 @@ export default function MasterPage() {
                   {/* Sub-abas */}
                   <div style={{ display: 'flex', gap: '4px', marginBottom: '24px', background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '6px' }}>
                     {(['autoridades', 'categorias', 'ia'] as AbaConfig[]).map((a) => {
-                      const labels: Record<AbaConfig, string> = { autoridades: '👤 Autoridades', categorias: '🏷️ Categorias', ia: '🤖 IA' }
+                      const labels: Record<AbaConfig, string> = { autoridades: 'Autoridades', categorias: 'Categorias', ia: 'IA' }
                       return (
                         <button key={a} onClick={() => setAbaConfig(a)} style={{
                           flex: 1, padding: '8px 12px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
@@ -539,15 +521,15 @@ function MasterDemandas() {
                 <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 2px' }}>
                   Por <strong>{d.morador_nome}</strong> → <strong>{d.entidade?.nome}</strong> <span style={{ color: '#9ca3af' }}>({d.entidade?.cargo})</span>
                 </p>
-                {d.endereco_label && <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>📍 {d.endereco_label}</p>}
+                {d.endereco_label && <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>{d.endereco_label}</p>}
                 {d.ia_motivo && (
                   <p style={{ fontSize: '12px', color: d.status === 'rejeitada_ia' ? '#dc2626' : '#6b7280', margin: '8px 0 0', background: '#f9fafb', borderRadius: '6px', padding: '6px 10px' }}>
-                    🤖 {d.ia_motivo}
+                    IA: {d.ia_motivo}
                   </p>
                 )}
                 {d.resposta && (
                   <p style={{ fontSize: '12px', color: '#166534', margin: '8px 0 0', background: '#f0fdf4', borderRadius: '6px', padding: '6px 10px' }}>
-                    ✓ Resposta: {d.resposta}
+                    Resposta: {d.resposta}
                   </p>
                 )}
               </div>
@@ -664,7 +646,7 @@ function MasterIA() {
         {historico.map((h: any) => (
           <div key={h.id} style={{ borderBottom: '1px solid #f3f4f6', padding: '10px 0', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
             <span style={{ fontSize: '11px', fontWeight: 700, color: h.decisao === 'aprovada' ? '#166534' : '#dc2626', background: h.decisao === 'aprovada' ? '#f0fdf4' : '#fef2f2', borderRadius: '20px', padding: '3px 10px', flexShrink: 0 }}>
-              {h.decisao === 'aprovada' ? '✓ Aprovada' : '✗ Rejeitada'}
+              {h.decisao === 'aprovada' ? 'Aprovada' : 'Rejeitada'}
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: '13px', color: '#111827', margin: '0 0 2px', fontWeight: 500 }}>{h.demanda?.descricao?.slice(0, 80)}...</p>

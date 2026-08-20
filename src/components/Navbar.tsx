@@ -63,7 +63,7 @@ export default function Navbar() {
             style={{ display: 'none', background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '0 4px', fontSize: '22px', alignItems: 'center' }}
             className="show-mobile-flex"
           >
-            {menuAberto ? '✕' : '☰'}
+            {menuAberto ? 'Fechar' : 'Menu'}
           </button>
         </div>
 

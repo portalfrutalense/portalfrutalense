@@ -321,7 +321,7 @@ export default function MapaDemandas() {
             )}
             <p style={{ fontSize: '15px', fontWeight: 600, color: '#111827', margin: '0 0 8px', lineHeight: 1.5 }}>{demandaSelecionada.descricao}</p>
             {demandaSelecionada.endereco_label && (
-              <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 12px' }}>📍 {demandaSelecionada.endereco_label}</p>
+              <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 12px' }}>{demandaSelecionada.endereco_label}</p>
             )}
             <p style={{ fontSize: '12px', color: '#9ca3af', margin: '0 0 16px' }}>
               Por <strong style={{ color: '#374151' }}>{demandaSelecionada.morador_nome}</strong> · {new Date(demandaSelecionada.created_at).toLocaleDateString('pt-BR')}
@@ -337,7 +337,7 @@ export default function MapaDemandas() {
             {/* Resposta */}
             {demandaSelecionada.resposta && (
               <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '14px' }}>
-                <p style={{ fontSize: '11px', fontWeight: 600, color: '#166534', textTransform: 'uppercase', letterSpacing: '.05em', margin: '0 0 8px' }}>✓ Resposta oficial</p>
+                <p style={{ fontSize: '11px', fontWeight: 600, color: '#166534', textTransform: 'uppercase', letterSpacing: '.05em', margin: '0 0 8px' }}>Resposta oficial</p>
                 <p style={{ fontSize: '14px', color: '#166534', margin: 0, lineHeight: 1.6 }}>{demandaSelecionada.resposta}</p>
                 {demandaSelecionada.respondido_em && (
                   <p style={{ fontSize: '11px', color: '#6b7280', margin: '8px 0 0' }}>{new Date(demandaSelecionada.respondido_em).toLocaleDateString('pt-BR')}</p>
@@ -356,7 +356,7 @@ export default function MapaDemandas() {
                     setDemandaSelecionada(null)
                   }}
                   style={{ fontSize: '13px', color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '7px 14px', cursor: 'pointer', fontWeight: 500 }}>
-                  ✓ Marcar como resolvida
+                  Marcar como resolvida
                 </button>
                 <button
                   onClick={async () => {
@@ -388,7 +388,6 @@ export default function MapaDemandas() {
 
             {sucesso ? (
               <div style={{ padding: '32px', textAlign: 'center' }}>
-                <div style={{ fontSize: '40px', marginBottom: '12px' }}>✅</div>
                 <p style={{ fontWeight: 700, color: '#166534', fontSize: '16px', margin: '0 0 8px' }}>Demanda registrada!</p>
                 <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px', lineHeight: 1.6 }}>
                   Sua demanda está sendo analisada. Se aprovada, aparecerá no mapa e a autoridade será notificada por e-mail.
@@ -404,7 +403,7 @@ export default function MapaDemandas() {
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Cidadão</label>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '8px 12px', background: '#f0fdf4' }}>
                     <span style={{ fontSize: '14px', color: '#166534', fontWeight: 500 }}>{perfil?.nome}</span>
-                    <span style={{ fontSize: '11px', background: '#dcfce7', color: '#166534', borderRadius: '4px', padding: '2px 7px', fontWeight: 600 }}>✓ Google</span>
+                    <span style={{ fontSize: '11px', background: '#dcfce7', color: '#166534', borderRadius: '4px', padding: '2px 7px', fontWeight: 600 }}>Google</span>
                   </div>
                 </div>
 
@@ -464,7 +463,7 @@ export default function MapaDemandas() {
                   )}
                   {coordenadas && locConfirmada && (
                     <div style={{ marginTop: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '8px 12px', fontSize: '12px', color: '#166534', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>✓ <strong>{coordenadas.label}</strong></span>
+                      <span><strong>{coordenadas.label}</strong></span>
                       <button type="button" onClick={() => { setCoordenadas(null); setLocConfirmada(false) }}
                         style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline', padding: 0, marginLeft: '8px' }}>
                         Alterar
@@ -487,8 +486,7 @@ export default function MapaDemandas() {
                   {!fotoPreview ? (
                     <label style={{ display: 'block', border: '2px dashed #d1d5db', borderRadius: '8px', padding: '20px', textAlign: 'center', cursor: 'pointer' }}>
                       <input type="file" accept="image/*" capture="environment" onChange={handleFotoChange} style={{ display: 'none' }} />
-                      <div style={{ fontSize: '24px', marginBottom: '6px' }}>📷</div>
-                      <div style={{ fontSize: '12px', color: '#6b7280' }}><strong style={{ color: '#2563eb' }}>Toque para tirar foto</strong> ou escolher da galeria</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}><strong style={{ color: '#2563eb' }}>Toque para tirar foto</strong> ou escolher da galeria</div>
                     </label>
                   ) : (
                     <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>

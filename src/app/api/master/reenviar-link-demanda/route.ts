@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
             <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:16px 0;">
               <p style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px;">Descrição da demanda</p>
               <p style="font-size:14px;color:#111827;margin:0;line-height:1.6;">${demanda.descricao}</p>
-              ${demanda.endereco_label ? `<p style="font-size:12px;color:#6b7280;margin:8px 0 0;">📍 ${demanda.endereco_label}</p>` : ''}
+              ${demanda.endereco_label ? `<p style="font-size:12px;color:#6b7280;margin:8px 0 0;">${demanda.endereco_label}</p>` : ''}
             </div>
             <a href="${linkResposta}" style="display:block;background:#1e3a5f;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;margin:20px 0;">
               Responder esta demanda →

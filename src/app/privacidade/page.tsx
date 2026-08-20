@@ -66,7 +66,7 @@ export default function PoliticaPrivacidade() {
       </section>
 
       <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '24px', marginTop: '16px' }}>
-        <a href="/" style={{ fontSize: '13px', color: '#2563eb', textDecoration: 'none' }}>← Voltar ao Portal Frutalense</a>
+        <a href="/" style={{ fontSize: '13px', color: '#2563eb', textDecoration: 'none' }}>Voltar ao Portal Frutalense</a>
       </div>
     </main>
   )

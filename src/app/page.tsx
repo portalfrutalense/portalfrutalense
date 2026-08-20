@@ -96,7 +96,6 @@ export default function LandingPage() {
               gap: '8px',
             }}>
               Ver o Mapa de Demandas
-              <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </Link>
           </div>
         </div>
@@ -155,7 +154,7 @@ export default function LandingPage() {
               </div>
               <div style={cardTitle}>Mapa de Demandas</div>
               <div style={cardDesc}>Registre demandas diretamente às autoridades públicas. Sinalize problemas urbanos, cobre respostas e acompanhe tudo no mapa.</div>
-              <div style={cardLink('#1e3a5f')}>Acessar →</div>
+              <div style={cardLink('#1e3a5f')}>Acessar</div>
             </div>
           </Link>
 
