@@ -438,9 +438,24 @@ export default function MapaDemandas() {
               {/* Topo: título + descrição + filtros */}
               <div style={{ flex: 1, overflowY: 'auto', padding: '18px 14px 12px' }}>
                 <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#0f2440', margin: '0 0 6px', lineHeight: 1.3 }}>Mapa de Demandas</h2>
-                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 16px', lineHeight: 1.5 }}>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 12px', lineHeight: 1.5 }}>
                   Demandas dos cidadãos de Frutal-MG direcionadas às autoridades públicas.
                 </p>
+
+                {/* Botão registrar */}
+                {user ? (
+                  <button
+                    onClick={() => setEtapa('formulario')}
+                    style={{ width: '100%', backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '9px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', marginBottom: '16px' }}>
+                    Registrar Demanda
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setModalAuth(true)}
+                    style={{ width: '100%', backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '9px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', marginBottom: '16px' }}>
+                    Entrar para registrar
+                  </button>
+                )}
 
                 {/* Filtro de status */}
                 <div style={{ marginBottom: '16px' }}>
@@ -489,22 +504,6 @@ export default function MapaDemandas() {
                 </div>
               </div>
 
-              {/* Botão registrar */}
-              <div style={{ padding: '12px 14px', borderTop: '1px solid #f3f4f6' }}>
-                {user ? (
-                  <button
-                    onClick={() => setEtapa('formulario')}
-                    style={{ width: '100%', backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px' }}>
-                    + Registrar Demanda
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setModalAuth(true)}
-                    style={{ width: '100%', backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px' }}>
-                    Entrar para registrar
-                  </button>
-                )}
-              </div>
             </>
           )}
         </div>
