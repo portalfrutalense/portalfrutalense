@@ -431,6 +431,19 @@ export default function MasterPage() {
 }
 
 // ── Sub-componente: Demandas ───────────────────────────────
+// Capitaliza a primeira letra de cada palavra
+function titleCase(str: string | null | undefined): string {
+  if (!str) return '—'
+  return str.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+}
+
+// Capitaliza apenas a primeira letra da frase
+function sentenceCase(str: string | null | undefined): string {
+  if (!str) return '—'
+  const s = str.trim()
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
 function MasterDemandas() {
   const sbClient = createClient()
   const [demandas, setDemandas] = useState<any[]>([])
@@ -607,15 +620,15 @@ function MasterDemandas() {
                 {/* Caixa principal: Nome / Para / Endereço / Descrição */}
                 <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                    Nome: <strong style={{ color: '#111827' }}>{d.morador_nome || '—'}</strong>
+                    Nome: <strong style={{ color: '#111827' }}>{titleCase(d.morador_nome)}</strong>
                     <span style={{ color: '#6b7280' }}> · {d.morador_cpf || '—'} · {d.morador_email || '—'}</span>
                   </p>
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                    Para: <strong style={{ color: '#111827' }}>{d.entidade?.nome || '—'}</strong>
-                    {d.entidade?.cargo && <span style={{ color: '#6b7280' }}> ({d.entidade.cargo})</span>}
+                    Para: <strong style={{ color: '#111827' }}>{titleCase(d.entidade?.nome)}</strong>
+                    {d.entidade?.cargo && <span style={{ color: '#6b7280' }}> ({titleCase(d.entidade.cargo)})</span>}
                   </p>
                   <p style={{ fontSize: '12px', color: '#111827', margin: 0, lineHeight: 1.5 }}>
-                    <strong style={{ color: '#6b7280', fontWeight: 400 }}>Endereço:</strong> {d.endereco_label || '—'}
+                    <strong style={{ color: '#6b7280', fontWeight: 400 }}>Endereço:</strong> {titleCase(d.endereco_label)}
                   </p>
                   {editando ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
@@ -638,7 +651,7 @@ function MasterDemandas() {
                     </div>
                   ) : (
                     <p style={{ fontSize: '12px', fontWeight: 400, color: '#111827', margin: 0, lineHeight: 1.5 }}>
-                      <strong style={{ color: '#6b7280', fontWeight: 400 }}>Demanda:</strong> {d.descricao || '—'}
+                      <strong style={{ color: '#6b7280', fontWeight: 400 }}>Demanda:</strong> {sentenceCase(d.descricao)}
                     </p>
                   )}
                 </div>
