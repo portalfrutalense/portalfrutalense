@@ -13,7 +13,7 @@ async function verificarMaster(req: NextRequest) {
   return user
 }
 
-// GET /api/master/demanda — lista todas as demandas (bypassa RLS)
+// GET /api/master/demanda — lista todas as demandas com email (bypassa RLS)
 export async function GET(req: NextRequest) {
   const user = await verificarMaster(req)
   if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
@@ -24,7 +24,17 @@ export async function GET(req: NextRequest) {
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+
+  const lista = data || []
+  const userIds = [...new Set(lista.map((d: any) => d.user_id).filter(Boolean))] as string[]
+  if (userIds.length > 0) {
+    const { data: perfis } = await supabaseServer.from('perfis').select('id, email').in('id', userIds)
+    const emailMap: Record<string, string> = {}
+    ;(perfis || []).forEach((p: any) => { if (p.email) emailMap[p.id] = p.email })
+    return NextResponse.json(lista.map((d: any) => ({ ...d, morador_email: emailMap[d.user_id] || null })))
+  }
+
+  return NextResponse.json(lista)
 }
 
 // DELETE /api/master/demanda  { demanda_id }
