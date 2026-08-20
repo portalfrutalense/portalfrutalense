@@ -572,12 +572,10 @@ function MasterDemandas() {
                       Oculto do público
                     </span>
                   )}
-                  {d.categoria && (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: '#6b7280', fontWeight: 500 }}>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.categoria.cor, display: 'inline-block', flexShrink: 0 }} />
-                      {d.categoria.nome}
-                    </span>
-                  )}
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: '#6b7280', fontWeight: 500 }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.categoria?.cor || '#d1d5db', display: 'inline-block', flexShrink: 0 }} />
+                    {d.categoria?.nome || '—'}
+                  </span>
                   <span style={{ fontSize: '11px', color: '#9ca3af' }}>
                     {new Date(d.created_at).toLocaleDateString('pt-BR')}
                   </span>
@@ -586,21 +584,16 @@ function MasterDemandas() {
                 {/* Caixa principal: Nome / Para / Endereço / Descrição */}
                 <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                    Nome: <strong style={{ color: '#111827' }}>{d.morador_nome}</strong>
-                    {d.morador_cpf && <span style={{ color: '#6b7280' }}> · {d.morador_cpf}</span>}
-                    {d.morador_email && <span style={{ color: '#6b7280' }}> · {d.morador_email}</span>}
+                    Nome: <strong style={{ color: '#111827' }}>{d.morador_nome || '—'}</strong>
+                    <span style={{ color: '#6b7280' }}> · {d.morador_cpf || '—'} · {d.morador_email || '—'}</span>
                   </p>
-                  {d.entidade && (
-                    <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                      Para: <strong style={{ color: '#111827' }}>{d.entidade.nome}</strong>
-                      <span style={{ color: '#6b7280' }}> ({d.entidade.cargo})</span>
-                    </p>
-                  )}
-                  {d.endereco_label && (
-                    <p style={{ fontSize: '12px', color: '#111827', margin: 0, lineHeight: 1.5 }}>
-                      <strong style={{ color: '#6b7280', fontWeight: 400 }}>Endereço:</strong> {d.endereco_label}
-                    </p>
-                  )}
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+                    Para: <strong style={{ color: '#111827' }}>{d.entidade?.nome || '—'}</strong>
+                    {d.entidade?.cargo && <span style={{ color: '#6b7280' }}> ({d.entidade.cargo})</span>}
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#111827', margin: 0, lineHeight: 1.5 }}>
+                    <strong style={{ color: '#6b7280', fontWeight: 400 }}>Endereço:</strong> {d.endereco_label || '—'}
+                  </p>
                   {editando ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
                       <textarea
@@ -621,40 +614,45 @@ function MasterDemandas() {
                       </div>
                     </div>
                   ) : (
-                    <p style={{ fontSize: '12px', fontWeight: 400, color: '#111827', margin: 0, lineHeight: 1.5 }}>{d.descricao}</p>
+                    <p style={{ fontSize: '12px', fontWeight: 400, color: '#111827', margin: 0, lineHeight: 1.5 }}>{d.descricao || '—'}</p>
                   )}
                 </div>
 
-                {/* Linha 5: análise IA */}
-                {d.ia_motivo && (
-                  <div style={{
-                    fontSize: '12px',
-                    color: d.status === 'rejeitada_ia' ? '#dc2626' : '#6b7280',
-                    background: d.status === 'rejeitada_ia' ? '#fef2f2' : '#f9fafb',
-                    border: `1px solid ${d.status === 'rejeitada_ia' ? '#fecaca' : '#e5e7eb'}`,
-                    borderRadius: '6px',
-                    padding: '7px 10px',
-                    lineHeight: 1.5,
-                  }}>
-                    <strong>Análise IA:</strong> {d.ia_motivo}
-                  </div>
-                )}
+                {/* Análise IA — sempre visível */}
+                <div style={{
+                  fontSize: '12px',
+                  color: d.status === 'rejeitada_ia' ? '#dc2626' : '#6b7280',
+                  background: d.status === 'rejeitada_ia' ? '#fef2f2' : '#f9fafb',
+                  border: `1px solid ${d.status === 'rejeitada_ia' ? '#fecaca' : '#e5e7eb'}`,
+                  borderRadius: '6px',
+                  padding: '7px 10px',
+                  lineHeight: 1.5,
+                }}>
+                  <strong>Análise IA:</strong> {d.ia_motivo || '—'}
+                </div>
 
-                {/* Linha 6: resposta */}
-                {d.resposta && (
-                  <div style={{ fontSize: '12px', color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '7px 10px', lineHeight: 1.5 }}>
-                    <strong>Resposta:</strong> {d.resposta}
-                  </div>
-                )}
+                {/* Resposta — sempre visível */}
+                <div style={{ fontSize: '12px', color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '7px 10px', lineHeight: 1.5 }}>
+                  <strong>Resposta:</strong> {d.resposta || '—'}
+                </div>
 
               </div>
 
-              {/* Foto */}
-              {d.foto_url && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={d.foto_url} alt="Foto" onClick={() => window.open(d.foto_url, '_blank')}
-                  style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0, cursor: 'zoom-in', border: '1px solid #e5e7eb', alignSelf: 'flex-start' }} />
-              )}
+              {/* Foto — placeholder se não tiver */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', flexShrink: 0, alignSelf: 'flex-start' }}>
+                {d.foto_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={d.foto_url} alt="Foto" onClick={() => window.open(d.foto_url, '_blank')}
+                    style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px', cursor: 'zoom-in', border: '1px solid #e5e7eb' }} />
+                ) : (
+                  <div style={{ width: '64px', height: '64px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="24" height="24" fill="none" stroke="#9ca3af" strokeWidth="1.5" viewBox="0 0 24 24">
+                      <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                )}
+                <span style={{ fontSize: '10px', color: '#9ca3af' }}>foto</span>
+              </div>
             </div>
 
             {/* Rodapé ações */}
