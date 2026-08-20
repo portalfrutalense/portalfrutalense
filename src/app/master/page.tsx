@@ -443,7 +443,19 @@ function MasterDemandas() {
     sbClient.from('demandas')
       .select('*, categoria:categorias_mapa(*), entidade:entidades(*)')
       .order('created_at', { ascending: false })
-      .then(({ data }: any) => setDemandas(data || []))
+      .then(async ({ data }: any) => {
+        const lista = data || []
+        // Busca emails dos perfis separadamente
+        const userIds = [...new Set(lista.map((d: any) => d.user_id).filter(Boolean))] as string[]
+        if (userIds.length > 0) {
+          const { data: perfis } = await sbClient.from('perfis').select('id, email').in('id', userIds)
+          const emailMap: Record<string, string> = {}
+          ;(perfis || []).forEach((p: any) => { if (p.email) emailMap[p.id] = p.email })
+          setDemandas(lista.map((d: any) => ({ ...d, morador_email: emailMap[d.user_id] || null })))
+        } else {
+          setDemandas(lista)
+        }
+      })
   }
 
   useEffect(() => {
@@ -571,50 +583,47 @@ function MasterDemandas() {
                   </span>
                 </div>
 
-                {/* Linha 2: Nome / Para */}
-                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                {/* Caixa principal: Nome / Para / Endereço / Descrição */}
+                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
                     Nome: <strong style={{ color: '#111827' }}>{d.morador_nome}</strong>
-                    {d.morador_cpf && <span style={{ color: '#9ca3af' }}> · {d.morador_cpf}</span>}
+                    {d.morador_cpf && <span style={{ color: '#6b7280' }}> · {d.morador_cpf}</span>}
+                    {d.morador_email && <span style={{ color: '#6b7280' }}> · {d.morador_email}</span>}
                   </p>
                   {d.entidade && (
                     <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
                       Para: <strong style={{ color: '#111827' }}>{d.entidade.nome}</strong>
-                      <span style={{ color: '#9ca3af' }}> ({d.entidade.cargo})</span>
+                      <span style={{ color: '#6b7280' }}> ({d.entidade.cargo})</span>
                     </p>
                   )}
-                </div>
-
-                {/* Linha 3: descrição (ou campo de edição) */}
-                {editando ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <textarea
-                      value={editDescricao}
-                      onChange={(e) => setEditDescricao(e.target.value)}
-                      rows={3}
-                      style={{ width: '100%', border: '1.5px solid #1e3a5f', borderRadius: '7px', padding: '8px 12px', fontSize: '14px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', lineHeight: 1.5 }}
-                    />
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button onClick={() => salvarEdicao(d.id)}
-                        style={{ fontSize: '12px', fontWeight: 600, background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer' }}>
-                        Salvar
-                      </button>
-                      <button onClick={() => setEditandoId(null)}
-                        style={{ fontSize: '12px', fontWeight: 500, background: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer' }}>
-                        Cancelar
-                      </button>
+                  {d.endereco_label && (
+                    <p style={{ fontSize: '12px', color: '#111827', margin: 0, lineHeight: 1.5 }}>
+                      <strong style={{ color: '#6b7280', fontWeight: 400 }}>Endereço:</strong> {d.endereco_label}
+                    </p>
+                  )}
+                  {editando ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                      <textarea
+                        value={editDescricao}
+                        onChange={(e) => setEditDescricao(e.target.value)}
+                        rows={3}
+                        style={{ width: '100%', border: '1.5px solid #1e3a5f', borderRadius: '7px', padding: '8px 12px', fontSize: '12px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', lineHeight: 1.5, background: 'white' }}
+                      />
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => salvarEdicao(d.id)}
+                          style={{ fontSize: '12px', fontWeight: 600, background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer' }}>
+                          Salvar
+                        </button>
+                        <button onClick={() => setEditandoId(null)}
+                          style={{ fontSize: '12px', fontWeight: 500, background: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer' }}>
+                          Cancelar
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <p style={{ fontSize: '14px', fontWeight: 600, color: '#111827', margin: 0, lineHeight: 1.5 }}>{d.descricao}</p>
-                )}
-
-                {/* Linha 4: endereço */}
-                {d.endereco_label && (
-                  <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>
-                    <strong style={{ color: '#6b7280' }}>Endereço:</strong> {d.endereco_label}
-                  </p>
-                )}
+                  ) : (
+                    <p style={{ fontSize: '12px', fontWeight: 400, color: '#111827', margin: 0, lineHeight: 1.5 }}>{d.descricao}</p>
+                  )}
+                </div>
 
                 {/* Linha 5: análise IA */}
                 {d.ia_motivo && (
@@ -648,19 +657,8 @@ function MasterDemandas() {
               )}
             </div>
 
-            {/* Rodapé link enviado */}
-            {d.status === 'aguardando_resposta' && d.link_enviado && (
-              <div style={{ padding: '10px 20px', borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '12px', color: '#166534' }}>Link enviado à autoridade</span>
-                <button onClick={() => reenviarLink(d.id)}
-                  style={{ fontSize: '12px', color: '#1e40af', background: 'white', border: '1px solid #bfdbfe', borderRadius: '6px', padding: '4px 12px', cursor: 'pointer', fontWeight: 500 }}>
-                  Reenviar link
-                </button>
-              </div>
-            )}
-
             {/* Rodapé ações */}
-            <div style={{ padding: '10px 20px', borderTop: '1px solid #f3f4f6', background: '#f9fafb', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ padding: '10px 20px', borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <button
                 onClick={() => { setEditandoId(editando ? null : d.id); setEditDescricao(d.descricao) }}
                 style={{ fontSize: '12px', fontWeight: 500, background: 'white', color: '#374151', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
@@ -668,12 +666,18 @@ function MasterDemandas() {
               </button>
               <button
                 onClick={() => toggleOculto(d.id, oculto)}
-                style={{ fontSize: '12px', fontWeight: 500, background: 'white', color: oculto ? '#1e40af' : '#92400e', border: `1px solid ${oculto ? '#bfdbfe' : '#fde68a'}`, borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
+                style={{ fontSize: '12px', fontWeight: 500, background: 'white', color: '#374151', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
                 {oculto ? 'Mostrar ao público' : 'Ocultar do público'}
               </button>
+              {d.status === 'aguardando_resposta' && (
+                <button onClick={() => reenviarLink(d.id)}
+                  style={{ fontSize: '12px', fontWeight: 500, background: 'white', color: '#374151', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
+                  Reenviar link
+                </button>
+              )}
               <button
                 onClick={() => excluirDemanda(d.id)}
-                style={{ fontSize: '12px', fontWeight: 500, background: 'white', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
+                style={{ fontSize: '12px', fontWeight: 500, background: 'white', color: '#dc2626', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
                 Excluir
               </button>
             </div>
