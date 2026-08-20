@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Ocorrencia, CategoriaMapa } from '@/types'
-import { validarCPF, formatarCPF } from '@/lib/cpf'
+import ModalIdentificacao, { DadosIdentificacao } from './ModalIdentificacao'
 
 const FRUTAL_LAT = -20.02752
 const FRUTAL_LNG = -48.92702
@@ -45,14 +45,12 @@ export default function MapaOcorrencias() {
   const miniPinRef = useRef<any>(null)
 
   const tileAtual = useRef<any>(null)
-  const tileLabels = useRef<any>(null)
   const [satelite, setSatelite] = useState(false)
 
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([])
   const [categorias, setCategorias] = useState<CategoriaMapa[]>([])
-  const [modalAberto, setModalAberto] = useState(false)
-  const [nome, setNome] = useState('')
-  const [cpf, setCpf] = useState('')
+  const [etapa, setEtapa] = useState<'fechado' | 'identificacao' | 'formulario'>('fechado')
+  const [identificacao, setIdentificacao] = useState<DadosIdentificacao | null>(null)
   const [descricao, setDescricao] = useState('')
   const [categoriaId, setCategoriaId] = useState('')
   const [endereco, setEndereco] = useState('')
@@ -164,13 +162,14 @@ export default function MapaOcorrencias() {
 
   // Resetar mini-mapa ao fechar modal
   useEffect(() => {
+    const modalAberto = etapa === 'formulario'
     if (!modalAberto || !coordenadas) {
       if (miniMapObj.current) { miniMapObj.current.remove(); miniMapObj.current = null }
       miniMapIniciado.current = false
       miniPinRef.current = null
       setLocConfirmada(false)
     }
-  }, [modalAberto, coordenadas])
+  }, [etapa, coordenadas])
 
   function confirmarLocalizacao() {
     if (!miniMapObj.current) return
@@ -184,7 +183,6 @@ export default function MapaOcorrencias() {
     const L = leafletObj.current
     const mapa = mapaObj.current
     if (tileAtual.current) { tileAtual.current.remove() }
-    if (tileLabels.current) { tileLabels.current.remove(); tileLabels.current = null }
     const novoSatelite = !satelite
     if (novoSatelite) {
       const tile = L.tileLayer(
@@ -193,7 +191,6 @@ export default function MapaOcorrencias() {
       )
       tile.addTo(mapa)
       tileAtual.current = tile
-      // sem labels — satélite puro
     } else {
       const tile = L.tileLayer(
         'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -203,15 +200,6 @@ export default function MapaOcorrencias() {
       tileAtual.current = tile
     }
     setSatelite(novoSatelite)
-  }
-
-  function capitalizarNome(valor: string) {
-    return valor.replace(/\b\w/g, (c) => c.toUpperCase())
-  }
-
-  function handleCPF(valor: string) {
-    const limpo = valor.replace(/\D/g, '').slice(0, 11)
-    setCpf(limpo ? formatarCPF(limpo) : '')
   }
 
   function usarMinhaLocalizacao() {
@@ -272,8 +260,7 @@ export default function MapaOcorrencias() {
   async function handleEnviar(e: React.FormEvent) {
     e.preventDefault()
     setErro('')
-    if (!nome.trim() || nome.trim().split(' ').length < 2) { setErro('Nome completo obrigatório.'); return }
-    if (!validarCPF(cpf)) { setErro('CPF inválido.'); return }
+    if (!identificacao) return
     if (!categoriaId) { setErro('Selecione a categoria.'); return }
     if (!descricao.trim() || descricao.trim().length < 10) { setErro('Descreva melhor o problema.'); return }
     if (!coordenadas || !locConfirmada) { setErro('Busque o endereço e confirme a localização no mapa.'); return }
@@ -305,8 +292,9 @@ export default function MapaOcorrencias() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          morador_nome: nome.trim(),
-          morador_cpf: cpf.replace(/\D/g, ''),
+          morador_nome: identificacao.nome,
+          morador_cpf: identificacao.cpf || null,
+          verificacao_metodo: identificacao.metodo,
           descricao: descricao.trim(),
           lat: coordenadas.lat,
           lng: coordenadas.lng,
@@ -317,7 +305,7 @@ export default function MapaOcorrencias() {
       })
       if (!res.ok) throw new Error()
       setSucesso(true)
-      setNome(''); setCpf(''); setDescricao(''); setCategoriaId('')
+      setDescricao(''); setCategoriaId('')
       setEndereco(''); setCoordenadas(null); setLocConfirmada(false)
       setFotoFile(null); setFotoPreview(null)
       if (pinDraggavel.current) { pinDraggavel.current.remove(); pinDraggavel.current = null }
@@ -360,40 +348,47 @@ export default function MapaOcorrencias() {
         </div>
       </div>
 
-      <button onClick={() => { setModalAberto(true); setSucesso(false) }}
+      <button onClick={() => { setEtapa('identificacao'); setSucesso(false) }}
         style={{ backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px 24px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
         + Registrar Ocorrência
       </button>
 
-      {/* Modal */}
-      {modalAberto && (
+      {/* Passo 1: identificação */}
+      {etapa === 'identificacao' && (
+        <ModalIdentificacao
+          onConfirmar={(dados) => { setIdentificacao(dados); setEtapa('formulario') }}
+          onFechar={() => { setEtapa('fechado'); setIdentificacao(null) }}
+        />
+      )}
+
+      {/* Passo 2: formulário */}
+      {etapa === 'formulario' && identificacao && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #e5e7eb' }}>
               <h2 style={{ fontWeight: 700, color: '#111827', margin: 0, fontSize: '15px' }}>Registrar Ocorrência</h2>
-              <button onClick={() => setModalAberto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#9ca3af', lineHeight: 1, padding: 0 }}>×</button>
+              <button onClick={() => { setEtapa('fechado'); setIdentificacao(null) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#9ca3af', lineHeight: 1, padding: 0 }}>×</button>
             </div>
 
             {sucesso ? (
               <div style={{ padding: '32px', textAlign: 'center' }}>
                 <p style={{ fontWeight: 600, color: '#166534' }}>Ocorrência registrada!</p>
                 <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '4px' }}>Será publicada no mapa após aprovação.</p>
-                <button onClick={() => setModalAberto(false)} style={{ marginTop: '16px', fontSize: '13px', color: '#1e3a5f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Fechar</button>
+                <button onClick={() => { setEtapa('fechado'); setIdentificacao(null) }} style={{ marginTop: '16px', fontSize: '13px', color: '#1e3a5f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Fechar</button>
               </div>
             ) : (
               <form onSubmit={handleEnviar} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 {erro && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
 
+                {/* Nome travado */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Nome Completo *</label>
-                  <input type="text" value={nome} onChange={(e) => setNome(capitalizarNome(e.target.value))} placeholder="Seu nome completo"
-                    style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>CPF *</label>
-                  <input type="text" value={cpf} onChange={(e) => handleCPF(e.target.value)} placeholder="000.000.000-00" maxLength={14}
-                    style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }} />
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Nome</label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '8px 12px', background: '#f0fdf4' }}>
+                    <span style={{ fontSize: '14px', color: '#166534', fontWeight: 500 }}>{identificacao.nome}</span>
+                    <span style={{ fontSize: '11px', background: '#dcfce7', color: '#166534', borderRadius: '4px', padding: '2px 7px', fontWeight: 600, flexShrink: 0, marginLeft: '8px' }}>
+                      {identificacao.metodo === 'google' ? '✓ Google' : '✓ CPF'}
+                    </span>
+                  </div>
                 </div>
 
                 <div>
