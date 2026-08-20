@@ -8,8 +8,6 @@ import ModalAuth from './ModalAuth'
 
 const links = [
   { href: '/mapa', label: 'Mapa de Demandas' },
-  { href: '/vagas', label: 'Vagas de Emprego' },
-  { href: '/guia', label: 'Guia Útil' },
 ]
 
 export default function Navbar() {

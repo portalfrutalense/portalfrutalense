@@ -98,22 +98,6 @@ export default function LandingPage() {
               Ver o Mapa de Demandas
               <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </Link>
-            <Link href="/vagas" style={{
-              background: 'transparent',
-              color: '#1e3a5f',
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              fontWeight: 600,
-              fontSize: '14px',
-              padding: '13px 26px',
-              borderRadius: '8px',
-              border: '1.5px solid #e2e8f0',
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}>
-              Vagas de Emprego
-            </Link>
           </div>
         </div>
       </section>
@@ -155,7 +139,7 @@ export default function LandingPage() {
           letterSpacing: '-0.025em',
           marginBottom: '44px',
         }}>
-          Três formas de participar da cidade
+          Participe da cidade
         </h2>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px' }}>
@@ -175,29 +159,6 @@ export default function LandingPage() {
             </div>
           </Link>
 
-          {/* Vagas */}
-          <div style={cardStyleSoon}>
-            <div style={iconStyle('#f8fafc')}>
-              <svg width="20" height="20" fill="none" stroke="#94a3b8" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-              </svg>
-            </div>
-            <div style={{ ...cardTitle, color: '#94a3b8' }}>Vagas de Emprego</div>
-            <div style={cardDesc}>Encontre oportunidades de trabalho em Frutal e região. Empresas locais publicam vagas diretamente aqui.</div>
-            <div style={cardLink('#94a3b8')}>Em breve</div>
-          </div>
-
-          {/* Guia */}
-          <div style={cardStyleSoon}>
-            <div style={iconStyle('#f8fafc')}>
-              <svg width="20" height="20" fill="none" stroke="#94a3b8" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-              </svg>
-            </div>
-            <div style={{ ...cardTitle, color: '#94a3b8' }}>Guia Útil</div>
-            <div style={cardDesc}>Telefones, endereços e serviços essenciais de Frutal-MG reunidos em um só lugar. Útil para todo morador.</div>
-            <div style={cardLink('#94a3b8')}>Em breve</div>
-          </div>
 
         </div>
       </section>
@@ -245,17 +206,6 @@ const cardStyle: React.CSSProperties = {
   cursor: 'pointer',
 }
 
-const cardStyleSoon: React.CSSProperties = {
-  background: '#ffffff',
-  borderRadius: '12px',
-  border: '1px solid #e2e8f0',
-  borderLeft: '4px solid #e2e8f0',
-  padding: '26px 26px 22px',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '10px',
-  height: '100%',
-}
 
 function iconStyle(bg: string): React.CSSProperties {
   return {
