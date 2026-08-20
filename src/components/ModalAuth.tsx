@@ -18,10 +18,21 @@ function GoogleIcon() {
   )
 }
 
+function EmailIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <rect x="2" y="4" width="20" height="16" rx="2"/>
+      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+    </svg>
+  )
+}
+
 type Aba = 'entrar' | 'cadastrar'
+type Tela = 'inicial' | 'email'
 
 export default function ModalAuth({ onFechar }: Props) {
   const supabase = createClient()
+  const [tela, setTela] = useState<Tela>('inicial')
   const [aba, setAba] = useState<Aba>('entrar')
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
@@ -73,47 +84,65 @@ export default function ModalAuth({ onFechar }: Props) {
 
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-          {/* Google — único, faz login e cadastro automaticamente */}
-          <button onClick={entrarComGoogle} disabled={carregandoGoogle}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '13px 16px', border: '1.5px solid #e5e7eb', borderRadius: '8px', background: 'white', cursor: carregandoGoogle ? 'wait' : 'pointer', fontSize: '15px', fontWeight: 600, color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-            <GoogleIcon />
-            {carregandoGoogle ? 'Redirecionando...' : 'Continuar com Google'}
-          </button>
+          {tela === 'inicial' ? (
+            <>
+              <p style={{ margin: 0, fontSize: '14px', color: '#374151', textAlign: 'center' }}>
+                Escolha como deseja acessar o portal
+              </p>
 
-          {/* Divisor */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }} />
-            <span style={{ fontSize: '12px', color: '#9ca3af' }}>ou com e-mail</span>
-            <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }} />
-          </div>
-
-          {/* Abas apenas para e-mail/senha */}
-          <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', marginBottom: '4px' }}>
-            {(['entrar', 'cadastrar'] as Aba[]).map((a) => (
-              <button key={a} onClick={() => { setAba(a); setErro(''); setSucesso('') }}
-                style={{ flex: 1, padding: '10px', fontSize: '13px', fontWeight: aba === a ? 700 : 400, color: aba === a ? '#1e3a5f' : '#6b7280', background: 'none', border: 'none', borderBottom: aba === a ? '2px solid #1e3a5f' : '2px solid transparent', cursor: 'pointer' }}>
-                {a === 'entrar' ? 'Entrar' : 'Criar conta'}
+              {/* Google */}
+              <button onClick={entrarComGoogle} disabled={carregandoGoogle}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '13px 16px', border: '1.5px solid #e5e7eb', borderRadius: '8px', background: 'white', cursor: carregandoGoogle ? 'wait' : 'pointer', fontSize: '15px', fontWeight: 600, color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+                <GoogleIcon />
+                {carregandoGoogle ? 'Redirecionando...' : 'Continuar com Google'}
               </button>
-            ))}
-          </div>
 
-          {erro && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
-          {sucesso && <div style={{ color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '10px 12px', fontSize: '13px', lineHeight: 1.5 }}>{sucesso}</div>}
-
-          {!sucesso && (
-            <form onSubmit={aba === 'entrar' ? entrarComEmail : cadastrarComEmail}
-              style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-                placeholder="seu@email.com"
-                style={{ width: '100%', border: '1.5px solid #d1d5db', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-              <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required
-                placeholder={aba === 'cadastrar' ? 'Crie uma senha (mín. 6 caracteres)' : 'Sua senha'}
-                style={{ width: '100%', border: '1.5px solid #d1d5db', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-              <button type="submit" disabled={carregando}
-                style={{ backgroundColor: carregando ? '#9ca3af' : '#1e3a5f', color: 'white', fontWeight: 700, padding: '12px', borderRadius: '8px', border: 'none', cursor: carregando ? 'not-allowed' : 'pointer', fontSize: '15px' }}>
-                {carregando ? 'Aguarde...' : aba === 'entrar' ? 'Entrar' : 'Criar conta'}
+              {/* Email */}
+              <button onClick={() => setTela('email')}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '13px 16px', border: '1.5px solid #e5e7eb', borderRadius: '8px', background: 'white', cursor: 'pointer', fontSize: '15px', fontWeight: 600, color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+                <EmailIcon />
+                Entrar com e-mail
               </button>
-            </form>
+
+              {erro && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
+            </>
+          ) : (
+            <>
+              {/* Voltar */}
+              <button onClick={() => { setTela('inicial'); setErro(''); setSucesso('') }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '13px', padding: 0, display: 'flex', alignItems: 'center', gap: '4px', alignSelf: 'flex-start' }}>
+                ← Voltar
+              </button>
+
+              {/* Abas */}
+              <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb' }}>
+                {(['entrar', 'cadastrar'] as Aba[]).map((a) => (
+                  <button key={a} onClick={() => { setAba(a); setErro(''); setSucesso('') }}
+                    style={{ flex: 1, padding: '10px', fontSize: '13px', fontWeight: aba === a ? 700 : 400, color: aba === a ? '#1e3a5f' : '#6b7280', background: 'none', border: 'none', borderBottom: aba === a ? '2px solid #1e3a5f' : '2px solid transparent', cursor: 'pointer' }}>
+                    {a === 'entrar' ? 'Entrar' : 'Criar conta'}
+                  </button>
+                ))}
+              </div>
+
+              {erro && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
+              {sucesso && <div style={{ color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '10px 12px', fontSize: '13px', lineHeight: 1.5 }}>{sucesso}</div>}
+
+              {!sucesso && (
+                <form onSubmit={aba === 'entrar' ? entrarComEmail : cadastrarComEmail}
+                  style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
+                    placeholder="seu@email.com"
+                    style={{ width: '100%', border: '1.5px solid #d1d5db', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                  <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required
+                    placeholder={aba === 'cadastrar' ? 'Crie uma senha (mín. 6 caracteres)' : 'Sua senha'}
+                    style={{ width: '100%', border: '1.5px solid #d1d5db', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                  <button type="submit" disabled={carregando}
+                    style={{ backgroundColor: carregando ? '#9ca3af' : '#1e3a5f', color: 'white', fontWeight: 700, padding: '12px', borderRadius: '8px', border: 'none', cursor: carregando ? 'not-allowed' : 'pointer', fontSize: '15px' }}>
+                    {carregando ? 'Aguarde...' : aba === 'entrar' ? 'Entrar' : 'Criar conta'}
+                  </button>
+                </form>
+              )}
+            </>
           )}
 
           <p style={{ fontSize: '11px', color: '#9ca3af', textAlign: 'center', margin: 0, lineHeight: 1.5 }}>
