@@ -31,6 +31,9 @@ export default function MasterPage() {
   const [editEntNome, setEditEntNome] = useState('')
   const [editEntCargo, setEditEntCargo] = useState('')
   const [editEntEmail, setEditEntEmail] = useState('')
+  const [editandoCat, setEditandoCat] = useState<string | null>(null)
+  const [editCatNome, setEditCatNome] = useState('')
+  const [editCatCor, setEditCatCor] = useState('#ef4444')
 
   // Stats dashboard
   const [stats, setStats] = useState({ total: 0, pendente: 0, aguardando: 0, respondida: 0 })
@@ -110,6 +113,11 @@ export default function MasterPage() {
   async function excluirCategoria(id: string) {
     if (!confirm('Excluir esta categoria?')) return
     await supabase.from('categorias_mapa').delete().eq('id', id)
+    carregarDados()
+  }
+  async function salvarEdicaoCategoria(id: string) {
+    await supabase.from('categorias_mapa').update({ nome: editCatNome, cor: editCatCor }).eq('id', id)
+    setEditandoCat(null)
     carregarDados()
   }
 
@@ -262,23 +270,6 @@ export default function MasterPage() {
                 ))}
               </div>
 
-              <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '24px' }}>
-                <h2 style={{ fontSize: '15px', fontWeight: 600, color: '#111827', margin: '0 0 12px' }}>Acesso rápido</h2>
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  <button onClick={() => { setSecao('demandas'); setConfigurando(false) }}
-                    style={{ fontSize: '13px', fontWeight: 600, color: '#1e3a5f', background: '#eff6ff', border: '1px solid #dbeafe', borderRadius: '8px', padding: '10px 16px', cursor: 'pointer' }}>
-                    Ver demandas
-                  </button>
-                  <button onClick={() => { setSecao('demandas'); setConfigurando(true); setAbaConfig('autoridades') }}
-                    style={{ fontSize: '13px', fontWeight: 600, color: '#374151', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px 16px', cursor: 'pointer' }}>
-                    Configurar autoridades
-                  </button>
-                  <button onClick={() => { setSecao('demandas'); setConfigurando(true); setAbaConfig('ia') }}
-                    style={{ fontSize: '13px', fontWeight: 600, color: '#374151', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px 16px', cursor: 'pointer' }}>
-                    Configurar IA
-                  </button>
-                </div>
-              </div>
             </div>
           )}
 
@@ -397,13 +388,34 @@ export default function MasterPage() {
                       <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
                         {categorias.length === 0 && <p style={{ color: '#9ca3af', fontSize: '13px', padding: '20px' }}>Nenhuma categoria cadastrada.</p>}
                         {categorias.map((c, i) => (
-                          <div key={c.id} style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: i > 0 ? '1px solid #f3f4f6' : 'none' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              <span style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: c.cor, display: 'inline-block', border: '1px solid #e5e7eb', flexShrink: 0 }} />
-                              <p style={{ fontWeight: 500, color: '#111827', fontSize: '14px', margin: 0 }}>{c.nome}</p>
-                              <span style={{ fontSize: '11px', color: '#9ca3af', fontFamily: 'monospace' }}>{c.cor}</span>
-                            </div>
-                            <button onClick={() => excluirCategoria(c.id)} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>Excluir</button>
+                          <div key={c.id} style={{ padding: '14px 20px', borderTop: i > 0 ? '1px solid #f3f4f6' : 'none' }}>
+                            {editandoCat === c.id ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                  <input value={editCatNome} onChange={(e) => setEditCatNome(e.target.value)} placeholder="Nome" style={{ flex: 1, minWidth: '160px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
+                                  <div>
+                                    <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Cor</label>
+                                    <input type="color" value={editCatCor} onChange={(e) => setEditCatCor(e.target.value)} style={{ width: '44px', height: '34px', borderRadius: '8px', cursor: 'pointer', border: '1px solid #d1d5db', padding: '2px' }} />
+                                  </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  {btnAcao('Salvar', () => salvarEdicaoCategoria(c.id), 'primario')}
+                                  {btnAcao('Cancelar', () => setEditandoCat(null), 'neutro')}
+                                </div>
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                  <span style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: c.cor, display: 'inline-block', border: '1px solid #e5e7eb', flexShrink: 0 }} />
+                                  <p style={{ fontWeight: 500, color: '#111827', fontSize: '14px', margin: 0 }}>{c.nome}</p>
+                                  <span style={{ fontSize: '11px', color: '#9ca3af', fontFamily: 'monospace' }}>{c.cor}</span>
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  {btnAcao('Editar', () => { setEditandoCat(c.id); setEditCatNome(c.nome); setEditCatCor(c.cor) }, 'neutro')}
+                                  {btnAcao('Excluir', () => excluirCategoria(c.id), 'perigo')}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
