@@ -26,26 +26,23 @@ export default function ModalAuth({ onFechar }: Props) {
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [carregando, setCarregando] = useState(false)
+  const [carregandoGoogle, setCarregandoGoogle] = useState(false)
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState('')
 
   async function entrarComGoogle() {
-    setCarregando(true); setErro('')
+    setCarregandoGoogle(true); setErro('')
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/mapa` },
     })
-    if (error) { setErro('Erro ao conectar com Google.'); setCarregando(false) }
+    if (error) { setErro('Erro ao conectar com Google.'); setCarregandoGoogle(false) }
   }
 
   async function entrarComEmail(e: React.FormEvent) {
     e.preventDefault(); setErro(''); setCarregando(true)
     const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
-    if (error) {
-      setErro('E-mail ou senha incorretos.')
-      setCarregando(false)
-    }
-    // Se sucesso, onAuthStateChange no AuthProvider vai detectar e fechar modal
+    if (error) { setErro('E-mail ou senha incorretos.'); setCarregando(false) }
   }
 
   async function cadastrarComEmail(e: React.FormEvent) {
@@ -54,15 +51,17 @@ export default function ModalAuth({ onFechar }: Props) {
     const { error } = await supabase.auth.signUp({ email, password: senha })
     if (error) {
       setErro('Erro ao cadastrar. Verifique o e-mail.')
+      setCarregando(false)
     } else {
-      setSucesso('Cadastro realizado! Verifique seu e-mail para confirmar a conta.')
+      setSucesso('Cadastro realizado! Verifique seu e-mail para confirmar a conta antes de entrar.')
+      setCarregando(false)
     }
-    setCarregando(false)
   }
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
       <div style={{ background: 'white', borderRadius: '12px', width: '100%', maxWidth: '380px', overflow: 'hidden' }}>
+
         {/* Header */}
         <div style={{ background: '#1e3a5f', padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
@@ -72,24 +71,13 @@ export default function ModalAuth({ onFechar }: Props) {
           <button onClick={onFechar} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: '22px', lineHeight: 1, padding: 0 }}>×</button>
         </div>
 
-        {/* Abas */}
-        <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb' }}>
-          {(['entrar', 'cadastrar'] as Aba[]).map((a) => (
-            <button key={a} onClick={() => { setAba(a); setErro(''); setSucesso('') }}
-              style={{ flex: 1, padding: '12px', fontSize: '14px', fontWeight: aba === a ? 700 : 400, color: aba === a ? '#1e3a5f' : '#6b7280', background: 'none', border: 'none', borderBottom: aba === a ? '2px solid #1e3a5f' : '2px solid transparent', cursor: 'pointer', textTransform: 'capitalize' }}>
-              {a === 'entrar' ? 'Entrar' : 'Cadastrar'}
-            </button>
-          ))}
-        </div>
+        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-        {/* Body */}
-        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-
-          {/* Google */}
-          <button onClick={entrarComGoogle} disabled={carregando}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '12px 16px', border: '1.5px solid #e5e7eb', borderRadius: '8px', background: 'white', cursor: carregando ? 'wait' : 'pointer', fontSize: '14px', fontWeight: 600, color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+          {/* Google — único, faz login e cadastro automaticamente */}
+          <button onClick={entrarComGoogle} disabled={carregandoGoogle}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '13px 16px', border: '1.5px solid #e5e7eb', borderRadius: '8px', background: 'white', cursor: carregandoGoogle ? 'wait' : 'pointer', fontSize: '15px', fontWeight: 600, color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
             <GoogleIcon />
-            {aba === 'entrar' ? 'Entrar com Google' : 'Cadastrar com Google'}
+            {carregandoGoogle ? 'Redirecionando...' : 'Continuar com Google'}
           </button>
 
           {/* Divisor */}
@@ -99,17 +87,27 @@ export default function ModalAuth({ onFechar }: Props) {
             <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }} />
           </div>
 
-          {/* Erro / Sucesso */}
+          {/* Abas apenas para e-mail/senha */}
+          <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', marginBottom: '4px' }}>
+            {(['entrar', 'cadastrar'] as Aba[]).map((a) => (
+              <button key={a} onClick={() => { setAba(a); setErro(''); setSucesso('') }}
+                style={{ flex: 1, padding: '10px', fontSize: '13px', fontWeight: aba === a ? 700 : 400, color: aba === a ? '#1e3a5f' : '#6b7280', background: 'none', border: 'none', borderBottom: aba === a ? '2px solid #1e3a5f' : '2px solid transparent', cursor: 'pointer' }}>
+                {a === 'entrar' ? 'Entrar' : 'Criar conta'}
+              </button>
+            ))}
+          </div>
+
           {erro && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
           {sucesso && <div style={{ color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '10px 12px', fontSize: '13px', lineHeight: 1.5 }}>{sucesso}</div>}
 
           {!sucesso && (
-            <form onSubmit={aba === 'entrar' ? entrarComEmail : cadastrarComEmail} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <form onSubmit={aba === 'entrar' ? entrarComEmail : cadastrarComEmail}
+              style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
                 placeholder="seu@email.com"
                 style={{ width: '100%', border: '1.5px solid #d1d5db', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
               <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required
-                placeholder={aba === 'cadastrar' ? 'Mínimo 6 caracteres' : 'Senha'}
+                placeholder={aba === 'cadastrar' ? 'Crie uma senha (mín. 6 caracteres)' : 'Sua senha'}
                 style={{ width: '100%', border: '1.5px solid #d1d5db', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
               <button type="submit" disabled={carregando}
                 style={{ backgroundColor: carregando ? '#9ca3af' : '#1e3a5f', color: 'white', fontWeight: 700, padding: '12px', borderRadius: '8px', border: 'none', cursor: carregando ? 'not-allowed' : 'pointer', fontSize: '15px' }}>
