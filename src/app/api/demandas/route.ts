@@ -50,14 +50,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Erro ao salvar.' }, { status: 500 })
     }
 
-    // Dispara análise da IA em background (não bloqueia a resposta)
-    fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/ia/analisar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-internal-key': process.env.ADMIN_PASSWORD! },
-      body: JSON.stringify({ demanda_id: demanda.id }),
-    }).catch(console.error)
+    // Responde primeiro, depois aguarda análise da IA
+    const resposta = NextResponse.json({ ok: true, id: demanda.id }, { status: 201 })
 
-    return NextResponse.json({ ok: true, id: demanda.id }, { status: 201 })
+    // Chama a IA aguardando para garantir execução no Vercel
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/ia/analisar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-internal-key': process.env.ADMIN_PASSWORD! },
+        body: JSON.stringify({ demanda_id: demanda.id }),
+      })
+    } catch (e) {
+      console.error('Erro ao chamar IA:', e)
+    }
+
+    return resposta
   } catch (err) {
     console.error(err)
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })
