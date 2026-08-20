@@ -14,6 +14,7 @@ export default function MasterPage() {
   const [autenticado, setAutenticado] = useState(false)
   const [erroLogin, setErroLogin] = useState('')
   const [carregandoAuth, setCarregandoAuth] = useState(true)
+  const [tokenSessao, setTokenSessao] = useState<string | null>(null)
   const [secao, setSecao] = useState<SecaoMaster>('dashboard')
   const [configurando, setConfigurando] = useState(false)
   const [abaConfig, setAbaConfig] = useState<AbaConfig>('autoridades')
@@ -44,6 +45,7 @@ export default function MasterPage() {
   function verificarAcesso(session: any) {
     if (session && session.user?.email === EMAIL_MASTER) {
       setAutenticado(true)
+      setTokenSessao(session.access_token || null)
       carregarDados()
     } else if (session) {
       client.auth.signOut()
@@ -302,7 +304,7 @@ export default function MasterPage() {
               </div>
 
               {/* DEMANDAS */}
-              {!configurando && <MasterDemandas />}
+              {!configurando && <MasterDemandas token={tokenSessao} />}
 
               {/* CONFIGURAÇÕES */}
               {configurando && (
@@ -456,7 +458,7 @@ function sentenceCase(str: string | null | undefined): string {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
-function MasterDemandas() {
+function MasterDemandas({ token }: { token: string | null }) {
   const sbClient = createClient()
   const [demandas, setDemandas] = useState<any[]>([])
   const [carregandoDemandas, setCarregandoDemandas] = useState(true)
@@ -466,18 +468,18 @@ function MasterDemandas() {
   const [editDescricao, setEditDescricao] = useState('')
   const [menuAbertoDemandaId, setMenuAbertoDemandaId] = useState<string | null>(null)
 
-  async function carregarDemandas() {
+  async function carregarDemandas(tkn?: string) {
     setCarregandoDemandas(true)
-    const { data: { session } } = await sbClient.auth.getSession()
+    const t = tkn ?? token ?? (await sbClient.auth.getSession()).data.session?.access_token
     const res = await fetch('/api/master/demanda', {
-      headers: { 'Authorization': `Bearer ${session?.access_token}` },
+      headers: { 'Authorization': `Bearer ${t}` },
     })
     if (res.ok) setDemandas(await res.json())
     setCarregandoDemandas(false)
   }
 
   useEffect(() => {
-    carregarDemandas()
+    carregarDemandas(token ?? undefined)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -498,6 +500,7 @@ function MasterDemandas() {
   }
 
   async function getToken() {
+    if (token) return token
     const { data: { session } } = await sbClient.auth.getSession()
     return session?.access_token
   }
