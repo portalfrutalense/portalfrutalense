@@ -229,9 +229,13 @@ export default function LandingPage() {
         <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: '15px', color: 'white' }}>
           Portal Frutalense
         </span>
-        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)' }}>
-          © {new Date().getFullYear()} · Frutal-MG · Transparência e Cidadania
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)' }}>
+            © {new Date().getFullYear()} · Frutal-MG
+          </span>
+          <Link href="/privacidade" style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>Privacidade</Link>
+          <Link href="/termos" style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>Termos de Uso</Link>
+        </div>
       </footer>
 
       <style>{`
