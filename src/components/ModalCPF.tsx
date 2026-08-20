@@ -9,10 +9,11 @@ export default function ModalCPF() {
   const { user, setPerfil } = useAuth()
   const supabase = createClient()
   const [cpf, setCpf] = useState('')
+  const [nome, setNome] = useState(
+    user?.user_metadata?.full_name || user?.user_metadata?.name || ''
+  )
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
-
-  const nome = user?.user_metadata?.full_name || user?.user_metadata?.name || ''
 
   function handleCPF(valor: string) {
     const limpo = valor.replace(/\D/g, '').slice(0, 11)
@@ -25,15 +26,16 @@ export default function ModalCPF() {
     if (!validarCPF(cpf)) { setErro('CPF inválido. Verifique e tente novamente.'); return }
     if (!user) return
     setEnviando(true)
+    if (!nome.trim()) { setErro('Informe seu nome completo.'); setEnviando(false); return }
     try {
       const cpfLimpo = cpf.replace(/\D/g, '')
-      const { error } = await supabase.from('perfis').insert({
+      const { error } = await supabase.from('perfis').upsert({
         id: user.id,
-        nome,
+        nome: nome.trim(),
         cpf: cpfLimpo,
       })
       if (error) throw error
-      setPerfil({ id: user.id, nome, cpf: cpfLimpo })
+      setPerfil({ id: user.id, nome: nome.trim(), cpf: cpfLimpo })
     } catch {
       setErro('Erro ao salvar. Tente novamente.')
     } finally {
@@ -54,9 +56,22 @@ export default function ModalCPF() {
         <form onSubmit={handleEnviar} style={{ padding: '28px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
             <p style={{ fontSize: '14px', color: '#374151', margin: '0 0 4px', lineHeight: 1.5 }}>
-              Olá, <strong>{nome}</strong>! Para continuar, precisamos do seu CPF para verificar sua identidade.
+              Para continuar, precisamos de mais algumas informações.
             </p>
             <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>Seu CPF nunca será exibido publicamente.</p>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Nome completo *</label>
+            <input
+              type="text"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Seu nome completo"
+              required
+              style={{ width: '100%', border: '1.5px solid #d1d5db', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+            />
+            {nome && <p style={{ fontSize: '11px', color: '#6b7280', margin: '4px 0 0' }}>Pré-preenchido com sua conta Google. Corrija se necessário.</p>}
           </div>
 
           {erro && (

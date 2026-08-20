@@ -70,7 +70,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     setPerfil(null)
   }
 
-  const precisaCPF = !!user && !perfil && !carregando
+  // precisaCPF = sem perfil OU perfil com nome/cpf em branco (cadastro incompleto)
+  const precisaCPF = !!user && !carregando && (!perfil || !perfil.nome?.trim() || !perfil.cpf?.trim())
 
   return (
     <AuthContext.Provider value={{ user, perfil, carregando, precisaCPF, setPerfil, sair }}>
