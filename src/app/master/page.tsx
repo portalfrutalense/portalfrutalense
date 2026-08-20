@@ -451,6 +451,7 @@ function MasterDemandas() {
   const [notif, setNotif] = useState('')
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [editDescricao, setEditDescricao] = useState('')
+  const [menuAbertoDemandaId, setMenuAbertoDemandaId] = useState<string | null>(null)
 
   function carregarDemandas() {
     sbClient.from('demandas')
@@ -508,19 +509,6 @@ function MasterDemandas() {
     const d = await res.json()
     if (!d.ok) { mostrarNotif(d.error, true); return }
     mostrarNotif('Demanda excluída.')
-    carregarDemandas()
-  }
-
-  async function toggleOculto(id: string, ocultoAtual: boolean) {
-    const token = await getToken()
-    const res = await fetch('/api/master/demanda', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ demanda_id: id, oculto: !ocultoAtual }),
-    })
-    const d = await res.json()
-    if (!d.ok) { mostrarNotif(d.error, true); return }
-    mostrarNotif(ocultoAtual ? 'Demanda visível ao público.' : 'Demanda ocultada do público.')
     carregarDemandas()
   }
 
@@ -583,142 +571,144 @@ function MasterDemandas() {
 
       {filtradas.map((d: any) => {
         const cor = statusCor[d.status] || { bg: '#f3f4f6', color: '#6b7280' }
-        const oculto = !!d.oculto
         const editando = editandoId === d.id
+        const menuAberto = menuAbertoDemandaId === d.id
 
         return (
-          <div key={d.id} style={{
-            background: 'white',
-            borderRadius: '10px',
-            border: `1px ${oculto ? 'dashed' : 'solid'} #e5e7eb`,
-            overflow: 'hidden',
-            opacity: oculto ? 0.8 : 1,
-          }}>
-            {/* Corpo do card */}
-            <div style={{ display: 'flex', gap: '16px', padding: '16px 20px' }}>
-              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div key={d.id} style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', overflow: 'hidden', position: 'relative' }}>
 
-                {/* Linha 1: status · data */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 600, background: cor.bg, color: cor.color, borderRadius: '20px', padding: '3px 10px', flexShrink: 0 }}>
-                    {statusLabel[d.status] || d.status}
-                  </span>
-                  {oculto && (
-                    <span style={{ fontSize: '10px', fontWeight: 600, background: '#f3f4f6', color: '#6b7280', borderRadius: '20px', padding: '3px 10px', flexShrink: 0 }}>
-                      Oculto do público
-                    </span>
-                  )}
-                  <span style={{ fontSize: '11px', color: '#9ca3af' }}>
-                    {new Date(d.created_at).toLocaleDateString('pt-BR')}
-                  </span>
-                </div>
-
-                {/* Caixa principal */}
-                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                    Nome: <strong style={{ color: '#111827' }}>{titleCase(d.morador_nome)}</strong>
-                    <span style={{ color: '#6b7280' }}> · {d.morador_cpf || '—'} · {d.morador_email || '—'}</span>
-                  </p>
-                  <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                    Para: <strong style={{ color: '#111827' }}>{titleCase(d.entidade?.nome)}</strong>
-                    {d.entidade?.cargo && <span style={{ color: '#6b7280' }}> ({titleCase(d.entidade.cargo)})</span>}
-                  </p>
-                  <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                    <strong style={{ color: '#6b7280', fontWeight: 400 }}>Endereço:</strong> {titleCase(d.endereco_label)}
-                  </p>
-                  <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                    <strong style={{ color: '#6b7280', fontWeight: 400 }}>Categoria:</strong> {d.categoria?.nome ? titleCase(d.categoria.nome) : '—'}
-                  </p>
-                  {editando ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                      <textarea
-                        value={editDescricao}
-                        onChange={(e) => setEditDescricao(e.target.value)}
-                        rows={3}
-                        style={{ width: '100%', border: '1.5px solid #1e3a5f', borderRadius: '7px', padding: '8px 12px', fontSize: '12px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', lineHeight: 1.5, background: 'white' }}
-                      />
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={() => salvarEdicao(d.id)}
-                          style={{ fontSize: '12px', fontWeight: 600, background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer' }}>
-                          Salvar
-                        </button>
-                        <button onClick={() => setEditandoId(null)}
-                          style={{ fontSize: '12px', fontWeight: 500, background: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer' }}>
-                          Cancelar
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <p style={{ fontSize: '12px', fontWeight: 400, color: '#111827', margin: 0, lineHeight: 1.5 }}>
-                      <strong style={{ color: '#6b7280', fontWeight: 400 }}>Demanda:</strong> {sentenceCase(d.descricao)}
-                    </p>
-                  )}
-                </div>
-
-                {/* Análise IA — oculta se não houver */}
-                {d.ia_motivo && (
-                  <div style={{
-                    fontSize: '12px',
-                    color: d.status === 'rejeitada_ia' ? '#dc2626' : '#6b7280',
-                    background: d.status === 'rejeitada_ia' ? '#fef2f2' : '#f9fafb',
-                    border: `1px solid ${d.status === 'rejeitada_ia' ? '#fecaca' : '#e5e7eb'}`,
-                    borderRadius: '6px',
-                    padding: '7px 10px',
-                    lineHeight: 1.5,
-                  }}>
-                    <strong>Análise IA:</strong> {d.ia_motivo}
+            {/* Botão "..." no canto superior direito */}
+            <div style={{ position: 'absolute', top: '14px', right: '16px', zIndex: 10 }}>
+              <button
+                onClick={() => setMenuAbertoDemandaId(menuAberto ? null : d.id)}
+                style={{ fontSize: '16px', fontWeight: 700, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', lineHeight: 1, borderRadius: '4px' }}
+              >
+                ···
+              </button>
+              {menuAberto && (
+                <>
+                  {/* Overlay para fechar ao clicar fora */}
+                  <div onClick={() => setMenuAbertoDemandaId(null)} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
+                  <div style={{ position: 'absolute', top: '28px', right: 0, background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', minWidth: '160px', zIndex: 20, padding: '4px 0' }}>
+                    <button
+                      onClick={() => { setEditandoId(editando ? null : d.id); setEditDescricao(d.descricao); setMenuAbertoDemandaId(null) }}
+                      style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#374151', background: 'none', border: 'none', cursor: 'pointer' }}>
+                      {editando ? 'Cancelar edição' : 'Editar demanda'}
+                    </button>
+                    {d.status === 'aguardando_resposta' && (
+                      <button
+                        onClick={() => { reenviarLink(d.id); setMenuAbertoDemandaId(null) }}
+                        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#374151', background: 'none', border: 'none', cursor: 'pointer' }}>
+                        Reenviar link
+                      </button>
+                    )}
+                    <div style={{ height: '1px', background: '#f3f4f6', margin: '4px 0' }} />
+                    <button
+                      onClick={() => { excluirDemanda(d.id); setMenuAbertoDemandaId(null) }}
+                      style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}>
+                      Excluir
+                    </button>
                   </div>
-                )}
-
-                {/* Resposta — oculta se não houver, mesmas cores da IA */}
-                {d.resposta && (
-                  <div style={{ fontSize: '12px', color: '#6b7280', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 10px', lineHeight: 1.5 }}>
-                    <strong>Resposta:</strong> {d.resposta}
-                  </div>
-                )}
-
-              </div>
-
-              {/* Foto — placeholder se não tiver */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', flexShrink: 0, alignSelf: 'flex-start' }}>
-                {d.foto_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={d.foto_url} alt="Foto" onClick={() => window.open(d.foto_url, '_blank')}
-                    style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px', cursor: 'zoom-in', border: '1px solid #e5e7eb' }} />
-                ) : (
-                  <div style={{ width: '64px', height: '64px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <svg width="24" height="24" fill="none" stroke="#9ca3af" strokeWidth="1.5" viewBox="0 0 24 24">
-                      <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                )}
-                <span style={{ fontSize: '10px', color: '#9ca3af' }}>foto</span>
-              </div>
+                </>
+              )}
             </div>
 
-            {/* Rodapé ações */}
-            <div style={{ padding: '10px 20px', borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <button
-                onClick={() => { setEditandoId(editando ? null : d.id); setEditDescricao(d.descricao) }}
-                style={{ fontSize: '12px', fontWeight: 500, background: 'white', color: '#374151', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
-                {editando ? 'Cancelar edição' : 'Editar'}
-              </button>
-              <button
-                onClick={() => toggleOculto(d.id, oculto)}
-                style={{ fontSize: '12px', fontWeight: 500, background: 'white', color: '#374151', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
-                {oculto ? 'Mostrar ao público' : 'Ocultar do público'}
-              </button>
-              {d.status === 'aguardando_resposta' && (
-                <button onClick={() => reenviarLink(d.id)}
-                  style={{ fontSize: '12px', fontWeight: 500, background: 'white', color: '#374151', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
-                  Reenviar link
+            {/* Corpo do card */}
+            <div style={{ padding: '16px 20px', paddingRight: '48px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+
+              {/* Linha 1: só status */}
+              <div>
+                <span style={{ fontSize: '11px', fontWeight: 600, background: cor.bg, color: cor.color, borderRadius: '20px', padding: '3px 10px' }}>
+                  {statusLabel[d.status] || d.status}
+                </span>
+              </div>
+
+              {/* Caixa principal */}
+              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+                  Nome: <strong style={{ color: '#111827' }}>{titleCase(d.morador_nome)}</strong>
+                  <span style={{ color: '#6b7280' }}> · {d.morador_cpf || '—'} · {d.morador_email || '—'}</span>
+                </p>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+                  Para: <strong style={{ color: '#111827' }}>{titleCase(d.entidade?.nome)}</strong>
+                  {d.entidade?.cargo && <span style={{ color: '#6b7280' }}> ({titleCase(d.entidade.cargo)})</span>}
+                </p>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+                  <strong style={{ color: '#6b7280', fontWeight: 400 }}>Endereço:</strong> {titleCase(d.endereco_label)}
+                </p>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+                  <strong style={{ color: '#6b7280', fontWeight: 400 }}>Categoria:</strong> {d.categoria?.nome ? titleCase(d.categoria.nome) : '—'}
+                </p>
+                {editando ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                    <textarea
+                      value={editDescricao}
+                      onChange={(e) => setEditDescricao(e.target.value)}
+                      rows={3}
+                      style={{ width: '100%', border: '1.5px solid #1e3a5f', borderRadius: '7px', padding: '8px 12px', fontSize: '12px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', lineHeight: 1.5, background: 'white' }}
+                    />
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => salvarEdicao(d.id)}
+                        style={{ fontSize: '12px', fontWeight: 600, background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer' }}>
+                        Salvar
+                      </button>
+                      <button onClick={() => setEditandoId(null)}
+                        style={{ fontSize: '12px', fontWeight: 500, background: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer' }}>
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: '12px', fontWeight: 400, color: '#111827', margin: 0, lineHeight: 1.5 }}>
+                    <strong style={{ color: '#6b7280', fontWeight: 400 }}>Demanda:</strong> {sentenceCase(d.descricao)}
+                  </p>
+                )}
+                {/* Ver foto — dentro da caixa, abaixo da demanda */}
+                <button
+                  onClick={() => d.foto_url && window.open(d.foto_url, '_blank')}
+                  disabled={!d.foto_url}
+                  style={{
+                    alignSelf: 'flex-start', marginTop: '2px',
+                    fontSize: '12px', fontWeight: 500,
+                    color: d.foto_url ? '#1e40af' : '#d1d5db',
+                    background: 'none', border: 'none',
+                    cursor: d.foto_url ? 'pointer' : 'default',
+                    padding: 0, textDecoration: d.foto_url ? 'underline' : 'none',
+                  }}
+                >
+                  Ver foto
                 </button>
+              </div>
+
+              {/* Análise IA — oculta se não houver */}
+              {d.ia_motivo && (
+                <div style={{
+                  fontSize: '12px',
+                  color: d.status === 'rejeitada_ia' ? '#dc2626' : '#6b7280',
+                  background: d.status === 'rejeitada_ia' ? '#fef2f2' : '#f9fafb',
+                  border: `1px solid ${d.status === 'rejeitada_ia' ? '#fecaca' : '#e5e7eb'}`,
+                  borderRadius: '6px',
+                  padding: '7px 10px',
+                  lineHeight: 1.5,
+                }}>
+                  <strong>Análise IA:</strong> {d.ia_motivo}
+                </div>
               )}
-              <button
-                onClick={() => excluirDemanda(d.id)}
-                style={{ fontSize: '12px', fontWeight: 500, background: 'white', color: '#dc2626', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
-                Excluir
-              </button>
+
+              {/* Resposta — oculta se não houver */}
+              {d.resposta && (
+                <div style={{ fontSize: '12px', color: '#6b7280', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 10px', lineHeight: 1.5 }}>
+                  <strong>Resposta:</strong> {d.resposta}
+                </div>
+              )}
+
+              {/* Data — alinhada à direita, no final */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                  Criado em {new Date(d.created_at).toLocaleDateString('pt-BR')}
+                </span>
+              </div>
+
             </div>
           </div>
         )
