@@ -34,7 +34,7 @@ export default function ModalAuth({ onFechar }: Props) {
     setCarregandoGoogle(true); setErro('')
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/mapa` },
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=/mapa` },
     })
     if (error) { setErro('Erro ao conectar com Google.'); setCarregandoGoogle(false) }
   }
