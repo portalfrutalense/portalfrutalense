@@ -808,29 +808,40 @@ function AdminDemandas({ senha }: { senha: string }) {
   )
 }
 
+const CONFIG_PADRAO = {
+  ativo: true,
+  rigor: 'moderado',
+  prompt: 'Analise a demanda do cidadão e decida se deve ser aprovada ou rejeitada. Rejeite se: for ofensiva, difamatória, sem relação com problemas reais do município de Frutal-MG, spam, ou conteúdo político partidário. Aprove se for uma demanda legítima de um cidadão sobre infraestrutura, saúde, educação, segurança ou outro serviço público.',
+}
+
 // ---- Sub-componente: Configuração da IA ----
 function AdminIA({ senha }: { senha: string }) {
+  const sbClient = createClient()
   const [config, setConfig] = useState<any>(null)
   const [historico, setHistorico] = useState<any[]>([])
   const [salvando, setSalvando] = useState(false)
   const [notif, setNotif] = useState('')
+  const [erro, setErro] = useState('')
 
   useEffect(() => {
-    import('@/lib/supabase').then(({ supabase: sb }) => {
-      sb.from('ia_config').select('*').eq('id', 1).single().then(({ data }: any) => setConfig(data))
-      sb.from('ia_historico').select('*, demanda:demandas(descricao, morador_nome)').order('created_at', { ascending: false }).limit(20).then(({ data }: any) => setHistorico(data || []))
+    sbClient.from('ia_config').select('*').eq('id', 1).maybeSingle().then(({ data, error }: any) => {
+      if (error) { setErro('Erro ao carregar configurações da IA.'); return }
+      setConfig(data || CONFIG_PADRAO)
     })
+    sbClient.from('ia_historico').select('*, demanda:demandas(descricao, morador_nome)').order('created_at', { ascending: false }).limit(20).then(({ data }: any) => setHistorico(data || []))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function salvar() {
     if (!config) return
     setSalvando(true)
-    const { error } = await supabase.from('ia_config').update({ ativo: config.ativo, prompt: config.prompt, rigor: config.rigor, updated_at: new Date().toISOString() }).eq('id', 1)
-    setNotif(error ? 'Erro ao salvar.' : 'Configurações salvas!')
+    const { error } = await sbClient.from('ia_config').upsert({ id: 1, ativo: config.ativo, prompt: config.prompt, rigor: config.rigor, updated_at: new Date().toISOString() })
+    setNotif(error ? `Erro ao salvar: ${error.message}` : 'Configurações salvas!')
     setTimeout(() => setNotif(''), 4000)
     setSalvando(false)
   }
 
+  if (erro) return <p style={{ color: '#dc2626', fontSize: '13px', padding: '20px' }}>{erro}</p>
   if (!config) return <p style={{ color: '#9ca3af', fontSize: '13px', padding: '20px' }}>Carregando...</p>
 
   return (

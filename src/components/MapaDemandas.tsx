@@ -43,6 +43,7 @@ export default function MapaDemandas() {
   const miniMapObj = useRef<any>(null)
   const miniMapIniciado = useRef(false)
 
+  const [mapaCarregado, setMapaCarregado] = useState(false)
   const [satelite, setSatelite] = useState(false)
   const [demandas, setDemandas] = useState<Demanda[]>([])
   const [categorias, setCategorias] = useState<CategoriaMapa[]>([])
@@ -98,11 +99,12 @@ export default function MapaDemandas() {
       tileAtual.current = tile
       mapaObj.current = mapa
       leafletObj.current = L
+      setMapaCarregado(true)
     })
   }, [])
 
   useEffect(() => {
-    if (!mapaObj.current || !leafletObj.current || demandas.length === 0) return
+    if (!mapaCarregado || !mapaObj.current || !leafletObj.current || demandas.length === 0) return
     const L = leafletObj.current
     const mapa = mapaObj.current
 
@@ -131,7 +133,7 @@ export default function MapaDemandas() {
         setDemandaSelecionada(d)
       })
     })
-  }, [demandas, user])
+  }, [demandas, user, mapaCarregado])
 
   // Mini-mapa no formulário
   useEffect(() => {
