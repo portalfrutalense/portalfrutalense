@@ -119,7 +119,7 @@ Não inclua nada além do JSON.`
       if (emailAutoridade) {
         const linkResposta = `${process.env.NEXT_PUBLIC_SITE_URL}/responder/${token}`
         await resend.emails.send({
-          from: 'Portal Frutalense <noreply@portalfrutalense.vercel.app>',
+          from: 'Portal Frutalense <onboarding@resend.dev>',
           to: emailAutoridade,
           subject: `Nova demanda para ${demanda.entidade?.nome} — Portal Frutalense`,
           html: `

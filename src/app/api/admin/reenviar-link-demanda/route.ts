@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     const linkResposta = `${process.env.NEXT_PUBLIC_SITE_URL}/responder/${token}`
 
     await resend.emails.send({
-      from: 'Portal Frutalense <noreply@portalfrutalense.vercel.app>',
+      from: 'Portal Frutalense <onboarding@resend.dev>',
       to: emailAutoridade,
       subject: `[REENVIO] Demanda aguardando sua resposta — Portal Frutalense`,
       html: `
