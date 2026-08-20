@@ -59,7 +59,7 @@ Não inclua nada além do JSON.`
 
     // Chama Gemini
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -96,7 +96,7 @@ Não inclua nada além do JSON.`
       demanda_id,
       decisao,
       motivo,
-      modelo: 'gemini-2.5-flash-lite',
+      modelo: 'gemini-3.5-flash-lite',
     })
 
     if (decisao === 'aprovada') {
