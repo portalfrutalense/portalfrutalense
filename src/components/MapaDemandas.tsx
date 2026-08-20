@@ -185,6 +185,13 @@ export default function MapaDemandas() {
     setSatelite(novoSatelite)
   }
 
+  // Verifica se coordenadas estão dentro de ~15km de Frutal-MG
+  function dentroFrutal(lat: number, lng: number): boolean {
+    const dlat = lat - FRUTAL_LAT
+    const dlng = lng - FRUTAL_LNG
+    return Math.sqrt(dlat * dlat + dlng * dlng) < 0.15
+  }
+
   async function buscarEndereco() {
     if (!endereco.trim()) return
     setBuscando(true); setCoordenadas(null); setErro('')
@@ -192,17 +199,35 @@ export default function MapaDemandas() {
       const q = encodeURIComponent(`${endereco}, Frutal, Minas Gerais, Brasil`)
       const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`)
       const data = await res.json()
-      if (!data?.length) { setErro('Endereço não encontrado.'); return }
-      setCoordenadas({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), label: endereco.trim() })
+      if (!data?.length) { setErro('Endereço não encontrado em Frutal-MG.'); return }
+      const lat = parseFloat(data[0].lat)
+      const lng = parseFloat(data[0].lon)
+      if (!dentroFrutal(lat, lng)) { setErro('Endereço encontrado fora de Frutal-MG. Tente ser mais específico ou use sua localização.'); return }
+      setCoordenadas({ lat, lng, label: endereco.trim() })
     } catch { setErro('Erro ao buscar endereço.') }
     finally { setBuscando(false) }
   }
 
-  function usarMinhaLocalizacao() {
+  async function usarMinhaLocalizacao() {
     if (!navigator.geolocation) { setErro('Geolocalização não suportada.'); return }
     setBuscando(true); setErro('')
     navigator.geolocation.getCurrentPosition(
-      (pos) => { setCoordenadas({ lat: pos.coords.latitude, lng: pos.coords.longitude, label: endereco.trim() || 'Minha localização' }); setBuscando(false) },
+      async (pos) => {
+        const lat = pos.coords.latitude
+        const lng = pos.coords.longitude
+        // Geocodificação reversa para obter endereço real
+        let label = 'Minha localização'
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
+          const data = await res.json()
+          if (data?.address) {
+            const a = data.address
+            label = [a.road, a.house_number, a.suburb || a.neighbourhood].filter(Boolean).join(', ') || label
+          }
+        } catch { /* mantém label padrão */ }
+        setCoordenadas({ lat, lng, label })
+        setBuscando(false)
+      },
       () => { setErro('Não foi possível obter sua localização.'); setBuscando(false) },
       { enableHighAccuracy: true, timeout: 15000 }
     )
