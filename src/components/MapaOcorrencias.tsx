@@ -45,6 +45,7 @@ export default function MapaOcorrencias() {
   const miniPinRef = useRef<any>(null)
 
   const tileAtual = useRef<any>(null)
+  const tileLabels = useRef<any>(null)
   const [satelite, setSatelite] = useState(false)
 
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([])
@@ -183,14 +184,29 @@ export default function MapaOcorrencias() {
     const L = leafletObj.current
     const mapa = mapaObj.current
     if (tileAtual.current) { tileAtual.current.remove() }
+    if (tileLabels.current) { tileLabels.current.remove(); tileLabels.current = null }
     const novoSatelite = !satelite
-    const url = novoSatelite
-      ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-      : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-    const attribution = novoSatelite ? '© Esri, Maxar, Earthstar Geographics' : '© OpenStreetMap'
-    const tile = L.tileLayer(url, { attribution })
-    tile.addTo(mapa)
-    tileAtual.current = tile
+    if (novoSatelite) {
+      const tile = L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        { attribution: '© Esri, Maxar, Earthstar Geographics' }
+      )
+      tile.addTo(mapa)
+      tileAtual.current = tile
+      const labels = L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+        { opacity: 1, zIndex: 10 }
+      )
+      labels.addTo(mapa)
+      tileLabels.current = labels
+    } else {
+      const tile = L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        { attribution: '© OpenStreetMap' }
+      )
+      tile.addTo(mapa)
+      tileAtual.current = tile
+    }
     setSatelite(novoSatelite)
   }
 
