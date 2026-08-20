@@ -465,23 +465,22 @@ function MasterDemandas() {
   const [editDescricao, setEditDescricao] = useState('')
   const [menuAbertoDemandaId, setMenuAbertoDemandaId] = useState<string | null>(null)
 
-  function carregarDemandas() {
-    sbClient.from('demandas')
-      .select('*, categoria:categorias_mapa(*), entidade:entidades(*)')
-      .order('created_at', { ascending: false })
-      .then(async ({ data }: any) => {
-        const lista = data || []
-        // Busca emails dos perfis separadamente
-        const userIds = [...new Set(lista.map((d: any) => d.user_id).filter(Boolean))] as string[]
-        if (userIds.length > 0) {
-          const { data: perfis } = await sbClient.from('perfis').select('id, email').in('id', userIds)
-          const emailMap: Record<string, string> = {}
-          ;(perfis || []).forEach((p: any) => { if (p.email) emailMap[p.id] = p.email })
-          setDemandas(lista.map((d: any) => ({ ...d, morador_email: emailMap[d.user_id] || null })))
-        } else {
-          setDemandas(lista)
-        }
-      })
+  async function carregarDemandas() {
+    const { data: { session } } = await sbClient.auth.getSession()
+    const res = await fetch('/api/master/demanda', {
+      headers: { 'Authorization': `Bearer ${session?.access_token}` },
+    })
+    if (!res.ok) return
+    const lista: any[] = await res.json()
+    const userIds = [...new Set(lista.map((d: any) => d.user_id).filter(Boolean))] as string[]
+    if (userIds.length > 0) {
+      const { data: perfis } = await sbClient.from('perfis').select('id, email').in('id', userIds)
+      const emailMap: Record<string, string> = {}
+      ;(perfis || []).forEach((p: any) => { if (p.email) emailMap[p.id] = p.email })
+      setDemandas(lista.map((d: any) => ({ ...d, morador_email: emailMap[d.user_id] || null })))
+    } else {
+      setDemandas(lista)
+    }
   }
 
   useEffect(() => {

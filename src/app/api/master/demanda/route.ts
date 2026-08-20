@@ -13,6 +13,20 @@ async function verificarMaster(req: NextRequest) {
   return user
 }
 
+// GET /api/master/demanda — lista todas as demandas (bypassa RLS)
+export async function GET(req: NextRequest) {
+  const user = await verificarMaster(req)
+  if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+
+  const { data, error } = await supabaseServer
+    .from('demandas')
+    .select('*, categoria:categorias_mapa(*), entidade:entidades(*)')
+    .order('created_at', { ascending: false })
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json(data)
+}
+
 // DELETE /api/master/demanda  { demanda_id }
 export async function DELETE(req: NextRequest) {
   const user = await verificarMaster(req)
