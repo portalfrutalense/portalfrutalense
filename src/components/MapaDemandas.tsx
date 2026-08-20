@@ -241,7 +241,7 @@ export default function MapaDemandas() {
         const { error: uploadError } = await supabase.storage.from('demandas-fotos').upload(path, blob, { contentType: 'image/jpeg' })
         if (uploadError) throw uploadError
         foto_url = supabase.storage.from('demandas-fotos').getPublicUrl(path).data.publicUrl
-      } catch { setErro('Erro ao enviar foto.'); setEnviando(false); return }
+      } catch (err: any) { setErro(`Erro ao enviar foto: ${err?.message || JSON.stringify(err)}`); setEnviando(false); return }
     }
 
     try {
