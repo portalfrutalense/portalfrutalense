@@ -18,58 +18,105 @@ function GoogleIcon() {
   )
 }
 
+type Aba = 'entrar' | 'cadastrar'
+
 export default function ModalAuth({ onFechar }: Props) {
   const supabase = createClient()
+  const [aba, setAba] = useState<Aba>('entrar')
+  const [email, setEmail] = useState('')
+  const [senha, setSenha] = useState('')
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
+  const [sucesso, setSucesso] = useState('')
 
   async function entrarComGoogle() {
-    setCarregando(true)
-    setErro('')
+    setCarregando(true); setErro('')
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/mapa`,
-      },
+      options: { redirectTo: `${window.location.origin}/mapa` },
     })
+    if (error) { setErro('Erro ao conectar com Google.'); setCarregando(false) }
+  }
+
+  async function entrarComEmail(e: React.FormEvent) {
+    e.preventDefault(); setErro(''); setCarregando(true)
+    const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
     if (error) {
-      setErro('Erro ao conectar com Google. Tente novamente.')
+      setErro('E-mail ou senha incorretos.')
       setCarregando(false)
     }
+    // Se sucesso, onAuthStateChange no AuthProvider vai detectar e fechar modal
+  }
+
+  async function cadastrarComEmail(e: React.FormEvent) {
+    e.preventDefault(); setErro(''); setCarregando(true)
+    if (senha.length < 6) { setErro('A senha deve ter pelo menos 6 caracteres.'); setCarregando(false); return }
+    const { error } = await supabase.auth.signUp({ email, password: senha })
+    if (error) {
+      setErro('Erro ao cadastrar. Verifique o e-mail.')
+    } else {
+      setSucesso('Cadastro realizado! Verifique seu e-mail para confirmar a conta.')
+    }
+    setCarregando(false)
   }
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
       <div style={{ background: 'white', borderRadius: '12px', width: '100%', maxWidth: '380px', overflow: 'hidden' }}>
         {/* Header */}
-        <div style={{ background: '#1e3a5f', padding: '24px', textAlign: 'center' }}>
-          <div style={{ fontWeight: 800, fontSize: '18px', color: 'white', fontFamily: 'system-ui, sans-serif' }}>Portal Frutalense</div>
-          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', marginTop: '4px' }}>Frutal-MG · Transparência e Cidadania</div>
+        <div style={{ background: '#1e3a5f', padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: '16px', color: 'white' }}>Portal Frutalense</div>
+            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)', marginTop: '2px' }}>Frutal-MG · Transparência e Cidadania</div>
+          </div>
+          <button onClick={onFechar} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: '22px', lineHeight: 1, padding: 0 }}>×</button>
+        </div>
+
+        {/* Abas */}
+        <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb' }}>
+          {(['entrar', 'cadastrar'] as Aba[]).map((a) => (
+            <button key={a} onClick={() => { setAba(a); setErro(''); setSucesso('') }}
+              style={{ flex: 1, padding: '12px', fontSize: '14px', fontWeight: aba === a ? 700 : 400, color: aba === a ? '#1e3a5f' : '#6b7280', background: 'none', border: 'none', borderBottom: aba === a ? '2px solid #1e3a5f' : '2px solid transparent', cursor: 'pointer', textTransform: 'capitalize' }}>
+              {a === 'entrar' ? 'Entrar' : 'Cadastrar'}
+            </button>
+          ))}
         </div>
 
         {/* Body */}
-        <div style={{ padding: '28px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ textAlign: 'center' }}>
-            <h2 style={{ fontSize: '17px', fontWeight: 700, color: '#111827', margin: '0 0 6px' }}>Acesse o Mapa de Demandas</h2>
-            <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-              Faça login para ver as demandas completas e registrar a sua.
-            </p>
+        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+          {/* Google */}
+          <button onClick={entrarComGoogle} disabled={carregando}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '12px 16px', border: '1.5px solid #e5e7eb', borderRadius: '8px', background: 'white', cursor: carregando ? 'wait' : 'pointer', fontSize: '14px', fontWeight: 600, color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+            <GoogleIcon />
+            {aba === 'entrar' ? 'Entrar com Google' : 'Cadastrar com Google'}
+          </button>
+
+          {/* Divisor */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }} />
+            <span style={{ fontSize: '12px', color: '#9ca3af' }}>ou com e-mail</span>
+            <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }} />
           </div>
 
-          {erro && (
-            <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px', textAlign: 'center' }}>
-              {erro}
-            </div>
-          )}
+          {/* Erro / Sucesso */}
+          {erro && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
+          {sucesso && <div style={{ color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '10px 12px', fontSize: '13px', lineHeight: 1.5 }}>{sucesso}</div>}
 
-          <button
-            onClick={entrarComGoogle}
-            disabled={carregando}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '13px 16px', border: '1.5px solid #e5e7eb', borderRadius: '8px', background: 'white', cursor: carregando ? 'wait' : 'pointer', fontSize: '15px', fontWeight: 600, color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
-          >
-            <GoogleIcon />
-            {carregando ? 'Redirecionando...' : 'Entrar com Google'}
-          </button>
+          {!sucesso && (
+            <form onSubmit={aba === 'entrar' ? entrarComEmail : cadastrarComEmail} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
+                placeholder="seu@email.com"
+                style={{ width: '100%', border: '1.5px solid #d1d5db', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+              <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required
+                placeholder={aba === 'cadastrar' ? 'Mínimo 6 caracteres' : 'Senha'}
+                style={{ width: '100%', border: '1.5px solid #d1d5db', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+              <button type="submit" disabled={carregando}
+                style={{ backgroundColor: carregando ? '#9ca3af' : '#1e3a5f', color: 'white', fontWeight: 700, padding: '12px', borderRadius: '8px', border: 'none', cursor: carregando ? 'not-allowed' : 'pointer', fontSize: '15px' }}>
+                {carregando ? 'Aguarde...' : aba === 'entrar' ? 'Entrar' : 'Criar conta'}
+              </button>
+            </form>
+          )}
 
           <p style={{ fontSize: '11px', color: '#9ca3af', textAlign: 'center', margin: 0, lineHeight: 1.5 }}>
             Ao entrar, você concorda com os{' '}
@@ -77,10 +124,6 @@ export default function ModalAuth({ onFechar }: Props) {
             {' '}e a{' '}
             <a href="/privacidade" target="_blank" style={{ color: '#2563eb' }}>Política de Privacidade</a>.
           </p>
-
-          <button onClick={onFechar} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: '#9ca3af', padding: '4px' }}>
-            Fechar
-          </button>
         </div>
       </div>
     </div>
