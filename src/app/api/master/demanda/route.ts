@@ -18,23 +18,20 @@ export async function GET(req: NextRequest) {
   const user = await verificarMaster(req)
   if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
-  const { data, error } = await supabaseServer
-    .from('demandas')
-    .select('*, categoria:categorias_mapa(*), entidade:entidades(*)')
-    .order('created_at', { ascending: false })
+  const [{ data, error }, { data: perfis }] = await Promise.all([
+    supabaseServer
+      .from('demandas')
+      .select('*, categoria:categorias_mapa(*), entidade:entidades(*)')
+      .order('created_at', { ascending: false }),
+    supabaseServer.from('perfis').select('id, email'),
+  ])
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const lista = data || []
-  const userIds = [...new Set(lista.map((d: any) => d.user_id).filter(Boolean))] as string[]
-  if (userIds.length > 0) {
-    const { data: perfis } = await supabaseServer.from('perfis').select('id, email').in('id', userIds)
-    const emailMap: Record<string, string> = {}
-    ;(perfis || []).forEach((p: any) => { if (p.email) emailMap[p.id] = p.email })
-    return NextResponse.json(lista.map((d: any) => ({ ...d, morador_email: emailMap[d.user_id] || null })))
-  }
+  const emailMap: Record<string, string> = {}
+  ;(perfis || []).forEach((p: any) => { if (p.email) emailMap[p.id] = p.email })
 
-  return NextResponse.json(lista)
+  return NextResponse.json((data || []).map((d: any) => ({ ...d, morador_email: emailMap[d.user_id] || null })))
 }
 
 // DELETE /api/master/demanda  { demanda_id }

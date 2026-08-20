@@ -183,7 +183,7 @@ export default function MasterPage() {
 
       {/* ── SIDEBAR ── */}
       <aside style={{
-        width: '220px',
+        width: '180px',
         flexShrink: 0,
         background: '#1e3a5f',
         display: 'flex',
@@ -231,7 +231,7 @@ export default function MasterPage() {
       </aside>
 
       {/* ── CONTEÚDO PRINCIPAL ── */}
-      <main style={{ marginLeft: '220px', flex: 1, minWidth: 0 }} className="master-main">
+      <main style={{ marginLeft: '180px', flex: 1, minWidth: 0 }} className="master-main">
 
         {/* Topbar mobile */}
         <div className="master-topbar" style={{ display: 'none', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#1e3a5f', position: 'sticky', top: 0, zIndex: 50 }}>
@@ -459,6 +459,7 @@ function sentenceCase(str: string | null | undefined): string {
 function MasterDemandas() {
   const sbClient = createClient()
   const [demandas, setDemandas] = useState<any[]>([])
+  const [carregandoDemandas, setCarregandoDemandas] = useState(true)
   const [filtro, setFiltro] = useState('todos')
   const [notif, setNotif] = useState('')
   const [editandoId, setEditandoId] = useState<string | null>(null)
@@ -466,12 +467,13 @@ function MasterDemandas() {
   const [menuAbertoDemandaId, setMenuAbertoDemandaId] = useState<string | null>(null)
 
   async function carregarDemandas() {
+    setCarregandoDemandas(true)
     const { data: { session } } = await sbClient.auth.getSession()
     const res = await fetch('/api/master/demanda', {
       headers: { 'Authorization': `Bearer ${session?.access_token}` },
     })
-    if (!res.ok) return
-    setDemandas(await res.json())
+    if (res.ok) setDemandas(await res.json())
+    setCarregandoDemandas(false)
   }
 
   useEffect(() => {
@@ -570,7 +572,12 @@ function MasterDemandas() {
         </select>
       </div>
 
-      {filtradas.length === 0 && (
+      {carregandoDemandas && (
+        <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '40px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
+          Carregando demandas...
+        </div>
+      )}
+      {!carregandoDemandas && filtradas.length === 0 && (
         <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '40px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
           Nenhuma demanda encontrada.
         </div>
