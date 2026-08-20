@@ -510,7 +510,7 @@ export default function MapaDemandas() {
 
         {/* MAPA */}
         <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
-          <div ref={mapRef} style={{ width: '100%', height: '100%', minHeight: 'clamp(300px, 55vw, 500px)' }} />
+          <div ref={mapRef} className="mapa-map-div" style={{ width: '100%', height: '100%', minHeight: 'clamp(300px, 55vw, 500px)' }} />
 
           {/* Controles sobrepostos */}
           <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', zIndex: 1000 }}>
@@ -665,8 +665,9 @@ export default function MapaDemandas() {
 
       <style>{`
         @media (max-width: 640px) {
-          .mapa-layout { flex-direction: column !important; }
-          .mapa-layout > div:first-child { width: 100% !important; border-right: none !important; border-bottom: 1px solid #e5e7eb; }
+          .mapa-layout { flex-direction: column-reverse !important; }
+          .mapa-layout > div:first-child { width: 100% !important; border-right: none !important; border-top: 1px solid #e5e7eb; }
+          .mapa-map-div { min-height: 380px !important; }
         }
       `}</style>
     </div>
