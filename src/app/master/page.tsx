@@ -598,7 +598,7 @@ function MasterDemandas() {
             <div style={{ display: 'flex', gap: '16px', padding: '16px 20px' }}>
               <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
-                {/* Linha 1: status · categoria · data */}
+                {/* Linha 1: status · data */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '11px', fontWeight: 600, background: cor.bg, color: cor.color, borderRadius: '20px', padding: '3px 10px', flexShrink: 0 }}>
                     {statusLabel[d.status] || d.status}
@@ -608,16 +608,12 @@ function MasterDemandas() {
                       Oculto do público
                     </span>
                   )}
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: '#6b7280', fontWeight: 500 }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.categoria?.cor || '#d1d5db', display: 'inline-block', flexShrink: 0 }} />
-                    {d.categoria?.nome || '—'}
-                  </span>
                   <span style={{ fontSize: '11px', color: '#9ca3af' }}>
                     {new Date(d.created_at).toLocaleDateString('pt-BR')}
                   </span>
                 </div>
 
-                {/* Caixa principal: Nome / Para / Endereço / Descrição */}
+                {/* Caixa principal */}
                 <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
                     Nome: <strong style={{ color: '#111827' }}>{titleCase(d.morador_nome)}</strong>
@@ -627,8 +623,11 @@ function MasterDemandas() {
                     Para: <strong style={{ color: '#111827' }}>{titleCase(d.entidade?.nome)}</strong>
                     {d.entidade?.cargo && <span style={{ color: '#6b7280' }}> ({titleCase(d.entidade.cargo)})</span>}
                   </p>
-                  <p style={{ fontSize: '12px', color: '#111827', margin: 0, lineHeight: 1.5 }}>
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
                     <strong style={{ color: '#6b7280', fontWeight: 400 }}>Endereço:</strong> {titleCase(d.endereco_label)}
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+                    <strong style={{ color: '#6b7280', fontWeight: 400 }}>Categoria:</strong> {d.categoria?.nome ? titleCase(d.categoria.nome) : '—'}
                   </p>
                   {editando ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
