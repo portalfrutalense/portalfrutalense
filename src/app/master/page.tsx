@@ -727,7 +727,6 @@ const CONFIG_PADRAO = {
 function MasterIA() {
   const sbClient = createClient()
   const [config, setConfig] = useState<any>(null)
-  const [historico, setHistorico] = useState<any[]>([])
   const [salvando, setSalvando] = useState(false)
   const [notif, setNotif] = useState('')
   const [erro, setErro] = useState('')
@@ -737,7 +736,6 @@ function MasterIA() {
       if (error) { setErro('Erro ao carregar configurações da IA.'); return }
       setConfig(data || CONFIG_PADRAO)
     })
-    sbClient.from('ia_historico').select('*, demanda:demandas(descricao, morador_nome)').order('created_at', { ascending: false }).limit(20).then(({ data }: any) => setHistorico(data || []))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -802,22 +800,6 @@ function MasterIA() {
         </div>
       </div>
 
-      <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '20px' }}>
-        <h2 style={{ fontWeight: 700, color: '#111827', fontSize: '15px', marginBottom: '16px' }}>Histórico de análises (últimas 20)</h2>
-        {historico.length === 0 && <p style={{ color: '#9ca3af', fontSize: '13px' }}>Nenhuma análise ainda.</p>}
-        {historico.map((h: any) => (
-          <div key={h.id} style={{ borderBottom: '1px solid #f3f4f6', padding: '10px 0', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: h.decisao === 'aprovada' ? '#166534' : '#dc2626', background: h.decisao === 'aprovada' ? '#f0fdf4' : '#fef2f2', borderRadius: '20px', padding: '3px 10px', flexShrink: 0 }}>
-              {h.decisao === 'aprovada' ? 'Aprovada' : 'Rejeitada'}
-            </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: '13px', color: '#111827', margin: '0 0 2px', fontWeight: 500 }}>{h.demanda?.descricao?.slice(0, 80)}...</p>
-              <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{h.motivo}</p>
-            </div>
-            <span style={{ fontSize: '11px', color: '#9ca3af', flexShrink: 0 }}>{new Date(h.created_at).toLocaleDateString('pt-BR')}</span>
-          </div>
-        ))}
-      </div>
     </div>
   )
 }
