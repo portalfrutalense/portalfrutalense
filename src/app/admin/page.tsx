@@ -40,6 +40,7 @@ export default function AdminPage() {
   const [novaCatNome, setNovaCatNome] = useState('')
   const [novaCatCor, setNovaCatCor] = useState('#ef4444')
   const [notificacao, setNotificacao] = useState('')
+  const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
 
   // Edição inline de entidade
   const [editandoEnt, setEditandoEnt] = useState<string | null>(null)
@@ -559,7 +560,12 @@ export default function AdminPage() {
                       <div style={{ marginBottom: '12px' }}>
                         <p style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 6px' }}>Foto</p>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={o.foto_url} alt="Foto da ocorrência" style={{ maxWidth: '100%', borderRadius: '8px', display: 'block', border: '1px solid #e5e7eb' }} />
+                        <img
+                          src={o.foto_url}
+                          alt="Foto da ocorrência"
+                          onClick={() => setFotoAmpliada(o.foto_url!)}
+                          style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'zoom-in', display: 'block' }}
+                        />
                       </div>
                     )}
 
@@ -692,6 +698,23 @@ export default function AdminPage() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Lightbox de foto */}
+      {fotoAmpliada && (
+        <div
+          onClick={() => setFotoAmpliada(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', cursor: 'zoom-out' }}
+        >
+          <button onClick={() => setFotoAmpliada(null)} style={{ position: 'absolute', top: '16px', right: '20px', background: 'none', border: 'none', color: 'white', fontSize: '28px', cursor: 'pointer', lineHeight: 1 }}>×</button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={fotoAmpliada}
+            alt="Foto ampliada"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '100%', maxHeight: '90vh', borderRadius: '10px', display: 'block', boxShadow: '0 8px 40px rgba(0,0,0,0.5)', cursor: 'default' }}
+          />
         </div>
       )}
     </div>
