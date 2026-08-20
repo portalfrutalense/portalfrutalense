@@ -641,23 +641,27 @@ function MasterDemandas() {
                   )}
                 </div>
 
-                {/* Análise IA — sempre visível */}
-                <div style={{
-                  fontSize: '12px',
-                  color: d.status === 'rejeitada_ia' ? '#dc2626' : '#6b7280',
-                  background: d.status === 'rejeitada_ia' ? '#fef2f2' : '#f9fafb',
-                  border: `1px solid ${d.status === 'rejeitada_ia' ? '#fecaca' : '#e5e7eb'}`,
-                  borderRadius: '6px',
-                  padding: '7px 10px',
-                  lineHeight: 1.5,
-                }}>
-                  <strong>Análise IA:</strong> {d.ia_motivo || '—'}
-                </div>
+                {/* Análise IA — oculta se não houver */}
+                {d.ia_motivo && (
+                  <div style={{
+                    fontSize: '12px',
+                    color: d.status === 'rejeitada_ia' ? '#dc2626' : '#6b7280',
+                    background: d.status === 'rejeitada_ia' ? '#fef2f2' : '#f9fafb',
+                    border: `1px solid ${d.status === 'rejeitada_ia' ? '#fecaca' : '#e5e7eb'}`,
+                    borderRadius: '6px',
+                    padding: '7px 10px',
+                    lineHeight: 1.5,
+                  }}>
+                    <strong>Análise IA:</strong> {d.ia_motivo}
+                  </div>
+                )}
 
-                {/* Resposta — sempre visível */}
-                <div style={{ fontSize: '12px', color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '7px 10px', lineHeight: 1.5 }}>
-                  <strong>Resposta:</strong> {d.resposta || '—'}
-                </div>
+                {/* Resposta — oculta se não houver, mesmas cores da IA */}
+                {d.resposta && (
+                  <div style={{ fontSize: '12px', color: '#6b7280', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 10px', lineHeight: 1.5 }}>
+                    <strong>Resposta:</strong> {d.resposta}
+                  </div>
+                )}
 
               </div>
 
