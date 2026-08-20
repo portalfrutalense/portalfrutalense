@@ -371,11 +371,13 @@ export default function MapaDemandas() {
                     Demanda: <strong style={{ color: '#111827' }}>{demandaSelecionada.descricao}</strong>
                   </p>
                   {demandaSelecionada.foto_url && (
-                    <button
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={demandaSelecionada.foto_url}
+                      alt="Foto da demanda"
                       onClick={() => window.open(demandaSelecionada.foto_url!, '_blank')}
-                      style={{ alignSelf: 'flex-start', marginTop: '2px', fontSize: '12px', fontWeight: 500, color: '#1e40af', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
-                      Ver foto
-                    </button>
+                      style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '6px', cursor: 'pointer', marginTop: '4px', border: '1px solid #e5e7eb', flexShrink: 0 }}
+                    />
                   )}
                 </div>
 
