@@ -3,10 +3,11 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
+import { useAuth } from './AuthProvider'
+import ModalAuth from './ModalAuth'
 
 const links = [
-  { href: '/denuncias', label: 'Denúncias' },
-  { href: '/mapa', label: 'Mapa de Ocorrências' },
+  { href: '/mapa', label: 'Mapa de Demandas' },
   { href: '/vagas', label: 'Vagas de Emprego' },
   { href: '/guia', label: 'Guia Útil' },
 ]
@@ -14,66 +15,101 @@ const links = [
 export default function Navbar() {
   const pathname = usePathname()
   const [menuAberto, setMenuAberto] = useState(false)
+  const [modalAuth, setModalAuth] = useState(false)
+  const { user, perfil, sair } = useAuth()
+
+  const nomeExibido = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || 'Usuário'
 
   return (
-    <header style={{ backgroundColor: '#1e3a5f', color: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
-      <div style={{ maxWidth: '960px', margin: '0 auto', padding: '0 16px', display: 'flex', alignItems: 'stretch', justifyContent: 'space-between', minHeight: '52px' }}>
-        {/* Logo */}
-        <Link href="/" style={{ fontWeight: 700, fontSize: '16px', display: 'flex', alignItems: 'center', padding: '0 20px 0 0', color: 'white', textDecoration: 'none', letterSpacing: '-0.01em', flexShrink: 0 }}>
-          Portal Frutalense
-        </Link>
+    <>
+      <header style={{ backgroundColor: '#1e3a5f', color: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
+        <div style={{ maxWidth: '960px', margin: '0 auto', padding: '0 16px', display: 'flex', alignItems: 'stretch', justifyContent: 'space-between', minHeight: '52px' }}>
+          {/* Logo */}
+          <Link href="/" style={{ fontWeight: 700, fontSize: '16px', display: 'flex', alignItems: 'center', padding: '0 20px 0 0', color: 'white', textDecoration: 'none', letterSpacing: '-0.01em', flexShrink: 0 }}>
+            Portal Frutalense
+          </Link>
 
-        {/* Links desktop */}
-        <nav style={{ display: 'flex', alignItems: 'stretch' }} className="hide-mobile">
-          {links.map(({ href, label }) => (
-            <Link key={href} href={href} style={{
-              display: 'flex', alignItems: 'center', padding: '0 20px', fontSize: '14px', fontWeight: 500,
-              borderRight: '1px solid #2d5a8f', color: pathname === href ? 'white' : '#93c5fd',
-              backgroundColor: pathname === href ? '#1e40af' : 'transparent', textDecoration: 'none',
-            }}>
-              {label}
-            </Link>
-          ))}
-        </nav>
+          {/* Links desktop */}
+          <nav style={{ display: 'flex', alignItems: 'stretch', flex: 1 }} className="hide-mobile">
+            {links.map(({ href, label }) => (
+              <Link key={href} href={href} style={{
+                display: 'flex', alignItems: 'center', padding: '0 20px', fontSize: '14px', fontWeight: 500,
+                borderRight: '1px solid #2d5a8f', color: pathname === href ? 'white' : '#93c5fd',
+                backgroundColor: pathname === href ? '#1e40af' : 'transparent', textDecoration: 'none',
+              }}>
+                {label}
+              </Link>
+            ))}
+          </nav>
 
-        {/* Botão hambúrguer mobile */}
-        <button
-          onClick={() => setMenuAberto(!menuAberto)}
-          aria-label="Menu"
-          style={{ display: 'none', background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '0 4px', fontSize: '22px', alignItems: 'center' }}
-          className="show-mobile-flex"
-        >
-          {menuAberto ? '✕' : '☰'}
-        </button>
-      </div>
+          {/* Auth desktop */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '16px' }} className="hide-mobile">
+            {user ? (
+              <>
+                <span style={{ fontSize: '13px', color: '#93c5fd' }}>Olá, {nomeExibido}</span>
+                <button onClick={sair} style={{ fontSize: '13px', color: '#93c5fd', background: 'none', border: '1px solid #2d5a8f', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
+                  Sair
+                </button>
+              </>
+            ) : (
+              <button onClick={() => setModalAuth(true)} style={{ fontSize: '13px', fontWeight: 600, color: 'white', background: '#2563eb', border: 'none', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer' }}>
+                Entrar
+              </button>
+            )}
+          </div>
 
-      {/* Menu mobile expandido */}
-      {menuAberto && (
-        <nav style={{ borderTop: '1px solid #2d5a8f', backgroundColor: '#1e3a5f' }} className="show-mobile">
-          {links.map(({ href, label }) => (
-            <Link key={href} href={href} onClick={() => setMenuAberto(false)} style={{
-              display: 'block', padding: '14px 16px', fontSize: '15px', fontWeight: 500,
-              color: pathname === href ? 'white' : '#93c5fd',
-              backgroundColor: pathname === href ? '#1e40af' : 'transparent',
-              textDecoration: 'none', borderBottom: '1px solid #2d5a8f',
-            }}>
-              {label}
-            </Link>
-          ))}
-        </nav>
-      )}
+          {/* Hambúrguer mobile */}
+          <button
+            onClick={() => setMenuAberto(!menuAberto)}
+            aria-label="Menu"
+            style={{ display: 'none', background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '0 4px', fontSize: '22px', alignItems: 'center' }}
+            className="show-mobile-flex"
+          >
+            {menuAberto ? '✕' : '☰'}
+          </button>
+        </div>
 
-      <style>{`
-        @media (max-width: 600px) {
-          .hide-mobile { display: none !important; }
-          .show-mobile-flex { display: flex !important; }
-          .show-mobile { display: block !important; }
-        }
-        @media (min-width: 601px) {
-          .show-mobile-flex { display: none !important; }
-          .show-mobile { display: none !important; }
-        }
-      `}</style>
-    </header>
+        {/* Menu mobile */}
+        {menuAberto && (
+          <nav style={{ borderTop: '1px solid #2d5a8f', backgroundColor: '#1e3a5f' }} className="show-mobile">
+            {links.map(({ href, label }) => (
+              <Link key={href} href={href} onClick={() => setMenuAberto(false)} style={{
+                display: 'block', padding: '14px 16px', fontSize: '15px', fontWeight: 500,
+                color: pathname === href ? 'white' : '#93c5fd',
+                backgroundColor: pathname === href ? '#1e40af' : 'transparent',
+                textDecoration: 'none', borderBottom: '1px solid #2d5a8f',
+              }}>
+                {label}
+              </Link>
+            ))}
+            <div style={{ padding: '12px 16px', borderTop: '1px solid #2d5a8f' }}>
+              {user ? (
+                <button onClick={sair} style={{ fontSize: '14px', color: '#93c5fd', background: 'none', border: '1px solid #2d5a8f', borderRadius: '6px', padding: '8px 16px', cursor: 'pointer', width: '100%' }}>
+                  Sair ({nomeExibido})
+                </button>
+              ) : (
+                <button onClick={() => { setMenuAberto(false); setModalAuth(true) }} style={{ fontSize: '14px', fontWeight: 600, color: 'white', background: '#2563eb', border: 'none', borderRadius: '6px', padding: '8px 16px', cursor: 'pointer', width: '100%' }}>
+                  Entrar com Google
+                </button>
+              )}
+            </div>
+          </nav>
+        )}
+
+        <style>{`
+          @media (max-width: 600px) {
+            .hide-mobile { display: none !important; }
+            .show-mobile-flex { display: flex !important; }
+            .show-mobile { display: block !important; }
+          }
+          @media (min-width: 601px) {
+            .show-mobile-flex { display: none !important; }
+            .show-mobile { display: none !important; }
+          }
+        `}</style>
+      </header>
+
+      {modalAuth && <ModalAuth onFechar={() => setModalAuth(false)} />}
+    </>
   )
 }

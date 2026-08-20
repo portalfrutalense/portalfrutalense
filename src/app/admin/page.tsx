@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { Denuncia, Ocorrencia, Entidade, CategoriaMapa } from '@/types'
 import { formatarCPF } from '@/lib/cpf'
 
-type Aba = 'denuncias' | 'ocorrencias' | 'entidades' | 'categorias'
+type Aba = 'demandas' | 'denuncias' | 'ocorrencias' | 'entidades' | 'categorias' | 'ia'
 
 const STATUS_LABEL: Record<string, { label: string; cor: string; fundo: string }> = {
   pendente:                       { label: 'Pendente',               cor: '#92400e', fundo: '#fef3c7' },
@@ -275,10 +275,12 @@ export default function AdminPage() {
   const ocoFiltradas = filtroOco === 'todos' ? ocorrencias : ocorrencias.filter(o => o.status === filtroOco)
 
   const abas: { key: Aba; label: string; badge?: number }[] = [
+    { key: 'demandas',    label: 'Demandas' },
     { key: 'denuncias',   label: 'Denúncias',   badge: denPendentes },
     { key: 'ocorrencias', label: 'Ocorrências',  badge: ocoPendentes },
     { key: 'entidades',   label: 'Autoridades' },
     { key: 'categorias',  label: 'Categorias' },
+    { key: 'ia',          label: '🤖 IA' },
   ]
 
   const btnAcao = (label: string, onClick: () => void, variante: 'primario' | 'perigo' | 'neutro' | 'aviso') => {
@@ -717,6 +719,188 @@ export default function AdminPage() {
           />
         </div>
       )}
+
+      {/* === DEMANDAS === */}
+      {aba === 'demandas' && (
+        <AdminDemandas senha={senha} />
+      )}
+
+      {/* === IA === */}
+      {aba === 'ia' && (
+        <AdminIA senha={senha} />
+      )}
+    </div>
+  )
+}
+
+// ---- Sub-componente: Demandas ----
+function AdminDemandas({ senha }: { senha: string }) {
+  const [demandas, setDemandas] = useState<any[]>([])
+  const [filtro, setFiltro] = useState('todos')
+  const [notif, setNotif] = useState('')
+
+  useEffect(() => {
+    supabase.from('demandas').select('*, categoria:categorias_mapa(*), entidade:entidades(*)').order('created_at', { ascending: false }).then(({ data }: any) => setDemandas(data || []))
+  }, [])
+
+  async function reenviarLink(id: string) {
+    const res = await fetch('/api/admin/reenviar-link-demanda', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${senha}` }, body: JSON.stringify({ demanda_id: id }) })
+    const d = await res.json()
+    setNotif(d.ok ? 'Link reenviado.' : `Erro: ${d.error}`)
+    setTimeout(() => setNotif(''), 5000)
+  }
+
+  const statusLabel: Record<string, string> = {
+    pendente: 'Pendente',
+    aguardando_resposta: 'Aguardando resposta',
+    respondida: 'Respondida',
+    rejeitada_ia: 'Rejeitada pela IA',
+    resolvida: 'Resolvida',
+  }
+
+  const filtradas = filtro === 'todos' ? demandas : demandas.filter(d => d.status === filtro)
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {notif && <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '10px 14px', fontSize: '13px', color: '#166534' }}>{notif}</div>}
+
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        {['todos', 'pendente', 'aguardando_resposta', 'respondida', 'rejeitada_ia'].map(f => (
+          <button key={f} onClick={() => setFiltro(f)} style={{ fontSize: '12px', padding: '5px 12px', borderRadius: '6px', border: '1px solid #e5e7eb', background: filtro === f ? '#1e3a5f' : 'white', color: filtro === f ? 'white' : '#374151', cursor: 'pointer', fontWeight: filtro === f ? 600 : 400 }}>
+            {f === 'todos' ? 'Todas' : statusLabel[f]}
+          </button>
+        ))}
+      </div>
+
+      {filtradas.length === 0 && <p style={{ color: '#9ca3af', fontSize: '13px', padding: '20px' }}>Nenhuma demanda encontrada.</p>}
+
+      {filtradas.map((d: any) => (
+        <div key={d.id} style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '16px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, background: d.status === 'rejeitada_ia' ? '#fef2f2' : d.status === 'respondida' ? '#f0fdf4' : '#eff6ff', color: d.status === 'rejeitada_ia' ? '#dc2626' : d.status === 'respondida' ? '#166534' : '#2563eb', borderRadius: '4px', padding: '2px 8px' }}>
+                  {statusLabel[d.status] || d.status}
+                </span>
+                <span style={{ fontSize: '11px', color: '#6b7280' }}>{d.categoria?.nome}</span>
+                <span style={{ fontSize: '11px', color: '#9ca3af' }}>{new Date(d.created_at).toLocaleDateString('pt-BR')}</span>
+              </div>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#111827', margin: '0 0 4px' }}>{d.descricao}</p>
+              <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px' }}>Por: <strong>{d.morador_nome}</strong> · Para: <strong>{d.entidade?.nome} ({d.entidade?.cargo})</strong></p>
+              {d.endereco_label && <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>📍 {d.endereco_label}</p>}
+              {d.ia_motivo && <p style={{ fontSize: '12px', color: d.status === 'rejeitada_ia' ? '#dc2626' : '#6b7280', margin: '6px 0 0', background: '#f9fafb', borderRadius: '4px', padding: '6px 10px' }}>🤖 IA: {d.ia_motivo}</p>}
+              {d.resposta && <p style={{ fontSize: '12px', color: '#166534', margin: '6px 0 0', background: '#f0fdf4', borderRadius: '4px', padding: '6px 10px' }}>✓ Resposta: {d.resposta}</p>}
+            </div>
+            {d.foto_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={d.foto_url} alt="Foto" style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '6px', flexShrink: 0, cursor: 'zoom-in' }} onClick={() => window.open(d.foto_url, '_blank')} />
+            )}
+          </div>
+          {d.status === 'aguardando_resposta' && d.link_enviado && (
+            <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '12px', color: '#166534' }}>✓ Link enviado</span>
+              <button onClick={() => reenviarLink(d.id)} style={{ fontSize: '12px', color: '#1e40af', background: 'none', border: '1px solid #bfdbfe', borderRadius: '5px', padding: '3px 10px', cursor: 'pointer' }}>Reenviar link</button>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ---- Sub-componente: Configuração da IA ----
+function AdminIA({ senha }: { senha: string }) {
+  const [config, setConfig] = useState<any>(null)
+  const [historico, setHistorico] = useState<any[]>([])
+  const [salvando, setSalvando] = useState(false)
+  const [notif, setNotif] = useState('')
+
+  useEffect(() => {
+    import('@/lib/supabase').then(({ supabase: sb }) => {
+      sb.from('ia_config').select('*').eq('id', 1).single().then(({ data }: any) => setConfig(data))
+      sb.from('ia_historico').select('*, demanda:demandas(descricao, morador_nome)').order('created_at', { ascending: false }).limit(20).then(({ data }: any) => setHistorico(data || []))
+    })
+  }, [])
+
+  async function salvar() {
+    if (!config) return
+    setSalvando(true)
+    const { error } = await supabase.from('ia_config').update({ ativo: config.ativo, prompt: config.prompt, rigor: config.rigor, updated_at: new Date().toISOString() }).eq('id', 1)
+    setNotif(error ? 'Erro ao salvar.' : 'Configurações salvas!')
+    setTimeout(() => setNotif(''), 4000)
+    setSalvando(false)
+  }
+
+  if (!config) return <p style={{ color: '#9ca3af', fontSize: '13px', padding: '20px' }}>Carregando...</p>
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {notif && <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '10px 14px', fontSize: '13px', color: '#166534' }}>{notif}</div>}
+
+      {/* Configurações */}
+      <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '20px' }}>
+        <h2 style={{ fontWeight: 700, color: '#111827', fontSize: '15px', marginBottom: '20px' }}>Configurações da IA</h2>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Toggle ativo */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#111827', margin: 0 }}>Análise automática ativa</p>
+              <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0' }}>Quando desativada, demandas ficam pendentes para aprovação manual</p>
+            </div>
+            <button onClick={() => setConfig({ ...config, ativo: !config.ativo })} style={{ width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: config.ativo ? '#1e3a5f' : '#d1d5db', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+              <span style={{ position: 'absolute', top: '2px', left: config.ativo ? '22px' : '2px', width: '20px', height: '20px', borderRadius: '50%', background: 'white', transition: 'left 0.2s', display: 'block' }} />
+            </button>
+          </div>
+
+          {/* Rigor */}
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>Nível de rigor</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {['permissivo', 'moderado', 'rigoroso'].map(r => (
+                <button key={r} onClick={() => setConfig({ ...config, rigor: r })}
+                  style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1.5px solid', borderColor: config.rigor === r ? '#1e3a5f' : '#e5e7eb', background: config.rigor === r ? '#eff6ff' : 'white', color: config.rigor === r ? '#1e3a5f' : '#374151', fontSize: '13px', fontWeight: config.rigor === r ? 600 : 400, cursor: 'pointer', textTransform: 'capitalize' }}>
+                  {r}
+                </button>
+              ))}
+            </div>
+            <p style={{ fontSize: '11px', color: '#9ca3af', margin: '6px 0 0' }}>
+              {config.rigor === 'permissivo' && 'Rejeita apenas conteúdo claramente ofensivo ou spam.'}
+              {config.rigor === 'moderado' && 'Rejeita conteúdo ofensivo, político-partidário ou sem relação com serviços públicos.'}
+              {config.rigor === 'rigoroso' && 'Rejeita demandas vagas, sem endereço ou que não sejam solicitações legítimas.'}
+            </p>
+          </div>
+
+          {/* Prompt */}
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>Prompt de análise</label>
+            <textarea value={config.prompt} onChange={(e) => setConfig({ ...config, prompt: e.target.value })} rows={6}
+              style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '10px 12px', fontSize: '13px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', lineHeight: 1.6 }} />
+          </div>
+
+          <button onClick={salvar} disabled={salvando} style={{ backgroundColor: salvando ? '#9ca3af' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: salvando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+            {salvando ? 'Salvando...' : 'Salvar configurações'}
+          </button>
+        </div>
+      </div>
+
+      {/* Histórico */}
+      <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '20px' }}>
+        <h2 style={{ fontWeight: 700, color: '#111827', fontSize: '15px', marginBottom: '16px' }}>Histórico de análises (últimas 20)</h2>
+        {historico.length === 0 && <p style={{ color: '#9ca3af', fontSize: '13px' }}>Nenhuma análise ainda.</p>}
+        {historico.map((h: any) => (
+          <div key={h.id} style={{ borderBottom: '1px solid #f3f4f6', padding: '10px 0', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: h.decisao === 'aprovada' ? '#166534' : '#dc2626', background: h.decisao === 'aprovada' ? '#f0fdf4' : '#fef2f2', borderRadius: '4px', padding: '2px 8px', flexShrink: 0 }}>
+              {h.decisao === 'aprovada' ? '✓ Aprovada' : '✗ Rejeitada'}
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: '13px', color: '#111827', margin: '0 0 2px', fontWeight: 500 }}>{h.demanda?.descricao?.slice(0, 80)}...</p>
+              <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{h.motivo}</p>
+            </div>
+            <span style={{ fontSize: '11px', color: '#9ca3af', flexShrink: 0 }}>{new Date(h.created_at).toLocaleDateString('pt-BR')}</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

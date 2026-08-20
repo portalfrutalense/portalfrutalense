@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import PublicShell from '@/components/PublicShell'
+import AuthProvider from '@/components/AuthProvider'
+import GlobalModals from '@/components/GlobalModals'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -26,9 +28,12 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={`${inter.className} bg-[#f4f6f8] min-h-screen`}>
-        <PublicShell>
-          {children}
-        </PublicShell>
+        <AuthProvider>
+          <GlobalModals />
+          <PublicShell>
+            {children}
+          </PublicShell>
+        </AuthProvider>
       </body>
     </html>
   )

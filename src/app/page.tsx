@@ -82,7 +82,7 @@ export default function LandingPage() {
 
           {/* CTAs */}
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            <Link href="/denuncias" style={{
+            <Link href="/mapa" style={{
               background: '#1e3a5f',
               color: 'white',
               fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -95,10 +95,10 @@ export default function LandingPage() {
               alignItems: 'center',
               gap: '8px',
             }}>
-              + Registrar Denúncia
+              Ver o Mapa de Demandas
               <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </Link>
-            <Link href="/mapa" style={{
+            <Link href="/vagas" style={{
               background: 'transparent',
               color: '#1e3a5f',
               fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -112,7 +112,7 @@ export default function LandingPage() {
               alignItems: 'center',
               gap: '8px',
             }}>
-              Ver o Mapa
+              Vagas de Emprego
             </Link>
           </div>
         </div>
@@ -155,26 +155,12 @@ export default function LandingPage() {
           letterSpacing: '-0.025em',
           marginBottom: '44px',
         }}>
-          Quatro formas de participar da cidade
+          Três formas de participar da cidade
         </h2>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px' }}>
 
-          {/* Denúncias */}
-          <Link href="/denuncias" style={{ textDecoration: 'none' }}>
-            <div style={cardStyle}>
-              <div style={iconStyle('#eff6ff')}>
-                <svg width="20" height="20" fill="none" stroke="#2563eb" strokeWidth="2" viewBox="0 0 24 24">
-                  <path d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
-                </svg>
-              </div>
-              <div style={cardTitle}>Denúncias</div>
-              <div style={cardDesc}>Registre cobranças diretas a vereadores, prefeito e órgãos públicos. As autoridades respondem publicamente.</div>
-              <div style={cardLink('#1e3a5f')}>Acessar →</div>
-            </div>
-          </Link>
-
-          {/* Mapa */}
+          {/* Mapa de Demandas */}
           <Link href="/mapa" style={{ textDecoration: 'none' }}>
             <div style={cardStyle}>
               <div style={iconStyle('#eff6ff')}>
@@ -183,8 +169,8 @@ export default function LandingPage() {
                   <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                 </svg>
               </div>
-              <div style={cardTitle}>Mapa de Ocorrências</div>
-              <div style={cardDesc}>Sinalize buracos, alagamentos e problemas de infraestrutura urbana. Veja o que a cidade inteira está reportando.</div>
+              <div style={cardTitle}>Mapa de Demandas</div>
+              <div style={cardDesc}>Registre demandas diretamente às autoridades públicas. Sinalize problemas urbanos, cobre respostas e acompanhe tudo no mapa.</div>
               <div style={cardLink('#1e3a5f')}>Acessar →</div>
             </div>
           </Link>
