@@ -73,13 +73,20 @@ export default function PerfilPage() {
     <div style={{ padding: '24px 32px' }}>
 
       {/* Cabeçalho */}
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '20px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>
-          {nomeExibido.split(' ')[0]}
-        </h1>
-        <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
-          {user.email}
-        </p>
+      <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ fontSize: '20px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>
+            {nomeExibido.split(' ')[0]}
+          </h1>
+          <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
+            {user.email}
+          </p>
+        </div>
+        {perfil?.role === 'master' && (
+          <a href="/master" style={{ fontSize: '13px', fontWeight: 600, color: 'white', background: '#1e3a5f', border: 'none', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+            Painel Master
+          </a>
+        )}
       </div>
 
       {/* Abas */}
