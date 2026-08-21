@@ -47,7 +47,7 @@ export default function AbacaXicoPage() {
       <style>{`
         .abx-textarea { min-height: 24px; }
         @media (max-width: 480px) {
-          .abx-textarea { min-height: 44px; }
+          .abx-textarea { min-height: 52px; }
         }
       `}</style>
       <div style={{ maxWidth: '760px', margin: '0 auto', width: '100%', position: 'relative', background: 'white', borderRadius: '24px', border: '1px solid #e5e7eb', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', padding: '12px 16px', gap: '8px', boxSizing: 'border-box' }}>
