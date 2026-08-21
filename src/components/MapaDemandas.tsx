@@ -180,12 +180,12 @@ export default function MapaDemandas() {
       })
       if (iconeUrl) return L.divIcon({
         className: '',
-        html: `<img src="${iconeUrl}" style="width:${s}px;height:${s}px;object-fit:contain;filter:drop-shadow(0 0 3px rgba(255,255,255,0.8)) drop-shadow(0 2px 4px rgba(0,0,0,0.25));" />`,
+        html: `<img src="${iconeUrl}" style="width:${s}px;height:${s}px;object-fit:contain;filter:brightness(1.3) drop-shadow(0 0 3px rgba(255,255,255,0.8)) drop-shadow(0 2px 4px rgba(0,0,0,0.25));" />`,
         iconSize: [s, s], iconAnchor: [s/2, s/2],
       })
       return L.divIcon({
         className: '',
-        html: `<div style="width:22px;height:22px;border-radius:50%;background:${cor};box-shadow:0 2px 6px rgba(0,0,0,0.4)"></div>`,
+        html: `<div style="width:22px;height:22px;border-radius:50%;background:${cor};box-shadow:0 2px 6px rgba(0,0,0,0.4);filter:brightness(1.3)"></div>`,
         iconSize: [22, 22], iconAnchor: [11, 11],
       })
     }
