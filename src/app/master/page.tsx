@@ -5,8 +5,8 @@ import { createClient } from '@/lib/supabase-browser'
 import { supabase } from '@/lib/supabase'
 import { Entidade, CategoriaMapa } from '@/types'
 
-type SecaoMaster = 'dashboard' | 'demandas'
-type AbaConfig = 'autoridades' | 'categorias' | 'ia' | 'chatbot'
+type SecaoMaster = 'dashboard' | 'demandas' | 'chatbot'
+type AbaConfig = 'autoridades' | 'categorias' | 'ia'
 
 export default function MasterPage() {
   const [email, setEmail] = useState('')
@@ -178,6 +178,7 @@ export default function MasterPage() {
   const navItems: { key: SecaoMaster; label: string }[] = [
     { key: 'dashboard', label: 'Dashboard' },
     { key: 'demandas',  label: 'Mapa de Demandas' },
+    { key: 'chatbot',   label: 'Chatbot IA' },
   ]
 
   return (
@@ -275,6 +276,17 @@ export default function MasterPage() {
             </div>
           )}
 
+          {/* ── CHATBOT IA ── */}
+          {secao === 'chatbot' && (
+            <div>
+              <div style={{ marginBottom: '28px' }}>
+                <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>Chatbot IA</h1>
+                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Base de conhecimento usada pelo assistente virtual do Fala Frutal.</p>
+              </div>
+              <MasterChatbot />
+            </div>
+          )}
+
           {/* ── MAPA DE DEMANDAS ── */}
           {secao === 'demandas' && (
             <div>
@@ -311,8 +323,8 @@ export default function MasterPage() {
                 <div>
                   {/* Sub-abas */}
                   <div style={{ display: 'flex', gap: '4px', marginBottom: '24px', background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '6px' }}>
-                    {(['autoridades', 'categorias', 'ia', 'chatbot'] as AbaConfig[]).map((a) => {
-                      const labels: Record<AbaConfig, string> = { autoridades: 'Autoridades', categorias: 'Categorias', ia: 'IA', chatbot: 'Chatbot IA' }
+                    {(['autoridades', 'categorias', 'ia'] as AbaConfig[]).map((a) => {
+                      const labels: Record<AbaConfig, string> = { autoridades: 'Autoridades', categorias: 'Categorias', ia: 'IA' }
                       return (
                         <button key={a} onClick={() => setAbaConfig(a)} style={{
                           flex: 1, padding: '8px 12px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
@@ -425,7 +437,6 @@ export default function MasterPage() {
                   )}
 
                   {abaConfig === 'ia' && <MasterIA />}
-                  {abaConfig === 'chatbot' && <MasterChatbot />}
                 </div>
               )}
             </div>
