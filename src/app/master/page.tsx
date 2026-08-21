@@ -843,6 +843,15 @@ function MasterChatbot() {
   const [salvando, setSalvando] = useState(false)
   const [notif, setNotif] = useState('')
   const [notifErro, setNotifErro] = useState(false)
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set())
+
+  function toggleExpandir(id: string) {
+    setExpandidos(prev => {
+      const novo = new Set(prev)
+      novo.has(id) ? novo.delete(id) : novo.add(id)
+      return novo
+    })
+  }
 
   async function carregar() {
     const { data, error } = await sbClient.from('chatbot_base').select('*').order('created_at', { ascending: false })
@@ -944,8 +953,16 @@ function MasterChatbot() {
               </div>
             ) : (
               <div>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>{e.titulo}</span>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: expandidos.has(e.id) ? '6px' : 0 }}>
+                  <button
+                    onClick={() => toggleExpandir(e.id)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left', flex: 1, minWidth: 0 }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                      style={{ flexShrink: 0, transition: 'transform 0.15s', transform: expandidos.has(e.id) ? 'rotate(90deg)' : 'rotate(0deg)' }}>
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>{e.titulo}</span>
+                  </button>
                   <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
                     <button onClick={() => toggleAtivo(e.id, e.ativo)}
                       style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', border: 'none', cursor: 'pointer', background: e.ativo ? '#dcfce7' : '#f3f4f6', color: e.ativo ? '#166534' : '#6b7280' }}>
@@ -961,7 +978,9 @@ function MasterChatbot() {
                     </button>
                   </div>
                 </div>
-                <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{e.conteudo}</p>
+                {expandidos.has(e.id) && (
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{e.conteudo}</p>
+                )}
               </div>
             )}
           </div>
