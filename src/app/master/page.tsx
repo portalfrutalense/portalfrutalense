@@ -386,14 +386,33 @@ export default function MasterPage() {
                                 </div>
                               </div>
                             ) : (
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-                                <div>
-                                  <p style={{ fontWeight: 500, color: '#111827', fontSize: '14px', margin: 0 }}>{e.nome}</p>
-                                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0' }}>{e.cargo} · {e.email}</p>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                                  <div>
+                                    <p style={{ fontWeight: 500, color: '#111827', fontSize: '14px', margin: 0 }}>{e.nome}</p>
+                                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0' }}>{e.cargo} · {e.email}</p>
+                                  </div>
+                                  <div style={{ display: 'flex', gap: '8px' }}>
+                                    {btnAcao('Editar', () => { setEditandoEnt(e.id); setEditEntNome(e.nome); setEditEntCargo(e.cargo); setEditEntEmail(e.email) }, 'neutro')}
+                                    {btnAcao('Excluir', () => excluirEntidade(e.id), 'perigo')}
+                                  </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                  {btnAcao('Editar', () => { setEditandoEnt(e.id); setEditEntNome(e.nome); setEditEntCargo(e.cargo); setEditEntEmail(e.email) }, 'neutro')}
-                                  {btnAcao('Excluir', () => excluirEntidade(e.id), 'perigo')}
+                                {/* Categorias atribuídas a esta entidade */}
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', paddingLeft: '4px' }}>
+                                  {categorias.map(cat => {
+                                    const ativo = (catEntidades[cat.id] || []).includes(e.id)
+                                    return (
+                                      <button key={cat.id} onClick={() => toggleCatEntidade(cat.id, e.id)} style={{
+                                        fontSize: '11px', padding: '3px 10px', borderRadius: '20px', cursor: 'pointer', fontWeight: 500,
+                                        background: ativo ? cat.cor : 'white',
+                                        color: ativo ? 'white' : '#6b7280',
+                                        border: ativo ? `1px solid ${cat.cor}` : '1px solid #e5e7eb',
+                                      }}>
+                                        {cat.nome}
+                                      </button>
+                                    )
+                                  })}
+                                  {categorias.length === 0 && <span style={{ fontSize: '11px', color: '#9ca3af' }}>Nenhuma categoria cadastrada.</span>}
                                 </div>
                               </div>
                             )}
@@ -437,34 +456,15 @@ export default function MasterPage() {
                                 </div>
                               </div>
                             ) : (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <span style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: c.cor, display: 'inline-block', border: '1px solid #e5e7eb', flexShrink: 0 }} />
-                                    <p style={{ fontWeight: 500, color: '#111827', fontSize: '14px', margin: 0 }}>{c.nome}</p>
-                                    <span style={{ fontSize: '11px', color: '#9ca3af', fontFamily: 'monospace' }}>{c.cor}</span>
-                                  </div>
-                                  <div style={{ display: 'flex', gap: '8px' }}>
-                                    {btnAcao('Editar', () => { setEditandoCat(c.id); setEditCatNome(c.nome); setEditCatCor(c.cor) }, 'neutro')}
-                                    {btnAcao('Excluir', () => excluirCategoria(c.id), 'perigo')}
-                                  </div>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                  <span style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: c.cor, display: 'inline-block', border: '1px solid #e5e7eb', flexShrink: 0 }} />
+                                  <p style={{ fontWeight: 500, color: '#111827', fontSize: '14px', margin: 0 }}>{c.nome}</p>
+                                  <span style={{ fontSize: '11px', color: '#9ca3af', fontFamily: 'monospace' }}>{c.cor}</span>
                                 </div>
-                                {/* Autoridades atribuídas */}
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingLeft: '28px' }}>
-                                  {entidades.map(en => {
-                                    const ativo = (catEntidades[c.id] || []).includes(en.id)
-                                    return (
-                                      <button key={en.id} onClick={() => toggleCatEntidade(c.id, en.id)} style={{
-                                        fontSize: '11px', padding: '3px 10px', borderRadius: '20px', cursor: 'pointer', fontWeight: 500,
-                                        background: ativo ? '#1e3a5f' : 'white',
-                                        color: ativo ? 'white' : '#6b7280',
-                                        border: ativo ? '1px solid #1e3a5f' : '1px solid #e5e7eb',
-                                      }}>
-                                        {en.nome}
-                                      </button>
-                                    )
-                                  })}
-                                  {entidades.length === 0 && <span style={{ fontSize: '11px', color: '#9ca3af' }}>Nenhuma autoridade cadastrada.</span>}
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  {btnAcao('Editar', () => { setEditandoCat(c.id); setEditCatNome(c.nome); setEditCatCor(c.cor) }, 'neutro')}
+                                  {btnAcao('Excluir', () => excluirCategoria(c.id), 'perigo')}
                                 </div>
                               </div>
                             )}
