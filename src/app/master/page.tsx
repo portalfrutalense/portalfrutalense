@@ -43,7 +43,7 @@ export default function MasterPage() {
   const [editCatIcone, setEditCatIcone] = useState<File | null>(null)
 
   // Stats dashboard
-  const [stats, setStats] = useState({ total: 0, pendente: 0, aguardando: 0, respondida: 0 })
+  const [stats, setStats] = useState({ total: 0, pendente: 0, aguardando: 0, respondida: 0, resolvida: 0, nao_resolvida: 0 })
 
   const client = createClient()
 
@@ -78,6 +78,8 @@ export default function MasterPage() {
         pendente: d.filter((x: any) => x.status === 'pendente').length,
         aguardando: d.filter((x: any) => x.status === 'aguardando_resposta').length,
         respondida: d.filter((x: any) => x.status === 'respondida').length,
+        resolvida: d.filter((x: any) => x.status === 'resolvida').length,
+        nao_resolvida: d.filter((x: any) => x.status === 'nao_resolvida').length,
       })
     })
   }
@@ -333,6 +335,8 @@ export default function MasterPage() {
                   { label: 'Pendentes (IA)', valor: stats.pendente, cor: '#92400e', fundo: '#fef3c7' },
                   { label: 'Aguardando resposta', valor: stats.aguardando, cor: '#1e40af', fundo: '#dbeafe' },
                   { label: 'Respondidas', valor: stats.respondida, cor: '#166534', fundo: '#dcfce7' },
+                  { label: 'Resolvidas', valor: stats.resolvida, cor: '#065f46', fundo: '#d1fae5' },
+                  { label: 'Não resolvidas', valor: stats.nao_resolvida, cor: '#991b1b', fundo: '#fee2e2' },
                 ].map((s) => (
                   <div key={s.label} style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '20px' }}>
                     <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 8px', fontWeight: 500 }}>{s.label}</p>
