@@ -171,16 +171,9 @@ export default function AbacaXicoPage() {
             {mensagens.map((m, i) => (
               <div key={i} style={{ display: 'flex', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-start', gap: '12px' }}>
 
-                {/* Avatar só do bot */}
-                {m.role === 'assistant' && (
-                  <div style={{ width: '34px', height: '34px', borderRadius: '50%', flexShrink: 0, background: '#1e3a5f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>
-                    🍍
-                  </div>
-                )}
-
                 {/* Conteúdo */}
                 {m.role === 'assistant' ? (
-                  <div style={{ flex: 1, paddingTop: '4px' }}>
+                  <div style={{ flex: 1 }}>
                     <p style={{ fontSize: '13px', fontWeight: 600, color: '#374151', margin: '0 0 6px' }}>AbacaXico</p>
                     <p style={{ fontSize: '15px', color: '#111827', margin: 0, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{m.content}</p>
                   </div>
@@ -208,12 +201,9 @@ export default function AbacaXicoPage() {
 
             {/* Digitando */}
             {enviando && (
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#1e3a5f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>🍍</div>
-                <div style={{ paddingTop: '4px' }}>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#374151', margin: '0 0 6px' }}>AbacaXico</p>
-                  <p style={{ fontSize: '15px', color: '#9ca3af', margin: 0 }}>Digitando...</p>
-                </div>
+              <div>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: '#374151', margin: '0 0 6px' }}>AbacaXico</p>
+                <p style={{ fontSize: '15px', color: '#9ca3af', margin: 0 }}>Digitando...</p>
               </div>
             )}
 
