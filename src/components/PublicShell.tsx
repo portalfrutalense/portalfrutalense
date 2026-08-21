@@ -9,7 +9,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   const isMaster = pathname.startsWith('/master')
   const isLanding = pathname === '/'
   const isMapa = pathname === '/mapa'
-  const isLucas = pathname === '/abacaxico'
+  const isLucas = pathname === '/assistenteia'
 
   // Master, landing e Lucas têm seu próprio layout
   if (isMaster || isLanding || isLucas) return <>{children}</>
