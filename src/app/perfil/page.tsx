@@ -102,6 +102,16 @@ export default function PerfilPage() {
       {/* Aba: Minhas atividades */}
       {abaAtiva === 'atividades' && (
         <div>
+          {/* Sub-abas de módulo */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+            <button style={{
+              fontSize: '13px', fontWeight: 600, padding: '6px 16px',
+              background: '#1e3a5f', color: 'white',
+              border: 'none', borderRadius: '20px', cursor: 'pointer',
+            }}>
+              Demandas
+            </button>
+          </div>
           {carregandoDemandas ? (
             <p style={{ fontSize: '14px', color: '#6b7280', textAlign: 'center', padding: '32px 0' }}>Carregando...</p>
           ) : demandas.length === 0 ? (
