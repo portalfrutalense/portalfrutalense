@@ -397,12 +397,12 @@ export default function MasterPage() {
               {configurando && (
                 <div>
                   {/* Sub-abas */}
-                  <div style={{ display: 'flex', gap: '4px', marginBottom: '24px', background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '6px' }}>
+                  <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid #e5e7eb', marginBottom: '24px' }}>
                     {(['categorias', 'ia'] as AbaConfig[]).map((a) => {
                       const labels: Record<AbaConfig, string> = { categorias: 'Categorias', ia: 'IA' }
                       return (
                         <button key={a} onClick={() => setAbaConfig(a)} style={{
-                          flex: 1, padding: '8px 12px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+                          padding: '8px 16px', borderRadius: '6px 6px 0 0', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
                           background: abaConfig === a ? '#1e3a5f' : 'transparent',
                           color: abaConfig === a ? 'white' : '#6b7280',
                         }}>
