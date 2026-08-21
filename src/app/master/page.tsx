@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase-browser'
-import { supabase } from '@/lib/supabase'
 import { Entidade, CategoriaMapa } from '@/types'
 
 type SecaoMaster = 'dashboard' | 'demandas' | 'chatbot'
@@ -80,8 +79,8 @@ export default function MasterPage() {
   }
 
   function carregarDados() {
-    supabase.from('entidades').select('*').order('nome').then(({ data }) => setEntidades((data as Entidade[]) || []))
-    supabase.from('categorias_mapa').select('*').order('nome').then(({ data }) => setCategorias((data as CategoriaMapa[]) || []))
+    client.from('entidades').select('*').order('nome').then(({ data }) => setEntidades((data as Entidade[]) || []))
+    client.from('categorias_mapa').select('*').order('nome').then(({ data }) => setCategorias((data as CategoriaMapa[]) || []))
     client.from('categoria_entidades').select('categoria_id, entidade_id').then(({ data }) => {
       const mapa: Record<string, string[]> = {}
       for (const row of (data || [])) {
@@ -90,7 +89,7 @@ export default function MasterPage() {
       }
       setCatEntidades(mapa)
     })
-    supabase.from('demandas').select('status').then(({ data }) => {
+    client.from('demandas').select('status').then(({ data }) => {
       const d = data || []
       setStats({
         total: d.length,
@@ -103,7 +102,7 @@ export default function MasterPage() {
 
   async function salvarEntidade(e: React.FormEvent) {
     e.preventDefault()
-    const { data: nova } = await supabase.from('entidades').insert({ nome: novaEntNome, cargo: novaEntCargo, email: novaEntEmail, ativo: true }).select().single()
+    const { data: nova } = await client.from('entidades').insert({ nome: novaEntNome, cargo: novaEntCargo, email: novaEntEmail, ativo: true }).select().single()
     if (nova && novaEntCats.length > 0) {
       const { error: errCat } = await client.from('categoria_entidades').insert(novaEntCats.map(catId => ({ categoria_id: catId, entidade_id: nova.id })))
       if (errCat) console.error('ERRO categoria_entidades insert:', errCat)
@@ -113,11 +112,11 @@ export default function MasterPage() {
   }
   async function excluirEntidade(id: string) {
     if (!confirm('Excluir esta autoridade?')) return
-    await supabase.from('entidades').delete().eq('id', id)
+    await client.from('entidades').delete().eq('id', id)
     carregarDados()
   }
   async function salvarEdicaoEntidade(id: string) {
-    await supabase.from('entidades').update({ nome: editEntNome, cargo: editEntCargo, email: editEntEmail }).eq('id', id)
+    await client.from('entidades').update({ nome: editEntNome, cargo: editEntCargo, email: editEntEmail }).eq('id', id)
     // Recria as relações: apaga tudo e insere as selecionadas
     const { error: errDel } = await client.from('categoria_entidades').delete().eq('entidade_id', id)
     if (errDel) console.error('ERRO categoria_entidades delete:', errDel)
@@ -130,17 +129,17 @@ export default function MasterPage() {
   }
   async function salvarCategoria(e: React.FormEvent) {
     e.preventDefault()
-    await supabase.from('categorias_mapa').insert({ nome: novaCatNome, cor: novaCatCor, ativo: true })
+    await client.from('categorias_mapa').insert({ nome: novaCatNome, cor: novaCatCor, ativo: true })
     setNovaCatNome(''); setNovaCatCor('#ef4444')
     carregarDados()
   }
   async function excluirCategoria(id: string) {
     if (!confirm('Excluir esta categoria?')) return
-    await supabase.from('categorias_mapa').delete().eq('id', id)
+    await client.from('categorias_mapa').delete().eq('id', id)
     carregarDados()
   }
   async function salvarEdicaoCategoria(id: string) {
-    await supabase.from('categorias_mapa').update({ nome: editCatNome, cor: editCatCor }).eq('id', id)
+    await client.from('categorias_mapa').update({ nome: editCatNome, cor: editCatCor }).eq('id', id)
     setEditandoCat(null)
     carregarDados()
   }
