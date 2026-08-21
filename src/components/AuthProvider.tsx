@@ -9,6 +9,7 @@ interface Perfil {
   nome: string
   cpf: string
   email?: string
+  role?: string
 }
 
 interface AuthContextType {

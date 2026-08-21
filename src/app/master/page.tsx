@@ -44,30 +44,27 @@ export default function MasterPage() {
   const [stats, setStats] = useState({ total: 0, pendente: 0, aguardando: 0, respondida: 0 })
 
   const client = createClient()
-  const EMAIL_MASTER = 'portalfrutalense@gmail.com'
 
-  function verificarAcesso(session: any) {
-    if (session && session.user?.email === EMAIL_MASTER) {
+  async function verificarAcesso(session: any) {
+    if (!session) { setAutenticado(false); return }
+    const { data: perfil } = await client.from('perfis').select('role').eq('id', session.user.id).single()
+    if (perfil?.role === 'master') {
       setAutenticado(true)
       setTokenSessao(session.access_token || null)
       carregarDados()
-    } else if (session) {
-      client.auth.signOut()
-      setErroLogin('Acesso negado. Somente o administrador pode entrar aqui.')
-      setAutenticado(false)
     } else {
+      await client.auth.signOut()
+      setErroLogin('Acesso negado.')
       setAutenticado(false)
     }
   }
 
   useEffect(() => {
     client.auth.getSession().then(({ data }) => {
-      verificarAcesso(data.session)
-      setCarregandoAuth(false)
+      verificarAcesso(data.session).finally(() => setCarregandoAuth(false))
     })
     const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
-      verificarAcesso(session)
-      setCarregandoAuth(false)
+      verificarAcesso(session).finally(() => setCarregandoAuth(false))
     })
     return () => subscription.unsubscribe()
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -759,6 +756,17 @@ function MasterDemandas({ token }: { token: string | null }) {
                         onClick={() => { reenviarLink(d.id); setMenuAbertoDemandaId(null) }}
                         style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#374151', background: 'none', border: 'none', cursor: 'pointer' }}>
                         Reenviar link
+                      </button>
+                    )}
+                    {['aguardando_resposta', 'respondida', 'nao_resolvida'].includes(d.status) && (
+                      <button
+                        onClick={async () => {
+                          await client.from('demandas').update({ status: 'resolvida' }).eq('id', d.id)
+                          setDemandas(prev => prev.map(x => x.id === d.id ? { ...x, status: 'resolvida' } : x))
+                          setMenuAbertoDemandaId(null)
+                        }}
+                        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#166534', background: 'none', border: 'none', cursor: 'pointer' }}>
+                        Marcar como resolvida
                       </button>
                     )}
                     <div style={{ height: '1px', background: '#f3f4f6', margin: '4px 0' }} />
