@@ -206,18 +206,21 @@ export default function MapaDemandas() {
     return Math.sqrt(dlat * dlat + dlng * dlng) < 0.15
   }
 
+  const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+
   async function buscarEndereco() {
     if (!endereco.trim()) return
     setBuscando(true); setCoordenadas(null); setErro('')
     try {
-      const q = encodeURIComponent(`${endereco}, Frutal, Minas Gerais, Brasil`)
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`)
+      const q = encodeURIComponent(`${endereco}, Frutal, Minas Gerais`)
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${MAPBOX_TOKEN}&country=BR&language=pt&limit=1&proximity=${FRUTAL_LNG},${FRUTAL_LAT}`
+      const res = await fetch(url)
       const data = await res.json()
-      if (!data?.length) { setErro('Endereço não encontrado em Frutal-MG.'); return }
-      const lat = parseFloat(data[0].lat)
-      const lng = parseFloat(data[0].lon)
+      if (!data?.features?.length) { setErro('Endereço não encontrado em Frutal-MG.'); return }
+      const [lng, lat] = data.features[0].center
       if (!dentroFrutal(lat, lng)) { setErro('Endereço encontrado fora de Frutal-MG. Tente ser mais específico ou use sua localização.'); return }
-      setCoordenadas({ lat, lng, label: endereco.trim() })
+      const label = data.features[0].place_name?.split(',')[0] || endereco.trim()
+      setCoordenadas({ lat, lng, label })
     } catch { setErro('Erro ao buscar endereço.') }
     finally { setBuscando(false) }
   }
@@ -229,14 +232,14 @@ export default function MapaDemandas() {
       async (pos) => {
         const lat = pos.coords.latitude
         const lng = pos.coords.longitude
-        // Geocodificação reversa para obter endereço real
+        // Geocodificação reversa via Mapbox
         let label = 'Minha localização'
         try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
+          const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}&language=pt&types=address`
+          const res = await fetch(url)
           const data = await res.json()
-          if (data?.address) {
-            const a = data.address
-            label = [a.road, a.house_number, a.suburb || a.neighbourhood].filter(Boolean).join(', ') || label
+          if (data?.features?.length) {
+            label = data.features[0].place_name?.split(',')[0] || label
           }
         } catch { /* mantém label padrão */ }
         setCoordenadas({ lat, lng, label })
