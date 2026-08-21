@@ -524,6 +524,15 @@ function MasterDemandas({ token }: { token: string | null }) {
   const [carregandoDemandas, setCarregandoDemandas] = useState(true)
   const [filtro, setFiltro] = useState('todos')
   const [notif, setNotif] = useState('')
+  const [expandidas, setExpandidas] = useState<Set<string>>(new Set())
+
+  function toggleExpandida(id: string) {
+    setExpandidas(prev => {
+      const novo = new Set(prev)
+      novo.has(id) ? novo.delete(id) : novo.add(id)
+      return novo
+    })
+  }
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [editDescricao, setEditDescricao] = useState('')
   const [menuAbertoDemandaId, setMenuAbertoDemandaId] = useState<string | null>(null)
@@ -654,12 +663,33 @@ function MasterDemandas({ token }: { token: string | null }) {
         const cor = statusCor[d.status] || { bg: '#f3f4f6', color: '#6b7280' }
         const editando = editandoId === d.id
         const menuAberto = menuAbertoDemandaId === d.id
+        const expandida = expandidas.has(d.id)
 
         return (
           <div key={d.id} style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', overflow: 'hidden', position: 'relative' }}>
 
+            {/* Linha-resumo — sempre visível, clicável para expandir/recolher */}
+            <div
+              onClick={() => toggleExpandida(d.id)}
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 48px 12px 20px', cursor: 'pointer' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+                style={{ flexShrink: 0, transform: expandida ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+              <span style={{ fontSize: '11px', fontWeight: 600, background: cor.bg, color: cor.color, borderRadius: '20px', padding: '3px 10px', flexShrink: 0 }}>
+                {statusLabel[d.status] || d.status}
+              </span>
+              <span style={{ fontSize: '13px', fontWeight: 500, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                {titleCase(d.morador_nome)} · {d.categoria?.nome ? titleCase(d.categoria.nome) : '—'}
+              </span>
+              <span style={{ fontSize: '11px', color: '#9ca3af', flexShrink: 0 }}>
+                {new Date(d.created_at).toLocaleDateString('pt-BR')}
+              </span>
+            </div>
+
             {/* Botão "..." no canto superior direito */}
-            <div style={{ position: 'absolute', top: '14px', right: '16px', zIndex: 10 }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: '14px', right: '16px', zIndex: 10 }}>
               <button
                 onClick={() => setMenuAbertoDemandaId(menuAberto ? null : d.id)}
                 style={{ fontSize: '16px', fontWeight: 700, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', lineHeight: 1, borderRadius: '4px' }}
@@ -705,15 +735,9 @@ function MasterDemandas({ token }: { token: string | null }) {
               )}
             </div>
 
-            {/* Corpo do card */}
-            <div style={{ padding: '16px 20px', paddingRight: '48px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-
-              {/* Linha 1: só status */}
-              <div>
-                <span style={{ fontSize: '11px', fontWeight: 600, background: cor.bg, color: cor.color, borderRadius: '20px', padding: '3px 10px' }}>
-                  {statusLabel[d.status] || d.status}
-                </span>
-              </div>
+            {/* Corpo do card — só aparece expandido */}
+            {expandida && (
+            <div style={{ padding: '0 20px 16px', paddingRight: '48px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
               {/* Caixa principal */}
               <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -794,14 +818,8 @@ function MasterDemandas({ token }: { token: string | null }) {
                 </div>
               )}
 
-              {/* Data — alinhada à direita, no final */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <span style={{ fontSize: '11px', color: '#9ca3af' }}>
-                  Criada em {new Date(d.created_at).toLocaleDateString('pt-BR')}
-                </span>
-              </div>
-
             </div>
+            )}
           </div>
         )
       })}
