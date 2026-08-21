@@ -293,14 +293,17 @@ export default function AbacaXicoPage() {
               }
             `}</style>
             <div className="abx-empty-state" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-              <img src="/abacaxico.png" alt="AbacaXico" className="abx-mascote" style={{ height: 'auto', objectFit: 'contain', marginBottom: '16px' }} />
+              <div style={{ position: 'relative', display: 'inline-block', marginBottom: '16px' }}>
+                <div style={{ position: 'absolute', bottom: '0px', left: '50%', transform: 'translateX(calc(-46% + 5px))', width: '80px', height: '14px', borderRadius: '50%', background: 'rgba(0,0,0,0.5)', filter: 'blur(12px)' }} />
+                <img src="/abacaxico.png" alt="AbacaXico" className="abx-mascote" style={{ height: 'auto', objectFit: 'contain', display: 'block', position: 'relative' }} />
+              </div>
               <h1 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 700, color: '#111827', margin: '0 0 8px', letterSpacing: '-0.5px' }}>
-                Bão? Eu sou o AbacaXico!
+                Bão{nomeUsuario ? `, ${nomeUsuario}` : ''}! Eu sou o AbacaXico!
               </h1>
               <p style={{ fontSize: '15px', color: '#6b7280', margin: '0 0 28px' }}>
                 Assistente Virtual de IA do Fala Frutal
               </p>
-              <div style={{ width: '100%', maxWidth: '600px' }}>
+              <div style={{ width: '100%', maxWidth: '600px', marginTop: '-12px' }}>
                 {campoInput}
               </div>
             </div>
