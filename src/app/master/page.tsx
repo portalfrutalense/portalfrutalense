@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '@/components/AuthProvider'
 import { Entidade, CategoriaMapa } from '@/types'
 
-type SecaoMaster = 'dashboard' | 'demandas' | 'chatbot'
+type SecaoMaster = 'dashboard' | 'demandas' | 'chatbot' | 'perfis'
 type AbaConfig = 'autoridades' | 'categorias' | 'ia'
 
 export default function MasterPage() {
@@ -183,6 +183,7 @@ export default function MasterPage() {
   // ── PAINEL ────────────────────────────────────────────────
   const navItems: { key: SecaoMaster; label: string }[] = [
     { key: 'dashboard', label: 'Dashboard' },
+    { key: 'perfis',    label: 'Perfis' },
     { key: 'demandas',  label: 'Mapa de Demandas' },
     { key: 'chatbot',   label: 'Chatbot IA' },
   ]
@@ -292,6 +293,9 @@ export default function MasterPage() {
               <MasterChatbot />
             </div>
           )}
+
+          {/* ── PERFIS ── */}
+          {secao === 'perfis' && <MasterPerfis token={tokenSessao} />}
 
           {/* ── MAPA DE DEMANDAS ── */}
           {secao === 'demandas' && (
@@ -831,6 +835,173 @@ const CONFIG_PADRAO = {
   ativo: true,
   rigor: 'moderado',
   prompt: 'Analise a demanda do cidadão e decida se deve ser aprovada ou rejeitada. Rejeite se: for ofensiva, difamatória, sem relação com problemas reais do município de Frutal-MG, spam, ou conteúdo político partidário. Aprove se for uma demanda legítima de um cidadão sobre infraestrutura, saúde, educação, segurança ou outro serviço público.',
+}
+
+function MasterPerfis({ token }: { token: string | null }) {
+  const sbClient = createClient()
+  const [perfis, setPerfis] = useState<any[]>([])
+  const [carregando, setCarregando] = useState(true)
+  const [busca, setBusca] = useState('')
+  const [menuAbertoId, setMenuAbertoId] = useState<string | null>(null)
+  const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [editNome, setEditNome] = useState('')
+  const [editCpf, setEditCpf] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [notif, setNotif] = useState('')
+
+  async function getToken() {
+    if (token) return token
+    return (await sbClient.auth.getSession()).data.session?.access_token
+  }
+
+  function mostrarNotif(msg: string) {
+    setNotif(msg)
+    setTimeout(() => setNotif(''), 3000)
+  }
+
+  async function carregar() {
+    setCarregando(true)
+    const t = await getToken()
+    const res = await fetch('/api/master/perfis', { headers: { 'Authorization': `Bearer ${t}` } })
+    if (res.ok) setPerfis(await res.json())
+    setCarregando(false)
+  }
+
+  useEffect(() => { carregar() }, [])
+
+  async function salvarEdicao(id: string) {
+    const t = await getToken()
+    await fetch('/api/master/perfis', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
+      body: JSON.stringify({ id, nome: editNome, cpf: editCpf, email: editEmail }),
+    })
+    setEditandoId(null)
+    mostrarNotif('Perfil atualizado.')
+    carregar()
+  }
+
+  async function bloquear(id: string, bloqueado: boolean) {
+    const t = await getToken()
+    await fetch('/api/master/perfis', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
+      body: JSON.stringify({ id, bloqueado: !bloqueado }),
+    })
+    mostrarNotif(bloqueado ? 'Acesso liberado.' : 'Acesso bloqueado.')
+    carregar()
+  }
+
+  async function excluir(id: string) {
+    if (!confirm('Excluir este perfil e conta? Esta ação não pode ser desfeita.')) return
+    const t = await getToken()
+    const res = await fetch('/api/master/perfis', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
+      body: JSON.stringify({ id }),
+    })
+    const d = await res.json()
+    if (!d.ok) { mostrarNotif(d.error); return }
+    mostrarNotif('Perfil excluído.')
+    carregar()
+  }
+
+  const filtrados = perfis.filter(p =>
+    p.nome?.toLowerCase().includes(busca.toLowerCase()) ||
+    p.email?.toLowerCase().includes(busca.toLowerCase()) ||
+    p.cpf?.includes(busca)
+  )
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+        <div>
+          <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>Perfis</h1>
+          <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>{perfis.length} cadastros</p>
+        </div>
+        <input
+          type="text" value={busca} onChange={e => setBusca(e.target.value)}
+          placeholder="Buscar por nome, e-mail ou CPF..."
+          style={{ border: '1px solid #d1d5db', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', width: '260px', outline: 'none' }}
+        />
+      </div>
+
+      {notif && <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#166534', marginBottom: '16px' }}>{notif}</div>}
+
+      {carregando ? (
+        <p style={{ color: '#9ca3af', fontSize: '14px' }}>Carregando...</p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {filtrados.map(p => (
+            <div key={p.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '16px', position: 'relative' }}>
+
+              {/* Menu ··· */}
+              <div style={{ position: 'absolute', top: '12px', right: '12px' }}>
+                <button
+                  onClick={() => setMenuAbertoId(menuAbertoId === p.id ? null : p.id)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', fontWeight: 700, color: '#9ca3af', padding: '2px 6px' }}>
+                  ···
+                </button>
+                {menuAbertoId === p.id && (
+                  <>
+                    <div onClick={() => setMenuAbertoId(null)} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
+                    <div style={{ position: 'absolute', top: '28px', right: 0, background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', minWidth: '160px', zIndex: 20, padding: '4px 0' }}>
+                      <button onClick={() => { setEditandoId(p.id); setEditNome(p.nome || ''); setEditCpf(p.cpf || ''); setEditEmail(p.email || ''); setMenuAbertoId(null) }}
+                        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#374151', background: 'none', border: 'none', cursor: 'pointer' }}>
+                        Editar
+                      </button>
+                      <button onClick={() => { bloquear(p.id, p.bloqueado); setMenuAbertoId(null) }}
+                        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: p.bloqueado ? '#166534' : '#92400e', background: 'none', border: 'none', cursor: 'pointer' }}>
+                        {p.bloqueado ? 'Liberar acesso' : 'Bloquear acesso'}
+                      </button>
+                      <div style={{ height: '1px', background: '#f3f4f6', margin: '4px 0' }} />
+                      <button onClick={() => { excluir(p.id); setMenuAbertoId(null) }}
+                        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}>
+                        Excluir
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Dados */}
+              {editandoId === p.id ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '40px' }}>
+                  <input value={editNome} onChange={e => setEditNome(e.target.value)} placeholder="Nome"
+                    style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
+                  <input value={editCpf} onChange={e => setEditCpf(e.target.value)} placeholder="CPF"
+                    style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
+                  <input value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="E-mail"
+                    style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={() => salvarEdicao(p.id)}
+                      style={{ background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                      Salvar
+                    </button>
+                    <button onClick={() => setEditandoId(null)}
+                      style={{ background: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer' }}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ paddingRight: '40px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>{p.nome || '—'}</span>
+                    {p.role === 'master' && <span style={{ fontSize: '10px', fontWeight: 700, background: '#1e3a5f', color: 'white', borderRadius: '20px', padding: '2px 8px' }}>MASTER</span>}
+                    {p.bloqueado && <span style={{ fontSize: '10px', fontWeight: 700, background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '20px', padding: '2px 8px' }}>BLOQUEADO</span>}
+                  </div>
+                  <span style={{ fontSize: '12px', color: '#6b7280' }}>{p.email || '—'}</span>
+                  <span style={{ fontSize: '12px', color: '#9ca3af' }}>CPF: {p.cpf || '—'}</span>
+                </div>
+              )}
+            </div>
+          ))}
+          {filtrados.length === 0 && <p style={{ color: '#9ca3af', fontSize: '14px' }}>Nenhum perfil encontrado.</p>}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function MasterChatbot() {

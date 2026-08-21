@@ -10,6 +10,7 @@ interface Perfil {
   cpf: string
   email?: string
   role?: string
+  bloqueado?: boolean
 }
 
 interface AuthContextType {
@@ -17,6 +18,7 @@ interface AuthContextType {
   perfil: Perfil | null
   carregando: boolean
   precisaCPF: boolean
+  bloqueado: boolean
   setPerfil: (p: Perfil) => void
   sair: () => Promise<void>
 }
@@ -26,6 +28,7 @@ const AuthContext = createContext<AuthContextType>({
   perfil: null,
   carregando: true,
   precisaCPF: false,
+  bloqueado: false,
   setPerfil: () => {},
   sair: async () => {},
 })
@@ -69,11 +72,11 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     setPerfil(null)
   }
 
-  // precisaCPF = sem perfil OU perfil com nome/cpf em branco (cadastro incompleto)
   const precisaCPF = !!user && !carregando && (!perfil || !perfil.nome?.trim() || !perfil.cpf?.trim())
+  const bloqueado = !!user && !carregando && !!perfil?.bloqueado
 
   return (
-    <AuthContext.Provider value={{ user, perfil, carregando, precisaCPF, setPerfil, sair }}>
+    <AuthContext.Provider value={{ user, perfil, carregando, precisaCPF, bloqueado, setPerfil, sair }}>
       {children}
     </AuthContext.Provider>
   )

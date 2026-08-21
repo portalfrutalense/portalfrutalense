@@ -226,8 +226,24 @@ export default function PerfilPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <Campo label="Nome" valor={perfil?.nome || '—'} />
-            <Campo label="CPF" valor={perfil?.cpf ? maskCPF(perfil.cpf) : '—'} />
+            <Campo label="CPF" valor={perfil?.cpf || '—'} />
             <Campo label="E-mail" valor={user.email || '—'} />
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              onClick={async () => {
+                if (!confirm('Tem certeza que deseja excluir sua conta? Todos os seus dados serão apagados permanentemente.')) return
+                const { data: { session } } = await supabase.auth.getSession()
+                const res = await fetch('/api/cidadao/excluir-conta', {
+                  method: 'DELETE',
+                  headers: { 'Authorization': `Bearer ${session?.access_token}` },
+                })
+                if (res.ok) window.location.href = '/'
+              }}
+              style={{ fontSize: '13px', color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontWeight: 500 }}>
+              Excluir conta
+            </button>
           </div>
         </div>
       )}
