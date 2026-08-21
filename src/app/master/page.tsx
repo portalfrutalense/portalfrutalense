@@ -1387,8 +1387,8 @@ function MasterChatbot() {
       {aba === 'config' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {[
-            { label: 'Nome do assistente', desc: 'Como o bot se chama.', value: cfgNomeBot, set: setCfgNomeBot, rows: 1, placeholder: 'Ex: AbacaXico' },
-            { label: 'Quem é o assistente', desc: 'Descrição do personagem — origem, personalidade, missão.', value: cfgDescricao, set: setCfgDescricao, rows: 4, placeholder: 'Ex: AbacaXico é um cidadão frutalense de coração...' },
+            { label: 'Nome do assistente', desc: 'Como o bot se chama.', value: cfgNomeBot, set: setCfgNomeBot, rows: 1, placeholder: 'Ex: Assistente Virtual' },
+            { label: 'Quem é o assistente', desc: 'Descrição do personagem — origem, personalidade, missão.', value: cfgDescricao, set: setCfgDescricao, rows: 4, placeholder: 'Ex: Sou um assistente virtual da Prefeitura de Frutal, aqui para ajudar os cidadãos.' },
             { label: 'Tom de voz', desc: 'Como ele deve falar — regras de linguagem e estilo.', value: cfgTomVoz, set: setCfgTomVoz, rows: 5, placeholder: 'Ex: Seja amigável e breve. Não use emojis...' },
             { label: 'Responsabilidades', desc: 'O que ele pode e não pode fazer.', value: cfgResponsabilidades, set: setCfgResponsabilidades, rows: 4, placeholder: 'Ex: 1. Responder perguntas usando a base de conhecimento...' },
             { label: 'Instruções adicionais', desc: 'Qualquer regra extra que queira adicionar pontualmente.', value: cfgPromptExtra, set: setCfgPromptExtra, rows: 4, placeholder: 'Ex: Não responda sobre política. Se perguntarem sobre lixo, mencione o telefone...' },
