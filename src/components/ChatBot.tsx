@@ -182,8 +182,8 @@ export default function ChatBot() {
           }}>
             {/* Avatar flutuando acima do header */}
             <img src="/abacaxico.png" alt="AbacaXico" style={{
-              position: 'absolute', top: '-36px', left: '12px',
-              width: '72px', height: '72px', objectFit: 'contain',
+              position: 'absolute', top: '-20px', left: '12px',
+              width: '648px', height: '648px', objectFit: 'contain',
               filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.35))',
             }} />
             {/* Espaço pra não sobrepor o texto */}
