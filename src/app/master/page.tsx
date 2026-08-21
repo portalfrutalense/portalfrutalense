@@ -923,17 +923,25 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
   }
 
   async function excluir(id: string) {
-    if (!confirm('Excluir este perfil e conta? Esta ação não pode ser desfeita.')) return
+    if (!confirm('Excluir esta autoridade? Esta ação não pode ser desfeita.')) return
     const t = await getToken()
-    const res = await fetch('/api/master/perfis', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
-      body: JSON.stringify({ id }),
-    })
-    const d = await res.json()
-    if (!d.ok) { mostrarNotif(d.error); return }
-    mostrarNotif('Perfil excluído.')
-    carregar()
+    console.log('[excluir] token:', t ? 'ok' : 'NULO', '| id:', id)
+    if (!t) { mostrarNotif('Sem token de autenticação.'); return }
+    try {
+      const res = await fetch('/api/master/perfis', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
+        body: JSON.stringify({ id }),
+      })
+      const d = await res.json()
+      console.log('[excluir perfil] status:', res.status, 'body:', d)
+      if (!res.ok || !d.ok) { mostrarNotif(d.error || `Erro ${res.status}`); return }
+      mostrarNotif('Excluído com sucesso.')
+      carregar()
+    } catch (e: any) {
+      console.error('[excluir perfil] exceção:', e)
+      mostrarNotif('Erro inesperado: ' + e.message)
+    }
   }
 
   async function criarConta() {
