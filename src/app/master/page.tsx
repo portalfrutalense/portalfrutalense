@@ -863,7 +863,9 @@ function MasterPerfis({ token }: { token: string | null }) {
     setCarregando(true)
     const t = await getToken()
     const res = await fetch('/api/master/perfis', { headers: { 'Authorization': `Bearer ${t}` } })
-    if (res.ok) setPerfis(await res.json())
+    const data = await res.json()
+    if (res.ok) setPerfis(data)
+    else mostrarNotif(`Erro ${res.status}: ${data?.error || 'desconhecido'}`)
     setCarregando(false)
   }
 
