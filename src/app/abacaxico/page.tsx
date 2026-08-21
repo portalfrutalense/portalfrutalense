@@ -28,11 +28,9 @@ const FRUTAL_LNG = -48.9338
 export default function AbacaXicoPage() {
   const supabase = createClient()
   const { user, perfil } = useAuth()
-  const nomeUsuario = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || 'Cidadão'
+  const nomeUsuario = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || ''
 
-  const [mensagens, setMensagens] = useState<Mensagem[]>([
-    { role: 'assistant', content: `Uai, ${nomeUsuario}! Que bom ter ocê aqui. Sou o AbacaXico, frutalense de coração. Posso responder dúvidas sobre os serviços da cidade ou registrar uma demanda pra ocê. Fala aí, o que tá precisando?` }
-  ])
+  const [mensagens, setMensagens] = useState<Mensagem[]>([])
   const [input, setInput] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [pendente, setPendente] = useState<DemandaPayload | null>(null)
@@ -40,11 +38,18 @@ export default function AbacaXicoPage() {
   const [notif, setNotif] = useState('')
   const [modalAuth, setModalAuth] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  const temMensagens = mensagens.length > 0
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [mensagens, pendente, enviando])
+
+  function autoResize(el: HTMLTextAreaElement) {
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 160) + 'px'
+  }
 
   async function enviar() {
     if (!input.trim() || enviando) return
@@ -54,6 +59,7 @@ export default function AbacaXicoPage() {
     const historico = [...mensagens, novaMensagem]
     setMensagens(historico)
     setInput('')
+    if (inputRef.current) { inputRef.current.style.height = 'auto' }
     setEnviando(true)
 
     try {
@@ -85,7 +91,6 @@ export default function AbacaXicoPage() {
       setMensagens(prev => [...prev, { role: 'assistant', content: 'Erro de conexão. Tente novamente.' }])
     } finally {
       setEnviando(false)
-      setTimeout(() => inputRef.current?.focus(), 100)
     }
   }
 
@@ -141,96 +146,118 @@ export default function AbacaXicoPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: '#f8fafc' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: 'white' }}>
       <Navbar />
 
-      {/* Header da página */}
-      <div style={{ background: '#1e3a5f', padding: '16px 24px', display: 'flex', alignItems: 'center', gap: '14px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-        <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', flexShrink: 0 }}>🍍</div>
-        <div>
-          <p style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'white' }}>AbacaXico</p>
-          <p style={{ margin: 0, fontSize: '12px', color: 'rgba(255,255,255,0.55)' }}>Assistente Virtual de IA do Fala Frutal</p>
-        </div>
-        {!user && (
-          <button onClick={() => setModalAuth(true)} style={{ marginLeft: 'auto', background: 'rgba(255,255,255,0.12)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '7px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
-            Entrar para conversar
-          </button>
+      {/* Área principal */}
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+
+        {/* Estado vazio — saudação centralizada */}
+        {!temMensagens && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', textAlign: 'center' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🍍</div>
+            <h1 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 700, color: '#111827', margin: '0 0 8px', letterSpacing: '-0.5px' }}>
+              {nomeUsuario ? `Qual é a vibe, ${nomeUsuario}?` : 'Olá! Sou o AbacaXico.'}
+            </h1>
+            <p style={{ fontSize: '15px', color: '#6b7280', margin: 0 }}>
+              Assistente Virtual de IA do Fala Frutal
+            </p>
+          </div>
         )}
-      </div>
 
-      {/* Área de mensagens */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 'clamp(16px, 3vw, 32px)', display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '760px', width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
+        {/* Mensagens */}
+        {temMensagens && (
+          <div style={{ flex: 1, padding: 'clamp(16px, 3vw, 32px)', display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '760px', width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
+            {mensagens.map((m, i) => (
+              <div key={i} style={{ display: 'flex', gap: '12px', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-start' }}>
+                {/* Avatar */}
+                <div style={{
+                  width: '34px', height: '34px', borderRadius: '50%', flexShrink: 0,
+                  background: m.role === 'user' ? '#e5e7eb' : '#1e3a5f',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: m.role === 'user' ? '14px' : '16px', fontWeight: 700,
+                  color: m.role === 'user' ? '#374151' : 'white',
+                }}>
+                  {m.role === 'user' ? (nomeUsuario?.[0]?.toUpperCase() || '?') : '🍍'}
+                </div>
+                {/* Conteúdo */}
+                <div style={{ flex: 1, paddingTop: '4px' }}>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#374151', margin: '0 0 6px' }}>
+                    {m.role === 'user' ? (nomeUsuario || 'Você') : 'AbacaXico'}
+                  </p>
+                  <p style={{ fontSize: '15px', color: '#111827', margin: 0, lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
+                    {m.content}
+                  </p>
+                </div>
+              </div>
+            ))}
 
-        {mensagens.map((m, i) => (
-          <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', gap: '10px', alignItems: 'flex-end' }}>
-            {m.role === 'assistant' && (
-              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#1e3a5f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', flexShrink: 0, marginBottom: '2px' }}>🍍</div>
+            {/* Botões de confirmação */}
+            {pendente && (
+              <div style={{ display: 'flex', gap: '10px', paddingLeft: '46px' }}>
+                <button onClick={confirmarDemanda} disabled={criando}
+                  style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '10px', padding: '10px 22px', fontSize: '14px', fontWeight: 600, cursor: criando ? 'wait' : 'pointer' }}>
+                  {criando ? 'Registrando...' : 'Confirmar'}
+                </button>
+                <button onClick={cancelarDemanda} disabled={criando}
+                  style={{ background: 'white', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '10px', padding: '10px 22px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+                  Cancelar
+                </button>
+              </div>
             )}
-            <div style={{
-              maxWidth: '72%',
-              background: m.role === 'user' ? '#1e3a5f' : 'white',
-              color: m.role === 'user' ? 'white' : '#111827',
-              borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-              padding: '12px 16px',
-              fontSize: '14px',
-              lineHeight: 1.6,
-              whiteSpace: 'pre-wrap',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-              border: m.role === 'assistant' ? '1px solid #e5e7eb' : 'none',
-            }}>
-              {m.content}
-            </div>
-          </div>
-        ))}
 
-        {/* Botões de confirmação */}
-        {pendente && (
-          <div style={{ display: 'flex', gap: '10px', paddingLeft: '42px' }}>
-            <button onClick={confirmarDemanda} disabled={criando}
-              style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '10px', padding: '10px 20px', fontSize: '14px', fontWeight: 600, cursor: criando ? 'wait' : 'pointer' }}>
-              {criando ? 'Registrando...' : 'Confirmar'}
-            </button>
-            <button onClick={cancelarDemanda} disabled={criando}
-              style={{ background: 'white', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '10px', padding: '10px 20px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
-              Cancelar
-            </button>
+            {/* Digitando */}
+            {enviando && (
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#1e3a5f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>🍍</div>
+                <div style={{ paddingTop: '4px' }}>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#374151', margin: '0 0 6px' }}>AbacaXico</p>
+                  <p style={{ fontSize: '15px', color: '#9ca3af', margin: 0 }}>Digitando...</p>
+                </div>
+              </div>
+            )}
+
+            <div ref={bottomRef} />
           </div>
         )}
-
-        {enviando && (
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#1e3a5f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', flexShrink: 0 }}>🍍</div>
-            <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '16px 16px 16px 4px', padding: '12px 16px', fontSize: '14px', color: '#9ca3af', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-              Digitando...
-            </div>
-          </div>
-        )}
-
-        <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <div style={{ borderTop: '1px solid #e5e7eb', background: 'white', padding: 'clamp(12px, 2vw, 20px)', flexShrink: 0 }}>
-        <div style={{ maxWidth: '760px', margin: '0 auto', display: 'flex', gap: '10px' }}>
-          <input
+      {/* Input fixo na base */}
+      <div style={{ padding: 'clamp(12px, 2vw, 20px) clamp(16px, 3vw, 32px)', background: 'white', borderTop: temMensagens ? '1px solid #f3f4f6' : 'none' }}>
+        <div style={{ maxWidth: '760px', margin: '0 auto', position: 'relative', background: '#f3f4f6', borderRadius: '16px', display: 'flex', alignItems: 'flex-end', padding: '10px 16px', gap: '8px' }}>
+          <textarea
             ref={inputRef}
+            rows={1}
             value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), enviar())}
-            placeholder={user ? 'Digite sua mensagem...' : 'Entre na sua conta para conversar'}
+            onChange={e => { setInput(e.target.value); autoResize(e.target) }}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar() } }}
+            placeholder={user ? 'Peça ao AbacaXico' : 'Entre na sua conta para conversar'}
             disabled={enviando || !user}
-            style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', outline: 'none', background: user ? 'white' : '#f9fafb', color: user ? '#111827' : '#9ca3af' }}
+            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: '15px', color: '#111827', resize: 'none', lineHeight: 1.5, maxHeight: '160px', padding: '2px 0' }}
           />
           <button
             onClick={user ? enviar : () => setModalAuth(true)}
             disabled={enviando || (!!user && !input.trim())}
-            style={{ background: enviando || (user && !input.trim()) ? '#9ca3af' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '10px', padding: '12px 20px', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+            style={{
+              background: (!user || input.trim()) ? '#1e3a5f' : 'transparent',
+              color: (!user || input.trim()) ? 'white' : '#9ca3af',
+              border: 'none', borderRadius: '10px',
+              width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: (enviando || (user && !input.trim())) ? 'default' : 'pointer',
+              fontSize: '16px', flexShrink: 0, transition: 'background 0.15s',
+            }}>
             ➤
           </button>
         </div>
+        {!user && (
+          <p style={{ textAlign: 'center', fontSize: '12px', color: '#9ca3af', margin: '10px 0 0' }}>
+            <button onClick={() => setModalAuth(true)} style={{ background: 'none', border: 'none', color: '#1e3a5f', fontWeight: 600, cursor: 'pointer', fontSize: '12px', textDecoration: 'underline' }}>
+              Entre na sua conta
+            </button>{' '}para conversar com o AbacaXico
+          </p>
+        )}
       </div>
 
-      {/* Notificação */}
       {notif && (
         <div style={{ position: 'fixed', bottom: '100px', right: '24px', zIndex: 100, background: '#166534', color: 'white', borderRadius: '10px', padding: '12px 20px', fontSize: '14px', fontWeight: 600, boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}>
           {notif}
