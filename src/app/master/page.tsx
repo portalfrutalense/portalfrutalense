@@ -441,20 +441,14 @@ export default function MasterPage() {
                                 </div>
                                 {/* Categorias atribuídas a esta entidade */}
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', paddingLeft: '4px' }}>
-                                  {categorias.map(cat => {
-                                    const ativo = (catEntidades[cat.id] || []).includes(e.id)
-                                    return (
-                                      <button key={cat.id} onClick={() => toggleCatEntidade(cat.id, e.id)} style={{
-                                        fontSize: '11px', padding: '3px 10px', borderRadius: '20px', cursor: 'pointer', fontWeight: 500,
-                                        background: ativo ? cat.cor : 'white',
-                                        color: ativo ? 'white' : '#6b7280',
-                                        border: ativo ? `1px solid ${cat.cor}` : '1px solid #e5e7eb',
-                                      }}>
-                                        {cat.nome}
-                                      </button>
-                                    )
-                                  })}
-                                  {categorias.length === 0 && <span style={{ fontSize: '11px', color: '#9ca3af' }}>Nenhuma categoria cadastrada.</span>}
+                                  {categorias.filter(cat => (catEntidades[cat.id] || []).includes(e.id)).map(cat => (
+                                    <span key={cat.id} style={{ fontSize: '11px', padding: '2px 10px', borderRadius: '20px', fontWeight: 500, background: cat.cor + '22', color: cat.cor, border: `1px solid ${cat.cor}55` }}>
+                                      {cat.nome}
+                                    </span>
+                                  ))}
+                                  {!categorias.some(cat => (catEntidades[cat.id] || []).includes(e.id)) && (
+                                    <span style={{ fontSize: '11px', color: '#9ca3af' }}>Nenhuma categoria atribuída</span>
+                                  )}
                                 </div>
                               </div>
                             )}
