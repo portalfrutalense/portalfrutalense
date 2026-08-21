@@ -298,7 +298,7 @@ export default function AbacaXicoPage() {
                 <img src="/abacaxico.png" alt="AbacaXico" className="abx-mascote" style={{ height: 'auto', objectFit: 'contain', display: 'block', position: 'relative' }} />
               </div>
               <h1 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 700, color: '#111827', margin: '0 0 8px', letterSpacing: '-0.5px' }}>
-                Bão{nomeUsuario ? `, ${nomeUsuario}` : ''}! Eu sou o AbacaXico!
+                Olá{nomeUsuario ? `, ${nomeUsuario}` : ''}! Eu sou o AbacaXico!
               </h1>
               <p style={{ fontSize: '15px', color: '#6b7280', margin: '0 0 28px' }}>
                 Assistente Virtual de IA do Fala Frutal
