@@ -1,0 +1,212 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/components/AuthProvider'
+import { createClient } from '@/lib/supabase-browser'
+import type { Demanda } from '@/types'
+
+const statusLabel: Record<string, string> = {
+  pendente: 'Pendente',
+  aguardando_resposta: 'Aguardando resposta',
+  respondida: 'Respondida',
+  rejeitada_ia: 'Rejeitada pela IA',
+  nao_resolvida: 'Não resolvida',
+  resolvida: 'Resolvida',
+}
+
+const statusCor: Record<string, { bg: string; color: string }> = {
+  pendente:            { bg: '#f3f4f6', color: '#6b7280' },
+  aguardando_resposta: { bg: '#dbeafe', color: '#1e40af' },
+  respondida:          { bg: '#dcfce7', color: '#166534' },
+  rejeitada_ia:        { bg: '#fef2f2', color: '#dc2626' },
+  nao_resolvida:       { bg: '#fef3c7', color: '#92400e' },
+  resolvida:           { bg: '#f3f4f6', color: '#6b7280' },
+}
+
+export default function PerfilPage() {
+  const { user, perfil, carregando } = useAuth()
+  const router = useRouter()
+  const supabase = createClient()
+
+  const [demandas, setDemandas] = useState<Demanda[]>([])
+  const [carregandoDemandas, setCarregandoDemandas] = useState(true)
+  const [abaAtiva, setAbaAtiva] = useState<'atividades' | 'conta'>('atividades')
+
+  useEffect(() => {
+    if (!carregando && !user) router.replace('/')
+  }, [carregando, user, router])
+
+  useEffect(() => {
+    if (!user) return
+    async function buscar() {
+      setCarregandoDemandas(true)
+      const { data } = await supabase
+        .from('demandas')
+        .select('*, categoria:categorias_mapa(*), entidade:entidades(*)')
+        .eq('user_id', user!.id)
+        .order('created_at', { ascending: false })
+      setDemandas(data || [])
+      setCarregandoDemandas(false)
+    }
+    buscar()
+  }, [user])
+
+  async function marcarResolvida(id: string) {
+    if (!confirm('Marcar esta demanda como resolvida?')) return
+    await supabase.from('demandas').update({ status: 'resolvida' }).eq('id', id)
+    setDemandas(prev => prev.map(d => d.id === id ? { ...d, status: 'resolvida' } : d))
+  }
+
+  async function excluirDemanda(id: string) {
+    if (!confirm('Excluir esta demanda? Esta ação não pode ser desfeita.')) return
+    await supabase.from('demandas').delete().eq('id', id)
+    setDemandas(prev => prev.filter(d => d.id !== id))
+  }
+
+  if (carregando || !user) return null
+
+  const nomeExibido = perfil?.nome || user.user_metadata?.full_name || 'Usuário'
+
+  return (
+    <div style={{ maxWidth: '680px', margin: '0 auto', padding: '24px 16px' }}>
+
+      {/* Cabeçalho */}
+      <div style={{ marginBottom: '24px' }}>
+        <h1 style={{ fontSize: '20px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>
+          {nomeExibido.split(' ')[0]}
+        </h1>
+        <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
+          {user.email}
+        </p>
+      </div>
+
+      {/* Abas */}
+      <div style={{ display: 'flex', gap: '0', borderBottom: '2px solid #e5e7eb', marginBottom: '24px' }}>
+        {(['atividades', 'conta'] as const).map(aba => (
+          <button
+            key={aba}
+            onClick={() => setAbaAtiva(aba)}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: '8px 18px', fontSize: '14px', fontWeight: 600,
+              color: abaAtiva === aba ? '#1e3a5f' : '#9ca3af',
+              borderBottom: abaAtiva === aba ? '2px solid #1e3a5f' : '2px solid transparent',
+              marginBottom: '-2px', transition: 'color 0.15s',
+            }}>
+            {aba === 'atividades' ? 'Minhas atividades' : 'Minha conta'}
+          </button>
+        ))}
+      </div>
+
+      {/* Aba: Minhas atividades */}
+      {abaAtiva === 'atividades' && (
+        <div>
+          {carregandoDemandas ? (
+            <p style={{ fontSize: '14px', color: '#6b7280', textAlign: 'center', padding: '32px 0' }}>Carregando...</p>
+          ) : demandas.length === 0 ? (
+            <p style={{ fontSize: '14px', color: '#6b7280', textAlign: 'center', padding: '32px 0' }}>
+              Você ainda não registrou nenhuma atividade.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {demandas.map(d => (
+                <div key={d.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+
+                  {/* Topo: categoria + status */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 500 }}>
+                      {d.categoria?.nome || 'Sem categoria'}
+                    </span>
+                    <span style={{
+                      fontSize: '11px', fontWeight: 600, borderRadius: '20px', padding: '3px 10px',
+                      background: statusCor[d.status]?.bg || '#f3f4f6',
+                      color: statusCor[d.status]?.color || '#6b7280',
+                    }}>
+                      {statusLabel[d.status] || d.status}
+                    </span>
+                  </div>
+
+                  {/* Descrição */}
+                  <p style={{ fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.5 }}>
+                    {d.descricao}
+                  </p>
+
+                  {/* Endereço */}
+                  {d.endereco_label && (
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
+                      📍 {d.endereco_label}
+                    </p>
+                  )}
+
+                  {/* Resposta da autoridade */}
+                  {d.resposta && (
+                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: '#166534', lineHeight: 1.5 }}>
+                      <strong>Resposta:</strong> {d.resposta}
+                    </div>
+                  )}
+
+                  {/* Motivo rejeição IA */}
+                  {d.status === 'rejeitada_ia' && d.ia_motivo && (
+                    <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: '#dc2626', lineHeight: 1.5 }}>
+                      <strong>Motivo:</strong> {d.ia_motivo}
+                    </div>
+                  )}
+
+                  {/* Data + ações */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                      {new Date(d.created_at).toLocaleDateString('pt-BR')}
+                    </span>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      {['aguardando_resposta', 'respondida', 'nao_resolvida'].includes(d.status) && (
+                        <button
+                          onClick={() => marcarResolvida(d.id)}
+                          style={{ fontSize: '11px', color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontWeight: 500 }}>
+                          Marcar como resolvida
+                        </button>
+                      )}
+                      <button
+                        onClick={() => excluirDemanda(d.id)}
+                        style={{ fontSize: '11px', color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontWeight: 500 }}>
+                        Excluir
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Aba: Minha conta */}
+      {abaAtiva === 'conta' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <Campo label="Nome" valor={perfil?.nome || '—'} />
+            <Campo label="CPF" valor={perfil?.cpf ? maskCPF(perfil.cpf) : '—'} />
+            <Campo label="E-mail" valor={user.email || '—'} />
+          </div>
+        </div>
+      )}
+
+    </div>
+  )
+}
+
+function Campo({ label, valor }: { label: string; valor: string }) {
+  return (
+    <div>
+      <p style={{ fontSize: '11px', color: '#9ca3af', margin: '0 0 2px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</p>
+      <p style={{ fontSize: '14px', color: '#111827', margin: 0 }}>{valor}</p>
+    </div>
+  )
+}
+
+function maskCPF(cpf: string) {
+  const d = cpf.replace(/\D/g, '')
+  if (d.length !== 11) return cpf
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`
+}

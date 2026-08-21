@@ -1,4 +1,4 @@
-export type StatusDemanda = 'pendente' | 'aguardando_resposta' | 'respondida' | 'rejeitada_ia' | 'resolvida'
+export type StatusDemanda = 'pendente' | 'aguardando_resposta' | 'respondida' | 'rejeitada_ia' | 'resolvida' | 'nao_resolvida'
 
 export interface Demanda {
   id: string

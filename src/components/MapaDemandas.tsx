@@ -86,7 +86,7 @@ export default function MapaDemandas() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('demandas').select('*, categoria:categorias_mapa(*), entidade:entidades(*)').in('status', ['aguardando_resposta', 'respondida', 'resolvida']).eq('oculto', false),
+      supabase.from('demandas').select('*, categoria:categorias_mapa(*), entidade:entidades(*)').in('status', ['aguardando_resposta', 'respondida', 'nao_resolvida', 'resolvida']).eq('oculto', false),
       supabase.from('categorias_mapa').select('*').eq('ativo', true).order('nome'),
       supabase.from('entidades').select('*').eq('ativo', true).order('nome'),
       supabase.from('categoria_entidades').select('categoria_id, entidade_id'),
@@ -368,18 +368,21 @@ export default function MapaDemandas() {
     { value: '', label: 'Todos os status' },
     { value: 'aguardando_resposta', label: 'Aguardando resposta' },
     { value: 'respondida', label: 'Respondida' },
+    { value: 'nao_resolvida', label: 'Não resolvida' },
     { value: 'resolvida', label: 'Resolvida' },
   ]
 
   const statusLabel: Record<string, string> = {
     aguardando_resposta: 'Aguardando resposta',
     respondida: 'Respondida',
+    nao_resolvida: 'Não resolvida',
     resolvida: 'Resolvida',
   }
 
   const statusCor: Record<string, { bg: string; color: string }> = {
     aguardando_resposta: { bg: '#dbeafe', color: '#1e40af' },
     respondida:          { bg: '#dcfce7', color: '#166534' },
+    nao_resolvida:       { bg: '#fef3c7', color: '#92400e' },
     resolvida:           { bg: '#f3f4f6', color: '#6b7280' },
   }
 
@@ -464,16 +467,18 @@ export default function MapaDemandas() {
                 {/* Ações do próprio usuário */}
                 {user && demandaSelecionada.user_id === user.id && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <button
-                      onClick={async () => {
-                        if (!confirm('Marcar esta demanda como resolvida?')) return
-                        await supabase.from('demandas').update({ status: 'resolvida' }).eq('id', demandaSelecionada.id)
-                        setDemandas(prev => prev.filter(d => d.id !== demandaSelecionada.id))
-                        setDemandaSelecionada(null)
-                      }}
-                      style={{ fontSize: '12px', color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '7px', cursor: 'pointer', fontWeight: 500 }}>
-                      Marcar como resolvida
-                    </button>
+                    {['aguardando_resposta', 'respondida', 'nao_resolvida'].includes(demandaSelecionada.status) && (
+                      <button
+                        onClick={async () => {
+                          if (!confirm('Marcar esta demanda como resolvida?')) return
+                          await supabase.from('demandas').update({ status: 'resolvida' }).eq('id', demandaSelecionada.id)
+                          setDemandas(prev => prev.map(d => d.id === demandaSelecionada.id ? { ...d, status: 'resolvida' } : d))
+                          setDemandaSelecionada(prev => prev ? { ...prev, status: 'resolvida' } : null)
+                        }}
+                        style={{ fontSize: '12px', color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '7px', cursor: 'pointer', fontWeight: 500 }}>
+                        Marcar como resolvida
+                      </button>
+                    )}
                     <button
                       onClick={async () => {
                         if (!confirm('Excluir esta demanda? Esta ação não pode ser desfeita.')) return

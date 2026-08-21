@@ -24,9 +24,9 @@ export default function Navbar() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             {user ? (
               <>
-                <span style={{ fontSize: '13px', color: '#93c5fd', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>
+                <Link href="/perfil" style={{ fontSize: '13px', color: '#93c5fd', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px', textDecoration: 'none' }}>
                   Olá, {nomeExibido}
-                </span>
+                </Link>
                 <button onClick={sair} style={{ fontSize: '13px', color: '#93c5fd', background: 'none', border: '1px solid #2d5a8f', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                   Sair
                 </button>
