@@ -56,8 +56,8 @@ export default function LandingPage() {
             maxWidth: '520px',
             marginBottom: '40px',
           }}>
-            Registre demandas, sinalize problemas urbanos e acompanhe as respostas das autoridades.
-            Tudo em um lugar, aberto para toda a cidade ver.
+            A plataforma completa de Frutal. Registre demandas urbanas, acesse serviços locais,
+            acompanhe a cidade e tire dúvidas em tempo real com o AbacaXico, nossa IA.
           </p>
 
           {/* CTAs */}
