@@ -179,7 +179,7 @@ export default function ChatBot() {
               <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>🍍</div>
               <div>
                 <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'white' }}>AbacaXico</p>
-                <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>Assistente virtual do Fala Frutal</p>
+                <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>Assistente Virtual de IA do Fala Frutal</p>
               </div>
             </div>
             <button onClick={() => setAberto(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', fontSize: '20px', cursor: 'pointer', padding: '4px', lineHeight: 1 }}>×</button>
