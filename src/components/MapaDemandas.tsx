@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from './AuthProvider'
 import ModalAuth from './ModalAuth'
+import ChatBot from './ChatBot'
 import { Demanda, CategoriaMapa, Entidade } from '@/types'
 
 const FRUTAL_LAT = -20.02752
@@ -694,6 +695,8 @@ export default function MapaDemandas() {
           .mapa-map-div { min-height: 380px !important; }
         }
       `}</style>
+
+      <ChatBot />
     </div>
   )
 }
