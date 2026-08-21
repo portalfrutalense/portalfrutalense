@@ -1,5 +1,6 @@
 ﻿import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
+import { createClient } from '@supabase/supabase-js'
 import { gerarToken } from '@/lib/token'
 import { Resend } from 'resend'
 
@@ -8,7 +9,8 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 export async function POST(req: NextRequest) {
   const token = req.headers.get('authorization')?.replace('Bearer ', '')
   if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
-  const { data: { user } } = await supabaseServer.auth.getUser(token)
+  const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { global: { headers: { Authorization: `Bearer ${token}` } } })
+  const { data: { user } } = await sb.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
   const { data: perfil } = await supabaseServer.from('perfis').select('role').eq('id', user.id).single()
   if (perfil?.role !== 'master') return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
