@@ -119,7 +119,6 @@ export default function PerfilPage() {
                 onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)')}
                 onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.05)')}
               >
-                <span style={{ fontSize: '22px' }}>📋</span>
                 <span style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>Demandas</span>
                 <span style={{ fontSize: '11px', color: '#9ca3af' }}>{demandas.length} registro{demandas.length !== 1 ? 's' : ''}</span>
               </button>
