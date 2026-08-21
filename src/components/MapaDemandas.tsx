@@ -56,8 +56,8 @@ export default function MapaDemandas() {
   const miniTileAtual = useRef<any>(null)
 
   const [mapaCarregado, setMapaCarregado] = useState(false)
-  const [satelite, setSatelite] = useState(false)
-  const sateliteRef = useRef(false)
+  const [satelite, setSatelite] = useState(true)
+  const sateliteRef = useRef(true)
   const [miniSatelite, setMiniSatelite] = useState(false)
   const [demandas, setDemandas] = useState<Demanda[]>([])
   const [categorias, setCategorias] = useState<CategoriaMapa[]>([])
@@ -120,7 +120,7 @@ export default function MapaDemandas() {
       })
       const zoom = window.innerWidth <= 600 ? 13 : 14
       const mapa = L.map(mapRef.current!, { zoomControl: false }).setView([FRUTAL_LAT, FRUTAL_LNG], zoom)
-      const tile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' })
+      const tile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' })
       tile.addTo(mapa)
       tileAtual.current = tile
       mapaObj.current = mapa
