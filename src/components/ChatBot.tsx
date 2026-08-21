@@ -26,9 +26,10 @@ const FRUTAL_LNG = -48.9338
 export default function ChatBot() {
   const supabase = createClient()
   const { user, perfil } = useAuth()
+  const nomeUsuario = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || 'Cidadão'
   const [aberto, setAberto] = useState(false)
   const [mensagens, setMensagens] = useState<Mensagem[]>([
-    { role: 'assistant', content: `Olá! Sou o assistente do Fala Frutal 👋\n\nPosso responder dúvidas sobre serviços públicos de Frutal ou ajudar você a registrar uma demanda. Como posso ajudar?` }
+    { role: 'assistant', content: `Olá, ${nomeUsuario}! Pode falar, estou aqui para ajudar. Posso responder dúvidas sobre serviços públicos de Frutal ou registrar uma demanda para você.` }
   ])
   const [input, setInput] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -36,8 +37,6 @@ export default function ChatBot() {
   const [criando, setCriando] = useState(false)
   const [notif, setNotif] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
-
-  const nomeUsuario = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || 'Cidadão'
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -71,7 +70,7 @@ export default function ChatBot() {
           setPendente(payload)
           setMensagens(prev => [...prev, {
             role: 'assistant',
-            content: `Perfeito! Vou registrar a seguinte demanda:\n\n📍 **Endereço:** ${payload.endereco}\n🏷️ **Categoria:** ${payload.categoria_nome}\n👤 **Para:** ${payload.entidade_nome}\n📝 **Descrição:** ${payload.descricao}\n\nConfirma o registro?`
+            content: `Ótimo! Vou registrar a seguinte demanda:\n\nEndereço: ${payload.endereco}\nCategoria: ${payload.categoria_nome}\nDirecionada para: ${payload.entidade_nome}\nDescrição: ${payload.descricao}\n\nConfirma o registro?`
           }])
         } catch {
           setMensagens(prev => [...prev, { role: 'assistant', content: resposta }])
