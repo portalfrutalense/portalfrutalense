@@ -129,10 +129,27 @@ export default function MasterPage() {
     setEditandoEnt(null)
     carregarDados()
   }
+  async function comprimirIcone(file: File, maxSize = 64): Promise<Blob> {
+    return new Promise((resolve) => {
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const scale = Math.min(maxSize / img.width, maxSize / img.height, 1)
+        canvas.width = Math.round(img.width * scale)
+        canvas.height = Math.round(img.height * scale)
+        const ctx = canvas.getContext('2d')!
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        URL.revokeObjectURL(url)
+        canvas.toBlob((blob) => resolve(blob!), 'image/png', 0.9)
+      }
+      img.src = url
+    })
+  }
   async function uploadIconeCategoria(file: File, id: string): Promise<string | null> {
-    const ext = file.name.split('.').pop()
-    const path = `${id}.${ext}`
-    const { error } = await client.storage.from('categoria-icones').upload(path, file, { upsert: true })
+    const blob = await comprimirIcone(file)
+    const path = `${id}.png`
+    const { error } = await client.storage.from('categoria-icones').upload(path, blob, { upsert: true, contentType: 'image/png' })
     if (error) { console.error('Erro upload icone:', error); return null }
     const { data } = client.storage.from('categoria-icones').getPublicUrl(path)
     return data.publicUrl
