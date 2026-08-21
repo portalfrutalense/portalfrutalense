@@ -381,11 +381,11 @@ export default function MasterPage() {
                           {categorias.length > 0 && (
                             <div>
                               <p style={{ fontSize: '12px', fontWeight: 500, color: '#4b5563', margin: '0 0 8px' }}>Categorias responsável</p>
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                                 {categorias.map(cat => {
                                   const marcado = novaEntCats.includes(cat.id)
                                   return (
-                                    <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: '#374151' }}>
+                                    <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '7px', cursor: 'pointer', fontSize: '13px', color: '#374151', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '6px 12px', userSelect: 'none' }}>
                                       <input type="checkbox" checked={marcado} onChange={() => setNovaEntCats(prev => marcado ? prev.filter(id => id !== cat.id) : [...prev, cat.id])} />
                                       {cat.nome}
                                     </label>
@@ -411,11 +411,11 @@ export default function MasterPage() {
                                 {categorias.length > 0 && (
                                   <div>
                                     <p style={{ fontSize: '12px', fontWeight: 500, color: '#4b5563', margin: '0 0 6px' }}>Categorias responsável</p>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                                       {categorias.map(cat => {
                                         const marcado = editEntCats.includes(cat.id)
                                         return (
-                                          <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: '#374151' }}>
+                                          <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '7px', cursor: 'pointer', fontSize: '13px', color: '#374151', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '6px 12px', userSelect: 'none' }}>
                                             <input type="checkbox" checked={marcado} onChange={() => setEditEntCats(prev => marcado ? prev.filter(id => id !== cat.id) : [...prev, cat.id])} />
                                             {cat.nome}
                                           </label>
