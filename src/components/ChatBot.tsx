@@ -36,11 +36,48 @@ export default function ChatBot() {
   const [pendente, setPendente] = useState<DemandaPayload | null>(null)
   const [criando, setCriando] = useState(false)
   const [notif, setNotif] = useState('')
+  const [animando, setAnimando] = useState(false)
+  const [ghostOpacity, setGhostOpacity] = useState(1)
+  const [ghostPos, setGhostPos] = useState({ x: 0, y: 0 })
+  const [avatarHeaderVisivel, setAvatarHeaderVisivel] = useState(true)
+  const [painelVisivel, setPainelVisivel] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const botaoRef = useRef<HTMLButtonElement>(null)
+  const avatarHeaderRef = useRef<HTMLImageElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [mensagens, pendente])
+
+  function abrirChat() {
+    if (!botaoRef.current) { setAberto(true); return }
+    const bRect = botaoRef.current.getBoundingClientRect()
+    const startX = bRect.left + bRect.width / 2 - 95
+    const startY = bRect.top + bRect.height / 2 - 95
+    // calcula posição final matematicamente
+    const panelW = Math.min(360, window.innerWidth - 32)
+    const panelH = Math.min(520, window.innerHeight - 100)
+    const panelLeft = window.innerWidth - 24 - panelW
+    const panelTop = window.innerHeight - 24 - panelH
+    const finalX = panelLeft - 42
+    const finalY = panelTop - 87
+
+    // 1. renderiza ghost na posição inicial
+    setGhostPos({ x: startX, y: startY })
+    setAnimando(true)
+    setAvatarHeaderVisivel(false)
+    setPainelVisivel(false)
+    setAberto(true)
+
+    // 2. após render, inicia o voo e abre o painel
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      setGhostPos({ x: finalX, y: finalY })
+      setPainelVisivel(true)
+    }))
+
+    // 3. swap quando ghost chega no destino
+    setTimeout(() => { setAvatarHeaderVisivel(true); setAnimando(false) }, 420)
+  }
 
   if (!user) return null
 
@@ -145,7 +182,8 @@ export default function ChatBot() {
       {/* Botão flutuante */}
       {!aberto && (
         <button
-          onClick={() => setAberto(true)}
+          ref={botaoRef}
+          onClick={abrirChat}
           style={{
             position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000,
             width: '64px', height: '64px', borderRadius: '50%',
@@ -157,14 +195,14 @@ export default function ChatBot() {
         >
           {/* Sombra oval nos pés */}
           <div style={{
-            position: 'absolute', bottom: '8px', left: '50%', transform: 'translateX(-50%)',
+            position: 'absolute', bottom: '8px', left: '50%', transform: 'translateX(calc(-50% + 2px))',
             width: '44px', height: '10px', borderRadius: '50%',
-            background: 'rgba(0,0,0,0.7)', filter: 'blur(5px)',
+            background: 'rgba(0,0,0,0.28)', filter: 'blur(5px)',
             pointerEvents: 'none',
           }} />
           <img src="/abacaxico.png" alt="AbacaXico" style={{
             position: 'absolute', bottom: '12px', left: '50%',
-            width: '240px', height: '240px', objectFit: 'contain', objectPosition: 'bottom', transform: 'translateX(-50%) scale(2)', transformOrigin: 'bottom center',
+            width: '240px', height: '240px', objectFit: 'contain', objectPosition: 'bottom', transform: 'translateX(calc(-50% + 2px)) scale(2)', transformOrigin: 'bottom center',
             pointerEvents: 'none',
           }} />
         </button>
@@ -181,6 +219,9 @@ export default function ChatBot() {
           border: '1px solid #e5e7eb',
           display: 'flex', flexDirection: 'column',
           overflow: 'visible',
+          opacity: painelVisivel ? 1 : 0,
+          transform: painelVisivel ? 'translateY(0)' : 'translateY(20px)',
+          transition: 'opacity 0.12s ease, transform 0.12s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
         }}>
 
           {/* Header */}
@@ -196,13 +237,14 @@ export default function ChatBot() {
               <div style={{
                 position: 'absolute', top: '46px', left: '28px',
                 width: '44px', height: '10px', borderRadius: '50%',
-                background: 'rgba(0,0,0,0.7)', filter: 'blur(5px)',
+                background: 'rgba(0,0,0,0.28)', filter: 'blur(5px)',
               }} />
             </div>
-            <img src="/abacaxico.png" alt="AbacaXico" style={{
-              position: 'absolute', top: '-100px', left: '-50px',
-              width: '200px', height: '200px', objectFit: 'contain',
+            <img ref={avatarHeaderRef} src="/abacaxico.png" alt="AbacaXico" style={{
+              position: 'absolute', top: '-88px', left: '-43px',
+              width: '190px', height: '190px', objectFit: 'contain',
               pointerEvents: 'none',
+              opacity: avatarHeaderVisivel ? 1 : 0,
             }} />
             <div style={{ paddingLeft: '85px' }}>
               <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'white' }}>AbacaXico</p>
@@ -274,6 +316,21 @@ export default function ChatBot() {
             </button>
           </div>
         </div>
+      )}
+
+      {animando && (
+        <img src="/abacaxico.png" alt="" style={{
+          position: 'fixed',
+          left: ghostPos.x,
+          top: ghostPos.y,
+          width: '190px',
+          height: '190px',
+          objectFit: 'contain',
+          pointerEvents: 'none',
+          zIndex: 9999,
+          opacity: ghostOpacity,
+          transition: 'left 0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94), top 0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.2s',
+        }} />
       )}
 
       {notif && (
