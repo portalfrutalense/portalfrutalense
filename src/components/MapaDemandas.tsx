@@ -701,8 +701,8 @@ export default function MapaDemandas() {
       <style>{`
         @media (max-width: 640px) {
           .mapa-layout { flex-direction: column-reverse !important; }
-          .mapa-sidebar { width: 100% !important; border-right: none !important; border-top: 1px solid #e5e7eb; min-height: unset !important; max-height: 420px; overflow-y: auto; }
-          .mapa-map-div { min-height: 380px !important; }
+          .mapa-sidebar { width: 100% !important; border-right: none !important; border-top: 1px solid #e5e7eb; min-height: unset !important; max-height: 46vh; overflow-y: auto; }
+          .mapa-map-div { min-height: 46vh !important; }
         }
       `}</style>
 

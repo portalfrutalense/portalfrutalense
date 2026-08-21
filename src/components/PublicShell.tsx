@@ -15,12 +15,18 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   if (isMaster || isLanding || isAbacaXico) return <>{children}</>
 
   if (isMapa) return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+    <div className="mapa-shell" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <Navbar />
-      <main style={{ flex: 1, overflow: 'hidden', padding: 'clamp(8px,2vw,16px)', display: 'flex', flexDirection: 'column' }}>
+      <main className="mapa-main" style={{ flex: 1, overflow: 'hidden', padding: 'clamp(8px,2vw,16px)', display: 'flex', flexDirection: 'column' }}>
         {children}
       </main>
       <ChatBot />
+      <style>{`
+        @media (max-width: 640px) {
+          .mapa-shell { height: auto !important; min-height: 100vh; overflow: visible !important; }
+          .mapa-main { overflow: visible !important; }
+        }
+      `}</style>
     </div>
   )
 
