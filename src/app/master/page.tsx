@@ -621,19 +621,22 @@ function MasterDemandas({ token }: { token: string | null }) {
         </div>
       )}
 
-      {/* Filtro dropdown */}
-      <div>
-        <select
-          value={filtro}
-          onChange={(e) => setFiltro(e.target.value)}
-          style={{ fontSize: '13px', fontWeight: 500, color: '#374151', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 32px 8px 12px', cursor: 'pointer', outline: 'none', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}
-        >
-          {(['todos', 'pendente', 'aguardando_resposta', 'respondida', 'resolvida', 'rejeitada_ia'] as const).map(f => (
-            <option key={f} value={f}>
-              {f === 'todos' ? `Todas (${demandas.length})` : `${statusLabel[f]} (${demandas.filter(d => d.status === f).length})`}
-            </option>
-          ))}
-        </select>
+      {/* Filtro de status */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+        {(['todos', 'pendente', 'aguardando_resposta', 'respondida', 'resolvida', 'rejeitada_ia'] as const).map(f => (
+          <button
+            key={f}
+            onClick={() => setFiltro(f)}
+            style={{
+              fontSize: '12px', fontWeight: 600, padding: '6px 12px', borderRadius: '20px', cursor: 'pointer',
+              border: filtro === f ? '2px solid #1e3a5f' : '1px solid #e5e7eb',
+              background: filtro === f ? '#1e3a5f' : 'white',
+              color: filtro === f ? 'white' : '#374151',
+            }}
+          >
+            {f === 'todos' ? `Todas (${demandas.length})` : `${statusLabel[f]} (${demandas.filter(d => d.status === f).length})`}
+          </button>
+        ))}
       </div>
 
       {carregandoDemandas && (

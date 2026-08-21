@@ -515,22 +515,14 @@ export default function MapaDemandas() {
                 {/* Filtro de status */}
                 <div style={{ marginBottom: '16px' }}>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#374151', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Status</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  <select
+                    value={filtroStatus}
+                    onChange={(e) => setFiltroStatus(e.target.value)}
+                    style={{ width: '100%', fontSize: '13px', fontWeight: 500, color: '#374151', background: 'white', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 28px 8px 10px', cursor: 'pointer', outline: 'none', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', boxSizing: 'border-box' }}>
                     {statusOpcoes.map(o => (
-                      <button
-                        key={o.value}
-                        onClick={() => setFiltroStatus(o.value)}
-                        style={{
-                          fontSize: '12px', fontWeight: 600, padding: '5px 10px', borderRadius: '20px', cursor: 'pointer',
-                          border: filtroStatus === o.value ? '2px solid #1e3a5f' : '1px solid #e5e7eb',
-                          background: filtroStatus === o.value ? '#1e3a5f' : 'white',
-                          color: filtroStatus === o.value ? 'white' : '#374151',
-                        }}
-                      >
-                        {o.label}
-                      </button>
+                      <option key={o.value} value={o.value}>{o.label}</option>
                     ))}
-                  </div>
+                  </select>
                 </div>
 
                 {/* Filtro de categoria */}
