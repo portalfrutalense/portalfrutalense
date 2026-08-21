@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { Entidade, CategoriaMapa } from '@/types'
 
 type SecaoMaster = 'dashboard' | 'demandas'
-type AbaConfig = 'autoridades' | 'categorias' | 'ia'
+type AbaConfig = 'autoridades' | 'categorias' | 'ia' | 'chatbot'
 
 export default function MasterPage() {
   const [email, setEmail] = useState('')
@@ -311,8 +311,8 @@ export default function MasterPage() {
                 <div>
                   {/* Sub-abas */}
                   <div style={{ display: 'flex', gap: '4px', marginBottom: '24px', background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '6px' }}>
-                    {(['autoridades', 'categorias', 'ia'] as AbaConfig[]).map((a) => {
-                      const labels: Record<AbaConfig, string> = { autoridades: 'Autoridades', categorias: 'Categorias', ia: 'IA' }
+                    {(['autoridades', 'categorias', 'ia', 'chatbot'] as AbaConfig[]).map((a) => {
+                      const labels: Record<AbaConfig, string> = { autoridades: 'Autoridades', categorias: 'Categorias', ia: 'IA', chatbot: 'Chatbot IA' }
                       return (
                         <button key={a} onClick={() => setAbaConfig(a)} style={{
                           flex: 1, padding: '8px 12px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
@@ -425,6 +425,7 @@ export default function MasterPage() {
                   )}
 
                   {abaConfig === 'ia' && <MasterIA />}
+                  {abaConfig === 'chatbot' && <MasterChatbot />}
                 </div>
               )}
             </div>
@@ -744,6 +745,130 @@ const CONFIG_PADRAO = {
   ativo: true,
   rigor: 'moderado',
   prompt: 'Analise a demanda do cidadão e decida se deve ser aprovada ou rejeitada. Rejeite se: for ofensiva, difamatória, sem relação com problemas reais do município de Frutal-MG, spam, ou conteúdo político partidário. Aprove se for uma demanda legítima de um cidadão sobre infraestrutura, saúde, educação, segurança ou outro serviço público.',
+}
+
+function MasterChatbot() {
+  const sbClient = createClient()
+  const [entradas, setEntradas] = useState<any[]>([])
+  const [novoTitulo, setNovoTitulo] = useState('')
+  const [novoConteudo, setNovoConteudo] = useState('')
+  const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [editTitulo, setEditTitulo] = useState('')
+  const [editConteudo, setEditConteudo] = useState('')
+  const [salvando, setSalvando] = useState(false)
+  const [notif, setNotif] = useState('')
+
+  async function carregar() {
+    const { data } = await sbClient.from('chatbot_base').select('*').order('created_at', { ascending: false })
+    setEntradas(data || [])
+  }
+
+  useEffect(() => { carregar() }, [])
+
+  function mostrarNotif(msg: string) { setNotif(msg); setTimeout(() => setNotif(''), 4000) }
+
+  async function adicionar(e: React.FormEvent) {
+    e.preventDefault()
+    if (!novoTitulo.trim() || !novoConteudo.trim()) return
+    setSalvando(true)
+    await sbClient.from('chatbot_base').insert({ titulo: novoTitulo.trim(), conteudo: novoConteudo.trim(), ativo: true })
+    setNovoTitulo(''); setNovoConteudo('')
+    await carregar()
+    setSalvando(false)
+    mostrarNotif('Entrada adicionada.')
+  }
+
+  async function salvarEdicao(id: string) {
+    await sbClient.from('chatbot_base').update({ titulo: editTitulo, conteudo: editConteudo }).eq('id', id)
+    setEditandoId(null)
+    await carregar()
+    mostrarNotif('Entrada atualizada.')
+  }
+
+  async function excluir(id: string) {
+    if (!confirm('Excluir esta entrada da base de conhecimento?')) return
+    await sbClient.from('chatbot_base').delete().eq('id', id)
+    await carregar()
+    mostrarNotif('Entrada excluída.')
+  }
+
+  async function toggleAtivo(id: string, ativo: boolean) {
+    await sbClient.from('chatbot_base').update({ ativo: !ativo }).eq('id', id)
+    await carregar()
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {notif && <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#166534' }}>{notif}</div>}
+
+      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '12px 16px', fontSize: '13px', color: '#1e40af', lineHeight: 1.6 }}>
+        <strong>Como funciona:</strong> Cada entrada abaixo é um bloco de conhecimento que o chatbot usa para responder aos cidadãos. Adicione telefones úteis, horários, informações de serviços públicos, etc. O bot só responde com base no que está aqui.
+      </div>
+
+      {/* Formulário nova entrada */}
+      <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '20px' }}>
+        <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Nova entrada</h3>
+        <form onSubmit={adicionar} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <input value={novoTitulo} onChange={e => setNovoTitulo(e.target.value)} required
+            placeholder="Título (ex: UBS Central — Horário e telefone)"
+            style={{ border: '1px solid #d1d5db', borderRadius: '7px', padding: '9px 12px', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
+          <textarea value={novoConteudo} onChange={e => setNovoConteudo(e.target.value)} required rows={4}
+            placeholder="Conteúdo (ex: UBS Central funciona de segunda a sexta, das 7h às 17h. Telefone: (34) 3321-xxxx. Endereço: Rua XV de Novembro, 200.)"
+            style={{ border: '1px solid #d1d5db', borderRadius: '7px', padding: '9px 12px', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.5 }} />
+          <button type="submit" disabled={salvando}
+            style={{ alignSelf: 'flex-start', backgroundColor: salvando ? '#9ca3af' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '9px 20px', borderRadius: '7px', border: 'none', cursor: salvando ? 'not-allowed' : 'pointer', fontSize: '13px' }}>
+            {salvando ? 'Salvando...' : 'Adicionar'}
+          </button>
+        </form>
+      </div>
+
+      {/* Lista de entradas */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {entradas.length === 0 && (
+          <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '32px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
+            Nenhuma entrada cadastrada ainda.
+          </div>
+        )}
+        {entradas.map((e: any) => (
+          <div key={e.id} style={{ background: 'white', borderRadius: '10px', border: `1px solid ${e.ativo ? '#e5e7eb' : '#f3f4f6'}`, padding: '16px', opacity: e.ativo ? 1 : 0.55 }}>
+            {editandoId === e.id ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <input value={editTitulo} onChange={ev => setEditTitulo(ev.target.value)}
+                  style={{ border: '1.5px solid #1e3a5f', borderRadius: '7px', padding: '8px 12px', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
+                <textarea value={editConteudo} onChange={ev => setEditConteudo(ev.target.value)} rows={4}
+                  style={{ border: '1.5px solid #1e3a5f', borderRadius: '7px', padding: '8px 12px', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.5 }} />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => salvarEdicao(e.id)} style={{ background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '7px 16px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Salvar</button>
+                  <button onClick={() => setEditandoId(null)} style={{ background: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 16px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>{e.titulo}</span>
+                  <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                    <button onClick={() => toggleAtivo(e.id, e.ativo)}
+                      style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', border: 'none', cursor: 'pointer', background: e.ativo ? '#dcfce7' : '#f3f4f6', color: e.ativo ? '#166534' : '#6b7280' }}>
+                      {e.ativo ? 'Ativo' : 'Inativo'}
+                    </button>
+                    <button onClick={() => { setEditandoId(e.id); setEditTitulo(e.titulo); setEditConteudo(e.conteudo) }}
+                      style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', border: '1px solid #e5e7eb', cursor: 'pointer', background: 'white', color: '#374151' }}>
+                      Editar
+                    </button>
+                    <button onClick={() => excluir(e.id)}
+                      style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', border: '1px solid #fecaca', cursor: 'pointer', background: 'white', color: '#dc2626' }}>
+                      Excluir
+                    </button>
+                  </div>
+                </div>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{e.conteudo}</p>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 function MasterIA() {
