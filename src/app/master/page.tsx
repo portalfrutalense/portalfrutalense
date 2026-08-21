@@ -839,13 +839,14 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
   const [catEntidades, setCatEntidades] = useState<Record<string, string[]>>({})
 
   async function getToken() {
-    if (token) return token
-    return (await sbClient.auth.getSession()).data.session?.access_token
+    // Sempre busca sessão fresca para evitar token expirado
+    const { data } = await sbClient.auth.getSession()
+    return data.session?.access_token ?? token ?? null
   }
 
-  function mostrarNotif(msg: string) {
-    setNotif(msg)
-    setTimeout(() => setNotif(''), 3000)
+  function mostrarNotif(msg: string, erro = false) {
+    setNotif((erro ? '⚠️ ' : '') + msg)
+    setTimeout(() => setNotif(''), 4000)
   }
 
   async function carregar() {
@@ -923,11 +924,9 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
   }
 
   async function excluir(id: string) {
-    console.log('[excluir] chamado com id:', id)
-    if (!confirm('Excluir esta autoridade? Esta ação não pode ser desfeita.')) { console.log('[excluir] cancelado pelo confirm'); return }
+    if (!confirm('Excluir esta autoridade? Esta ação não pode ser desfeita.')) return
     const t = await getToken()
-    console.log('[excluir] token:', t ? 'ok' : 'NULO', '| id:', id)
-    if (!t) { mostrarNotif('Sem token de autenticação.'); return }
+    if (!t) { mostrarNotif('Sem autenticação. Faça login novamente.', true); return }
     try {
       const res = await fetch('/api/master/perfis', {
         method: 'DELETE',
@@ -935,13 +934,11 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
         body: JSON.stringify({ id }),
       })
       const d = await res.json()
-      console.log('[excluir perfil] status:', res.status, 'body:', d)
-      if (!res.ok || !d.ok) { mostrarNotif(d.error || `Erro ${res.status}`); return }
+      if (!res.ok || !d.ok) { mostrarNotif(d.error || `Erro ${res.status}`, true); return }
       mostrarNotif('Excluído com sucesso.')
       carregar()
     } catch (e: any) {
-      console.error('[excluir perfil] exceção:', e)
-      mostrarNotif('Erro inesperado: ' + e.message)
+      mostrarNotif('Erro inesperado: ' + e.message, true)
     }
   }
 
@@ -991,7 +988,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
         </p>
       </div>
 
-      {notif && <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#166534', marginBottom: '16px' }}>{notif}</div>}
+      {notif && <div style={{ background: notif.startsWith('⚠️') ? '#fef2f2' : '#f0fdf4', border: `1px solid ${notif.startsWith('⚠️') ? '#fecaca' : '#bbf7d0'}`, borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: notif.startsWith('⚠️') ? '#dc2626' : '#166534', marginBottom: '16px' }}>{notif}</div>}
 
       {/* Formulário de criação — só para autoridade e empresa */}
       {subSecao !== 'cidadao' && (
