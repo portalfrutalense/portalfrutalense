@@ -148,15 +148,15 @@ export default function ChatBot() {
           onClick={() => setAberto(true)}
           style={{
             position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000,
-            width: '56px', height: '56px', borderRadius: '50%',
-            background: '#1e3a5f', color: 'white', border: 'none', cursor: 'pointer',
+            width: '64px', height: '64px', borderRadius: '50%',
+            background: '#1e3a5f', border: 'none', cursor: 'pointer',
             boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '24px',
+            padding: '6px', overflow: 'hidden',
           }}
           title="Falar com o AbacaXico"
         >
-          🍍
+          <img src="/abacaxico.png" alt="AbacaXico" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </button>
       )}
 
@@ -176,7 +176,7 @@ export default function ChatBot() {
           {/* Header */}
           <div style={{ background: '#1e3a5f', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <img src="/abacaxico.png" alt="AbacaXico" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
+              <img src="/abacaxico.png" alt="AbacaXico" style={{ width: '72px', height: '72px', objectFit: 'contain' }} />
               <div>
                 <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'white' }}>AbacaXico</p>
                 <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>Assistente Virtual de IA do Fala Frutal</p>
