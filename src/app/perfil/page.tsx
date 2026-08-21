@@ -112,7 +112,7 @@ export default function PerfilPage() {
                   width: '180px', height: '100px', background: 'white',
                   border: '1px solid #e5e7eb', borderRadius: '10px',
                   cursor: 'pointer', display: 'flex', flexDirection: 'column',
-                  alignItems: 'flex-start', justifyContent: 'flex-end',
+                  alignItems: 'flex-start', justifyContent: 'center',
                   padding: '16px', gap: '4px', boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
                   transition: 'box-shadow 0.15s',
                 }}
