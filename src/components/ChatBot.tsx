@@ -151,12 +151,22 @@ export default function ChatBot() {
             width: '64px', height: '64px', borderRadius: '50%',
             background: '#1e3a5f', border: 'none', cursor: 'pointer',
             boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '6px', overflow: 'hidden',
+            padding: '0', overflow: 'visible',
           }}
           title="Falar com o AbacaXico"
         >
-          <img src="/abacaxico.png" alt="AbacaXico" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          {/* Sombra oval nos pés */}
+          <div style={{
+            position: 'absolute', bottom: '8px', left: '50%', transform: 'translateX(-50%)',
+            width: '44px', height: '10px', borderRadius: '50%',
+            background: 'rgba(0,0,0,0.7)', filter: 'blur(5px)',
+            pointerEvents: 'none',
+          }} />
+          <img src="/abacaxico.png" alt="AbacaXico" style={{
+            position: 'absolute', bottom: '12px', left: '50%',
+            width: '240px', height: '240px', objectFit: 'contain', objectPosition: 'bottom', transform: 'translateX(-50%) scale(2)', transformOrigin: 'bottom center',
+            pointerEvents: 'none',
+          }} />
         </button>
       )}
 
@@ -175,19 +185,26 @@ export default function ChatBot() {
 
           {/* Header */}
           <div style={{
-            background: '#1e3a5f', padding: '14px 16px',
+            background: '#1e3a5f', padding: '10px 16px',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             borderRadius: '16px 16px 0 0',
             position: 'relative', overflow: 'visible',
           }}>
             {/* Avatar centralizado vazando acima do card */}
+            {/* Container que clipa a sombra dentro do header */}
+            <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', borderRadius: '16px 16px 0 0' }}>
+              <div style={{
+                position: 'absolute', top: '46px', left: '28px',
+                width: '44px', height: '10px', borderRadius: '50%',
+                background: 'rgba(0,0,0,0.7)', filter: 'blur(5px)',
+              }} />
+            </div>
             <img src="/abacaxico.png" alt="AbacaXico" style={{
-              position: 'absolute', top: '-160px', left: '50%', transform: 'translateX(-50%)',
+              position: 'absolute', top: '-100px', left: '-50px',
               width: '200px', height: '200px', objectFit: 'contain',
-              filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.35))',
               pointerEvents: 'none',
             }} />
-            <div style={{ paddingLeft: '0' }}>
+            <div style={{ paddingLeft: '85px' }}>
               <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'white' }}>AbacaXico</p>
               <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>Assistente Virtual de IA do Fala Frutal</p>
             </div>
