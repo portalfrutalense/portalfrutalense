@@ -42,6 +42,43 @@ export default function AbacaXicoPage() {
 
   const temMensagens = mensagens.length > 0
 
+  const campoInput = (
+    <>
+      <div style={{ maxWidth: '760px', margin: '0 auto', width: '100%', position: 'relative', background: 'white', borderRadius: '24px', border: '1px solid #e5e7eb', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'flex-end', padding: '10px 16px', gap: '8px', boxSizing: 'border-box' }}>
+        <textarea
+          ref={inputRef}
+          rows={1}
+          value={input}
+          onChange={e => { setInput(e.target.value); autoResize(e.target) }}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar() } }}
+          placeholder={user ? 'Registre demandas, tire dúvidas ou peça uma ajuda...' : 'Entre na sua conta para conversar'}
+          disabled={enviando || !user}
+          style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: '15px', color: '#111827', resize: 'none', lineHeight: 1.5, maxHeight: '160px', padding: '2px 0' }}
+        />
+        <button
+          onClick={user ? enviar : () => setModalAuth(true)}
+          disabled={enviando || (!!user && !input.trim())}
+          style={{
+            background: (!user || input.trim()) ? '#1e3a5f' : 'transparent',
+            color: (!user || input.trim()) ? 'white' : '#9ca3af',
+            border: 'none', borderRadius: '10px',
+            width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: (enviando || (user && !input.trim())) ? 'default' : 'pointer',
+            fontSize: '16px', flexShrink: 0, transition: 'background 0.15s',
+          }}>
+          ➤
+        </button>
+      </div>
+      {!user && (
+        <p style={{ textAlign: 'center', fontSize: '12px', color: '#9ca3af', margin: '10px 0 0' }}>
+          <button onClick={() => setModalAuth(true)} style={{ background: 'none', border: 'none', color: '#1e3a5f', fontWeight: 600, cursor: 'pointer', fontSize: '12px', textDecoration: 'underline' }}>
+            Entre na sua conta
+          </button>{' '}para conversar com o AbacaXico
+        </p>
+      )}
+    </>
+  )
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [mensagens, pendente, enviando])
@@ -159,9 +196,12 @@ export default function AbacaXicoPage() {
             <h1 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 700, color: '#111827', margin: '0 0 8px', letterSpacing: '-0.5px' }}>
               Bão? Eu sou o AbacaXico!
             </h1>
-            <p style={{ fontSize: '15px', color: '#6b7280', margin: 0 }}>
+            <p style={{ fontSize: '15px', color: '#6b7280', margin: '0 0 28px' }}>
               Assistente Virtual de IA do Fala Frutal
             </p>
+            <div style={{ width: '100%', maxWidth: '600px' }}>
+              {campoInput}
+            </div>
           </div>
         )}
 
@@ -212,41 +252,12 @@ export default function AbacaXicoPage() {
         )}
       </div>
 
-      {/* Input fixo na base */}
-      <div style={{ padding: 'clamp(12px, 2vw, 20px) clamp(16px, 3vw, 32px)', background: 'white', borderTop: temMensagens ? '1px solid #f3f4f6' : 'none' }}>
-        <div style={{ maxWidth: '760px', margin: '0 auto', position: 'relative', background: 'white', borderRadius: '24px', border: '1px solid #e5e7eb', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'flex-end', padding: '10px 16px', gap: '8px' }}>
-          <textarea
-            ref={inputRef}
-            rows={1}
-            value={input}
-            onChange={e => { setInput(e.target.value); autoResize(e.target) }}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar() } }}
-            placeholder={user ? 'Registre demandas, tire dúvidas ou peça uma ajuda...' : 'Entre na sua conta para conversar'}
-            disabled={enviando || !user}
-            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: '15px', color: '#111827', resize: 'none', lineHeight: 1.5, maxHeight: '160px', padding: '2px 0' }}
-          />
-          <button
-            onClick={user ? enviar : () => setModalAuth(true)}
-            disabled={enviando || (!!user && !input.trim())}
-            style={{
-              background: (!user || input.trim()) ? '#1e3a5f' : 'transparent',
-              color: (!user || input.trim()) ? 'white' : '#9ca3af',
-              border: 'none', borderRadius: '10px',
-              width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: (enviando || (user && !input.trim())) ? 'default' : 'pointer',
-              fontSize: '16px', flexShrink: 0, transition: 'background 0.15s',
-            }}>
-            ➤
-          </button>
+      {/* Input fixo na base (some no estado vazio, aparece após a 1ª mensagem) */}
+      {temMensagens && (
+        <div style={{ padding: 'clamp(12px, 2vw, 20px) clamp(16px, 3vw, 32px)', background: 'white', borderTop: '1px solid #f3f4f6' }}>
+          {campoInput}
         </div>
-        {!user && (
-          <p style={{ textAlign: 'center', fontSize: '12px', color: '#9ca3af', margin: '10px 0 0' }}>
-            <button onClick={() => setModalAuth(true)} style={{ background: 'none', border: 'none', color: '#1e3a5f', fontWeight: 600, cursor: 'pointer', fontSize: '12px', textDecoration: 'underline' }}>
-              Entre na sua conta
-            </button>{' '}para conversar com o AbacaXico
-          </p>
-        )}
-      </div>
+      )}
 
       {notif && (
         <div style={{ position: 'fixed', bottom: '100px', right: '24px', zIndex: 100, background: '#166534', color: 'white', borderRadius: '10px', padding: '12px 20px', fontSize: '14px', fontWeight: 600, boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}>
