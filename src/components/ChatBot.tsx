@@ -29,7 +29,7 @@ export default function ChatBot() {
   const nomeUsuario = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || 'Cidadão'
   const [aberto, setAberto] = useState(false)
   const [mensagens, setMensagens] = useState<Mensagem[]>([
-    { role: 'assistant', content: `Olá, ${nomeUsuario}! Pode falar, estou aqui para ajudar. Posso responder dúvidas sobre serviços públicos de Frutal ou registrar uma demanda para você.` }
+    { role: 'assistant', content: `Uai, ${nomeUsuario}! Que bom ter ocê aqui. Sou o Abaxico, frutalense de coração. Posso responder dúvidas sobre os serviços da cidade ou registrar uma demanda pra ocê. Fala aí, o que tá precisando?` }
   ])
   const [input, setInput] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -154,9 +154,9 @@ export default function ChatBot() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '24px',
           }}
-          title="Assistente virtual"
+          title="Falar com o Abaxico"
         >
-          💬
+          🍍
         </button>
       )}
 
@@ -176,10 +176,10 @@ export default function ChatBot() {
           {/* Header */}
           <div style={{ background: '#1e3a5f', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>🤖</div>
+              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>🍍</div>
               <div>
-                <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'white' }}>Assistente Fala Frutal</p>
-                <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>Powered by Gemini IA</p>
+                <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'white' }}>Abaxico</p>
+                <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>Assistente virtual do Fala Frutal</p>
               </div>
             </div>
             <button onClick={() => setAberto(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', fontSize: '20px', cursor: 'pointer', padding: '4px', lineHeight: 1 }}>×</button>
