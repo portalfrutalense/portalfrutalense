@@ -57,6 +57,7 @@ export default function MapaDemandas() {
 
   const [mapaCarregado, setMapaCarregado] = useState(false)
   const [satelite, setSatelite] = useState(false)
+  const sateliteRef = useRef(false)
   const [miniSatelite, setMiniSatelite] = useState(false)
   const [demandas, setDemandas] = useState<Demanda[]>([])
   const [categorias, setCategorias] = useState<CategoriaMapa[]>([])
@@ -132,7 +133,8 @@ export default function MapaDemandas() {
         const tilePane = mapa.getPanes().tilePane as HTMLElement | null
         if (!tilePane) return
         const zoomBlur = window.innerWidth <= 600 ? 13 : 14
-        tilePane.style.filter = z === zoomBlur ? `grayscale(20%) blur(0.6px)` : `grayscale(20%)`
+        const gs = sateliteRef.current ? 50 : 20
+        tilePane.style.filter = z === zoomBlur ? `grayscale(${gs}%) blur(0.6px)` : `grayscale(${gs}%)`
       }
       mapa.on('zoomend', atualizarBlur)
       mapa.whenReady(() => requestAnimationFrame(atualizarBlur))
@@ -241,7 +243,16 @@ export default function MapaDemandas() {
       : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' })
     tile.addTo(mapaObj.current)
     tileAtual.current = tile
+    sateliteRef.current = novoSatelite
     setSatelite(novoSatelite)
+    // Atualiza grayscale imediatamente ao trocar camada
+    const tilePane = mapaObj.current.getPanes().tilePane as HTMLElement | null
+    if (tilePane) {
+      const z = mapaObj.current.getZoom()
+      const zoomBlur = window.innerWidth <= 600 ? 13 : 14
+      const gs = novoSatelite ? 50 : 20
+      tilePane.style.filter = z === zoomBlur ? `grayscale(${gs}%) blur(0.6px)` : `grayscale(${gs}%)`
+    }
   }
 
   // Verifica se coordenadas estão dentro de ~15km de Frutal-MG
