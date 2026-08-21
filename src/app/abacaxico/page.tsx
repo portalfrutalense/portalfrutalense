@@ -37,9 +37,44 @@ export default function AbacaXicoPage() {
   const [criando, setCriando] = useState(false)
   const [notif, setNotif] = useState('')
   const [modalAuth, setModalAuth] = useState(false)
+  const [gravando, setGravando] = useState(false)
+  const [micDisponivel, setMicDisponivel] = useState(true)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const pageBottomRef = useRef<HTMLDivElement>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null)
+
+  useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (!SpeechRecognition) setMicDisponivel(false)
+  }, [])
+
+  function alternarGravacao() {
+    if (gravando) {
+      recognitionRef.current?.stop()
+      return
+    }
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (!SpeechRecognition) { setMicDisponivel(false); return }
+
+    const recognition = new SpeechRecognition()
+    recognition.lang = 'pt-BR'
+    recognition.continuous = false
+    recognition.interimResults = false
+
+    recognition.onresult = (event: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      const texto = event.results[0][0].transcript
+      setInput(prev => (prev ? `${prev} ${texto}` : texto))
+      if (inputRef.current) autoResize(inputRef.current)
+    }
+    recognition.onerror = () => setGravando(false)
+    recognition.onend = () => setGravando(false)
+
+    recognitionRef.current = recognition
+    recognition.start()
+    setGravando(true)
+  }
 
   const temMensagens = mensagens.length > 0
 
@@ -49,6 +84,10 @@ export default function AbacaXicoPage() {
         .abx-textarea { min-height: 24px; }
         @media (max-width: 480px) {
           .abx-textarea { min-height: 52px; }
+        }
+        @keyframes abx-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.55; }
         }
       `}</style>
       <div style={{ maxWidth: '760px', margin: '0 auto', width: '100%', position: 'relative', background: 'white', borderRadius: '24px', border: '1px solid #e5e7eb', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', padding: '12px 16px', gap: '8px', boxSizing: 'border-box' }}>
@@ -63,6 +102,28 @@ export default function AbacaXicoPage() {
           disabled={enviando || !user}
           style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none', fontSize: '15px', color: '#111827', resize: 'none', lineHeight: 1.5, maxHeight: '160px', padding: 0, display: 'block', overflowX: 'hidden', overflowY: 'auto' }}
         />
+        {micDisponivel && user && (
+          <button
+            type="button"
+            onClick={alternarGravacao}
+            disabled={enviando}
+            title={gravando ? 'Parar gravação' : 'Falar em vez de digitar'}
+            style={{
+              background: gravando ? '#dc2626' : 'transparent',
+              color: gravando ? 'white' : '#6b7280',
+              border: 'none', borderRadius: '10px',
+              width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: enviando ? 'default' : 'pointer',
+              flexShrink: 0, transition: 'background 0.15s',
+              animation: gravando ? 'abx-pulse 1.2s infinite' : 'none',
+            }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="9" y="2" width="6" height="12" rx="3" />
+              <path d="M5 10a7 7 0 0 0 14 0" />
+              <line x1="12" y1="19" x2="12" y2="22" />
+            </svg>
+          </button>
+        )}
         <button
           onClick={user ? enviar : () => setModalAuth(true)}
           disabled={enviando || (!!user && !input.trim())}
