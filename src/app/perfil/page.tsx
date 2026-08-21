@@ -32,6 +32,7 @@ export default function PerfilPage() {
   const [demandas, setDemandas] = useState<Demanda[]>([])
   const [carregandoDemandas, setCarregandoDemandas] = useState(true)
   const [abaAtiva, setAbaAtiva] = useState<'atividades' | 'conta'>('atividades')
+  const [subModulo, setSubModulo] = useState<'demandas' | null>(null)
 
   useEffect(() => {
     if (!carregando && !user) router.replace('/')
@@ -102,17 +103,38 @@ export default function PerfilPage() {
       {/* Aba: Minhas atividades */}
       {abaAtiva === 'atividades' && (
         <div>
-          {/* Sub-abas de módulo */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-            <button style={{
-              fontSize: '13px', fontWeight: 600, padding: '6px 16px',
-              background: '#1e3a5f', color: 'white',
-              border: 'none', borderRadius: '20px', cursor: 'pointer',
-            }}>
-              Demandas
-            </button>
-          </div>
-          {carregandoDemandas ? (
+          {/* Cards de módulo */}
+          {!subModulo && (
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setSubModulo('demandas')}
+                style={{
+                  width: '180px', height: '100px', background: 'white',
+                  border: '1px solid #e5e7eb', borderRadius: '10px',
+                  cursor: 'pointer', display: 'flex', flexDirection: 'column',
+                  alignItems: 'flex-start', justifyContent: 'flex-end',
+                  padding: '16px', gap: '4px', boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+                  transition: 'box-shadow 0.15s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)')}
+                onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.05)')}
+              >
+                <span style={{ fontSize: '22px' }}>📋</span>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>Demandas</span>
+                <span style={{ fontSize: '11px', color: '#9ca3af' }}>{demandas.length} registro{demandas.length !== 1 ? 's' : ''}</span>
+              </button>
+            </div>
+          )}
+
+          {/* Conteúdo do módulo selecionado */}
+          {subModulo === 'demandas' && (
+            <div>
+              <button
+                onClick={() => setSubModulo(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#1e3a5f', padding: '0 0 16px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                ← Voltar
+              </button>
+              {carregandoDemandas ? (
             <p style={{ fontSize: '14px', color: '#6b7280', textAlign: 'center', padding: '32px 0' }}>Carregando...</p>
           ) : demandas.length === 0 ? (
             <p style={{ fontSize: '14px', color: '#6b7280', textAlign: 'center', padding: '32px 0' }}>
@@ -186,6 +208,8 @@ export default function PerfilPage() {
 
                 </div>
               ))}
+            </div>
+          )}
             </div>
           )}
         </div>
