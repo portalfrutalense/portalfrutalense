@@ -29,7 +29,7 @@ export default function ChatBot() {
   const nomeUsuario = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || 'Cidadão'
   const [aberto, setAberto] = useState(false)
   const [mensagens, setMensagens] = useState<Mensagem[]>([
-    { role: 'assistant', content: `Olá, ${nomeUsuario}! Sou o AbacaXico, assistente virtual do Fala Frutal. Posso responder dúvidas sobre os serviços da cidade ou registrar uma demanda pra você. O que tá precisando?` }
+    { role: 'assistant', content: `Olá, ${nomeUsuario}! Sou o assistente virtual do Fala Frutal. Posso responder dúvidas sobre os serviços da cidade ou registrar uma demanda pra você. O que está precisando?` }
   ])
   const [input, setInput] = useState('')
   const [enviando, setEnviando] = useState(false)
