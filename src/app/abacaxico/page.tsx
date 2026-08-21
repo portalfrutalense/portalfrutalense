@@ -157,7 +157,7 @@ export default function AbacaXicoPage() {
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', textAlign: 'center' }}>
             <img src="/abacaxico.png" alt="AbacaXico" style={{ width: '200px', height: '200px', objectFit: 'contain', marginBottom: '16px' }} />
             <h1 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 700, color: '#111827', margin: '0 0 8px', letterSpacing: '-0.5px' }}>
-              {nomeUsuario ? `Qual é a vibe, ${nomeUsuario}?` : 'Olá! Sou o AbacaXico.'}
+              Bão? Eu sou o AbacaXico!
             </h1>
             <p style={{ fontSize: '15px', color: '#6b7280', margin: 0 }}>
               Assistente Virtual de IA do Fala Frutal
@@ -221,7 +221,7 @@ export default function AbacaXicoPage() {
             value={input}
             onChange={e => { setInput(e.target.value); autoResize(e.target) }}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar() } }}
-            placeholder={user ? 'Peça ao AbacaXico' : 'Entre na sua conta para conversar'}
+            placeholder={user ? 'Registre demandas, tire dúvidas ou peça uma ajuda...' : 'Entre na sua conta para conversar'}
             disabled={enviando || !user}
             style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: '15px', color: '#111827', resize: 'none', lineHeight: 1.5, maxHeight: '160px', padding: '2px 0' }}
           />
