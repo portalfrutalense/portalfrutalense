@@ -69,7 +69,7 @@ export default function PerfilPage() {
   const nomeExibido = perfil?.nome || user.user_metadata?.full_name || 'Usuário'
 
   return (
-    <div style={{ maxWidth: '680px', margin: '0 auto', padding: '24px 16px' }}>
+    <div style={{ padding: '24px 32px' }}>
 
       {/* Cabeçalho */}
       <div style={{ marginBottom: '24px' }}>
