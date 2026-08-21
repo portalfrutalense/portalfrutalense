@@ -39,6 +39,7 @@ export default function AbacaXicoPage() {
   const [modalAuth, setModalAuth] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const pageBottomRef = useRef<HTMLDivElement>(null)
 
   const temMensagens = mensagens.length > 0
 
@@ -92,6 +93,20 @@ export default function AbacaXicoPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [mensagens, pendente, enviando])
+
+  // Ao enviar a 1ª mensagem, rola a página inteira até a base (onde fica o campo de input),
+  // que em mobile pode ficar escondido atrás da barra do navegador
+  useEffect(() => {
+    if (mensagens.length === 1) {
+      setTimeout(() => {
+        if (pageBottomRef.current) {
+          pageBottomRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
+        } else {
+          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+        }
+      }, 150)
+    }
+  }, [mensagens.length])
 
   function autoResize(el: HTMLTextAreaElement) {
     el.style.height = 'auto'
@@ -193,7 +208,7 @@ export default function AbacaXicoPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden', background: 'white' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: 'white' }}>
       <Navbar />
 
       {/* Área principal */}
@@ -284,6 +299,7 @@ export default function AbacaXicoPage() {
           {campoInput}
         </div>
       )}
+      <div ref={pageBottomRef} />
 
       {notif && (
         <div style={{ position: 'fixed', bottom: '100px', right: '24px', zIndex: 100, background: '#166534', color: 'white', borderRadius: '10px', padding: '12px 20px', fontSize: '14px', fontWeight: 600, boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}>
