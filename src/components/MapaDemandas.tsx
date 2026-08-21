@@ -125,6 +125,18 @@ export default function MapaDemandas() {
       mapaObj.current = mapa
       leafletObj.current = L
       setMapaCarregado(true)
+
+      // blur no tile pane em zoom alto, some em zoom baixo
+      function atualizarBlur() {
+        const z = mapa.getZoom()
+        const tilePane = mapa.getPanes().tilePane as HTMLElement | null
+        if (!tilePane) return
+        const zoomBlur = window.innerWidth <= 600 ? 13 : 14
+        tilePane.style.filter = z === zoomBlur ? `grayscale(20%) blur(0.6px)` : `grayscale(20%)`
+      }
+      mapa.on('zoomend', atualizarBlur)
+      mapa.whenReady(() => requestAnimationFrame(atualizarBlur))
+      mapa.once('tilesloaded', atualizarBlur)
     })
   }, [])
 
@@ -166,7 +178,7 @@ export default function MapaDemandas() {
       })
       if (iconeUrl) return L.divIcon({
         className: '',
-        html: `<img src="${iconeUrl}" style="width:${s}px;height:${s}px;object-fit:contain;filter:drop-shadow(0 0 4px white) drop-shadow(0 0 8px white) drop-shadow(0 2px 5px rgba(0,0,0,0.3));" />`,
+        html: `<img src="${iconeUrl}" style="width:${s}px;height:${s}px;object-fit:contain;filter:drop-shadow(0 0 3px rgba(255,255,255,0.8)) drop-shadow(0 2px 4px rgba(0,0,0,0.25));" />`,
         iconSize: [s, s], iconAnchor: [s/2, s/2],
       })
       return L.divIcon({
