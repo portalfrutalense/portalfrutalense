@@ -8,11 +8,11 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   const pathname = usePathname()
   const isMaster = pathname.startsWith('/master')
   const isLanding = pathname === '/'
-
   const isMapa = pathname === '/mapa'
+  const isAbacaXico = pathname === '/abacaxico'
 
-  // Master e landing têm seu próprio layout, sem ChatBot público
-  if (isMaster || isLanding) return <>{children}</>
+  // Master, landing e AbacaXico têm seu próprio layout
+  if (isMaster || isLanding || isAbacaXico) return <>{children}</>
 
   if (isMapa) return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
