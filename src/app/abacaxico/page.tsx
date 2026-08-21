@@ -204,15 +204,17 @@ export default function AbacaXicoPage() {
                 justify-content: center;
                 padding: 40px 24px;
               }
+              .abx-mascote { width: clamp(260px, 40vw, 380px); }
               @media (max-width: 640px) {
                 .abx-empty-state {
                   justify-content: flex-start;
-                  padding: 24px 20px;
+                  padding: 72px 20px 24px;
                 }
+                .abx-mascote { width: min(78vw, 340px); }
               }
             `}</style>
             <div className="abx-empty-state" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-              <img src="/abacaxico.png" alt="AbacaXico" style={{ width: 'clamp(260px, 40vw, 380px)', height: 'auto', objectFit: 'contain', marginBottom: '16px' }} />
+              <img src="/abacaxico.png" alt="AbacaXico" className="abx-mascote" style={{ height: 'auto', objectFit: 'contain', marginBottom: '16px' }} />
               <h1 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 700, color: '#111827', margin: '0 0 8px', letterSpacing: '-0.5px' }}>
                 Bão? Eu sou o AbacaXico!
               </h1>
