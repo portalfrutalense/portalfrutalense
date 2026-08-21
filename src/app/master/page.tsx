@@ -923,7 +923,8 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
   }
 
   async function excluir(id: string) {
-    if (!confirm('Excluir esta autoridade? Esta ação não pode ser desfeita.')) return
+    console.log('[excluir] chamado com id:', id)
+    if (!confirm('Excluir esta autoridade? Esta ação não pode ser desfeita.')) { console.log('[excluir] cancelado pelo confirm'); return }
     const t = await getToken()
     console.log('[excluir] token:', t ? 'ok' : 'NULO', '| id:', id)
     if (!t) { mostrarNotif('Sem token de autenticação.'); return }
