@@ -44,16 +44,24 @@ export default function AbacaXicoPage() {
 
   const campoInput = (
     <>
-      <div style={{ maxWidth: '760px', margin: '0 auto', width: '100%', position: 'relative', background: 'white', borderRadius: '24px', border: '1px solid #e5e7eb', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'flex-end', padding: '10px 16px', gap: '8px', boxSizing: 'border-box' }}>
+      <style>{`
+        .abx-textarea::placeholder {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      `}</style>
+      <div style={{ maxWidth: '760px', margin: '0 auto', width: '100%', position: 'relative', background: 'white', borderRadius: '24px', border: '1px solid #e5e7eb', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', padding: '12px 16px', gap: '8px', boxSizing: 'border-box' }}>
         <textarea
           ref={inputRef}
           rows={1}
+          className="abx-textarea"
           value={input}
           onChange={e => { setInput(e.target.value); autoResize(e.target) }}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar() } }}
           placeholder={user ? 'Registre demandas, tire dúvidas ou peça uma ajuda...' : 'Entre na sua conta para conversar'}
           disabled={enviando || !user}
-          style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: '15px', color: '#111827', resize: 'none', lineHeight: 1.5, maxHeight: '160px', padding: '2px 0' }}
+          style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none', fontSize: '15px', color: '#111827', resize: 'none', lineHeight: 1.5, maxHeight: '160px', padding: 0, display: 'block', overflowX: 'hidden', overflowY: 'auto' }}
         />
         <button
           onClick={user ? enviar : () => setModalAuth(true)}
