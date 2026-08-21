@@ -4,11 +4,12 @@ import { createClient } from '@supabase/supabase-js'
 
 async function verificarMaster(req: NextRequest) {
   const token = req.headers.get('authorization')?.replace('Bearer ', '')
-  if (!token) return null
+  if (!token) { console.log('[perfis] sem token'); return null }
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
-  const { data: { user } } = await sb.auth.getUser(token)
-  if (!user) return null
-  const { data: perfil } = await supabaseServer.from('perfis').select('role').eq('id', user.id).single()
+  const { data: { user }, error: userError } = await sb.auth.getUser(token)
+  if (!user) { console.log('[perfis] user inválido', userError); return null }
+  const { data: perfil, error: perfilError } = await supabaseServer.from('perfis').select('role').eq('id', user.id).single()
+  console.log('[perfis] user:', user.id, 'perfil:', perfil, 'erro:', perfilError)
   if (perfil?.role !== 'master') return null
   return user
 }
