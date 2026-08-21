@@ -180,14 +180,14 @@ export default function ChatBot() {
             borderRadius: '16px 16px 0 0',
             position: 'relative', overflow: 'visible',
           }}>
-            {/* Avatar flutuando acima do header */}
+            {/* Avatar centralizado vazando acima do card */}
             <img src="/abacaxico.png" alt="AbacaXico" style={{
-              position: 'absolute', top: '-20px', left: '12px',
+              position: 'absolute', top: '-160px', left: '50%', transform: 'translateX(-50%)',
               width: '200px', height: '200px', objectFit: 'contain',
               filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.35))',
+              pointerEvents: 'none',
             }} />
-            {/* Espaço pra não sobrepor o texto */}
-            <div style={{ paddingLeft: '76px' }}>
+            <div style={{ paddingLeft: '0' }}>
               <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'white' }}>AbacaXico</p>
               <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>Assistente Virtual de IA do Fala Frutal</p>
             </div>
