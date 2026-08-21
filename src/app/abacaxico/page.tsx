@@ -71,9 +71,12 @@ export default function AbacaXicoPage() {
             border: 'none', borderRadius: '10px',
             width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: (enviando || (user && !input.trim())) ? 'default' : 'pointer',
-            fontSize: '16px', flexShrink: 0, transition: 'background 0.15s',
+            flexShrink: 0, transition: 'background 0.15s',
           }}>
-          ➤
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="19" x2="12" y2="5" />
+            <polyline points="6 11 12 5 18 11" />
+          </svg>
         </button>
       </div>
       {!user && (

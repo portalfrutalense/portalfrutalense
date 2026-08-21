@@ -240,8 +240,11 @@ export default function ChatBot() {
               style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: '8px', padding: '9px 12px', fontSize: '13px', outline: 'none', resize: 'none' }}
             />
             <button onClick={enviar} disabled={enviando || !input.trim()}
-              style={{ background: enviando || !input.trim() ? '#9ca3af' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', padding: '9px 14px', cursor: enviando || !input.trim() ? 'not-allowed' : 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center' }}>
-              ➤
+              style={{ background: enviando || !input.trim() ? '#9ca3af' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', padding: '9px 14px', cursor: enviando || !input.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="19" x2="12" y2="5" />
+                <polyline points="6 11 12 5 18 11" />
+              </svg>
             </button>
           </div>
         </div>
