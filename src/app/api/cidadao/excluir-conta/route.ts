@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
-import { createClient } from '@supabase/supabase-js'
 
 export async function DELETE(req: NextRequest) {
   const token = req.headers.get('authorization')?.replace('Bearer ', '')
   if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
-  const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
-  const { data: { user } } = await sb.auth.getUser(token)
+  const { data: { user } } = await supabaseServer.auth.getUser(token)
   if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
   await supabaseServer.from('perfis').delete().eq('id', user.id)
