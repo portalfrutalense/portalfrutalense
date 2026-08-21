@@ -237,7 +237,7 @@ export default function AbacaXicoPage() {
         </div>
       )}
 
-      {modalAuth && <ModalAuth onClose={() => setModalAuth(false)} />}
+      {modalAuth && <ModalAuth onFechar={() => setModalAuth(false)} />}
     </div>
   )
 }
