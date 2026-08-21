@@ -161,7 +161,7 @@ export default function MapaDemandas() {
 
     function tamanhoIcone(zoom: number) {
       // escala proporcional ao zoom: zoom 13 = 32px, zoom 16 = 60px
-      return Math.max(20, Math.min(72, Math.round((zoom - 10) * 10 + 5)))
+      return Math.max(20, Math.min(72, 50 + (zoom - 14) * 5))
     }
 
     function criarIcone(d: typeof filtradas[0], zoom: number) {
