@@ -45,10 +45,9 @@ export default function AbacaXicoPage() {
   const campoInput = (
     <>
       <style>{`
-        .abx-textarea::placeholder {
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+        .abx-textarea { min-height: 24px; }
+        @media (max-width: 480px) {
+          .abx-textarea { min-height: 44px; }
         }
       `}</style>
       <div style={{ maxWidth: '760px', margin: '0 auto', width: '100%', position: 'relative', background: 'white', borderRadius: '24px', border: '1px solid #e5e7eb', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', padding: '12px 16px', gap: '8px', boxSizing: 'border-box' }}>
@@ -199,18 +198,32 @@ export default function AbacaXicoPage() {
 
         {/* Estado vazio — saudação centralizada */}
         {!temMensagens && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', textAlign: 'center' }}>
-            <img src="/abacaxico.png" alt="AbacaXico" style={{ width: 'clamp(260px, 40vw, 380px)', height: 'auto', objectFit: 'contain', marginBottom: '16px' }} />
-            <h1 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 700, color: '#111827', margin: '0 0 8px', letterSpacing: '-0.5px' }}>
-              Bão? Eu sou o AbacaXico!
-            </h1>
-            <p style={{ fontSize: '15px', color: '#6b7280', margin: '0 0 28px' }}>
-              Assistente Virtual de IA do Fala Frutal
-            </p>
-            <div style={{ width: '100%', maxWidth: '600px' }}>
-              {campoInput}
+          <>
+            <style>{`
+              .abx-empty-state {
+                justify-content: center;
+                padding: 40px 24px;
+              }
+              @media (max-width: 640px) {
+                .abx-empty-state {
+                  justify-content: flex-start;
+                  padding: 24px 20px;
+                }
+              }
+            `}</style>
+            <div className="abx-empty-state" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+              <img src="/abacaxico.png" alt="AbacaXico" style={{ width: 'clamp(260px, 40vw, 380px)', height: 'auto', objectFit: 'contain', marginBottom: '16px' }} />
+              <h1 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 700, color: '#111827', margin: '0 0 8px', letterSpacing: '-0.5px' }}>
+                Bão? Eu sou o AbacaXico!
+              </h1>
+              <p style={{ fontSize: '15px', color: '#6b7280', margin: '0 0 28px' }}>
+                Assistente Virtual de IA do Fala Frutal
+              </p>
+              <div style={{ width: '100%', maxWidth: '600px' }}>
+                {campoInput}
+              </div>
             </div>
-          </div>
+          </>
         )}
 
         {/* Mensagens */}
