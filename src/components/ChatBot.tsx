@@ -170,17 +170,26 @@ export default function ChatBot() {
           boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
           border: '1px solid #e5e7eb',
           display: 'flex', flexDirection: 'column',
-          overflow: 'hidden',
+          overflow: 'visible',
         }}>
 
           {/* Header */}
-          <div style={{ background: '#1e3a5f', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <img src="/abacaxico.png" alt="AbacaXico" style={{ width: '72px', height: '72px', objectFit: 'contain' }} />
-              <div>
-                <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'white' }}>AbacaXico</p>
-                <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>Assistente Virtual de IA do Fala Frutal</p>
-              </div>
+          <div style={{
+            background: '#1e3a5f', padding: '14px 16px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            borderRadius: '16px 16px 0 0',
+            position: 'relative', overflow: 'visible',
+          }}>
+            {/* Avatar flutuando acima do header */}
+            <img src="/abacaxico.png" alt="AbacaXico" style={{
+              position: 'absolute', top: '-36px', left: '12px',
+              width: '72px', height: '72px', objectFit: 'contain',
+              filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.35))',
+            }} />
+            {/* Espaço pra não sobrepor o texto */}
+            <div style={{ paddingLeft: '76px' }}>
+              <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'white' }}>AbacaXico</p>
+              <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>Assistente Virtual de IA do Fala Frutal</p>
             </div>
             <button onClick={() => setAberto(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', fontSize: '20px', cursor: 'pointer', padding: '4px', lineHeight: 1 }}>×</button>
           </div>
@@ -230,7 +239,7 @@ export default function ChatBot() {
           </div>
 
           {/* Input */}
-          <div style={{ padding: '10px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '8px' }}>
+          <div style={{ padding: '10px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '8px', borderRadius: '0 0 16px 16px', background: 'white' }}>
             <input
               value={input}
               onChange={e => setInput(e.target.value)}
