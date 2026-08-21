@@ -16,15 +16,34 @@ export async function POST(req: NextRequest) {
 
   const { mensagens, nomeUsuario } = await req.json()
 
-  // Busca base de conhecimento + categorias + entidades em paralelo
-  const [{ data: base }, { data: categorias }, { data: entidades }] = await Promise.all([
+  // Busca base de conhecimento + categorias + entidades + relações em paralelo
+  const [{ data: base }, { data: categorias }, { data: entidades }, { data: catEnt }] = await Promise.all([
     supabaseServer.from('chatbot_base').select('titulo, conteudo').eq('ativo', true),
     supabaseServer.from('categorias_mapa').select('id, nome').eq('ativo', true),
     supabaseServer.from('entidades').select('id, nome, cargo').eq('ativo', true),
+    supabaseServer.from('categoria_entidades').select('categoria_id, entidade_id'),
   ])
 
+  // Monta mapa categoria -> entidades
+  const catEntMap: Record<string, string[]> = {}
+  for (const row of (catEnt || [])) {
+    if (!catEntMap[row.categoria_id]) catEntMap[row.categoria_id] = []
+    catEntMap[row.categoria_id].push(row.entidade_id)
+  }
+
   const baseTexto = (base || []).map((e: any) => `### ${e.titulo}\n${e.conteudo}`).join('\n\n')
-  const categoriasTexto = (categorias || []).map((c: any) => `- ${c.nome} (id: ${c.id})`).join('\n')
+
+  // Categorias com suas entidades responsáveis
+  const categoriasTexto = (categorias || []).map((c: any) => {
+    const entIds = catEntMap[c.id] || []
+    const entsNomes = entIds.map(id => {
+      const ent = (entidades || []).find((e: any) => e.id === id)
+      return ent ? `${ent.nome} (${ent.cargo}, id: ${ent.id})` : null
+    }).filter(Boolean)
+    const entStr = entsNomes.length > 0 ? ` → responsáveis: ${entsNomes.join(', ')}` : ' → responsáveis: qualquer autoridade cadastrada'
+    return `- ${c.nome} (id: ${c.id})${entStr}`
+  }).join('\n')
+
   const entidadesTexto = (entidades || []).map((e: any) => `- ${e.nome}, ${e.cargo} (id: ${e.id})`).join('\n')
 
   const systemPrompt = `Você é o AbacaXico, assistente virtual do Fala Frutal, plataforma de cidadania do município de Frutal-MG.
@@ -60,7 +79,7 @@ Quando o cidadão quiser registrar uma demanda, colete as informações UMA DE C
 1. Primeiro pergunte SOMENTE a descrição do problema. Espere a resposta.
 2. Depois pergunte SOMENTE o endereço onde ocorre o problema. Espere a resposta.
 3. Com base na descrição, escolha VOCÊ MESMO a categoria mais adequada da lista. Não pergunte ao cidadão. Se nenhuma for adequada, use "Outros". Informe ao cidadão qual categoria foi escolhida de forma natural, sem listar as opções.
-4. Por último apresente as autoridades disponíveis e pergunte SOMENTE para quem direcionar. Espere a resposta.
+4. Cada categoria já tem suas autoridades responsáveis definidas (veja a lista de CATEGORIAS acima). Apresente SOMENTE as autoridades atribuídas àquela categoria e pergunte para quem direcionar. Se a categoria tiver só uma autoridade, atribua automaticamente sem perguntar. Se a categoria não tiver nenhuma atribuída, mostre todas as autoridades cadastradas. Espere a resposta.
 
 NUNCA faça mais de uma pergunta na mesma mensagem.
 Quando tiver TODOS os dados coletados, responda EXATAMENTE neste formato JSON (nada mais, sem texto antes ou depois):

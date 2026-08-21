@@ -23,6 +23,7 @@ export default function MasterPage() {
   // Dados config
   const [entidades, setEntidades] = useState<Entidade[]>([])
   const [categorias, setCategorias] = useState<CategoriaMapa[]>([])
+  const [catEntidades, setCatEntidades] = useState<Record<string, string[]>>({}) // categoria_id -> entidade_ids[]
   const [novaEntNome, setNovaEntNome] = useState('')
   const [novaEntCargo, setNovaEntCargo] = useState('')
   const [novaEntEmail, setNovaEntEmail] = useState('')
@@ -79,6 +80,14 @@ export default function MasterPage() {
   function carregarDados() {
     supabase.from('entidades').select('*').order('nome').then(({ data }) => setEntidades((data as Entidade[]) || []))
     supabase.from('categorias_mapa').select('*').order('nome').then(({ data }) => setCategorias((data as CategoriaMapa[]) || []))
+    supabase.from('categoria_entidades').select('categoria_id, entidade_id').then(({ data }) => {
+      const mapa: Record<string, string[]> = {}
+      for (const row of (data || [])) {
+        if (!mapa[row.categoria_id]) mapa[row.categoria_id] = []
+        mapa[row.categoria_id].push(row.entidade_id)
+      }
+      setCatEntidades(mapa)
+    })
     supabase.from('demandas').select('status').then(({ data }) => {
       const d = data || []
       setStats({
@@ -120,6 +129,16 @@ export default function MasterPage() {
   async function salvarEdicaoCategoria(id: string) {
     await supabase.from('categorias_mapa').update({ nome: editCatNome, cor: editCatCor }).eq('id', id)
     setEditandoCat(null)
+    carregarDados()
+  }
+
+  async function toggleCatEntidade(catId: string, entId: string) {
+    const atuais = catEntidades[catId] || []
+    if (atuais.includes(entId)) {
+      await supabase.from('categoria_entidades').delete().eq('categoria_id', catId).eq('entidade_id', entId)
+    } else {
+      await supabase.from('categoria_entidades').insert({ categoria_id: catId, entidade_id: entId })
+    }
     carregarDados()
   }
 
@@ -418,15 +437,34 @@ export default function MasterPage() {
                                 </div>
                               </div>
                             ) : (
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                  <span style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: c.cor, display: 'inline-block', border: '1px solid #e5e7eb', flexShrink: 0 }} />
-                                  <p style={{ fontWeight: 500, color: '#111827', fontSize: '14px', margin: 0 }}>{c.nome}</p>
-                                  <span style={{ fontSize: '11px', color: '#9ca3af', fontFamily: 'monospace' }}>{c.cor}</span>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <span style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: c.cor, display: 'inline-block', border: '1px solid #e5e7eb', flexShrink: 0 }} />
+                                    <p style={{ fontWeight: 500, color: '#111827', fontSize: '14px', margin: 0 }}>{c.nome}</p>
+                                    <span style={{ fontSize: '11px', color: '#9ca3af', fontFamily: 'monospace' }}>{c.cor}</span>
+                                  </div>
+                                  <div style={{ display: 'flex', gap: '8px' }}>
+                                    {btnAcao('Editar', () => { setEditandoCat(c.id); setEditCatNome(c.nome); setEditCatCor(c.cor) }, 'neutro')}
+                                    {btnAcao('Excluir', () => excluirCategoria(c.id), 'perigo')}
+                                  </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                  {btnAcao('Editar', () => { setEditandoCat(c.id); setEditCatNome(c.nome); setEditCatCor(c.cor) }, 'neutro')}
-                                  {btnAcao('Excluir', () => excluirCategoria(c.id), 'perigo')}
+                                {/* Autoridades atribuídas */}
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingLeft: '28px' }}>
+                                  {entidades.map(en => {
+                                    const ativo = (catEntidades[c.id] || []).includes(en.id)
+                                    return (
+                                      <button key={en.id} onClick={() => toggleCatEntidade(c.id, en.id)} style={{
+                                        fontSize: '11px', padding: '3px 10px', borderRadius: '20px', cursor: 'pointer', fontWeight: 500,
+                                        background: ativo ? '#1e3a5f' : 'white',
+                                        color: ativo ? 'white' : '#6b7280',
+                                        border: ativo ? '1px solid #1e3a5f' : '1px solid #e5e7eb',
+                                      }}>
+                                        {en.nome}
+                                      </button>
+                                    )
+                                  })}
+                                  {entidades.length === 0 && <span style={{ fontSize: '11px', color: '#9ca3af' }}>Nenhuma autoridade cadastrada.</span>}
                                 </div>
                               </div>
                             )}

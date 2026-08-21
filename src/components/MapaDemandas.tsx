@@ -61,6 +61,7 @@ export default function MapaDemandas() {
   const [demandas, setDemandas] = useState<Demanda[]>([])
   const [categorias, setCategorias] = useState<CategoriaMapa[]>([])
   const [entidades, setEntidades] = useState<Entidade[]>([])
+  const [catEntidades, setCatEntidades] = useState<Record<string, string[]>>({})
   const [demandaSelecionada, setDemandaSelecionada] = useState<Demanda | null>(null)
 
   // Filtros
@@ -87,10 +88,17 @@ export default function MapaDemandas() {
       supabase.from('demandas').select('*, categoria:categorias_mapa(*), entidade:entidades(*)').in('status', ['aguardando_resposta', 'respondida', 'resolvida']).eq('oculto', false),
       supabase.from('categorias_mapa').select('*').eq('ativo', true).order('nome'),
       supabase.from('entidades').select('*').eq('ativo', true).order('nome'),
-    ]).then(([{ data: d }, { data: c }, { data: e }]) => {
+      supabase.from('categoria_entidades').select('categoria_id, entidade_id'),
+    ]).then(([{ data: d }, { data: c }, { data: e }, { data: ce }]) => {
       setDemandas((d || []) as Demanda[])
       setCategorias((c || []) as CategoriaMapa[])
       setEntidades((e || []) as Entidade[])
+      const mapa: Record<string, string[]> = {}
+      for (const row of (ce || [])) {
+        if (!mapa[row.categoria_id]) mapa[row.categoria_id] = []
+        mapa[row.categoria_id].push(row.entidade_id)
+      }
+      setCatEntidades(mapa)
     })
   }, [])
 
@@ -572,7 +580,7 @@ export default function MapaDemandas() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Categoria *</label>
-                  <select value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)}
+                  <select value={categoriaId} onChange={(e) => { setCategoriaId(e.target.value); setEntidadeId('') }}
                     style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', background: 'white', outline: 'none', boxSizing: 'border-box' }}>
                     <option value="">Selecione</option>
                     {categorias.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
@@ -584,7 +592,10 @@ export default function MapaDemandas() {
                   <select value={entidadeId} onChange={(e) => setEntidadeId(e.target.value)}
                     style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', background: 'white', outline: 'none', boxSizing: 'border-box' }}>
                     <option value="">Selecione a autoridade</option>
-                    {entidades.map((en) => <option key={en.id} value={en.id}>{en.nome} — {en.cargo}</option>)}
+                    {(categoriaId && catEntidades[categoriaId]?.length
+                      ? entidades.filter(en => catEntidades[categoriaId].includes(en.id))
+                      : entidades
+                    ).map((en) => <option key={en.id} value={en.id}>{en.nome} — {en.cargo}</option>)}
                   </select>
                 </div>
 
