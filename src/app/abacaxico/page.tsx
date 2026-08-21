@@ -169,26 +169,26 @@ export default function AbacaXicoPage() {
         {temMensagens && (
           <div style={{ flex: 1, padding: 'clamp(16px, 3vw, 32px)', display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '760px', width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
             {mensagens.map((m, i) => (
-              <div key={i} style={{ display: 'flex', gap: '12px', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-start' }}>
-                {/* Avatar */}
-                <div style={{
-                  width: '34px', height: '34px', borderRadius: '50%', flexShrink: 0,
-                  background: m.role === 'user' ? '#e5e7eb' : '#1e3a5f',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: m.role === 'user' ? '14px' : '16px', fontWeight: 700,
-                  color: m.role === 'user' ? '#374151' : 'white',
-                }}>
-                  {m.role === 'user' ? (nomeUsuario?.[0]?.toUpperCase() || '?') : '🍍'}
-                </div>
+              <div key={i} style={{ display: 'flex', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-start', gap: '12px' }}>
+
+                {/* Avatar só do bot */}
+                {m.role === 'assistant' && (
+                  <div style={{ width: '34px', height: '34px', borderRadius: '50%', flexShrink: 0, background: '#1e3a5f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>
+                    🍍
+                  </div>
+                )}
+
                 {/* Conteúdo */}
-                <div style={{ flex: 1, paddingTop: '4px' }}>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#374151', margin: '0 0 6px' }}>
-                    {m.role === 'user' ? (nomeUsuario || 'Você') : 'AbacaXico'}
-                  </p>
-                  <p style={{ fontSize: '15px', color: '#111827', margin: 0, lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
+                {m.role === 'assistant' ? (
+                  <div style={{ flex: 1, paddingTop: '4px' }}>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#374151', margin: '0 0 6px' }}>AbacaXico</p>
+                    <p style={{ fontSize: '15px', color: '#111827', margin: 0, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{m.content}</p>
+                  </div>
+                ) : (
+                  <div style={{ maxWidth: '70%', background: '#f0f4f9', borderRadius: '20px', padding: '12px 18px', fontSize: '15px', color: '#111827', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
                     {m.content}
-                  </p>
-                </div>
+                  </div>
+                )}
               </div>
             ))}
 
@@ -224,7 +224,7 @@ export default function AbacaXicoPage() {
 
       {/* Input fixo na base */}
       <div style={{ padding: 'clamp(12px, 2vw, 20px) clamp(16px, 3vw, 32px)', background: 'white', borderTop: temMensagens ? '1px solid #f3f4f6' : 'none' }}>
-        <div style={{ maxWidth: '760px', margin: '0 auto', position: 'relative', background: '#f3f4f6', borderRadius: '16px', display: 'flex', alignItems: 'flex-end', padding: '10px 16px', gap: '8px' }}>
+        <div style={{ maxWidth: '760px', margin: '0 auto', position: 'relative', background: 'white', borderRadius: '24px', border: '1px solid #e5e7eb', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'flex-end', padding: '10px 16px', gap: '8px' }}>
           <textarea
             ref={inputRef}
             rows={1}
