@@ -105,7 +105,8 @@ export default function MasterPage() {
     e.preventDefault()
     const { data: nova } = await supabase.from('entidades').insert({ nome: novaEntNome, cargo: novaEntCargo, email: novaEntEmail, ativo: true }).select().single()
     if (nova && novaEntCats.length > 0) {
-      await client.from('categoria_entidades').insert(novaEntCats.map(catId => ({ categoria_id: catId, entidade_id: nova.id })))
+      const { error: errCat } = await client.from('categoria_entidades').insert(novaEntCats.map(catId => ({ categoria_id: catId, entidade_id: nova.id })))
+      if (errCat) console.error('ERRO categoria_entidades insert:', errCat)
     }
     setNovaEntNome(''); setNovaEntCargo(''); setNovaEntEmail(''); setNovaEntCats([])
     carregarDados()
@@ -118,9 +119,11 @@ export default function MasterPage() {
   async function salvarEdicaoEntidade(id: string) {
     await supabase.from('entidades').update({ nome: editEntNome, cargo: editEntCargo, email: editEntEmail }).eq('id', id)
     // Recria as relações: apaga tudo e insere as selecionadas
-    await client.from('categoria_entidades').delete().eq('entidade_id', id)
+    const { error: errDel } = await client.from('categoria_entidades').delete().eq('entidade_id', id)
+    if (errDel) console.error('ERRO categoria_entidades delete:', errDel)
     if (editEntCats.length > 0) {
-      await client.from('categoria_entidades').insert(editEntCats.map(catId => ({ categoria_id: catId, entidade_id: id })))
+      const { error: errIns } = await client.from('categoria_entidades').insert(editEntCats.map(catId => ({ categoria_id: catId, entidade_id: id })))
+      if (errIns) console.error('ERRO categoria_entidades insert (edit):', errIns)
     }
     setEditandoEnt(null)
     carregarDados()
