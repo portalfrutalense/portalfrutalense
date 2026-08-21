@@ -1,18 +1,18 @@
-﻿export const metadata = { title: 'Política de Privacidade — Fala Frutal' }
+﻿export const metadata = { title: 'Política de Privacidade — CidadanIA Frutal' }
 
 export default function PoliticaPrivacidade() {
   return (
     <main style={{ maxWidth: '720px', margin: '0 auto', padding: 'clamp(24px,5vw,48px) clamp(16px,4vw,24px)', fontFamily: 'Inter, system-ui, sans-serif', color: '#111827', lineHeight: 1.7 }}>
       <div style={{ marginBottom: '32px' }}>
-        <span style={{ fontSize: '12px', fontWeight: 600, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '.08em' }}>Fala Frutal</span>
+        <span style={{ fontSize: '12px', fontWeight: 600, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '.08em' }}>CidadanIA Frutal</span>
         <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#111827', margin: '8px 0 4px' }}>Política de Privacidade</h1>
         <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Última atualização: agosto de 2026</p>
       </div>
 
       <section style={{ marginBottom: '32px' }}>
-        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#1e3a5f', marginBottom: '8px' }}>1. Sobre o Fala Frutal</h2>
+        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#1e3a5f', marginBottom: '8px' }}>1. Sobre o CidadanIA Frutal</h2>
         <p style={{ margin: 0, fontSize: '15px', color: '#374151' }}>
-          O Fala Frutal é uma plataforma de transparência cívica do município de Frutal — MG. Seu objetivo é facilitar a comunicação entre cidadãos e autoridades públicas, permitindo o registro de denúncias e ocorrências de interesse público.
+          O CidadanIA Frutal é uma plataforma de transparência cívica do município de Frutal — MG. Seu objetivo é facilitar a comunicação entre cidadãos e autoridades públicas, permitindo o registro de denúncias e ocorrências de interesse público.
         </p>
       </section>
 
@@ -40,7 +40,7 @@ export default function PoliticaPrivacidade() {
       <section style={{ marginBottom: '32px' }}>
         <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#1e3a5f', marginBottom: '8px' }}>4. Armazenamento e segurança</h2>
         <p style={{ margin: 0, fontSize: '15px', color: '#374151' }}>
-          Os dados são armazenados de forma segura na plataforma Supabase, com criptografia em repouso e em trânsito. O acesso ao painel administrativo é restrito a usuários autorizados pelo Fala Frutal.
+          Os dados são armazenados de forma segura na plataforma Supabase, com criptografia em repouso e em trânsito. O acesso ao painel administrativo é restrito a usuários autorizados pelo CidadanIA Frutal.
         </p>
       </section>
 
@@ -66,7 +66,7 @@ export default function PoliticaPrivacidade() {
       </section>
 
       <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '24px', marginTop: '16px' }}>
-        <a href="/" style={{ fontSize: '13px', color: '#2563eb', textDecoration: 'none' }}>Voltar ao Fala Frutal</a>
+        <a href="/" style={{ fontSize: '13px', color: '#2563eb', textDecoration: 'none' }}>Voltar ao CidadanIA Frutal</a>
       </div>
     </main>
   )

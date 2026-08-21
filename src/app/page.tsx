@@ -57,7 +57,7 @@ export default function LandingPage() {
             marginBottom: '40px',
           }}>
             A plataforma completa de Frutal. Registre demandas urbanas, acesse serviços locais,
-            acompanhe a cidade e tire dúvidas em tempo real com o AbacaXico, nossa IA.
+            acompanhe a cidade e tire dúvidas em tempo real com o Lucas, nosso assistente de IA.
           </p>
 
           {/* CTAs */}

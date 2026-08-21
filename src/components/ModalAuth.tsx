@@ -76,7 +76,7 @@ export default function ModalAuth({ onFechar }: Props) {
         {/* Header */}
         <div style={{ background: '#1e3a5f', padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontWeight: 800, fontSize: '16px', color: 'white' }}>Fala Frutal</div>
+            <div style={{ fontWeight: 800, fontSize: '16px', color: 'white' }}>CidadanIA Frutal</div>
             <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)', marginTop: '2px' }}>Frutal-MG · Transparência e Cidadania</div>
           </div>
           <button onClick={onFechar} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: '22px', lineHeight: 1, padding: 0 }}>×</button>

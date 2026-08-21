@@ -25,7 +25,7 @@ const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 const FRUTAL_LAT = -20.0234
 const FRUTAL_LNG = -48.9338
 
-export default function AbacaXicoPage() {
+export default function LucasPage() {
   const supabase = createClient()
   const { user, perfil } = useAuth()
   const nomeUsuario = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || ''
@@ -145,7 +145,7 @@ export default function AbacaXicoPage() {
         <p style={{ textAlign: 'center', fontSize: '12px', color: '#9ca3af', margin: '10px 0 0' }}>
           <button onClick={() => setModalAuth(true)} style={{ background: 'none', border: 'none', color: '#1e3a5f', fontWeight: 600, cursor: 'pointer', fontSize: '12px', textDecoration: 'underline' }}>
             Entre na sua conta
-          </button>{' '}para conversar com o AbacaXico
+          </button>{' '}para conversar com o assistente
         </p>
       )}
     </>
@@ -293,15 +293,16 @@ export default function AbacaXicoPage() {
               }
             `}</style>
             <div className="abx-empty-state" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-              <div style={{ position: 'relative', display: 'inline-block', marginBottom: '16px' }}>
-                <div style={{ position: 'absolute', bottom: '0px', left: '50%', transform: 'translateX(calc(-46% + 5px))', width: '80px', height: '14px', borderRadius: '50%', background: 'rgba(0,0,0,0.28)', filter: 'blur(12px)' }} />
-                <img src="/abacaxico.png" alt="AbacaXico" className="abx-mascote" style={{ height: 'auto', objectFit: 'contain', display: 'block', position: 'relative' }} />
+              <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#1e3a5f', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
               </div>
               <h1 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 700, color: '#111827', margin: '0 0 8px', letterSpacing: '-0.5px' }}>
-                Olá{nomeUsuario ? `, ${nomeUsuario}` : ''}! Eu sou o AbacaXico!
+                Olá{nomeUsuario ? `, ${nomeUsuario}` : ''}! Sou o Lucas!
               </h1>
               <p style={{ fontSize: '15px', color: '#6b7280', margin: '0 0 28px' }}>
-                Assistente Virtual de IA do Fala Frutal
+                Assistente Virtual · CidadanIA Frutal
               </p>
               <div style={{ width: '100%', maxWidth: '600px', marginTop: '-12px' }}>
                 {campoInput}
@@ -319,7 +320,7 @@ export default function AbacaXicoPage() {
                 {/* Conteúdo */}
                 {m.role === 'assistant' ? (
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#374151', margin: '0 0 6px' }}>AbacaXico</p>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#374151', margin: '0 0 6px' }}>Lucas</p>
                     <p style={{ fontSize: '15px', color: '#111827', margin: 0, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{m.content}</p>
                   </div>
                 ) : (
@@ -347,7 +348,7 @@ export default function AbacaXicoPage() {
             {/* Digitando */}
             {enviando && (
               <div>
-                <p style={{ fontSize: '13px', fontWeight: 600, color: '#374151', margin: '0 0 6px' }}>AbacaXico</p>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: '#374151', margin: '0 0 6px' }}>Lucas</p>
                 <p style={{ fontSize: '15px', color: '#9ca3af', margin: 0 }}>Digitando...</p>
               </div>
             )}

@@ -29,7 +29,7 @@ export default function ChatBot() {
   const nomeUsuario = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || 'Cidadão'
   const [aberto, setAberto] = useState(false)
   const [mensagens, setMensagens] = useState<Mensagem[]>([
-    { role: 'assistant', content: `Olá, ${nomeUsuario}! Sou o assistente virtual do Fala Frutal. Posso responder dúvidas sobre os serviços da cidade ou registrar uma demanda pra você. O que está precisando?` }
+    { role: 'assistant', content: `Olá, ${nomeUsuario}! Sou o assistente virtual do CidadanIA Frutal. Posso responder dúvidas sobre os serviços da cidade ou registrar uma demanda pra você. O que está precisando?` }
   ])
   const [input, setInput] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -191,20 +191,11 @@ export default function ChatBot() {
             boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
             padding: '0', overflow: 'visible',
           }}
-          title="Falar com o AbacaXico"
+          title="Falar com o assistente"
         >
-          {/* Sombra oval nos pés */}
-          <div style={{
-            position: 'absolute', bottom: '8px', left: '50%', transform: 'translateX(calc(-50% + 2px))',
-            width: '44px', height: '10px', borderRadius: '50%',
-            background: 'rgba(0,0,0,0.28)', filter: 'blur(5px)',
-            pointerEvents: 'none',
-          }} />
-          <img src="/abacaxico.png" alt="AbacaXico" style={{
-            position: 'absolute', bottom: '12px', left: '50%',
-            width: '240px', height: '240px', objectFit: 'contain', objectPosition: 'bottom', transform: 'translateX(calc(-50% + 2px)) scale(2)', transformOrigin: 'bottom center',
-            pointerEvents: 'none',
-          }} />
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
         </button>
       )}
 
@@ -232,23 +223,16 @@ export default function ChatBot() {
             position: 'relative', overflow: 'visible',
           }}>
             {/* Avatar centralizado vazando acima do card */}
-            {/* Container que clipa a sombra dentro do header */}
-            <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', borderRadius: '16px 16px 0 0' }}>
-              <div style={{
-                position: 'absolute', top: '46px', left: '28px',
-                width: '44px', height: '10px', borderRadius: '50%',
-                background: 'rgba(0,0,0,0.28)', filter: 'blur(5px)',
-              }} />
-            </div>
-            <img ref={avatarHeaderRef} src="/abacaxico.png" alt="AbacaXico" style={{
-              position: 'absolute', top: '-88px', left: '-43px',
-              width: '190px', height: '190px', objectFit: 'contain',
-              pointerEvents: 'none',
-              opacity: avatarHeaderVisivel ? 1 : 0,
-            }} />
-            <div style={{ paddingLeft: '85px' }}>
-              <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'white' }}>AbacaXico</p>
-              <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>Assistente Virtual de IA do Fala Frutal</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+              </div>
+              <div>
+                <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'white' }}>Lucas</p>
+                <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>Assistente Virtual · CidadanIA Frutal</p>
+              </div>
             </div>
             <button onClick={() => setAberto(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', fontSize: '20px', cursor: 'pointer', padding: '4px', lineHeight: 1 }}>×</button>
           </div>
@@ -318,20 +302,6 @@ export default function ChatBot() {
         </div>
       )}
 
-      {animando && (
-        <img src="/abacaxico.png" alt="" style={{
-          position: 'fixed',
-          left: ghostPos.x,
-          top: ghostPos.y,
-          width: '190px',
-          height: '190px',
-          objectFit: 'contain',
-          pointerEvents: 'none',
-          zIndex: 9999,
-          opacity: ghostOpacity,
-          transition: 'left 0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94), top 0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.2s',
-        }} />
-      )}
 
       {notif && (
         <div style={{ position: 'fixed', bottom: '100px', right: '24px', zIndex: 1001, background: '#166534', color: 'white', borderRadius: '8px', padding: '10px 16px', fontSize: '13px', fontWeight: 600, boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>

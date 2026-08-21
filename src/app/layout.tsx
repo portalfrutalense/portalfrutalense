@@ -8,7 +8,7 @@ import GlobalModals from '@/components/GlobalModals'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Fala Frutal',
+  title: 'CidadanIA Frutal',
   description: 'Plataforma de cidadania, transparência e gestão de demandas públicas em Frutal-MG',
   verification: {
     google: 'lPI_-xfdqfhBGjByM6htLkimhgUlfUZsy8pIVK99K_0',

@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 
   const cfg: any = chatConfig || {}
 
-  const systemPrompt = `Você é um assistente virtual do Fala Frutal, plataforma de cidadania do município de Frutal-MG.
+  const systemPrompt = `Você é um assistente virtual do CidadanIA Frutal, plataforma de cidadania do município de Frutal-MG.
 Você está conversando com ${nomeUsuario}.
 ${cfg.nome_bot ? `\nSeu nome é ${cfg.nome_bot}.` : ''}
 ${cfg.descricao_bot ? `\n${cfg.descricao_bot}` : ''}

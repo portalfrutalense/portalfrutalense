@@ -9,10 +9,10 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   const isMaster = pathname.startsWith('/master')
   const isLanding = pathname === '/'
   const isMapa = pathname === '/mapa'
-  const isAbacaXico = pathname === '/abacaxico'
+  const isLucas = pathname === '/abacaxico'
 
-  // Master, landing e AbacaXico têm seu próprio layout
-  if (isMaster || isLanding || isAbacaXico) return <>{children}</>
+  // Master, landing e Lucas têm seu próprio layout
+  if (isMaster || isLanding || isLucas) return <>{children}</>
 
   if (isMapa) return (
     <div className="mapa-shell" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
@@ -37,7 +37,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
         {children}
       </main>
       <footer className="text-center text-xs text-gray-400 py-8 mt-12 border-t border-gray-200">
-        © {new Date().getFullYear()} Fala Frutal · Frutal-MG · Transparência e Cidadania
+        © {new Date().getFullYear()} CidadanIA Frutal · Frutal-MG · Transparência e Cidadania
       </footer>
       <ChatBot />
     </>

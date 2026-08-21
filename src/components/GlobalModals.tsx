@@ -12,7 +12,7 @@ export default function GlobalModals() {
         <div style={{ fontSize: '36px', marginBottom: '12px' }}>🚫</div>
         <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#111827', margin: '0 0 8px' }}>Acesso bloqueado</h2>
         <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 24px', lineHeight: 1.5 }}>
-          Sua conta foi bloqueada. Entre em contato com a administração do Fala Frutal para mais informações.
+          Sua conta foi bloqueada. Entre em contato com a administração do CidadanIA Frutal para mais informações.
         </p>
         <button onClick={sair} style={{ background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
           Sair

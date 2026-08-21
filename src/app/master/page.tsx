@@ -211,7 +211,7 @@ export default function MasterPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div>
               <p style={{ fontSize: '13px', fontWeight: 700, color: 'white', margin: 0 }}>Painel Master</p>
-              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', margin: 0 }}>Fala Frutal</p>
+              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', margin: 0 }}>CidadanIA Frutal</p>
             </div>
           </div>
         </div>
@@ -324,7 +324,7 @@ export default function MasterPage() {
             <div>
               <div style={{ marginBottom: '28px' }}>
                 <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>Dashboard</h1>
-                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Visão geral do Fala Frutal.</p>
+                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Visão geral do CidadanIA Frutal.</p>
               </div>
 
               <div className="master-card-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '32px' }}>
@@ -349,7 +349,7 @@ export default function MasterPage() {
             <div>
               <div style={{ marginBottom: '28px' }}>
                 <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>Chatbot IA</h1>
-                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Base de conhecimento usada pelo assistente virtual do Fala Frutal.</p>
+                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Base de conhecimento usada pelo assistente virtual do CidadanIA Frutal.</p>
               </div>
               <MasterChatbot />
             </div>
