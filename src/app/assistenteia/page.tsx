@@ -25,6 +25,26 @@ const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 const FRUTAL_LAT = -20.0234
 const FRUTAL_LNG = -48.9338
 
+async function comprimirFoto(file: File): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      const MAX = 600
+      const ratio = Math.min(MAX / img.width, MAX / img.height, 1)
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * ratio)
+      canvas.height = Math.round(img.height * ratio)
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      URL.revokeObjectURL(url)
+      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Falha')), 'image/jpeg', 0.25)
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Inválida')) }
+    img.src = url
+  })
+}
+
 export default function LucasPage() {
   const supabase = createClient()
   const { user, perfil } = useAuth()
@@ -39,11 +59,28 @@ export default function LucasPage() {
   const [modalAuth, setModalAuth] = useState(false)
   const [gravando, setGravando] = useState(false)
   const [micDisponivel, setMicDisponivel] = useState(true)
+  const [fotoFile, setFotoFile] = useState<File | null>(null)
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const pageBottomRef = useRef<HTMLDivElement>(null)
+  const fotoInputRef = useRef<HTMLInputElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null)
+
+  function selecionarFoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setFotoFile(file)
+    setFotoPreview(URL.createObjectURL(file))
+    e.target.value = ''
+  }
+
+  function removerFoto() {
+    if (fotoPreview) URL.revokeObjectURL(fotoPreview)
+    setFotoFile(null)
+    setFotoPreview(null)
+  }
 
   useEffect(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -233,6 +270,20 @@ export default function LucasPage() {
         }
       } catch { /* usa coordenadas padrão */ }
 
+      // Envia a foto anexada, se houver
+      let foto_url: string | null = null
+      if (fotoFile) {
+        try {
+          const blob = await comprimirFoto(fotoFile)
+          const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
+          const { error: uploadError } = await supabase.storage.from('demandas-fotos').upload(path, blob, { contentType: 'image/jpeg' })
+          if (uploadError) throw uploadError
+          foto_url = supabase.storage.from('demandas-fotos').getPublicUrl(path).data.publicUrl
+        } catch {
+          setMensagens(prev => [...prev, { role: 'assistant', content: 'Não consegui enviar a foto, mas vou registrar a demanda sem ela.' }])
+        }
+      }
+
       const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('/api/demandas', {
         method: 'POST',
@@ -244,11 +295,13 @@ export default function LucasPage() {
           categoria_id: pendente.categoria_id,
           entidade_id: pendente.entidade_id,
           morador_nome: perfil?.nome || nomeUsuario,
+          foto_url,
           via_chatbot: true,
         }),
       })
       if (res.ok) {
         setPendente(null)
+        removerFoto()
         setMensagens(prev => [...prev, { role: 'assistant', content: 'Demanda registrada com sucesso! Ela aparecerá no mapa após análise. Posso ajudar com mais alguma coisa?' }])
         setNotif('Demanda registrada!')
         setTimeout(() => setNotif(''), 4000)
@@ -265,6 +318,7 @@ export default function LucasPage() {
 
   function cancelarDemanda() {
     setPendente(null)
+    removerFoto()
     setMensagens(prev => [...prev, { role: 'assistant', content: 'Ok, cancelei o registro. Quer alterar alguma informação ou posso ajudar com outra coisa?' }])
   }
 
@@ -331,17 +385,37 @@ export default function LucasPage() {
               </div>
             ))}
 
-            {/* Botões de confirmação */}
+            {/* Anexo de foto + botões de confirmação */}
             {pendente && (
-              <div style={{ display: 'flex', gap: '10px', paddingLeft: '46px' }}>
-                <button onClick={confirmarDemanda} disabled={criando}
-                  style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '10px', padding: '10px 22px', fontSize: '14px', fontWeight: 600, cursor: criando ? 'wait' : 'pointer' }}>
-                  {criando ? 'Registrando...' : 'Confirmar'}
-                </button>
-                <button onClick={cancelarDemanda} disabled={criando}
-                  style={{ background: 'white', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '10px', padding: '10px 22px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
-                  Cancelar
-                </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingLeft: '46px' }}>
+                {fotoPreview ? (
+                  <div style={{ position: 'relative', width: '84px' }}>
+                    <img src={fotoPreview} alt="Foto anexada" style={{ width: '84px', height: '84px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #e5e7eb' }} />
+                    <button onClick={removerFoto} disabled={criando}
+                      style={{ position: 'absolute', top: '-6px', right: '-6px', width: '22px', height: '22px', borderRadius: '50%', background: '#dc2626', color: 'white', border: '2px solid white', fontSize: '12px', lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                      ×
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => fotoInputRef.current?.click()} disabled={criando}
+                    style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '6px', background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '10px', padding: '8px 14px', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                    </svg>
+                    Anexar foto
+                  </button>
+                )}
+                <input ref={fotoInputRef} type="file" accept="image/*" onChange={selecionarFoto} style={{ display: 'none' }} />
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button onClick={confirmarDemanda} disabled={criando}
+                    style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '10px', padding: '10px 22px', fontSize: '14px', fontWeight: 600, cursor: criando ? 'wait' : 'pointer' }}>
+                    {criando ? 'Registrando...' : 'Confirmar'}
+                  </button>
+                  <button onClick={cancelarDemanda} disabled={criando}
+                    style={{ background: 'white', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '10px', padding: '10px 22px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+                    Cancelar
+                  </button>
+                </div>
               </div>
             )}
 

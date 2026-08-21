@@ -23,6 +23,26 @@ const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 const FRUTAL_LAT = -20.0234
 const FRUTAL_LNG = -48.9338
 
+async function comprimirFoto(file: File): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      const MAX = 600
+      const ratio = Math.min(MAX / img.width, MAX / img.height, 1)
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * ratio)
+      canvas.height = Math.round(img.height * ratio)
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      URL.revokeObjectURL(url)
+      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Falha')), 'image/jpeg', 0.25)
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Inválida')) }
+    img.src = url
+  })
+}
+
 export default function ChatBot() {
   const supabase = createClient()
   const { user, perfil } = useAuth()
@@ -41,9 +61,26 @@ export default function ChatBot() {
   const [ghostPos, setGhostPos] = useState({ x: 0, y: 0 })
   const [avatarHeaderVisivel, setAvatarHeaderVisivel] = useState(true)
   const [painelVisivel, setPainelVisivel] = useState(false)
+  const [fotoFile, setFotoFile] = useState<File | null>(null)
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const botaoRef = useRef<HTMLButtonElement>(null)
   const avatarHeaderRef = useRef<HTMLImageElement>(null)
+  const fotoInputRef = useRef<HTMLInputElement>(null)
+
+  function selecionarFoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setFotoFile(file)
+    setFotoPreview(URL.createObjectURL(file))
+    e.target.value = ''
+  }
+
+  function removerFoto() {
+    if (fotoPreview) URL.revokeObjectURL(fotoPreview)
+    setFotoFile(null)
+    setFotoPreview(null)
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -140,6 +177,20 @@ export default function ChatBot() {
         }
       } catch { /* usa coordenadas padrão */ }
 
+      // Envia a foto anexada, se houver
+      let foto_url: string | null = null
+      if (fotoFile) {
+        try {
+          const blob = await comprimirFoto(fotoFile)
+          const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
+          const { error: uploadError } = await supabase.storage.from('demandas-fotos').upload(path, blob, { contentType: 'image/jpeg' })
+          if (uploadError) throw uploadError
+          foto_url = supabase.storage.from('demandas-fotos').getPublicUrl(path).data.publicUrl
+        } catch {
+          setMensagens(prev => [...prev, { role: 'assistant', content: 'Não consegui enviar a foto, mas vou registrar a demanda sem ela.' }])
+        }
+      }
+
       const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('/api/demandas', {
         method: 'POST',
@@ -152,12 +203,14 @@ export default function ChatBot() {
           categoria_id: pendente.categoria_id,
           entidade_id: pendente.entidade_id,
           morador_nome: perfil?.nome || nomeUsuario,
+          foto_url,
           via_chatbot: true,
         }),
       })
 
       if (res.ok) {
         setPendente(null)
+        removerFoto()
         setMensagens(prev => [...prev, { role: 'assistant', content: 'Demanda registrada com sucesso! Ela aparecerá no mapa após análise. Posso ajudar com mais alguma coisa?' }])
         setNotif('Demanda registrada!')
         setTimeout(() => setNotif(''), 4000)
@@ -174,6 +227,7 @@ export default function ChatBot() {
 
   function cancelarDemanda() {
     setPendente(null)
+    removerFoto()
     setMensagens(prev => [...prev, { role: 'assistant', content: 'Ok, cancelei o registro. Quer alterar alguma informação ou posso ajudar com outra coisa?' }])
   }
 
@@ -256,17 +310,37 @@ export default function ChatBot() {
               </div>
             ))}
 
-            {/* Botões de confirmação de demanda */}
+            {/* Anexo de foto + botões de confirmação de demanda */}
             {pendente && (
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start' }}>
-                <button onClick={confirmarDemanda} disabled={criando}
-                  style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: criando ? 'wait' : 'pointer' }}>
-                  {criando ? 'Registrando...' : 'Confirmar'}
-                </button>
-                <button onClick={cancelarDemanda} disabled={criando}
-                  style={{ background: 'white', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
-                  Cancelar
-                </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {fotoPreview ? (
+                  <div style={{ position: 'relative', width: '72px' }}>
+                    <img src={fotoPreview} alt="Foto anexada" style={{ width: '72px', height: '72px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
+                    <button onClick={removerFoto} disabled={criando}
+                      style={{ position: 'absolute', top: '-6px', right: '-6px', width: '20px', height: '20px', borderRadius: '50%', background: '#dc2626', color: 'white', border: '2px solid white', fontSize: '11px', lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                      ×
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => fotoInputRef.current?.click()} disabled={criando}
+                    style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '6px', background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                    </svg>
+                    Anexar foto
+                  </button>
+                )}
+                <input ref={fotoInputRef} type="file" accept="image/*" onChange={selecionarFoto} style={{ display: 'none' }} />
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start' }}>
+                  <button onClick={confirmarDemanda} disabled={criando}
+                    style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: criando ? 'wait' : 'pointer' }}>
+                    {criando ? 'Registrando...' : 'Confirmar'}
+                  </button>
+                  <button onClick={cancelarDemanda} disabled={criando}
+                    style={{ background: 'white', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                    Cancelar
+                  </button>
+                </div>
               </div>
             )}
 
