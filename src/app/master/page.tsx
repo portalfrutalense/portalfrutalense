@@ -82,7 +82,7 @@ export default function MasterPage() {
   function carregarDados() {
     supabase.from('entidades').select('*').order('nome').then(({ data }) => setEntidades((data as Entidade[]) || []))
     supabase.from('categorias_mapa').select('*').order('nome').then(({ data }) => setCategorias((data as CategoriaMapa[]) || []))
-    supabase.from('categoria_entidades').select('categoria_id, entidade_id').then(({ data }) => {
+    client.from('categoria_entidades').select('categoria_id, entidade_id').then(({ data }) => {
       const mapa: Record<string, string[]> = {}
       for (const row of (data || [])) {
         if (!mapa[row.categoria_id]) mapa[row.categoria_id] = []
@@ -105,7 +105,7 @@ export default function MasterPage() {
     e.preventDefault()
     const { data: nova } = await supabase.from('entidades').insert({ nome: novaEntNome, cargo: novaEntCargo, email: novaEntEmail, ativo: true }).select().single()
     if (nova && novaEntCats.length > 0) {
-      await supabase.from('categoria_entidades').insert(novaEntCats.map(catId => ({ categoria_id: catId, entidade_id: nova.id })))
+      await client.from('categoria_entidades').insert(novaEntCats.map(catId => ({ categoria_id: catId, entidade_id: nova.id })))
     }
     setNovaEntNome(''); setNovaEntCargo(''); setNovaEntEmail(''); setNovaEntCats([])
     carregarDados()
@@ -118,9 +118,9 @@ export default function MasterPage() {
   async function salvarEdicaoEntidade(id: string) {
     await supabase.from('entidades').update({ nome: editEntNome, cargo: editEntCargo, email: editEntEmail }).eq('id', id)
     // Recria as relações: apaga tudo e insere as selecionadas
-    await supabase.from('categoria_entidades').delete().eq('entidade_id', id)
+    await client.from('categoria_entidades').delete().eq('entidade_id', id)
     if (editEntCats.length > 0) {
-      await supabase.from('categoria_entidades').insert(editEntCats.map(catId => ({ categoria_id: catId, entidade_id: id })))
+      await client.from('categoria_entidades').insert(editEntCats.map(catId => ({ categoria_id: catId, entidade_id: id })))
     }
     setEditandoEnt(null)
     carregarDados()
@@ -145,9 +145,9 @@ export default function MasterPage() {
   async function toggleCatEntidade(catId: string, entId: string) {
     const atuais = catEntidades[catId] || []
     if (atuais.includes(entId)) {
-      await supabase.from('categoria_entidades').delete().eq('categoria_id', catId).eq('entidade_id', entId)
+      await client.from('categoria_entidades').delete().eq('categoria_id', catId).eq('entidade_id', entId)
     } else {
-      await supabase.from('categoria_entidades').insert({ categoria_id: catId, entidade_id: entId })
+      await client.from('categoria_entidades').insert({ categoria_id: catId, entidade_id: entId })
     }
     carregarDados()
   }
