@@ -379,12 +379,12 @@ export default function MasterPage() {
                           {categorias.length > 0 && (
                             <div>
                               <p style={{ fontSize: '12px', fontWeight: 500, color: '#4b5563', margin: '0 0 8px' }}>Categorias responsável</p>
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                                 {categorias.map(cat => {
                                   const marcado = novaEntCats.includes(cat.id)
                                   return (
-                                    <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '12px', padding: '4px 10px', borderRadius: '20px', border: marcado ? `1px solid ${cat.cor}` : '1px solid #e5e7eb', background: marcado ? cat.cor : 'white', color: marcado ? 'white' : '#374151', fontWeight: 500 }}>
-                                      <input type="checkbox" checked={marcado} onChange={() => setNovaEntCats(prev => marcado ? prev.filter(id => id !== cat.id) : [...prev, cat.id])} style={{ display: 'none' }} />
+                                    <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: '#374151' }}>
+                                      <input type="checkbox" checked={marcado} onChange={() => setNovaEntCats(prev => marcado ? prev.filter(id => id !== cat.id) : [...prev, cat.id])} />
                                       {cat.nome}
                                     </label>
                                   )
@@ -409,12 +409,12 @@ export default function MasterPage() {
                                 {categorias.length > 0 && (
                                   <div>
                                     <p style={{ fontSize: '12px', fontWeight: 500, color: '#4b5563', margin: '0 0 6px' }}>Categorias responsável</p>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                                       {categorias.map(cat => {
                                         const marcado = editEntCats.includes(cat.id)
                                         return (
-                                          <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '12px', padding: '4px 10px', borderRadius: '20px', border: marcado ? `1px solid ${cat.cor}` : '1px solid #e5e7eb', background: marcado ? cat.cor : 'white', color: marcado ? 'white' : '#374151', fontWeight: 500 }}>
-                                            <input type="checkbox" checked={marcado} onChange={() => setEditEntCats(prev => marcado ? prev.filter(id => id !== cat.id) : [...prev, cat.id])} style={{ display: 'none' }} />
+                                          <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: '#374151' }}>
+                                            <input type="checkbox" checked={marcado} onChange={() => setEditEntCats(prev => marcado ? prev.filter(id => id !== cat.id) : [...prev, cat.id])} />
                                             {cat.nome}
                                           </label>
                                         )
