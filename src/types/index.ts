@@ -39,5 +39,6 @@ export interface CategoriaMapa {
   nome: string
   cor: string
   icone?: string
+  icone_url?: string
   ativo: boolean
 }

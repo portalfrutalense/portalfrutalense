@@ -147,6 +147,7 @@ export default function MapaDemandas() {
 
     filtradas.forEach((d) => {
       const cor = d.categoria?.cor || '#3b82f6'
+      const iconeUrl = d.categoria?.icone_url
       const icon = d.foto_url
         ? L.divIcon({
             className: '',
@@ -157,6 +158,12 @@ export default function MapaDemandas() {
               <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid white;margin-top:-1px;"></div>
             </div>`,
             iconSize: [32, 41], iconAnchor: [16, 41],
+          })
+        : iconeUrl
+        ? L.divIcon({
+            className: '',
+            html: `<img src="${iconeUrl}" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 2px 5px rgba(0,0,0,0.4));" />`,
+            iconSize: [36, 36], iconAnchor: [18, 18],
           })
         : L.divIcon({
             className: '',

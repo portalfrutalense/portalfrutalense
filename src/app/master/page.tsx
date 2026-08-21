@@ -29,6 +29,7 @@ export default function MasterPage() {
   const [novaEntCats, setNovaEntCats] = useState<string[]>([])
   const [novaCatNome, setNovaCatNome] = useState('')
   const [novaCatCor, setNovaCatCor] = useState('#ef4444')
+  const [novaCatIcone, setNovaCatIcone] = useState<File | null>(null)
   const [editandoEnt, setEditandoEnt] = useState<string | null>(null)
   const [editEntNome, setEditEntNome] = useState('')
   const [editEntCargo, setEditEntCargo] = useState('')
@@ -37,6 +38,7 @@ export default function MasterPage() {
   const [editandoCat, setEditandoCat] = useState<string | null>(null)
   const [editCatNome, setEditCatNome] = useState('')
   const [editCatCor, setEditCatCor] = useState('#ef4444')
+  const [editCatIcone, setEditCatIcone] = useState<File | null>(null)
 
   // Stats dashboard
   const [stats, setStats] = useState({ total: 0, pendente: 0, aguardando: 0, respondida: 0 })
@@ -127,10 +129,22 @@ export default function MasterPage() {
     setEditandoEnt(null)
     carregarDados()
   }
+  async function uploadIconeCategoria(file: File, id: string): Promise<string | null> {
+    const ext = file.name.split('.').pop()
+    const path = `${id}.${ext}`
+    const { error } = await client.storage.from('categoria-icones').upload(path, file, { upsert: true })
+    if (error) { console.error('Erro upload icone:', error); return null }
+    const { data } = client.storage.from('categoria-icones').getPublicUrl(path)
+    return data.publicUrl
+  }
   async function salvarCategoria(e: React.FormEvent) {
     e.preventDefault()
-    await client.from('categorias_mapa').insert({ nome: novaCatNome, cor: novaCatCor, ativo: true })
-    setNovaCatNome(''); setNovaCatCor('#ef4444')
+    const { data: nova } = await client.from('categorias_mapa').insert({ nome: novaCatNome, cor: novaCatCor, ativo: true }).select().single()
+    if (nova && novaCatIcone) {
+      const url = await uploadIconeCategoria(novaCatIcone, nova.id)
+      if (url) await client.from('categorias_mapa').update({ icone_url: url }).eq('id', nova.id)
+    }
+    setNovaCatNome(''); setNovaCatCor('#ef4444'); setNovaCatIcone(null)
     carregarDados()
   }
   async function excluirCategoria(id: string) {
@@ -139,8 +153,13 @@ export default function MasterPage() {
     carregarDados()
   }
   async function salvarEdicaoCategoria(id: string) {
-    await client.from('categorias_mapa').update({ nome: editCatNome, cor: editCatCor }).eq('id', id)
-    setEditandoCat(null)
+    let icone_url: string | undefined = undefined
+    if (editCatIcone) {
+      const url = await uploadIconeCategoria(editCatIcone, id)
+      if (url) icone_url = url
+    }
+    await client.from('categorias_mapa').update({ nome: editCatNome, cor: editCatCor, ...(icone_url ? { icone_url } : {}) }).eq('id', id)
+    setEditandoCat(null); setEditCatIcone(null)
     carregarDados()
   }
 
@@ -469,6 +488,10 @@ export default function MasterPage() {
                               <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Cor do pin</label>
                               <input type="color" value={novaCatCor} onChange={(e) => setNovaCatCor(e.target.value)} style={{ width: '44px', height: '38px', borderRadius: '8px', cursor: 'pointer', border: '1px solid #d1d5db', padding: '2px' }} />
                             </div>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Ícone (opcional, PNG com fundo transparente)</label>
+                              <input type="file" accept="image/png,image/webp,image/svg+xml" onChange={(e) => setNovaCatIcone(e.target.files?.[0] || null)} style={{ fontSize: '13px' }} />
+                            </div>
                           </div>
                           <button type="submit" style={{ alignSelf: 'flex-start', backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '9px 18px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px' }}>Salvar</button>
                         </form>
@@ -484,6 +507,17 @@ export default function MasterPage() {
                                   <div>
                                     <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Cor</label>
                                     <input type="color" value={editCatCor} onChange={(e) => setEditCatCor(e.target.value)} style={{ width: '44px', height: '34px', borderRadius: '8px', cursor: 'pointer', border: '1px solid #d1d5db', padding: '2px' }} />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>
+                                    Ícone {categorias.find(x => x.id === editandoCat)?.icone_url ? '(atual: imagem salva — faça upload para substituir)' : '(opcional, PNG com fundo transparente)'}
+                                  </label>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    {categorias.find(x => x.id === editandoCat)?.icone_url && (
+                                      <img src={categorias.find(x => x.id === editandoCat)!.icone_url} style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+                                    )}
+                                    <input type="file" accept="image/png,image/webp,image/svg+xml" onChange={(e) => setEditCatIcone(e.target.files?.[0] || null)} style={{ fontSize: '13px' }} />
                                   </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px' }}>
