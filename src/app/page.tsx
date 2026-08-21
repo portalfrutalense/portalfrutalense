@@ -44,8 +44,8 @@ export default function LandingPage() {
             color: '#0f2440',
             marginBottom: '24px',
           }}>
-            Frutal fala.<br />
-            <span style={{ color: '#2563eb' }}>O poder ouve.</span>
+            Frutal fala,<br />
+            <span style={{ color: '#2563eb' }}>a tecnologia resolve!</span>
           </h1>
 
           {/* Subtítulo */}
