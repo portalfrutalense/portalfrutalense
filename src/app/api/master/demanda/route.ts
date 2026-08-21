@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 
-const EMAIL_MASTER = 'portalfrutalense@gmail.com'
-
 async function verificarMaster(req: NextRequest) {
   const token = req.headers.get('authorization')?.replace('Bearer ', '')
   if (!token) return null
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
   const { data: { user } } = await sb.auth.getUser(token)
-  if (!user || user.email !== EMAIL_MASTER) return null
+  if (!user) return null
+  const { data: perfil } = await supabaseServer.from('perfis').select('role').eq('id', user.id).single()
+  if (perfil?.role !== 'master') return null
   return user
 }
 

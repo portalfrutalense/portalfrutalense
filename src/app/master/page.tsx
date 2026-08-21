@@ -761,7 +761,7 @@ function MasterDemandas({ token }: { token: string | null }) {
                     {['aguardando_resposta', 'respondida', 'nao_resolvida'].includes(d.status) && (
                       <button
                         onClick={async () => {
-                          await client.from('demandas').update({ status: 'resolvida' }).eq('id', d.id)
+                          await sbClient.from('demandas').update({ status: 'resolvida' }).eq('id', d.id)
                           setDemandas(prev => prev.map(x => x.id === d.id ? { ...x, status: 'resolvida' } : x))
                           setMenuAbertoDemandaId(null)
                         }}

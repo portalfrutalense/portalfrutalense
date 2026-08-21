@@ -5,17 +5,15 @@ import { gerarToken } from '@/lib/token'
 import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
-const EMAIL_MASTER = 'portalfrutalense@gmail.com'
 
 export async function POST(req: NextRequest) {
-  // Verifica se é o master logado
   const token = req.headers.get('authorization')?.replace('Bearer ', '')
   if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
   const { data: { user } } = await sb.auth.getUser(token)
-  if (!user || user.email !== EMAIL_MASTER) {
-    return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
-  }
+  if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+  const { data: perfil } = await supabaseServer.from('perfis').select('role').eq('id', user.id).single()
+  if (perfil?.role !== 'master') return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
   try {
     const { demanda_id } = await req.json()
