@@ -155,7 +155,7 @@ export default function AbacaXicoPage() {
         {/* Estado vazio — saudação centralizada */}
         {!temMensagens && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🍍</div>
+            <img src="/abacaxico.png" alt="AbacaXico" style={{ width: '140px', height: '140px', objectFit: 'contain', marginBottom: '16px' }} />
             <h1 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 700, color: '#111827', margin: '0 0 8px', letterSpacing: '-0.5px' }}>
               {nomeUsuario ? `Qual é a vibe, ${nomeUsuario}?` : 'Olá! Sou o AbacaXico.'}
             </h1>

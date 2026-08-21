@@ -176,7 +176,7 @@ export default function ChatBot() {
           {/* Header */}
           <div style={{ background: '#1e3a5f', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>🍍</div>
+              <img src="/abacaxico.png" alt="AbacaXico" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
               <div>
                 <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'white' }}>AbacaXico</p>
                 <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>Assistente Virtual de IA do Fala Frutal</p>
