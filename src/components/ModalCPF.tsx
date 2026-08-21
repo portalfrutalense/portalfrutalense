@@ -34,6 +34,7 @@ export default function ModalCPF() {
         nome: nome.trim(),
         cpf: cpfLimpo,
         email: user.email || null,
+        role: 'cidadao',
       })
       if (error) throw error
       setPerfil({ id: user.id, nome: nome.trim(), cpf: cpfLimpo, email: user.email || undefined })

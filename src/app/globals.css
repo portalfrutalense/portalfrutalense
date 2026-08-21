@@ -26,6 +26,12 @@ img, iframe, video {
   max-width: 100%;
 }
 
+/* Remove fundo branco padrão do Leaflet nos markers customizados */
+.pin-demanda {
+  background: transparent !important;
+  border: none !important;
+}
+
 
 /* Responsivo: grid 2 colunas → 1 coluna no mobile */
 @media (max-width: 600px) {

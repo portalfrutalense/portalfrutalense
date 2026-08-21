@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
-import { createClient } from '@supabase/supabase-js'
 
 async function verificarMaster(req: NextRequest) {
   const token = req.headers.get('authorization')?.replace('Bearer ', '')
-  if (!token) return null
-  const sb = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
-  )
-  const { data: { user } } = await sb.auth.getUser()
-  if (!user) return null
+  if (!token || token === 'undefined' || token === 'null') return null
+  const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/user`, {
+    headers: { 'Authorization': `Bearer ${token}`, 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
+  })
+  if (!res.ok) return null
+  const user = await res.json()
+  if (!user?.id) return null
   const { data: perfil } = await supabaseServer.from('perfis').select('role').eq('id', user.id).single()
   if (perfil?.role !== 'master') return null
   return user
@@ -31,34 +29,82 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(data || [])
 }
 
-// PATCH — editar nome/cpf/email ou bloquear
+// PATCH — editar campos do perfil (e entidade se for autoridade)
 export async function PATCH(req: NextRequest) {
-  const user = await verificarMaster(req)
-  if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+  const master = await verificarMaster(req)
+  if (!master) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
-  const { id, ...campos } = await req.json()
+  const { id, categorias, ...campos } = await req.json()
   if (!id) return NextResponse.json({ error: 'id obrigatório.' }, { status: 400 })
 
-  const { error } = await supabaseServer.from('perfis').update(campos).eq('id', id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  // Sincronizar email com auth se alterado
+  if (campos.email) {
+    const { error: authError } = await supabaseServer.auth.admin.updateUserById(id, { email: campos.email, email_confirm: true })
+    if (authError) return NextResponse.json({ error: `Erro ao atualizar email: ${authError.message}` }, { status: 500 })
+  }
+
+  // Atualizar perfil
+  const camposPerfil = { ...campos }
+  delete camposPerfil.categorias
+  const { error: perfilError } = await supabaseServer.from('perfis').update(camposPerfil).eq('id', id)
+  if (perfilError) return NextResponse.json({ error: perfilError.message }, { status: 500 })
+
+  // Se for autoridade, sincronizar entidade também
+  const { data: perfil } = await supabaseServer.from('perfis').select('role').eq('id', id).single()
+  if (perfil?.role === 'autoridade') {
+    const camposEnt: any = {}
+    if (campos.nome) camposEnt.nome = campos.nome
+    if (campos.cargo) camposEnt.cargo = campos.cargo
+    if (campos.email) camposEnt.email = campos.email
+    if (Object.keys(camposEnt).length > 0) {
+      await supabaseServer.from('entidades').update(camposEnt).eq('id', id)
+    }
+
+    // Atualizar categorias se fornecidas
+    if (Array.isArray(categorias)) {
+      await supabaseServer.from('categoria_entidades').delete().eq('entidade_id', id)
+      if (categorias.length > 0) {
+        const rows = categorias.map((catId: string) => ({ categoria_id: catId, entidade_id: id }))
+        await supabaseServer.from('categoria_entidades').insert(rows)
+      }
+    }
+  }
 
   return NextResponse.json({ ok: true })
 }
 
-// DELETE — excluir perfil + usuário do auth
+// DELETE — excluir perfil + entidade (se autoridade) + fotos + demandas + auth
 export async function DELETE(req: NextRequest) {
   const master = await verificarMaster(req)
   if (!master) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
   const { id } = await req.json()
   if (!id) return NextResponse.json({ error: 'id obrigatório.' }, { status: 400 })
-
-  // Impede auto-exclusão
   if (id === master.id) return NextResponse.json({ error: 'Não é possível excluir a própria conta pelo painel.' }, { status: 400 })
 
+  // Buscar perfil e entidade para saber o que existe
+  const { data: perfil } = await supabaseServer.from('perfis').select('role').eq('id', id).single()
+  const { data: entidade } = await supabaseServer.from('entidades').select('id').eq('id', id).single()
+
+  const ehAutoridade = perfil?.role === 'autoridade' || !!entidade
+  const temPerfil = !!perfil
+  const temAuth = temPerfil // só tem auth user se tem perfil (novo fluxo)
+
+  // Remover categorias e entidade se for autoridade (novo ou legado)
+  if (ehAutoridade) {
+    await supabaseServer.from('categoria_entidades').delete().eq('entidade_id', id)
+    await supabaseServer.from('entidades').delete().eq('id', id)
+  }
+
+  // Se não tem perfil (autoridade legada), encerra aqui
+  if (!temPerfil) return NextResponse.json({ ok: true })
+
   await supabaseServer.from('perfis').delete().eq('id', id)
-  const { error } = await supabaseServer.auth.admin.deleteUser(id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  if (temAuth) {
+    const { error } = await supabaseServer.auth.admin.deleteUser(id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 
   return NextResponse.json({ ok: true })
 }

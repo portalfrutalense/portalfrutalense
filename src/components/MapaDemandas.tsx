@@ -159,34 +159,31 @@ export default function MapaDemandas() {
       return true
     })
 
-    function tamanhoIcone(zoom: number) {
-      // escala proporcional ao zoom: zoom 13 = 32px, zoom 16 = 60px
-      return Math.max(20, Math.min(72, 50 + (zoom - 14) * 5))
-    }
-
     function criarIcone(d: typeof filtradas[0], zoom: number) {
       const cor = d.categoria?.cor || '#3b82f6'
       const iconeUrl = d.categoria?.icone_url
-      const s = tamanhoIcone(zoom)
-      if (d.foto_url) return L.divIcon({
-        className: '',
+
+      // Miolo do pin — o que muda entre os 3 casos
+      let miolo: string
+      if (d.foto_url) {
+        miolo = `<img src="${d.foto_url}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:32px;height:32px;object-fit:cover;" />`
+      } else if (iconeUrl) {
+        miolo = `<img src="${iconeUrl}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:125%;height:125%;object-fit:contain;filter:brightness(1.3);" />`
+      } else {
+        miolo = `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:23px;height:23px;border-radius:50%;background:${cor};"></div>`
+      }
+
+      const fundoExtra = d.foto_url ? `background:transparent;` : `background:white;`
+
+      return L.divIcon({
+        className: 'pin-demanda',
         html: `<div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 2px 5px rgba(0,0,0,.35))">
-          <div style="width:32px;height:32px;border-radius:50%;border:2px solid white;overflow:hidden;">
-            <img src="${d.foto_url}" style="width:100%;height:100%;object-fit:cover;display:block;" />
+          <div style="width:32px;height:32px;border-radius:50%;border:2px solid white;overflow:hidden;position:relative;${fundoExtra}">
+            ${miolo}
           </div>
           <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid white;margin-top:-1px;"></div>
         </div>`,
         iconSize: [32, 41], iconAnchor: [16, 41],
-      })
-      if (iconeUrl) return L.divIcon({
-        className: '',
-        html: `<img src="${iconeUrl}" style="width:${s}px;height:${s}px;object-fit:contain;filter:brightness(1.3) drop-shadow(0 2px 6px rgba(0,0,0,0.7));" />`,
-        iconSize: [s, s], iconAnchor: [s/2, s/2],
-      })
-      return L.divIcon({
-        className: '',
-        html: `<div style="width:22px;height:22px;border-radius:50%;background:${cor};box-shadow:0 2px 6px rgba(0,0,0,0.4);filter:brightness(1.3)"></div>`,
-        iconSize: [22, 22], iconAnchor: [11, 11],
       })
     }
 
@@ -199,17 +196,7 @@ export default function MapaDemandas() {
       markersRef.current.push(marker)
     })
 
-    // atualiza ícones de imagem ao mudar zoom
-    function onZoom() {
-      const zoom = mapa.getZoom()
-      filtradas.forEach((d, i) => {
-        if (d.categoria?.icone_url && !d.foto_url) {
-          markersRef.current[i]?.setIcon(criarIcone(d, zoom))
-        }
-      })
-    }
-    mapa.on('zoomend', onZoom)
-    return () => { mapa.off('zoomend', onZoom) }
+    return () => {}
   }, [demandas, user, mapaCarregado, filtroStatus, filtroCategoria])
 
   // Mini-mapa no formulário

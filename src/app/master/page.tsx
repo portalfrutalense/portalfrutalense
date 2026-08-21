@@ -7,15 +7,18 @@ import { useAuth } from '@/components/AuthProvider'
 import { Entidade, CategoriaMapa } from '@/types'
 
 type SecaoMaster = 'dashboard' | 'demandas' | 'chatbot' | 'perfis'
-type AbaConfig = 'autoridades' | 'categorias' | 'ia'
+type SubSecaoPerfis = 'cidadao' | 'autoridade' | 'empresa'
+type AbaConfig = 'categorias' | 'ia'
 
 export default function MasterPage() {
   const { user, perfil, carregando: carregandoAuth } = useAuth()
   const router = useRouter()
   const [tokenSessao, setTokenSessao] = useState<string | null>(null)
   const [secao, setSecao] = useState<SecaoMaster>('dashboard')
+  const [subSecaoPerfis, setSubSecaoPerfis] = useState<SubSecaoPerfis | null>(null)
+  const [perfisAberto, setPerfisAberto] = useState(false)
   const [configurando, setConfigurando] = useState(false)
-  const [abaConfig, setAbaConfig] = useState<AbaConfig>('autoridades')
+  const [abaConfig, setAbaConfig] = useState<AbaConfig>('categorias')
   const [menuAberto, setMenuAberto] = useState(false)
 
   // Dados config
@@ -215,10 +218,15 @@ export default function MasterPage() {
 
         {/* Nav */}
         <nav style={{ flex: 1, padding: '12px 10px' }}>
-          {navItems.map((item) => (
+          {/* Dashboard */}
+          {[
+            { key: 'dashboard' as SecaoMaster, label: 'Dashboard' },
+            { key: 'demandas'  as SecaoMaster, label: 'Mapa de Demandas' },
+            { key: 'chatbot'   as SecaoMaster, label: 'Chatbot IA' },
+          ].map(item => (
             <button
               key={item.key}
-              onClick={() => { setSecao(item.key); setConfigurando(false); setMenuAberto(false) }}
+              onClick={() => { setSecao(item.key); setPerfisAberto(false); setConfigurando(false); setMenuAberto(false) }}
               style={{
                 display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 12px',
                 borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 500,
@@ -230,6 +238,59 @@ export default function MasterPage() {
               {item.label}
             </button>
           ))}
+
+          {/* Perfis — flyout */}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => {
+                setPerfisAberto(o => !o)
+                setConfigurando(false)
+                setMenuAberto(false)
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px',
+                borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 500,
+                background: secao === 'perfis' ? 'rgba(255,255,255,0.12)' : 'transparent',
+                color: secao === 'perfis' ? 'white' : 'rgba(255,255,255,0.55)',
+                marginBottom: '2px', textAlign: 'left',
+              }}
+            >
+              <span>Perfis</span>
+              <span style={{ fontSize: '10px', opacity: 0.6 }}>›</span>
+            </button>
+
+            {perfisAberto && (
+              <>
+                <div onClick={() => setPerfisAberto(false)} style={{ position: 'fixed', inset: 0, zIndex: 98 }} />
+                <div style={{
+                  position: 'absolute', left: 'calc(100% + 8px)', top: 0,
+                  background: '#1e3a5f', borderRadius: '10px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                  minWidth: '150px', zIndex: 99, padding: '6px',
+                }}>
+                  {([
+                    { key: 'cidadao'    as SubSecaoPerfis, label: 'Cidadãos'    },
+                    { key: 'autoridade' as SubSecaoPerfis, label: 'Autoridades' },
+                    { key: 'empresa'    as SubSecaoPerfis, label: 'Empresas'    },
+                  ]).map(sub => (
+                    <button
+                      key={sub.key}
+                      onClick={() => { setSecao('perfis'); setSubSecaoPerfis(sub.key); setPerfisAberto(false); setMenuAberto(false) }}
+                      style={{
+                        display: 'block', width: '100%', padding: '9px 14px',
+                        borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 500,
+                        background: subSecaoPerfis === sub.key ? 'rgba(255,255,255,0.12)' : 'transparent',
+                        color: subSecaoPerfis === sub.key ? 'white' : 'rgba(255,255,255,0.65)',
+                        textAlign: 'left',
+                      }}
+                    >
+                      {sub.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </nav>
 
         {/* Sair */}
@@ -295,7 +356,7 @@ export default function MasterPage() {
           )}
 
           {/* ── PERFIS ── */}
-          {secao === 'perfis' && <MasterPerfis token={tokenSessao} />}
+          {secao === 'perfis' && <MasterPerfis token={tokenSessao} subSecao={subSecaoPerfis} />}
 
           {/* ── MAPA DE DEMANDAS ── */}
           {secao === 'demandas' && (
@@ -317,7 +378,7 @@ export default function MasterPage() {
                       Voltar as demandas
                     </button>
                   ) : (
-                    <button onClick={() => { setConfigurando(true); setAbaConfig('autoridades') }}
+                    <button onClick={() => { setConfigurando(true); setAbaConfig('categorias') }}
                       style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: '#374151', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer' }}>
                       Configurar
                     </button>
@@ -333,8 +394,8 @@ export default function MasterPage() {
                 <div>
                   {/* Sub-abas */}
                   <div style={{ display: 'flex', gap: '4px', marginBottom: '24px', background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '6px' }}>
-                    {(['autoridades', 'categorias', 'ia'] as AbaConfig[]).map((a) => {
-                      const labels: Record<AbaConfig, string> = { autoridades: 'Autoridades', categorias: 'Categorias', ia: 'IA' }
+                    {(['categorias', 'ia'] as AbaConfig[]).map((a) => {
+                      const labels: Record<AbaConfig, string> = { categorias: 'Categorias', ia: 'IA' }
                       return (
                         <button key={a} onClick={() => setAbaConfig(a)} style={{
                           flex: 1, padding: '8px 12px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
@@ -346,96 +407,6 @@ export default function MasterPage() {
                       )
                     })}
                   </div>
-
-                  {abaConfig === 'autoridades' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                      <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '20px' }}>
-                        <h2 style={{ fontWeight: 600, color: '#111827', fontSize: '15px', marginBottom: '16px' }}>Nova Autoridade</h2>
-                        <form onSubmit={salvarEntidade} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
-                            <input value={novaEntNome} onChange={(e) => setNovaEntNome(e.target.value)} placeholder="Nome" required style={{ border: '1px solid #d1d5db', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', outline: 'none' }} />
-                            <input value={novaEntCargo} onChange={(e) => setNovaEntCargo(e.target.value)} placeholder="Cargo / Órgão" required style={{ border: '1px solid #d1d5db', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', outline: 'none' }} />
-                            <input type="email" value={novaEntEmail} onChange={(e) => setNovaEntEmail(e.target.value)} placeholder="E-mail" required style={{ border: '1px solid #d1d5db', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', outline: 'none' }} />
-                          </div>
-                          {categorias.length > 0 && (
-                            <div>
-                              <p style={{ fontSize: '12px', fontWeight: 500, color: '#4b5563', margin: '0 0 8px' }}>Categorias responsável</p>
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                                {categorias.map(cat => {
-                                  const marcado = novaEntCats.includes(cat.id)
-                                  return (
-                                    <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '7px', cursor: 'pointer', fontSize: '13px', color: '#374151', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '6px 12px', userSelect: 'none' }}>
-                                      <input type="checkbox" checked={marcado} onChange={() => setNovaEntCats(prev => marcado ? prev.filter(id => id !== cat.id) : [...prev, cat.id])} />
-                                      {cat.nome}
-                                    </label>
-                                  )
-                                })}
-                              </div>
-                            </div>
-                          )}
-                          <button type="submit" style={{ alignSelf: 'flex-start', backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '9px 18px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px' }}>Salvar</button>
-                        </form>
-                      </div>
-                      <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-                        {entidades.length === 0 && <p style={{ color: '#9ca3af', fontSize: '13px', padding: '20px' }}>Nenhuma autoridade cadastrada.</p>}
-                        {entidades.map((e, i) => (
-                          <div key={e.id} style={{ padding: '14px 20px', borderTop: i > 0 ? '1px solid #f3f4f6' : 'none' }}>
-                            {editandoEnt === e.id ? (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
-                                  <input value={editEntNome} onChange={(ev) => setEditEntNome(ev.target.value)} placeholder="Nome" style={{ border: '1px solid #d1d5db', borderRadius: '8px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
-                                  <input value={editEntCargo} onChange={(ev) => setEditEntCargo(ev.target.value)} placeholder="Cargo / Órgão" style={{ border: '1px solid #d1d5db', borderRadius: '8px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
-                                  <input type="email" value={editEntEmail} onChange={(ev) => setEditEntEmail(ev.target.value)} placeholder="E-mail" style={{ border: '1px solid #d1d5db', borderRadius: '8px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
-                                </div>
-                                {categorias.length > 0 && (
-                                  <div>
-                                    <p style={{ fontSize: '12px', fontWeight: 500, color: '#4b5563', margin: '0 0 6px' }}>Categorias responsável</p>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                                      {categorias.map(cat => {
-                                        const marcado = editEntCats.includes(cat.id)
-                                        return (
-                                          <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '7px', cursor: 'pointer', fontSize: '13px', color: '#374151', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '6px 12px', userSelect: 'none' }}>
-                                            <input type="checkbox" checked={marcado} onChange={() => setEditEntCats(prev => marcado ? prev.filter(id => id !== cat.id) : [...prev, cat.id])} />
-                                            {cat.nome}
-                                          </label>
-                                        )
-                                      })}
-                                    </div>
-                                  </div>
-                                )}
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                  {btnAcao('Salvar', () => salvarEdicaoEntidade(e.id), 'primario')}
-                                  {btnAcao('Cancelar', () => setEditandoEnt(null), 'neutro')}
-                                </div>
-                              </div>
-                            ) : (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-                                  <div>
-                                    <p style={{ fontWeight: 500, color: '#111827', fontSize: '14px', margin: 0 }}>{e.nome}</p>
-                                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0' }}>{e.cargo} · {e.email}</p>
-                                  </div>
-                                  <div style={{ display: 'flex', gap: '8px' }}>
-                                    {btnAcao('Editar', () => { setEditandoEnt(e.id); setEditEntNome(e.nome); setEditEntCargo(e.cargo); setEditEntEmail(e.email); setEditEntCats(Object.entries(catEntidades).filter(([, ids]) => ids.includes(e.id)).map(([catId]) => catId)) }, 'neutro')}
-                                    {btnAcao('Excluir', () => excluirEntidade(e.id), 'perigo')}
-                                  </div>
-                                </div>
-                                {/* Categorias atribuídas a esta entidade */}
-                                {(() => {
-                                  const cats = categorias.filter(cat => (catEntidades[cat.id] || []).includes(e.id))
-                                  return cats.length > 0 ? (
-                                    <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, paddingLeft: '4px' }}>
-                                      {cats.map(c => c.nome).join(', ')}
-                                    </p>
-                                  ) : null
-                                })()}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
                   {abaConfig === 'categorias' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -553,9 +524,10 @@ function MasterDemandas({ token }: { token: string | null }) {
   const [editDescricao, setEditDescricao] = useState('')
   const [menuAbertoDemandaId, setMenuAbertoDemandaId] = useState<string | null>(null)
 
-  async function carregarDemandas(tkn?: string) {
+  async function carregarDemandas() {
+    const t = token ?? (await sbClient.auth.getSession()).data.session?.access_token
+    if (!t || t === 'undefined' || t === 'null') return
     setCarregandoDemandas(true)
-    const t = tkn ?? token ?? (await sbClient.auth.getSession()).data.session?.access_token
     const res = await fetch('/api/master/demanda', {
       headers: { 'Authorization': `Bearer ${t}` },
     })
@@ -564,9 +536,9 @@ function MasterDemandas({ token }: { token: string | null }) {
   }
 
   useEffect(() => {
-    carregarDemandas(token ?? undefined)
+    if (token) carregarDemandas()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [token])
 
   function mostrarNotif(msg: string, erro = false) {
     setNotif((erro ? 'Erro: ' : '') + msg)
@@ -837,7 +809,13 @@ const CONFIG_PADRAO = {
   prompt: 'Analise a demanda do cidadão e decida se deve ser aprovada ou rejeitada. Rejeite se: for ofensiva, difamatória, sem relação com problemas reais do município de Frutal-MG, spam, ou conteúdo político partidário. Aprove se for uma demanda legítima de um cidadão sobre infraestrutura, saúde, educação, segurança ou outro serviço público.',
 }
 
-function MasterPerfis({ token }: { token: string | null }) {
+const LABEL_PERFIS: Record<SubSecaoPerfis, string> = {
+  cidadao:    'Cidadãos',
+  autoridade: 'Autoridades',
+  empresa:    'Empresas',
+}
+
+function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: SubSecaoPerfis | null }) {
   const sbClient = createClient()
   const [perfis, setPerfis] = useState<any[]>([])
   const [carregando, setCarregando] = useState(true)
@@ -847,7 +825,18 @@ function MasterPerfis({ token }: { token: string | null }) {
   const [editNome, setEditNome] = useState('')
   const [editCpf, setEditCpf] = useState('')
   const [editEmail, setEditEmail] = useState('')
+  const [editCargo, setEditCargo] = useState('')
+  const [editCats, setEditCats] = useState<string[]>([])
   const [notif, setNotif] = useState('')
+  const [criando, setCriando] = useState(false)
+  const [novoNome, setNovoNome] = useState('')
+  const [novoEmail, setNovoEmail] = useState('')
+  const [novaSenha, setNovaSenha] = useState('')
+  const [novoCargo, setNovoCargo] = useState('')
+  const [novasCats, setNovasCats] = useState<string[]>([])
+  const [salvandoNovo, setSalvandoNovo] = useState(false)
+  const [categorias, setCategorias] = useState<any[]>([])
+  const [catEntidades, setCatEntidades] = useState<Record<string, string[]>>({})
 
   async function getToken() {
     if (token) return token
@@ -860,23 +849,62 @@ function MasterPerfis({ token }: { token: string | null }) {
   }
 
   async function carregar() {
-    setCarregando(true)
     const t = await getToken()
-    const res = await fetch('/api/master/perfis', { headers: { 'Authorization': `Bearer ${t}` } })
-    const data = await res.json()
-    if (res.ok) setPerfis(data)
-    else mostrarNotif(`Erro ${res.status}: ${data?.error || 'desconhecido'}`)
+    if (!t || t === 'undefined' || t === 'null') return
+    setCarregando(true)
+    const [resP, resC, resE] = await Promise.all([
+      fetch('/api/master/perfis', { headers: { 'Authorization': `Bearer ${t}` } }),
+      sbClient.from('categorias_mapa').select('id, nome').order('nome'),
+      sbClient.from('entidades').select('id, nome, cargo, email, ativo'),
+    ])
+    const dataP = await resP.json()
+    if (resP.ok) {
+      // Mesclar: autoridades antigas (só em entidades, sem perfil com role=autoridade)
+      const perfisIds = new Set(dataP.map((p: any) => p.id))
+      const entidadesOrfas = (resE.data || [])
+        .filter((e: any) => !perfisIds.has(e.id))
+        .map((e: any) => ({ ...e, role: 'autoridade', _legado: true }))
+      setPerfis([...dataP, ...entidadesOrfas])
+
+      // Carregar categorias de todas as autoridades
+      const todasAuts = [
+        ...dataP.filter((p: any) => p.role === 'autoridade'),
+        ...entidadesOrfas,
+      ]
+      if (todasAuts.length > 0) {
+        const ids = todasAuts.map((a: any) => a.id)
+        const { data: catEnt } = await sbClient
+          .from('categoria_entidades')
+          .select('entidade_id, categoria_id')
+          .in('entidade_id', ids)
+        const mapa: Record<string, string[]> = {}
+        for (const row of (catEnt || [])) {
+          if (!mapa[row.entidade_id]) mapa[row.entidade_id] = []
+          mapa[row.entidade_id].push(row.categoria_id)
+        }
+        setCatEntidades(mapa)
+      }
+    } else {
+      mostrarNotif(`Erro ${resP.status}: ${dataP?.error || 'desconhecido'}`)
+    }
+    if (resC.data) setCategorias(resC.data)
     setCarregando(false)
   }
 
-  useEffect(() => { carregar() }, [])
+  useEffect(() => { if (token) carregar() }, [token])
 
   async function salvarEdicao(id: string) {
     const t = await getToken()
+    const perfil = perfis.find(p => p.id === id)
+    const body: any = { id, nome: editNome, cpf: editCpf, email: editEmail }
+    if (perfil?.role === 'autoridade') {
+      body.cargo = editCargo
+      body.categorias = editCats
+    }
     await fetch('/api/master/perfis', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
-      body: JSON.stringify({ id, nome: editNome, cpf: editCpf, email: editEmail }),
+      body: JSON.stringify(body),
     })
     setEditandoId(null)
     mostrarNotif('Perfil atualizado.')
@@ -908,19 +936,109 @@ function MasterPerfis({ token }: { token: string | null }) {
     carregar()
   }
 
-  const filtrados = perfis.filter(p =>
-    p.nome?.toLowerCase().includes(busca.toLowerCase()) ||
-    p.email?.toLowerCase().includes(busca.toLowerCase()) ||
-    p.cpf?.includes(busca)
+  async function criarConta() {
+    if (!novoNome.trim() || !novoEmail.trim() || !novaSenha.trim()) {
+      mostrarNotif('Preencha nome, e-mail e senha.')
+      return
+    }
+    const t = await getToken()
+    setSalvandoNovo(true)
+    const res = await fetch('/api/master/criar-perfil', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
+      body: JSON.stringify({ nome: novoNome, email: novoEmail, senha: novaSenha, role: subSecao, cargo: novoCargo, categorias: novasCats }),
+    })
+    const d = await res.json()
+    setSalvandoNovo(false)
+    if (!d.ok) { mostrarNotif(d.error || 'Erro ao criar conta.'); return }
+    setNovoNome(''); setNovoEmail(''); setNovaSenha(''); setNovoCargo(''); setNovasCats([]); setCriando(false)
+    mostrarNotif('Conta criada com sucesso.')
+    carregar()
+  }
+
+  const filtrados = perfis
+    .filter(p => p.role === subSecao)
+    .filter(p =>
+      p.nome?.toLowerCase().includes(busca.toLowerCase()) ||
+      p.email?.toLowerCase().includes(busca.toLowerCase()) ||
+      p.cpf?.includes(busca)
+    )
+
+  if (!subSecao) return (
+    <div>
+      <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>Perfis</h1>
+      <p style={{ fontSize: '13px', color: '#6b7280', margin: '4px 0 0' }}>Selecione um tipo na sidebar.</p>
+    </div>
   )
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>Perfis</h1>
-          <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>{perfis.length} cadastros</p>
+      <div style={{ marginBottom: '24px' }}>
+        <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>
+          {LABEL_PERFIS[subSecao]}
+        </h1>
+        <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
+          {perfis.filter(p => p.role === subSecao).length} cadastro{perfis.filter(p => p.role === subSecao).length !== 1 ? 's' : ''}
+        </p>
+      </div>
+
+      {notif && <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#166534', marginBottom: '16px' }}>{notif}</div>}
+
+      {/* Formulário de criação — só para autoridade e empresa */}
+      {subSecao !== 'cidadao' && (
+        <div style={{ marginBottom: '20px' }}>
+          {!criando ? (
+            <button
+              onClick={() => setCriando(true)}
+              style={{ background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+              + Nova conta
+            </button>
+          ) : (
+            <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '400px' }}>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#111827', margin: 0 }}>
+                Nova {subSecao === 'autoridade' ? 'Autoridade' : 'Empresa'}
+              </p>
+              <input value={novoNome} onChange={e => setNovoNome(e.target.value)} placeholder="Nome completo"
+                style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 10px', fontSize: '13px', outline: 'none' }} />
+              <input value={novoEmail} onChange={e => setNovoEmail(e.target.value)} placeholder="E-mail" type="email"
+                style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 10px', fontSize: '13px', outline: 'none' }} />
+              <input value={novaSenha} onChange={e => setNovaSenha(e.target.value)} placeholder="Senha inicial" type="password"
+                style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 10px', fontSize: '13px', outline: 'none' }} />
+              {subSecao === 'autoridade' && (
+                <>
+                  <input value={novoCargo} onChange={e => setNovoCargo(e.target.value)} placeholder="Cargo (ex: Secretário de Obras)"
+                    style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 10px', fontSize: '13px', outline: 'none' }} />
+                  <div>
+                    <p style={{ fontSize: '12px', fontWeight: 600, color: '#374151', margin: '0 0 6px' }}>Categorias</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '140px', overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px' }}>
+                      {categorias.length === 0 && <span style={{ fontSize: '12px', color: '#9ca3af' }}>Nenhuma categoria cadastrada.</span>}
+                      {categorias.map(cat => (
+                        <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#374151', cursor: 'pointer' }}>
+                          <input type="checkbox" checked={novasCats.includes(cat.id)}
+                            onChange={e => setNovasCats(prev => e.target.checked ? [...prev, cat.id] : prev.filter(id => id !== cat.id))} />
+                          {cat.nome}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={criarConta} disabled={salvandoNovo}
+                  style={{ background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '7px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', opacity: salvandoNovo ? 0.6 : 1 }}>
+                  {salvandoNovo ? 'Criando...' : 'Criar conta'}
+                </button>
+                <button onClick={() => { setCriando(false); setNovoNome(''); setNovoEmail(''); setNovaSenha(''); setNovoCargo(''); setNovasCats([]) }}
+                  style={{ background: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 14px', fontSize: '13px', cursor: 'pointer' }}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
         </div>
+      )}
+
+      <div style={{ marginBottom: '16px' }}>
         <input
           type="text" value={busca} onChange={e => setBusca(e.target.value)}
           placeholder="Buscar por nome, e-mail ou CPF..."
@@ -928,80 +1046,118 @@ function MasterPerfis({ token }: { token: string | null }) {
         />
       </div>
 
-      {notif && <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#166534', marginBottom: '16px' }}>{notif}</div>}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {filtrados.map(p => (
+              <div key={p.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '16px', position: 'relative' }}>
 
-      {carregando ? (
-        <p style={{ color: '#9ca3af', fontSize: '14px' }}>Carregando...</p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {filtrados.map(p => (
-            <div key={p.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '16px', position: 'relative' }}>
+                {/* Menu ··· */}
+                <div style={{ position: 'absolute', top: '12px', right: '12px' }}>
+                  <button
+                    onClick={() => setMenuAbertoId(menuAbertoId === p.id ? null : p.id)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', fontWeight: 700, color: '#9ca3af', padding: '2px 6px' }}>
+                    ···
+                  </button>
+                  {menuAbertoId === p.id && (
+                    <>
+                      <div onClick={() => setMenuAbertoId(null)} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
+                      <div style={{ position: 'absolute', top: '28px', right: 0, background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', minWidth: '160px', zIndex: 20, padding: '4px 0' }}>
+                        <button onClick={() => { setEditandoId(p.id); setEditNome(p.nome || ''); setEditCpf(p.cpf || ''); setEditEmail(p.email || ''); setEditCargo(p.cargo || ''); setEditCats(catEntidades[p.id] || []); setMenuAbertoId(null) }}
+                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#374151', background: 'none', border: 'none', cursor: 'pointer' }}>
+                          Editar
+                        </button>
+                        {!p._legado && (
+                          <button onClick={() => { bloquear(p.id, p.bloqueado); setMenuAbertoId(null) }}
+                            style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: p.bloqueado ? '#166534' : '#92400e', background: 'none', border: 'none', cursor: 'pointer' }}>
+                            {p.bloqueado ? 'Liberar acesso' : 'Bloquear acesso'}
+                          </button>
+                        )}
+                        <div style={{ height: '1px', background: '#f3f4f6', margin: '4px 0' }} />
+                        <button onClick={() => { excluir(p.id); setMenuAbertoId(null) }}
+                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}>
+                          Excluir
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
 
-              {/* Menu ··· */}
-              <div style={{ position: 'absolute', top: '12px', right: '12px' }}>
-                <button
-                  onClick={() => setMenuAbertoId(menuAbertoId === p.id ? null : p.id)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', fontWeight: 700, color: '#9ca3af', padding: '2px 6px' }}>
-                  ···
-                </button>
-                {menuAbertoId === p.id && (
-                  <>
-                    <div onClick={() => setMenuAbertoId(null)} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
-                    <div style={{ position: 'absolute', top: '28px', right: 0, background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', minWidth: '160px', zIndex: 20, padding: '4px 0' }}>
-                      <button onClick={() => { setEditandoId(p.id); setEditNome(p.nome || ''); setEditCpf(p.cpf || ''); setEditEmail(p.email || ''); setMenuAbertoId(null) }}
-                        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#374151', background: 'none', border: 'none', cursor: 'pointer' }}>
-                        Editar
+                {/* Dados */}
+                {editandoId === p.id ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '40px' }}>
+                    <input value={editNome} onChange={e => setEditNome(e.target.value)} placeholder="Nome"
+                      style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
+                    {p.role !== 'autoridade' && (
+                      <input value={editCpf} onChange={e => setEditCpf(e.target.value)} placeholder="CPF"
+                        style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
+                    )}
+                    <input value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="E-mail"
+                      style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
+                    {p.role === 'autoridade' && (
+                      <>
+                        <input value={editCargo} onChange={e => setEditCargo(e.target.value)} placeholder="Cargo"
+                          style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
+                        <div>
+                          <p style={{ fontSize: '12px', fontWeight: 600, color: '#374151', margin: '0 0 6px' }}>Categorias</p>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '140px', overflowY: 'auto' }}>
+                            {categorias.map(cat => (
+                              <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#374151', cursor: 'pointer' }}>
+                                <input type="checkbox" checked={editCats.includes(cat.id)}
+                                  onChange={e => setEditCats(prev => e.target.checked ? [...prev, cat.id] : prev.filter(id => id !== cat.id))} />
+                                {cat.nome}
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => salvarEdicao(p.id)}
+                        style={{ background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                        Salvar
                       </button>
-                      <button onClick={() => { bloquear(p.id, p.bloqueado); setMenuAbertoId(null) }}
-                        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: p.bloqueado ? '#166534' : '#92400e', background: 'none', border: 'none', cursor: 'pointer' }}>
-                        {p.bloqueado ? 'Liberar acesso' : 'Bloquear acesso'}
-                      </button>
-                      <div style={{ height: '1px', background: '#f3f4f6', margin: '4px 0' }} />
-                      <button onClick={() => { excluir(p.id); setMenuAbertoId(null) }}
-                        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}>
-                        Excluir
+                      <button onClick={() => setEditandoId(null)}
+                        style={{ background: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer' }}>
+                        Cancelar
                       </button>
                     </div>
-                  </>
+                  </div>
+                ) : (
+                  <div style={{ paddingRight: '40px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>{p.nome || '—'}</span>
+                      {p.bloqueado && <span style={{ fontSize: '10px', fontWeight: 700, background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '20px', padding: '2px 8px' }}>BLOQUEADO</span>}
+                      {p._legado && <span style={{ fontSize: '10px', fontWeight: 600, background: '#fefce8', color: '#92400e', border: '1px solid #fde68a', borderRadius: '20px', padding: '2px 8px' }}>sem login</span>}
+                    </div>
+                    {p.role === 'autoridade' && p.cargo && (
+                      <span style={{ fontSize: '12px', color: '#374151' }}>{p.cargo}</span>
+                    )}
+                    <span style={{ fontSize: '12px', color: '#6b7280' }}>{p.email || '—'}</span>
+                    {p.role !== 'autoridade' && (
+                      <span style={{ fontSize: '12px', color: '#9ca3af' }}>CPF: {p.cpf || '—'}</span>
+                    )}
+                    {p.role === 'autoridade' && catEntidades[p.id]?.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '2px' }}>
+                        {catEntidades[p.id].map(catId => {
+                          const cat = categorias.find(c => c.id === catId)
+                          return cat ? (
+                            <span key={catId} style={{ fontSize: '10px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: '20px', padding: '2px 8px' }}>
+                              {cat.nome}
+                            </span>
+                          ) : null
+                        })}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
-
-              {/* Dados */}
-              {editandoId === p.id ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '40px' }}>
-                  <input value={editNome} onChange={e => setEditNome(e.target.value)} placeholder="Nome"
-                    style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
-                  <input value={editCpf} onChange={e => setEditCpf(e.target.value)} placeholder="CPF"
-                    style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
-                  <input value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="E-mail"
-                    style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={() => salvarEdicao(p.id)}
-                      style={{ background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
-                      Salvar
-                    </button>
-                    <button onClick={() => setEditandoId(null)}
-                      style={{ background: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer' }}>
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div style={{ paddingRight: '40px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>{p.nome || '—'}</span>
-                    {p.role === 'master' && <span style={{ fontSize: '10px', fontWeight: 700, background: '#1e3a5f', color: 'white', borderRadius: '20px', padding: '2px 8px' }}>MASTER</span>}
-                    {p.bloqueado && <span style={{ fontSize: '10px', fontWeight: 700, background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '20px', padding: '2px 8px' }}>BLOQUEADO</span>}
-                  </div>
-                  <span style={{ fontSize: '12px', color: '#6b7280' }}>{p.email || '—'}</span>
-                  <span style={{ fontSize: '12px', color: '#9ca3af' }}>CPF: {p.cpf || '—'}</span>
-                </div>
-              )}
-            </div>
-          ))}
-          {filtrados.length === 0 && <p style={{ color: '#9ca3af', fontSize: '14px' }}>Nenhum perfil encontrado.</p>}
-        </div>
-      )}
+            ))}
+            {filtrados.length === 0 && !carregando && (
+              <p style={{ color: '#9ca3af', fontSize: '14px' }}>Nenhum cadastro encontrado.</p>
+            )}
+            {carregando && (
+              <p style={{ color: '#9ca3af', fontSize: '14px' }}>Carregando...</p>
+            )}
+          </div>
     </div>
   )
 }
