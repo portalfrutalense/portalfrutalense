@@ -29,7 +29,7 @@ export default function ChatBot() {
   const nomeUsuario = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || 'Cidadão'
   const [aberto, setAberto] = useState(false)
   const [mensagens, setMensagens] = useState<Mensagem[]>([
-    { role: 'assistant', content: `Uai, ${nomeUsuario}! Que bom ter ocê aqui. Sou o Abaxico, frutalense de coração. Posso responder dúvidas sobre os serviços da cidade ou registrar uma demanda pra ocê. Fala aí, o que tá precisando?` }
+    { role: 'assistant', content: `Uai, ${nomeUsuario}! Que bom ter ocê aqui. Sou o AbacaXico, frutalense de coração. Posso responder dúvidas sobre os serviços da cidade ou registrar uma demanda pra ocê. Fala aí, o que tá precisando?` }
   ])
   const [input, setInput] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -121,7 +121,7 @@ export default function ChatBot() {
 
       if (res.ok) {
         setPendente(null)
-        setMensagens(prev => [...prev, { role: 'assistant', content: '✅ Demanda registrada com sucesso! Ela aparecerá no mapa após análise. Posso ajudar com mais alguma coisa?' }])
+        setMensagens(prev => [...prev, { role: 'assistant', content: 'Demanda registrada com sucesso! Ela aparecerá no mapa após análise. Posso ajudar com mais alguma coisa?' }])
         setNotif('Demanda registrada!')
         setTimeout(() => setNotif(''), 4000)
       } else {
@@ -154,7 +154,7 @@ export default function ChatBot() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '24px',
           }}
-          title="Falar com o Abaxico"
+          title="Falar com o AbacaXico"
         >
           🍍
         </button>
@@ -178,7 +178,7 @@ export default function ChatBot() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>🍍</div>
               <div>
-                <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'white' }}>Abaxico</p>
+                <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'white' }}>AbacaXico</p>
                 <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>Assistente virtual do Fala Frutal</p>
               </div>
             </div>
@@ -209,11 +209,11 @@ export default function ChatBot() {
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start' }}>
                 <button onClick={confirmarDemanda} disabled={criando}
                   style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: criando ? 'wait' : 'pointer' }}>
-                  {criando ? 'Registrando...' : '✅ Confirmar'}
+                  {criando ? 'Registrando...' : 'Confirmar'}
                 </button>
                 <button onClick={cancelarDemanda} disabled={criando}
                   style={{ background: 'white', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
-                  ❌ Cancelar
+                  Cancelar
                 </button>
               </div>
             )}
