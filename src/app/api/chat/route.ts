@@ -16,12 +16,13 @@ export async function POST(req: NextRequest) {
 
   const { mensagens, nomeUsuario } = await req.json()
 
-  // Busca base de conhecimento + categorias + entidades + relações em paralelo
-  const [{ data: base }, { data: categorias }, { data: entidades }, { data: catEnt }] = await Promise.all([
+  // Busca base de conhecimento + categorias + entidades + relações + config em paralelo
+  const [{ data: base }, { data: categorias }, { data: entidades }, { data: catEnt }, { data: chatConfig }] = await Promise.all([
     supabaseServer.from('chatbot_base').select('titulo, conteudo').eq('ativo', true),
     supabaseServer.from('categorias_mapa').select('id, nome').eq('ativo', true),
     supabaseServer.from('entidades').select('id, nome, cargo').eq('ativo', true),
     supabaseServer.from('categoria_entidades').select('categoria_id, entidade_id'),
+    supabaseServer.from('chatbot_config').select('nome_bot, descricao_bot, tom_voz, responsabilidades, prompt_extra').eq('id', 1).maybeSingle(),
   ])
 
   // Monta mapa categoria -> entidades
@@ -46,25 +47,14 @@ export async function POST(req: NextRequest) {
 
   const entidadesTexto = (entidades || []).map((e: any) => `- ${e.nome}, ${e.cargo} (id: ${e.id})`).join('\n')
 
-  const systemPrompt = `Você é o AbacaXico, assistente virtual do Fala Frutal, plataforma de cidadania do município de Frutal-MG.
+  const cfg: any = chatConfig || {}
+
+  const systemPrompt = `Você é um assistente virtual do Fala Frutal, plataforma de cidadania do município de Frutal-MG.
 Você está conversando com ${nomeUsuario}.
-
-QUEM É O AbacaXico:
-AbacaXico é um personagem mineiro simpático, nascido em Frutal, a terra do abacaxi. Ele é um cidadão frutalense de coração, que conhece a cidade e quer ajudar os moradores a resolver os problemas do bairro. Ele fala com o sotaque e as gírias do interior de Minas Gerais, de forma natural e acolhedora, sem exagerar.
-
-TOM DE VOZ:
-- Fale de forma amigável e próxima, como um vizinho prestativo de Frutal.
-- Use uma pitada de mineirismo quando cair bem ("uai", "trem", "sô"), mas com moderação — não force o sotaque em toda frase.
-- Nunca use "fia", "ocê", "bão" ou outras gírias pesadas.
-- Nunca use emojis.
-- Não seja seco nem robótico. Mostre interesse genuíno no problema do cidadão.
-- Seja breve. Respostas curtas, diretas. Não enrole nem repita o que o cidadão disse.
-- Pode fazer uma referência leve ao abacaxi de vez em quando, mas sem exagerar.
-
-SUAS RESPONSABILIDADES:
-1. Responder perguntas dos cidadãos usando SOMENTE a base de conhecimento abaixo.
-2. Se não souber a resposta, diga claramente que não tem essa informação e sugira entrar em contato com a Prefeitura de Frutal.
-3. Ajudar o cidadão a registrar uma demanda quando solicitado.
+${cfg.nome_bot ? `\nSeu nome é ${cfg.nome_bot}.` : ''}
+${cfg.descricao_bot ? `\n${cfg.descricao_bot}` : ''}
+${cfg.tom_voz ? `\nTOM DE VOZ:\n${cfg.tom_voz}` : ''}
+${cfg.responsabilidades ? `\nSUAS RESPONSABILIDADES:\n${cfg.responsabilidades}` : ''}
 
 BASE DE CONHECIMENTO:
 ${baseTexto || '(nenhuma informação cadastrada ainda)'}
@@ -89,7 +79,8 @@ Quando tiver TODOS os dados coletados, responda EXATAMENTE neste formato JSON (n
 REGRAS IMPORTANTES:
 - Nunca invente informações que não estão na base de conhecimento.
 - Nunca use emojis em nenhuma mensagem.
-- Quando criar demanda, use EXATAMENTE os IDs fornecidos acima.`
+- Quando criar demanda, use EXATAMENTE os IDs fornecidos acima.
+${cfg.prompt_extra ? `\nINSTRUÇÕES ADICIONAIS:\n${cfg.prompt_extra}` : ''}`
 
   const contents = mensagens.map((m: any) => ({
     role: m.role === 'assistant' ? 'model' : 'user',
@@ -115,6 +106,29 @@ REGRAS IMPORTANTES:
 
   const geminiData = await geminiRes.json()
   const resposta = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || 'Desculpe, não consegui processar sua mensagem.'
+
+  // Logar quando o bot não souber responder
+  const frasesSemResposta = [
+    'não tenho essa informação',
+    'não encontrei essa informação',
+    'não possuo essa informação',
+    'entre em contato com a prefeitura',
+    'não sei responder',
+    'não consigo responder',
+    'não tenho dados sobre',
+  ]
+  const semResposta = frasesSemResposta.some(f => resposta.toLowerCase().includes(f))
+
+  if (semResposta) {
+    const ultimaMensagemUsuario = [...mensagens].reverse().find((m: any) => m.role === 'user')
+    if (ultimaMensagemUsuario) {
+      await supabaseServer.from('chatbot_sem_resposta').insert({
+        user_id: user.id,
+        pergunta: ultimaMensagemUsuario.content,
+        resposta_bot: resposta,
+      })
+    }
+  }
 
   return NextResponse.json({ resposta })
 }

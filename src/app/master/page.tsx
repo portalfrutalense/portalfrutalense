@@ -1164,6 +1164,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
 
 function MasterChatbot() {
   const sbClient = createClient()
+  const [aba, setAba] = useState<'base' | 'config' | 'sem_resposta'>('base')
   const [entradas, setEntradas] = useState<any[]>([])
   const [novoTitulo, setNovoTitulo] = useState('')
   const [novoConteudo, setNovoConteudo] = useState('')
@@ -1174,6 +1175,15 @@ function MasterChatbot() {
   const [notif, setNotif] = useState('')
   const [notifErro, setNotifErro] = useState(false)
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set())
+  // Config
+  const [cfgNomeBot, setCfgNomeBot] = useState('')
+  const [cfgDescricao, setCfgDescricao] = useState('')
+  const [cfgTomVoz, setCfgTomVoz] = useState('')
+  const [cfgResponsabilidades, setCfgResponsabilidades] = useState('')
+  const [cfgPromptExtra, setCfgPromptExtra] = useState('')
+  const [salvandoConfig, setSalvandoConfig] = useState(false)
+  // Sem resposta
+  const [semResposta, setSemResposta] = useState<any[]>([])
 
   function toggleExpandir(id: string) {
     setExpandidos(prev => {
@@ -1189,7 +1199,41 @@ function MasterChatbot() {
     setEntradas(data || [])
   }
 
-  useEffect(() => { carregar() }, [])
+  async function carregarConfig() {
+    const { data } = await sbClient.from('chatbot_config').select('*').eq('id', 1).maybeSingle()
+    setCfgNomeBot(data?.nome_bot || '')
+    setCfgDescricao(data?.descricao_bot || '')
+    setCfgTomVoz(data?.tom_voz || '')
+    setCfgResponsabilidades(data?.responsabilidades || '')
+    setCfgPromptExtra(data?.prompt_extra || '')
+  }
+
+  async function salvarConfig() {
+    setSalvandoConfig(true)
+    await sbClient.from('chatbot_config').upsert({
+      id: 1,
+      nome_bot: cfgNomeBot,
+      descricao_bot: cfgDescricao,
+      tom_voz: cfgTomVoz,
+      responsabilidades: cfgResponsabilidades,
+      prompt_extra: cfgPromptExtra,
+      updated_at: new Date().toISOString(),
+    })
+    setSalvandoConfig(false)
+    mostrarNotif('Configurações salvas.')
+  }
+
+  async function carregarSemResposta() {
+    const { data } = await sbClient.from('chatbot_sem_resposta').select('*').order('created_at', { ascending: false }).limit(100)
+    setSemResposta(data || [])
+  }
+
+  async function excluirSemResposta(id: string) {
+    await sbClient.from('chatbot_sem_resposta').delete().eq('id', id)
+    carregarSemResposta()
+  }
+
+  useEffect(() => { carregar(); carregarConfig(); carregarSemResposta() }, [])
 
   function mostrarNotif(msg: string, erro = false) { setNotif(msg); setNotifErro(erro); setTimeout(() => setNotif(''), 5000) }
 
@@ -1227,6 +1271,12 @@ function MasterChatbot() {
     await carregar()
   }
 
+  const ABAS_CHATBOT = [
+    { key: 'base', label: 'Base de conhecimento' },
+    { key: 'config', label: 'Configurações' },
+    { key: 'sem_resposta', label: 'Sem resposta' },
+  ] as const
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {notif && (
@@ -1240,6 +1290,21 @@ function MasterChatbot() {
         </div>
       )}
 
+      {/* Sub-abas */}
+      <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid #e5e7eb', paddingBottom: '0' }}>
+        {ABAS_CHATBOT.map(a => (
+          <button key={a.key} onClick={() => setAba(a.key)}
+            style={{ padding: '8px 16px', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer', borderRadius: '6px 6px 0 0', background: aba === a.key ? '#1e3a5f' : 'transparent', color: aba === a.key ? 'white' : '#6b7280' }}>
+            {a.label}
+            {a.key === 'sem_resposta' && semResposta.length > 0 && (
+              <span style={{ marginLeft: '6px', background: '#dc2626', color: 'white', borderRadius: '20px', fontSize: '10px', padding: '1px 6px' }}>{semResposta.length}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Base de conhecimento ── */}
+      {aba === 'base' && <>
       <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '12px 16px', fontSize: '13px', color: '#1e40af', lineHeight: 1.6 }}>
         <strong>Como funciona:</strong> Cada entrada abaixo é um bloco de conhecimento que o chatbot usa para responder aos cidadãos. Adicione telefones úteis, horários, informações de serviços públicos, etc. O bot só responde com base no que está aqui.
       </div>
@@ -1316,6 +1381,67 @@ function MasterChatbot() {
           </div>
         ))}
       </div>
+      </>}
+
+      {/* ── Configurações ── */}
+      {aba === 'config' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {[
+            { label: 'Nome do assistente', desc: 'Como o bot se chama.', value: cfgNomeBot, set: setCfgNomeBot, rows: 1, placeholder: 'Ex: AbacaXico' },
+            { label: 'Quem é o assistente', desc: 'Descrição do personagem — origem, personalidade, missão.', value: cfgDescricao, set: setCfgDescricao, rows: 4, placeholder: 'Ex: AbacaXico é um cidadão frutalense de coração...' },
+            { label: 'Tom de voz', desc: 'Como ele deve falar — regras de linguagem e estilo.', value: cfgTomVoz, set: setCfgTomVoz, rows: 5, placeholder: 'Ex: Seja amigável e breve. Não use emojis...' },
+            { label: 'Responsabilidades', desc: 'O que ele pode e não pode fazer.', value: cfgResponsabilidades, set: setCfgResponsabilidades, rows: 4, placeholder: 'Ex: 1. Responder perguntas usando a base de conhecimento...' },
+            { label: 'Instruções adicionais', desc: 'Qualquer regra extra que queira adicionar pontualmente.', value: cfgPromptExtra, set: setCfgPromptExtra, rows: 4, placeholder: 'Ex: Não responda sobre política. Se perguntarem sobre lixo, mencione o telefone...' },
+          ].map(campo => (
+            <div key={campo.label} style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div>
+                <p style={{ fontSize: '13px', fontWeight: 700, color: '#111827', margin: '0 0 2px' }}>{campo.label}</p>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{campo.desc}</p>
+              </div>
+              <textarea
+                value={campo.value}
+                onChange={e => campo.set(e.target.value)}
+                rows={campo.rows}
+                placeholder={campo.placeholder}
+                style={{ border: '1px solid #d1d5db', borderRadius: '7px', padding: '9px 12px', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6 }}
+              />
+            </div>
+          ))}
+          <button onClick={salvarConfig} disabled={salvandoConfig}
+            style={{ alignSelf: 'flex-start', background: salvandoConfig ? '#9ca3af' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '7px', padding: '9px 20px', fontSize: '13px', fontWeight: 600, cursor: salvandoConfig ? 'not-allowed' : 'pointer' }}>
+            {salvandoConfig ? 'Salvando...' : 'Salvar configurações'}
+          </button>
+        </div>
+      )}
+
+      {/* ── Sem resposta ── */}
+      {aba === 'sem_resposta' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Perguntas que o chatbot não soube responder. Use para identificar o que adicionar na base de conhecimento.</p>
+          {semResposta.length === 0 && (
+            <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '32px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
+              Nenhuma pergunta sem resposta registrada.
+            </div>
+          )}
+          {semResposta.map((r: any) => (
+            <div key={r.id} style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>"{r.pergunta}"</span>
+                  <span style={{ fontSize: '11px', color: '#9ca3af' }}>{new Date(r.created_at).toLocaleString('pt-BR')}</span>
+                </div>
+                <button onClick={() => excluirSemResposta(r.id)}
+                  style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', border: '1px solid #fecaca', cursor: 'pointer', background: 'white', color: '#dc2626', flexShrink: 0 }}>
+                  Excluir
+                </button>
+              </div>
+              <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, background: '#f9fafb', borderRadius: '6px', padding: '8px 10px', lineHeight: 1.5 }}>
+                <strong>Bot respondeu:</strong> {r.resposta_bot}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
