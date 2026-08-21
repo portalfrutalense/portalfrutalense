@@ -193,7 +193,7 @@ export default function AbacaXicoPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: 'white' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden', background: 'white' }}>
       <Navbar />
 
       {/* Área principal */}
