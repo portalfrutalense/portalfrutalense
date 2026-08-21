@@ -27,12 +27,14 @@ export default function MasterPage() {
   const [novaEntNome, setNovaEntNome] = useState('')
   const [novaEntCargo, setNovaEntCargo] = useState('')
   const [novaEntEmail, setNovaEntEmail] = useState('')
+  const [novaEntCats, setNovaEntCats] = useState<string[]>([])
   const [novaCatNome, setNovaCatNome] = useState('')
   const [novaCatCor, setNovaCatCor] = useState('#ef4444')
   const [editandoEnt, setEditandoEnt] = useState<string | null>(null)
   const [editEntNome, setEditEntNome] = useState('')
   const [editEntCargo, setEditEntCargo] = useState('')
   const [editEntEmail, setEditEntEmail] = useState('')
+  const [editEntCats, setEditEntCats] = useState<string[]>([])
   const [editandoCat, setEditandoCat] = useState<string | null>(null)
   const [editCatNome, setEditCatNome] = useState('')
   const [editCatCor, setEditCatCor] = useState('#ef4444')
@@ -101,8 +103,11 @@ export default function MasterPage() {
 
   async function salvarEntidade(e: React.FormEvent) {
     e.preventDefault()
-    await supabase.from('entidades').insert({ nome: novaEntNome, cargo: novaEntCargo, email: novaEntEmail, ativo: true })
-    setNovaEntNome(''); setNovaEntCargo(''); setNovaEntEmail('')
+    const { data: nova } = await supabase.from('entidades').insert({ nome: novaEntNome, cargo: novaEntCargo, email: novaEntEmail, ativo: true }).select().single()
+    if (nova && novaEntCats.length > 0) {
+      await supabase.from('categoria_entidades').insert(novaEntCats.map(catId => ({ categoria_id: catId, entidade_id: nova.id })))
+    }
+    setNovaEntNome(''); setNovaEntCargo(''); setNovaEntEmail(''); setNovaEntCats([])
     carregarDados()
   }
   async function excluirEntidade(id: string) {
@@ -112,6 +117,11 @@ export default function MasterPage() {
   }
   async function salvarEdicaoEntidade(id: string) {
     await supabase.from('entidades').update({ nome: editEntNome, cargo: editEntCargo, email: editEntEmail }).eq('id', id)
+    // Recria as relações: apaga tudo e insere as selecionadas
+    await supabase.from('categoria_entidades').delete().eq('entidade_id', id)
+    if (editEntCats.length > 0) {
+      await supabase.from('categoria_entidades').insert(editEntCats.map(catId => ({ categoria_id: catId, entidade_id: id })))
+    }
     setEditandoEnt(null)
     carregarDados()
   }
@@ -366,6 +376,22 @@ export default function MasterPage() {
                             <input value={novaEntCargo} onChange={(e) => setNovaEntCargo(e.target.value)} placeholder="Cargo / Órgão" required style={{ border: '1px solid #d1d5db', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', outline: 'none' }} />
                             <input type="email" value={novaEntEmail} onChange={(e) => setNovaEntEmail(e.target.value)} placeholder="E-mail" required style={{ border: '1px solid #d1d5db', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', outline: 'none' }} />
                           </div>
+                          {categorias.length > 0 && (
+                            <div>
+                              <p style={{ fontSize: '12px', fontWeight: 500, color: '#4b5563', margin: '0 0 8px' }}>Categorias responsável</p>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {categorias.map(cat => {
+                                  const marcado = novaEntCats.includes(cat.id)
+                                  return (
+                                    <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '12px', padding: '4px 10px', borderRadius: '20px', border: marcado ? `1px solid ${cat.cor}` : '1px solid #e5e7eb', background: marcado ? cat.cor : 'white', color: marcado ? 'white' : '#374151', fontWeight: 500 }}>
+                                      <input type="checkbox" checked={marcado} onChange={() => setNovaEntCats(prev => marcado ? prev.filter(id => id !== cat.id) : [...prev, cat.id])} style={{ display: 'none' }} />
+                                      {cat.nome}
+                                    </label>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
                           <button type="submit" style={{ alignSelf: 'flex-start', backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '9px 18px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px' }}>Salvar</button>
                         </form>
                       </div>
@@ -374,12 +400,28 @@ export default function MasterPage() {
                         {entidades.map((e, i) => (
                           <div key={e.id} style={{ padding: '14px 20px', borderTop: i > 0 ? '1px solid #f3f4f6' : 'none' }}>
                             {editandoEnt === e.id ? (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
                                   <input value={editEntNome} onChange={(ev) => setEditEntNome(ev.target.value)} placeholder="Nome" style={{ border: '1px solid #d1d5db', borderRadius: '8px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
                                   <input value={editEntCargo} onChange={(ev) => setEditEntCargo(ev.target.value)} placeholder="Cargo / Órgão" style={{ border: '1px solid #d1d5db', borderRadius: '8px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
                                   <input type="email" value={editEntEmail} onChange={(ev) => setEditEntEmail(ev.target.value)} placeholder="E-mail" style={{ border: '1px solid #d1d5db', borderRadius: '8px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
                                 </div>
+                                {categorias.length > 0 && (
+                                  <div>
+                                    <p style={{ fontSize: '12px', fontWeight: 500, color: '#4b5563', margin: '0 0 6px' }}>Categorias responsável</p>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                      {categorias.map(cat => {
+                                        const marcado = editEntCats.includes(cat.id)
+                                        return (
+                                          <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '12px', padding: '4px 10px', borderRadius: '20px', border: marcado ? `1px solid ${cat.cor}` : '1px solid #e5e7eb', background: marcado ? cat.cor : 'white', color: marcado ? 'white' : '#374151', fontWeight: 500 }}>
+                                            <input type="checkbox" checked={marcado} onChange={() => setEditEntCats(prev => marcado ? prev.filter(id => id !== cat.id) : [...prev, cat.id])} style={{ display: 'none' }} />
+                                            {cat.nome}
+                                          </label>
+                                        )
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
                                 <div style={{ display: 'flex', gap: '8px' }}>
                                   {btnAcao('Salvar', () => salvarEdicaoEntidade(e.id), 'primario')}
                                   {btnAcao('Cancelar', () => setEditandoEnt(null), 'neutro')}
@@ -393,7 +435,7 @@ export default function MasterPage() {
                                     <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0' }}>{e.cargo} · {e.email}</p>
                                   </div>
                                   <div style={{ display: 'flex', gap: '8px' }}>
-                                    {btnAcao('Editar', () => { setEditandoEnt(e.id); setEditEntNome(e.nome); setEditEntCargo(e.cargo); setEditEntEmail(e.email) }, 'neutro')}
+                                    {btnAcao('Editar', () => { setEditandoEnt(e.id); setEditEntNome(e.nome); setEditEntCargo(e.cargo); setEditEntEmail(e.email); setEditEntCats(Object.entries(catEntidades).filter(([, ids]) => ids.includes(e.id)).map(([catId]) => catId)) }, 'neutro')}
                                     {btnAcao('Excluir', () => excluirEntidade(e.id), 'perigo')}
                                   </div>
                                 </div>
