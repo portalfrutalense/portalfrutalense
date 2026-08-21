@@ -842,29 +842,33 @@ function MasterChatbot() {
   const [editConteudo, setEditConteudo] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [notif, setNotif] = useState('')
+  const [notifErro, setNotifErro] = useState(false)
 
   async function carregar() {
-    const { data } = await sbClient.from('chatbot_base').select('*').order('created_at', { ascending: false })
+    const { data, error } = await sbClient.from('chatbot_base').select('*').order('created_at', { ascending: false })
+    if (error) { mostrarNotif(`Erro ao carregar: ${error.message}`, true); return }
     setEntradas(data || [])
   }
 
   useEffect(() => { carregar() }, [])
 
-  function mostrarNotif(msg: string) { setNotif(msg); setTimeout(() => setNotif(''), 4000) }
+  function mostrarNotif(msg: string, erro = false) { setNotif(msg); setNotifErro(erro); setTimeout(() => setNotif(''), 5000) }
 
   async function adicionar(e: React.FormEvent) {
     e.preventDefault()
     if (!novoTitulo.trim() || !novoConteudo.trim()) return
     setSalvando(true)
-    await sbClient.from('chatbot_base').insert({ titulo: novoTitulo.trim(), conteudo: novoConteudo.trim(), ativo: true })
+    const { error } = await sbClient.from('chatbot_base').insert({ titulo: novoTitulo.trim(), conteudo: novoConteudo.trim(), ativo: true })
+    setSalvando(false)
+    if (error) { mostrarNotif(`Erro ao salvar: ${error.message}`, true); return }
     setNovoTitulo(''); setNovoConteudo('')
     await carregar()
-    setSalvando(false)
     mostrarNotif('Entrada adicionada.')
   }
 
   async function salvarEdicao(id: string) {
-    await sbClient.from('chatbot_base').update({ titulo: editTitulo, conteudo: editConteudo }).eq('id', id)
+    const { error } = await sbClient.from('chatbot_base').update({ titulo: editTitulo, conteudo: editConteudo }).eq('id', id)
+    if (error) { mostrarNotif(`Erro ao salvar: ${error.message}`, true); return }
     setEditandoId(null)
     await carregar()
     mostrarNotif('Entrada atualizada.')
@@ -872,19 +876,30 @@ function MasterChatbot() {
 
   async function excluir(id: string) {
     if (!confirm('Excluir esta entrada da base de conhecimento?')) return
-    await sbClient.from('chatbot_base').delete().eq('id', id)
+    const { error } = await sbClient.from('chatbot_base').delete().eq('id', id)
+    if (error) { mostrarNotif(`Erro ao excluir: ${error.message}`, true); return }
     await carregar()
     mostrarNotif('Entrada excluída.')
   }
 
   async function toggleAtivo(id: string, ativo: boolean) {
-    await sbClient.from('chatbot_base').update({ ativo: !ativo }).eq('id', id)
+    const { error } = await sbClient.from('chatbot_base').update({ ativo: !ativo }).eq('id', id)
+    if (error) { mostrarNotif(`Erro: ${error.message}`, true); return }
     await carregar()
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {notif && <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#166534' }}>{notif}</div>}
+      {notif && (
+        <div style={{
+          background: notifErro ? '#fef2f2' : '#f0fdf4',
+          border: `1px solid ${notifErro ? '#fecaca' : '#bbf7d0'}`,
+          borderRadius: '8px', padding: '10px 14px', fontSize: '13px',
+          color: notifErro ? '#dc2626' : '#166534',
+        }}>
+          {notif}
+        </div>
+      )}
 
       <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '12px 16px', fontSize: '13px', color: '#1e40af', lineHeight: 1.6 }}>
         <strong>Como funciona:</strong> Cada entrada abaixo é um bloco de conhecimento que o chatbot usa para responder aos cidadãos. Adicione telefones úteis, horários, informações de serviços públicos, etc. O bot só responde com base no que está aqui.
