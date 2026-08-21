@@ -162,8 +162,8 @@ export default function MapaDemandas() {
         : iconeUrl
         ? L.divIcon({
             className: '',
-            html: `<img src="${iconeUrl}" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 2px 5px rgba(0,0,0,0.4));" />`,
-            iconSize: [36, 36], iconAnchor: [18, 18],
+            html: `<img src="${iconeUrl}" style="width:60px;height:60px;object-fit:contain;filter:drop-shadow(0 2px 5px rgba(0,0,0,0.4));" />`,
+            iconSize: [60, 60], iconAnchor: [30, 30],
           })
         : L.divIcon({
             className: '',
