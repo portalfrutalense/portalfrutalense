@@ -442,16 +442,14 @@ export default function MasterPage() {
                                   </div>
                                 </div>
                                 {/* Categorias atribuídas a esta entidade */}
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', paddingLeft: '4px' }}>
-                                  {categorias.filter(cat => (catEntidades[cat.id] || []).includes(e.id)).map(cat => (
-                                    <span key={cat.id} style={{ fontSize: '11px', padding: '2px 10px', borderRadius: '20px', fontWeight: 500, background: cat.cor + '22', color: cat.cor, border: `1px solid ${cat.cor}55` }}>
-                                      {cat.nome}
-                                    </span>
-                                  ))}
-                                  {!categorias.some(cat => (catEntidades[cat.id] || []).includes(e.id)) && (
-                                    <span style={{ fontSize: '11px', color: '#9ca3af' }}>Nenhuma categoria atribuída</span>
-                                  )}
-                                </div>
+                                {(() => {
+                                  const cats = categorias.filter(cat => (catEntidades[cat.id] || []).includes(e.id))
+                                  return cats.length > 0 ? (
+                                    <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, paddingLeft: '4px' }}>
+                                      {cats.map(c => c.nome).join(', ')}
+                                    </p>
+                                  ) : null
+                                })()}
                               </div>
                             )}
                           </div>
