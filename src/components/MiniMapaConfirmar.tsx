@@ -40,9 +40,8 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
   const [obtendoGps, setObtendoGps] = useState(false)
   const [aviso, setAviso] = useState('')
   const [precisaAjustar, setPrecisaAjustar] = useState(false)
-  const [zoomsFeitos, setZoomsFeitos] = useState(0)
-  const zoomAnterior = useRef<number | null>(null)
-  const ZOOMS_NECESSARIOS = 3
+  const [arrastesFeitos, setArrastesFeitos] = useState(0)
+  const ARRASTES_NECESSARIOS = 3
 
   useEffect(() => {
     if (!mapRef.current || iniciado.current) return
@@ -63,14 +62,9 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
       tileAtual.current = tile
       mapaObj.current = mapa
       leafletObj.current = L
-      zoomAnterior.current = mapa.getZoom()
 
-      mapa.on('zoomend', () => {
-        const novoZoom = mapa.getZoom()
-        if (zoomAnterior.current !== null && novoZoom > zoomAnterior.current) {
-          setZoomsFeitos((z) => z + 1)
-        }
-        zoomAnterior.current = novoZoom
+      mapa.on('dragend', () => {
+        setArrastesFeitos((a) => a + 1)
       })
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -92,8 +86,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
   function marcarFalha() {
     setAviso('Não encontramos esse endereço automaticamente. Arraste o mapa até o local certo.')
     setPrecisaAjustar(true)
-    setZoomsFeitos(0)
-    if (mapaObj.current) zoomAnterior.current = mapaObj.current.getZoom()
+    setArrastesFeitos(0)
   }
 
   async function buscarEndereco() {
@@ -141,7 +134,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
     )
   }
 
-  const bloqueadoPorAjuste = precisaAjustar && zoomsFeitos < ZOOMS_NECESSARIOS
+  const bloqueadoPorAjuste = precisaAjustar && arrastesFeitos < ARRASTES_NECESSARIOS
 
   function confirmar() {
     if (!mapaObj.current || !endereco.trim() || bloqueadoPorAjuste) return
@@ -222,7 +215,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
       <button type="button" onClick={confirmar} disabled={!endereco.trim() || bloqueadoPorAjuste}
         title={bloqueadoPorAjuste ? 'Ajuste o mapa (zoom) até achar o local certo antes de confirmar' : undefined}
         style={{ position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, backgroundColor: (endereco.trim() && !bloqueadoPorAjuste) ? '#4256c8' : '#9ca3af', color: 'white', border: 'none', borderRadius: '20px', padding: '6px 16px', fontSize: '12px', fontWeight: 600, cursor: (endereco.trim() && !bloqueadoPorAjuste) ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap', boxShadow: '0 1px 6px rgba(0,0,0,0.3)' }}>
-        {bloqueadoPorAjuste ? `Ajuste o mapa (${zoomsFeitos}/${ZOOMS_NECESSARIOS})` : 'Confirmar'}
+        {bloqueadoPorAjuste ? `Ajuste o mapa (${arrastesFeitos}/${ARRASTES_NECESSARIOS})` : 'Confirmar'}
       </button>
     </div>
   )
