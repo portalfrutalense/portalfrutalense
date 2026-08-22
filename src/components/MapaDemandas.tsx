@@ -68,7 +68,7 @@ export default function MapaDemandas() {
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches)
   const [sheetState, setSheetState] = useState<'peek' | 'half' | 'full'>('peek')
   const arrasteRef = useRef<{ startY: number; startFrac: number } | null>(null)
-  const SNAP: Record<'peek' | 'half' | 'full', number> = { peek: 0.32, half: 0.62, full: 0.92 }
+  const SNAP: Record<'peek' | 'half' | 'full', number> = { peek: 0.25, half: 0.50, full: 0.75 }
 
   // Filtros
   const [filtroStatus, setFiltroStatus] = useState('')
@@ -318,6 +318,11 @@ export default function MapaDemandas() {
       const d = Math.abs(SNAP[s] - alturaAtual)
       if (d < menorDist) { menorDist = d; melhor = s }
     })
+    // Reaplica a altura oficial do snap na hora, sem depender do React re-renderizar
+    // (se o estado escolhido for igual ao atual, o React pula o render e a altura
+    // "fantasma" do arraste ficaria grudada no elemento)
+    sidebarRef.current.style.transition = 'height 0.25s ease'
+    sidebarRef.current.style.height = `${SNAP[melhor] * 100}vh`
     setSheetState(melhor)
   }
 
