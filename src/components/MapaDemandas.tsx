@@ -199,16 +199,51 @@ export default function MapaDemandas() {
       })
     }
 
+    function escapeHtml(s?: string) {
+      if (!s) return ''
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    }
+
+    const demandaPorId = new Map(filtradas.map(d => [d.id, d]))
+
     filtradas.forEach((d) => {
       const marker = L.marker([d.lat, d.lng], { icon: criarIcone(d, mapa.getZoom()) }).addTo(mapa)
+
+      const popupHtml = `
+        <div style="min-width:200px;max-width:230px;font-family:Inter,sans-serif;">
+          ${d.foto_url ? `<img src="${d.foto_url}" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin-bottom:8px;display:block;" />` : ''}
+          <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#1e3a5f;text-transform:uppercase;letter-spacing:.03em;">${escapeHtml(d.categoria?.nome) || 'Sem categoria'}</p>
+          <p style="margin:0 0 6px;font-size:12px;color:#6b7280;">${escapeHtml(d.endereco_label)}</p>
+          <p style="margin:0 0 10px;font-size:13px;color:#111827;line-height:1.4;">${escapeHtml(sentenceCase(d.descricao))}</p>
+          <button class="ver-mais-btn" data-ver-mais="${d.id}" style="width:100%;background:#1e3a5f;color:white;border:none;border-radius:6px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;">Ver mais</button>
+        </div>
+      `
+
+      marker.bindPopup(popupHtml, { maxWidth: 260, closeButton: true })
       marker.on('click', () => {
         if (!user) { setModalAuth(true); return }
-        setDemandaSelecionada(d)
+        marker.openPopup()
       })
       markersRef.current.push(marker)
     })
 
-    return () => {}
+    // Delegação: clique no botão "Ver mais" de qualquer popup abre o card completo no sidebar
+    const container = mapa.getContainer()
+    function aoClicarNoContainer(e: MouseEvent) {
+      const alvo = (e.target as HTMLElement).closest('.ver-mais-btn') as HTMLElement | null
+      if (!alvo) return
+      const id = alvo.getAttribute('data-ver-mais')
+      const demanda = id ? demandaPorId.get(id) : null
+      if (demanda) {
+        setDemandaSelecionada(demanda)
+        mapa.closePopup()
+      }
+    }
+    container.addEventListener('click', aoClicarNoContainer)
+
+    return () => {
+      container.removeEventListener('click', aoClicarNoContainer)
+    }
   }, [demandas, user, mapaCarregado, filtroStatus, filtroCategoria])
 
   // Mini-mapa no formulário
