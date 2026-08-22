@@ -102,7 +102,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
   }
 
   function marcarFalha() {
-    setAviso('Não encontramos esse endereço automaticamente. Arraste o mapa até o local certo.')
+    setAviso('Não encontramos esse endereço automaticamente. Arraste e dê zoom no mapa até o local certo.')
     setPrecisaAjustar(true)
     setZoomsFeitos(0)
     setArrastesFeitos(0)
