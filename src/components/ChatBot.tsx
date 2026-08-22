@@ -248,7 +248,7 @@ export default function ChatBot() {
 
   function aoConfirmarLocalizacao(lat: number, lng: number) {
     setCoordDemanda(prev => prev ? { ...prev, lat, lng } : prev)
-    setMensagens(prev => [...prev, { role: 'assistant', content: 'Localização salva! Envie uma foto do local para ajudar a identificar melhor o problema.' }])
+    setMensagens(prev => [...prev, { role: 'user', content: 'Localização confirmada.' }, { role: 'assistant', content: 'Localização salva! Envie uma foto do local para ajudar a identificar melhor o problema.' }])
     setEtapaDemanda('perguntar_foto')
   }
 
@@ -266,6 +266,7 @@ export default function ChatBot() {
   }
 
   function aoClicarConfirmar() {
+    setMensagens(prev => [...prev, { role: 'user', content: 'Confirmo o registro.' }])
     setCaptchaVisivel(true)
   }
 
