@@ -51,6 +51,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
   const [precisaAjustar, setPrecisaAjustar] = useState(false)
   const [zoomsFeitos, setZoomsFeitos] = useState(0)
   const [arrastesFeitos, setArrastesFeitos] = useState(0)
+  const [textoAlterado, setTextoAlterado] = useState(false)
 
   useEffect(() => {
     if (!mapRef.current || iniciado.current) return
@@ -118,6 +119,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
     if (!endereco.trim() || buscando) return
     setBuscando(true)
     setAviso('')
+    setTextoAlterado(false)
     try {
       const q = encodeURIComponent(`${endereco.trim()}, Frutal, Minas Gerais`)
       const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${MAPBOX_TOKEN}&country=BR&language=pt&limit=1&proximity=${FRUTAL_LNG},${FRUTAL_LAT}&types=address`
@@ -161,9 +163,11 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
   }
 
   const bloqueadoPorAjuste = precisaAjustar && (zoomsFeitos < ZOOM_MIN_NECESSARIO || arrastesFeitos < ARRASTE_MIN_NECESSARIO)
+  const bloqueadoPorTexto = textoAlterado
+  const naoPodeSelecionar = !endereco.trim() || bloqueadoPorTexto || bloqueadoPorAjuste
 
   function selecionar() {
-    if (!mapaObj.current || !endereco.trim() || bloqueadoPorAjuste) return
+    if (!mapaObj.current || naoPodeSelecionar) return
     zoomAntesRevisao.current = mapaObj.current.getZoom()
     sateliteAntesRevisao.current = satelite
     if (!satelite) alternarCamada()
@@ -218,7 +222,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
           <input
             type="text"
             value={endereco}
-            onChange={(e) => setEndereco(e.target.value)}
+            onChange={(e) => { setEndereco(e.target.value); setTextoAlterado(true) }}
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), buscarEndereco())}
             placeholder="Digite o endereço"
             style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', padding: '6px 10px', fontSize: '13px' }}
@@ -274,10 +278,10 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
           </button>
 
           {/* Selecionar, centralizado embaixo */}
-          <button type="button" onClick={selecionar} disabled={!endereco.trim() || bloqueadoPorAjuste}
-            title={bloqueadoPorAjuste ? 'Ajuste o mapa até achar o local certo antes de selecionar' : undefined}
-            style={{ position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, backgroundColor: (endereco.trim() && !bloqueadoPorAjuste) ? '#4256c8' : '#9ca3af', color: 'white', border: 'none', borderRadius: '20px', padding: '6px 16px', fontSize: '12px', fontWeight: 600, cursor: (endereco.trim() && !bloqueadoPorAjuste) ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap', boxShadow: '0 1px 6px rgba(0,0,0,0.3)' }}>
-            {bloqueadoPorAjuste ? 'Ajuste o mapa' : 'Selecionar'}
+          <button type="button" onClick={selecionar} disabled={naoPodeSelecionar}
+            title={bloqueadoPorTexto ? 'Aperte Buscar de novo depois de editar o endereço' : bloqueadoPorAjuste ? 'Ajuste o mapa até achar o local certo antes de selecionar' : undefined}
+            style={{ position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, backgroundColor: !naoPodeSelecionar ? '#4256c8' : '#9ca3af', color: 'white', border: 'none', borderRadius: '20px', padding: '6px 16px', fontSize: '12px', fontWeight: 600, cursor: !naoPodeSelecionar ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap', boxShadow: '0 1px 6px rgba(0,0,0,0.3)' }}>
+            {bloqueadoPorTexto ? 'Busque o endereço' : bloqueadoPorAjuste ? 'Ajuste o mapa' : 'Selecionar'}
           </button>
         </>
       )}
