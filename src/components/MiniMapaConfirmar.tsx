@@ -9,6 +9,13 @@ const FRUTAL_LNG = -48.9338
 const ZOOM_CIDADE = 13
 const ZOOM_ENCONTRADO = 17
 
+// Verifica se coordenadas estão dentro de ~15km de Frutal-MG
+function dentroFrutal(lat: number, lng: number): boolean {
+  const dlat = lat - FRUTAL_LAT
+  const dlng = lng - FRUTAL_LNG
+  return Math.sqrt(dlat * dlat + dlng * dlng) < 0.15
+}
+
 interface Props {
   enderecoInicial?: string
   onConfirmar: (endereco: string, lat: number, lng: number) => void
@@ -74,9 +81,14 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
       const data = await res.json()
       const feature = data?.features?.[0]
       // Mapbox faz correspondência aproximada — só aceita se for um endereço de fato
-      // (não uma cidade/bairro genérico) e com relevância razoável
+      // (não uma cidade/bairro genérico), com relevância razoável, e realmente perto de Frutal
+      // (evita aceitar uma rua de mesmo nome em outra cidade)
       if (feature && feature.relevance >= 0.5 && mapaObj.current) {
         const [lng, lat] = feature.center
+        if (!dentroFrutal(lat, lng)) {
+          setAviso('Esse endereço parece ficar fora de Frutal-MG. Verifique o que digitou ou arraste o mapa até o local certo.')
+          return
+        }
         mapaObj.current.setView([lat, lng], ZOOM_ENCONTRADO)
       } else {
         setAviso('Não encontramos esse endereço automaticamente. Arraste o mapa até o local certo.')
