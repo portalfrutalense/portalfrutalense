@@ -16,7 +16,7 @@ declare global {
 interface Props {
   onVerify: (token: string) => void
   onExpire?: () => void
-  size?: 'normal' | 'compact'
+  size?: 'normal' | 'compact' | 'flexible'
 }
 
 export default function Turnstile({ onVerify, onExpire, size = 'compact' }: Props) {
