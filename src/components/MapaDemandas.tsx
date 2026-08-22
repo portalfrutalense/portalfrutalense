@@ -138,8 +138,7 @@ export default function MapaDemandas() {
         const tilePane = mapa.getPanes().tilePane as HTMLElement | null
         if (!tilePane) return
         const zoomBlur = window.innerWidth <= 600 ? 13 : 14
-        const gs = sateliteRef.current ? 50 : 20
-        tilePane.style.filter = z === zoomBlur ? `grayscale(${gs}%) blur(0.6px)` : `grayscale(${gs}%)`
+        tilePane.style.filter = z === zoomBlur ? 'blur(0.6px)' : 'none'
       }
       mapa.on('zoomend', atualizarBlur)
       mapa.whenReady(() => requestAnimationFrame(atualizarBlur))
@@ -295,7 +294,7 @@ export default function MapaDemandas() {
 
   // Texto "Arraste para ver mais" some sozinho depois de 5s
   useEffect(() => {
-    const t = setTimeout(() => setDicaArrasteVisivel(false), 5000)
+    const t = setTimeout(() => setDicaArrasteVisivel(false), 10000)
     return () => clearTimeout(t)
   }, [])
 
@@ -351,13 +350,12 @@ export default function MapaDemandas() {
     tileAtual.current = tile
     sateliteRef.current = novoSatelite
     setSatelite(novoSatelite)
-    // Atualiza grayscale imediatamente ao trocar camada
+    // Atualiza o blur imediatamente ao trocar camada
     const tilePane = mapaObj.current.getPanes().tilePane as HTMLElement | null
     if (tilePane) {
       const z = mapaObj.current.getZoom()
       const zoomBlur = window.innerWidth <= 600 ? 13 : 14
-      const gs = novoSatelite ? 50 : 20
-      tilePane.style.filter = z === zoomBlur ? `grayscale(${gs}%) blur(0.6px)` : `grayscale(${gs}%)`
+      tilePane.style.filter = z === zoomBlur ? 'blur(0.6px)' : 'none'
     }
   }
 
@@ -472,11 +470,10 @@ export default function MapaDemandas() {
               onTouchStart={aoIniciarArraste}
               onTouchMove={aoArrastar}
               onTouchEnd={aoSoltarArraste}
-              style={{ flexShrink: 0, padding: '8px 0 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'grab', touchAction: 'none' }}
+              style={{ flexShrink: 0, padding: '10px 0 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'grab', touchAction: 'none' }}
             >
-              <div style={{ width: '40px', height: '5px', borderRadius: '3px', background: '#d1d5db' }} />
-              <svg className="sheet-chevron" width="16" height="9" viewBox="0 0 16 9" fill="none" style={{ color: '#9ca3af' }}>
-                <path d="M1 1l7 6.5L15 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <svg className="sheet-chevron" width="22" height="13" viewBox="0 0 22 13" fill="none" style={{ color: '#9ca3af' }}>
+                <path d="M1 12l10-10 10 10" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <span style={{
                 fontSize: '11px', color: '#9ca3af', fontWeight: 500,
@@ -843,7 +840,7 @@ export default function MapaDemandas() {
         .demanda-detalhe-anim { animation: card-assenta 0.28s cubic-bezier(.25,.46,.45,.94); }
         @keyframes sheet-chevron-bounce {
           0%, 100% { transform: translateY(0); opacity: 0.6; }
-          50% { transform: translateY(3px); opacity: 1; }
+          50% { transform: translateY(-4px); opacity: 1; }
         }
         .sheet-chevron { animation: sheet-chevron-bounce 1.6s ease-in-out infinite; }
       `}</style>
