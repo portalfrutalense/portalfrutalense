@@ -51,6 +51,8 @@ export default function MapaDemandas() {
   const tileAtual = useRef<any>(null)
   const markersRef = useRef<any[]>([])
   const resizeObserverRef = useRef<ResizeObserver | null>(null)
+  const sidebarRef = useRef<HTMLDivElement>(null)
+  const [voo, setVoo] = useState<{ fromX: number; fromY: number; fromW: number; fromH: number; toX: number; toY: number; toW: number; toH: number; animando: boolean } | null>(null)
   const miniMapRef = useRef<HTMLDivElement>(null)
   const miniMapObj = useRef<any>(null)
   const miniMapIniciado = useRef(false)
@@ -215,7 +217,10 @@ export default function MapaDemandas() {
           <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#1e3a5f;text-transform:uppercase;letter-spacing:.03em;">${escapeHtml(d.categoria?.nome) || 'Sem categoria'}</p>
           <p style="margin:0 0 6px;font-size:12px;color:#6b7280;">${escapeHtml(d.endereco_label)}</p>
           <p style="margin:0 0 10px;font-size:13px;color:#111827;line-height:1.4;">${escapeHtml(sentenceCase(d.descricao))}</p>
-          <button class="ver-mais-btn" data-ver-mais="${d.id}" style="width:100%;background:#1e3a5f;color:white;border:none;border-radius:6px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;">Ver mais</button>
+          <button class="ver-mais-btn" data-ver-mais="${d.id}" style="background:none;border:none;padding:0;display:flex;align-items:center;gap:4px;color:#1e3a5f;font-size:13px;font-weight:600;cursor:pointer;">
+            Ver demanda
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1e3a5f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
         </div>
       `
 
@@ -234,10 +239,34 @@ export default function MapaDemandas() {
       if (!alvo) return
       const id = alvo.getAttribute('data-ver-mais')
       const demanda = id ? demandaPorId.get(id) : null
-      if (demanda) {
+      if (!demanda) return
+
+      // Voo: o popup "voa" da posição atual até o sidebar, onde o card completo assenta
+      const popupEl = alvo.closest('.leaflet-popup-content-wrapper') as HTMLElement | null
+      const fromRect = (popupEl || alvo).getBoundingClientRect()
+      const toRect = sidebarRef.current?.getBoundingClientRect()
+
+      if (!toRect) {
         setDemandaSelecionada(demanda)
         mapa.closePopup()
+        return
       }
+
+      setVoo({
+        fromX: fromRect.left, fromY: fromRect.top, fromW: fromRect.width, fromH: fromRect.height,
+        toX: toRect.left, toY: toRect.top, toW: toRect.width, toH: toRect.height,
+        animando: false,
+      })
+      mapa.closePopup()
+
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        setVoo(prev => prev ? { ...prev, animando: true } : null)
+      }))
+
+      setTimeout(() => {
+        setDemandaSelecionada(demanda)
+        setVoo(null)
+      }, 380)
     }
     container.addEventListener('click', aoClicarNoContainer)
 
@@ -432,11 +461,11 @@ export default function MapaDemandas() {
       <div className="mapa-layout" style={{ display: 'flex', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', flex: 1 }}>
 
         {/* SIDEBAR */}
-        <div className="mapa-sidebar" style={{ width: '260px', flexShrink: 0, background: 'white', borderRight: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', minHeight: 'clamp(300px, 55vw, 500px)', overflowY: 'auto' }}>
+        <div ref={sidebarRef} className="mapa-sidebar" style={{ width: '260px', flexShrink: 0, background: 'white', borderRight: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', minHeight: 'clamp(300px, 55vw, 500px)', overflowY: 'auto' }}>
 
           {demandaSelecionada ? (
             /* ── DETALHE DA DEMANDA ── */
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+            <div key={demandaSelecionada.id} className="demanda-detalhe-anim" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
               {/* Voltar */}
               <div style={{ padding: '12px 14px', borderBottom: '1px solid #f9fafb', flexShrink: 0 }}>
                 <button
@@ -785,12 +814,33 @@ export default function MapaDemandas() {
         </div>
       )}
 
+      {voo && (
+        <div style={{
+          position: 'fixed', zIndex: 2000,
+          left: voo.animando ? voo.toX : voo.fromX,
+          top: voo.animando ? voo.toY : voo.fromY,
+          width: voo.animando ? voo.toW : voo.fromW,
+          height: voo.animando ? voo.toH : voo.fromH,
+          background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+          opacity: voo.animando ? 0.5 : 1,
+          transition: 'left 0.38s cubic-bezier(.25,.46,.45,.94), top 0.38s cubic-bezier(.25,.46,.45,.94), width 0.38s cubic-bezier(.25,.46,.45,.94), height 0.38s cubic-bezier(.25,.46,.45,.94), opacity 0.32s',
+          pointerEvents: 'none',
+        }} />
+      )}
+
       <style>{`
         @media (max-width: 640px) {
           .mapa-layout { flex-direction: column-reverse !important; }
           .mapa-sidebar { width: 100% !important; border-right: none !important; border-top: 1px solid #e5e7eb; min-height: unset !important; max-height: 46vh; overflow-y: auto; }
           .mapa-map-div { min-height: 46vh !important; }
         }
+        @keyframes card-assenta {
+          0% { transform: scale(1.06); opacity: 0.5; }
+          60% { transform: scale(0.99); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .demanda-detalhe-anim { animation: card-assenta 0.32s cubic-bezier(.25,.46,.45,.94); transform-origin: top center; }
       `}</style>
 
     </div>
