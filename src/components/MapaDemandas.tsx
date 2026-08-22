@@ -465,7 +465,7 @@ export default function MapaDemandas() {
 
           {demandaSelecionada ? (
             /* ── DETALHE DA DEMANDA ── */
-            <div key={demandaSelecionada.id} className="demanda-detalhe-anim" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div key={demandaSelecionada.id} className="demanda-detalhe-anim" style={{ display: 'flex', flexDirection: 'column' }}>
               {/* Voltar */}
               <div style={{ padding: '12px 14px', borderBottom: '1px solid #f9fafb', flexShrink: 0 }}>
                 <button
@@ -476,7 +476,7 @@ export default function MapaDemandas() {
               </div>
 
               {/* Conteúdo */}
-              <div style={{ padding: '14px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
                 {/* Badge de status */}
                 <div>
@@ -489,35 +489,52 @@ export default function MapaDemandas() {
                   </span>
                 </div>
 
-                {/* Caixa principal — mesmo padrão do master */}
-                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                    Nome: <strong style={{ color: '#111827' }}>{titleCase(demandaSelecionada.morador_nome)}</strong>
-                  </p>
-                  <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                    Para: <strong style={{ color: '#111827' }}>{titleCase(demandaSelecionada.entidade?.nome)}</strong>
-                    {demandaSelecionada.entidade?.cargo && <span style={{ color: '#6b7280' }}> ({titleCase(demandaSelecionada.entidade.cargo)})</span>}
-                  </p>
-                  {demandaSelecionada.endereco_label && (
-                    <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                      Endereço: <span style={{ color: '#111827' }}>{titleCase(demandaSelecionada.endereco_label)}</span>
-                    </p>
-                  )}
-                  <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                    Categoria: <span style={{ color: '#111827' }}>{demandaSelecionada.categoria?.nome}</span>
-                  </p>
-                  <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                    Demanda: <span style={{ color: '#111827' }}>{sentenceCase(demandaSelecionada.descricao)}</span>
-                  </p>
+                {/* Caixa principal — pares label/valor empilhados */}
+                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {demandaSelecionada.foto_url && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={demandaSelecionada.foto_url}
                       alt="Foto da demanda"
                       onClick={() => window.open(demandaSelecionada.foto_url!, '_blank')}
-                      style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '6px', cursor: 'pointer', marginTop: '4px', border: '1px solid #e5e7eb', flexShrink: 0 }}
+                      style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '6px', cursor: 'pointer', border: '1px solid #e5e7eb' }}
                     />
                   )}
+
+                  <div>
+                    <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }}>Demanda</p>
+                    <p style={{ fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.5 }}>{sentenceCase(demandaSelecionada.descricao)}</p>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }}>Categoria</p>
+                      <p style={{ fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.4 }}>{demandaSelecionada.categoria?.nome || '—'}</p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }}>Nome</p>
+                      <p style={{ fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.4 }}>{titleCase(demandaSelecionada.morador_nome)}</p>
+                    </div>
+                  </div>
+
+                  {demandaSelecionada.endereco_label && (
+                    <div>
+                      <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }}>Endereço</p>
+                      <p style={{ fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.4 }}>{titleCase(demandaSelecionada.endereco_label)}</p>
+                    </div>
+                  )}
+
+                  <div>
+                    <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }}>Direcionada para</p>
+                    <p style={{ fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.4 }}>
+                      {titleCase(demandaSelecionada.entidade?.nome)}
+                      {demandaSelecionada.entidade?.cargo && <span style={{ color: '#6b7280' }}> ({titleCase(demandaSelecionada.entidade.cargo)})</span>}
+                    </p>
+                  </div>
+
+                  <p style={{ fontSize: '11px', color: '#6b7280', margin: 0, paddingTop: '8px', borderTop: '1px solid #e5e7eb' }}>
+                    Criada em {new Date(demandaSelecionada.created_at).toLocaleDateString('pt-BR')}
+                  </p>
                 </div>
 
                 {/* Resposta */}
@@ -555,12 +572,6 @@ export default function MapaDemandas() {
                   </div>
                 )}
 
-                {/* Criada em */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <span style={{ fontSize: '11px', color: '#6b7280' }}>
-                    Criada em {new Date(demandaSelecionada.created_at).toLocaleDateString('pt-BR')}
-                  </span>
-                </div>
               </div>
             </div>
           ) : (
