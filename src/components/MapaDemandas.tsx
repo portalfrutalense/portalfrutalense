@@ -465,7 +465,7 @@ export default function MapaDemandas() {
 
           {demandaSelecionada ? (
             /* ── DETALHE DA DEMANDA ── */
-            <div key={demandaSelecionada.id} className="demanda-detalhe-anim" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+            <div key={demandaSelecionada.id} className="demanda-detalhe-anim" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               {/* Voltar */}
               <div style={{ padding: '12px 14px', borderBottom: '1px solid #f9fafb', flexShrink: 0 }}>
                 <button
@@ -836,11 +836,10 @@ export default function MapaDemandas() {
           .mapa-map-div { min-height: 46vh !important; }
         }
         @keyframes card-assenta {
-          0% { transform: scale(1.06); opacity: 0.5; }
-          60% { transform: scale(0.99); opacity: 1; }
-          100% { transform: scale(1); opacity: 1; }
+          0% { transform: translateY(-10px); opacity: 0.4; }
+          100% { transform: translateY(0); opacity: 1; }
         }
-        .demanda-detalhe-anim { animation: card-assenta 0.32s cubic-bezier(.25,.46,.45,.94); transform-origin: top center; }
+        .demanda-detalhe-anim { animation: card-assenta 0.28s cubic-bezier(.25,.46,.45,.94); }
       `}</style>
 
     </div>
