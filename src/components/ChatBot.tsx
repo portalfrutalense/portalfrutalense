@@ -59,6 +59,7 @@ export default function ChatBot() {
   const [fotoFile, setFotoFile] = useState<File | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
   const [turnstileToken, setTurnstileToken] = useState('')
+  const [captchaVisivel, setCaptchaVisivel] = useState(false)
 
   // Fluxo de registro de demanda (etapas conduzidas por código, não pela IA)
   const [etapaDemanda, setEtapaDemanda] = useState<EtapaDemanda>('nenhuma')
@@ -123,7 +124,7 @@ export default function ChatBot() {
     setDescricaoDemanda(''); setCategoriaIdDemanda(''); setCategoriaNomeDemanda('')
     setEntidadeIdDemanda(''); setEntidadeNomeDemanda('')
     setCoordDemanda(null); setOpcoesAutoridade([])
-    removerFoto(); setTurnstileToken('')
+    removerFoto(); setTurnstileToken(''); setCaptchaVisivel(false)
   }
 
   async function enviar() {
@@ -159,7 +160,7 @@ export default function ChatBot() {
           setCategoriaIdDemanda(payload.categoria_id || '')
           const catNome = payload.categoria_nome || 'Outros'
           setCategoriaNomeDemanda(catNome)
-          setMensagens(prev => [...prev, { role: 'assistant', content: `Percebi que você quer relatar um problema sobre ${catNome.toLowerCase()}. Quer registrar uma demanda sobre isso?` }])
+          setMensagens(prev => [...prev, { role: 'assistant', content: 'O CidadanIA Frutal pode tentar dar voz à sua reclamação! Podemos registrar uma demanda sobre isso, e ela ficará visível para todos. Seus dados são preservados, apenas o seu nome é publicado. Você escolhe uma autoridade para que seja enviada automaticamente, e tentaremos obter uma resposta sobre. Quer registrar?' }])
           setEtapaDemanda('perguntar_registrar')
         } catch {
           setMensagens(prev => [...prev, { role: 'assistant', content: resposta }])
@@ -203,7 +204,7 @@ export default function ChatBot() {
   function aoEscolherAutoridade(ent: Entidade) {
     setEntidadeIdDemanda(ent.id)
     setEntidadeNomeDemanda(ent.nome)
-    setMensagens(prev => [...prev, { role: 'user', content: ent.nome }, { role: 'assistant', content: 'Qual o endereço onde isso está acontecendo?' }])
+    setMensagens(prev => [...prev, { role: 'user', content: ent.nome }, { role: 'assistant', content: 'Onde fica esse local? Pode me mandar o endereço completo?' }])
     setEtapaDemanda('perguntar_endereco')
   }
 
@@ -229,7 +230,7 @@ export default function ChatBot() {
 
   function aoConfirmarLocalizacao(lat: number, lng: number) {
     setCoordDemanda(prev => prev ? { ...prev, lat, lng } : prev)
-    setMensagens(prev => [...prev, { role: 'assistant', content: 'Local confirmado! Quer anexar uma foto do problema?' }])
+    setMensagens(prev => [...prev, { role: 'assistant', content: 'Localização salva! Envie uma foto do local para ajudar a identificar melhor o problema.' }])
     setEtapaDemanda('perguntar_foto')
   }
 
@@ -241,17 +242,22 @@ export default function ChatBot() {
   function irParaResumo() {
     setMensagens(prev => [...prev, {
       role: 'assistant',
-      content: `Confira os dados antes de enviar:\n\nEndereço: ${coordDemanda?.label}\nCategoria: ${categoriaNomeDemanda}\nDirecionada para: ${entidadeNomeDemanda}\nDescrição: ${descricaoDemanda}\n\nConfirma o registro?`
+      content: `Tudo pronto! Dá uma olhadinha no resumo antes de registrarmos:\n\nEndereço: ${coordDemanda?.label}\nCategoria: ${categoriaNomeDemanda}\nDirecionada para: ${entidadeNomeDemanda}\nDescrição: ${descricaoDemanda}\n\nConfirma o registro?`
     }])
     setEtapaDemanda('resumo')
   }
 
-  async function confirmarDemanda() {
+  function aoClicarConfirmar() {
+    setCaptchaVisivel(true)
+  }
+
+  function aoVerificarCaptcha(token: string) {
+    setTurnstileToken(token)
+    confirmarDemanda(token)
+  }
+
+  async function confirmarDemanda(token: string) {
     if (etapaDemanda !== 'resumo' || criando || !coordDemanda) return
-    if (!turnstileToken) {
-      setMensagens(prev => [...prev, { role: 'assistant', content: 'Aguarde a verificação de segurança concluir e tente novamente.' }])
-      return
-    }
     setCriando(true)
 
     try {
@@ -282,7 +288,7 @@ export default function ChatBot() {
           morador_nome: perfil?.nome || nomeUsuario,
           foto_url,
           via_chatbot: true,
-          turnstile_token: turnstileToken,
+          turnstile_token: token,
         }),
       })
 
@@ -439,11 +445,13 @@ export default function ChatBot() {
                 {fotoPreview && (
                   <img src={fotoPreview} alt="Foto anexada" style={{ width: '72px', height: '72px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
                 )}
-                <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
+                {captchaVisivel && (
+                  <Turnstile size="flexible" onVerify={aoVerificarCaptcha} onExpire={() => setTurnstileToken('')} />
+                )}
                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start' }}>
-                  <button onClick={confirmarDemanda} disabled={criando}
-                    style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: criando ? 'wait' : 'pointer' }}>
-                    {criando ? 'Registrando...' : 'Confirmar'}
+                  <button onClick={aoClicarConfirmar} disabled={criando || captchaVisivel}
+                    style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: (criando || captchaVisivel) ? 'wait' : 'pointer' }}>
+                    {criando ? 'Registrando...' : captchaVisivel ? 'Verificando...' : 'Confirmar'}
                   </button>
                   <button onClick={cancelarDemanda} disabled={criando}
                     style={{ background: 'white', color: '#dc2626', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
