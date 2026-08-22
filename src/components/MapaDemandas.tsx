@@ -691,8 +691,8 @@ export default function MapaDemandas() {
 
       {/* Formulário de demanda */}
       {etapa === 'formulario' && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '760px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #e5e7eb' }}>
               <h2 style={{ fontWeight: 700, color: '#111827', margin: 0, fontSize: '15px' }}>Registrar Demanda</h2>
               <button onClick={fecharFormulario} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#6b7280', lineHeight: 1, padding: 0 }}>×</button>
@@ -707,9 +707,11 @@ export default function MapaDemandas() {
                 <button onClick={fecharFormulario} style={{ fontSize: '13px', color: '#4256c8', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Fechar</button>
               </div>
             ) : (
-              <form onSubmit={handleEnviar} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {erro && <div style={{ color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
+              <form onSubmit={handleEnviar} className="registro-form-grid" style={{ padding: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
+                {erro && <div style={{ gridColumn: '1 / -1', color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
 
+                {/* Coluna esquerda */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Cidadão</label>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', background: '#f9fafb' }}>
@@ -802,7 +804,10 @@ export default function MapaDemandas() {
                     </div>
                   )}
                 </div>
+                </div>{/* fecha coluna esquerda */}
 
+                {/* Coluna direita */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Descrição *</label>
                   <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={3} placeholder="Descreva o problema em detalhes..."
@@ -827,9 +832,10 @@ export default function MapaDemandas() {
                     </div>
                   )}
                 </div>
+                </div>{/* fecha coluna direita */}
 
                 <button type="submit" disabled={enviando}
-                  style={{ backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+                  style={{ gridColumn: '1 / -1', backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
                   {enviando ? 'Enviando...' : 'Registrar Demanda'}
                 </button>
               </form>
@@ -858,6 +864,7 @@ export default function MapaDemandas() {
           .mapa-layout { flex-direction: column-reverse !important; }
           .mapa-sidebar { width: 100% !important; border-right: none !important; border-top: 1px solid #e5e7eb; min-height: unset !important; max-height: 46vh; overflow-y: auto; }
           .mapa-map-div { min-height: 46vh !important; }
+          .registro-form-grid { grid-template-columns: 1fr !important; }
         }
         @keyframes card-assenta {
           0% { transform: translateY(-10px); opacity: 0.4; }
