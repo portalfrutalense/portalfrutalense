@@ -4,21 +4,20 @@ import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from './AuthProvider'
 import Turnstile from './Turnstile'
+import MiniMapaConfirmar from './MiniMapaConfirmar'
 
 interface Mensagem {
   role: 'user' | 'assistant'
   content: string
 }
 
-interface DemandaPayload {
-  action: 'criar_demanda'
-  descricao: string
-  endereco: string
-  categoria_id: string
-  categoria_nome: string
-  entidade_id: string
-  entidade_nome: string
+interface Entidade {
+  id: string
+  nome: string
+  cargo: string
 }
+
+type EtapaDemanda = 'nenhuma' | 'perguntar_registrar' | 'escolher_autoridade' | 'perguntar_endereco' | 'confirmar_mapa' | 'perguntar_foto' | 'resumo'
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 const FRUTAL_LAT = -20.0234
@@ -54,21 +53,42 @@ export default function ChatBot() {
   ])
   const [input, setInput] = useState('')
   const [enviando, setEnviando] = useState(false)
-  const [pendente, setPendente] = useState<DemandaPayload | null>(null)
   const [criando, setCriando] = useState(false)
   const [notif, setNotif] = useState('')
-  const [animando, setAnimando] = useState(false)
-  const [ghostOpacity, setGhostOpacity] = useState(1)
-  const [ghostPos, setGhostPos] = useState({ x: 0, y: 0 })
-  const [avatarHeaderVisivel, setAvatarHeaderVisivel] = useState(true)
   const [painelVisivel, setPainelVisivel] = useState(false)
   const [fotoFile, setFotoFile] = useState<File | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
   const [turnstileToken, setTurnstileToken] = useState('')
+
+  // Fluxo de registro de demanda (etapas conduzidas por código, não pela IA)
+  const [etapaDemanda, setEtapaDemanda] = useState<EtapaDemanda>('nenhuma')
+  const [descricaoDemanda, setDescricaoDemanda] = useState('')
+  const [categoriaIdDemanda, setCategoriaIdDemanda] = useState('')
+  const [categoriaNomeDemanda, setCategoriaNomeDemanda] = useState('')
+  const [entidadeIdDemanda, setEntidadeIdDemanda] = useState('')
+  const [entidadeNomeDemanda, setEntidadeNomeDemanda] = useState('')
+  const [coordDemanda, setCoordDemanda] = useState<{ lat: number; lng: number; label: string } | null>(null)
+  const [opcoesAutoridade, setOpcoesAutoridade] = useState<Entidade[]>([])
+  const [entidades, setEntidades] = useState<Entidade[]>([])
+  const [catEntidades, setCatEntidades] = useState<Record<string, string[]>>({})
+
   const bottomRef = useRef<HTMLDivElement>(null)
   const botaoRef = useRef<HTMLButtonElement>(null)
-  const avatarHeaderRef = useRef<HTMLImageElement>(null)
   const fotoInputRef = useRef<HTMLInputElement>(null)
+
+  // Carrega autoridades e vínculos com categorias (usado para escolher autoridade sem precisar da IA)
+  useEffect(() => {
+    supabase.from('entidades').select('id, nome, cargo').eq('ativo', true).then(({ data }) => setEntidades((data as Entidade[]) || []))
+    supabase.from('categoria_entidades').select('categoria_id, entidade_id').then(({ data }) => {
+      const mapa: Record<string, string[]> = {}
+      for (const row of (data || [])) {
+        if (!mapa[row.categoria_id]) mapa[row.categoria_id] = []
+        mapa[row.categoria_id].push(row.entidade_id)
+      }
+      setCatEntidades(mapa)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function selecionarFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -76,6 +96,8 @@ export default function ChatBot() {
     setFotoFile(file)
     setFotoPreview(URL.createObjectURL(file))
     e.target.value = ''
+    setMensagens(prev => [...prev, { role: 'user', content: 'Foto anexada.' }])
+    irParaResumo()
   }
 
   function removerFoto() {
@@ -86,46 +108,37 @@ export default function ChatBot() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [mensagens, pendente])
+  }, [mensagens, etapaDemanda])
 
   function abrirChat() {
-    if (!botaoRef.current) { setAberto(true); return }
-    const bRect = botaoRef.current.getBoundingClientRect()
-    const startX = bRect.left + bRect.width / 2 - 95
-    const startY = bRect.top + bRect.height / 2 - 95
-    // calcula posição final matematicamente
-    const panelW = Math.min(360, window.innerWidth - 32)
-    const panelH = Math.min(520, window.innerHeight - 100)
-    const panelLeft = window.innerWidth - 24 - panelW
-    const panelTop = window.innerHeight - 24 - panelH
-    const finalX = panelLeft - 42
-    const finalY = panelTop - 87
-
-    // 1. renderiza ghost na posição inicial
-    setGhostPos({ x: startX, y: startY })
-    setAnimando(true)
-    setAvatarHeaderVisivel(false)
     setPainelVisivel(false)
     setAberto(true)
-
-    // 2. após render, inicia o voo e abre o painel
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      setGhostPos({ x: finalX, y: finalY })
-      setPainelVisivel(true)
-    }))
-
-    // 3. swap quando ghost chega no destino
-    setTimeout(() => { setAvatarHeaderVisivel(true); setAnimando(false) }, 420)
+    requestAnimationFrame(() => requestAnimationFrame(() => setPainelVisivel(true)))
   }
 
   if (!user) return null
 
+  function resetFluxoDemanda() {
+    setEtapaDemanda('nenhuma')
+    setDescricaoDemanda(''); setCategoriaIdDemanda(''); setCategoriaNomeDemanda('')
+    setEntidadeIdDemanda(''); setEntidadeNomeDemanda('')
+    setCoordDemanda(null); setOpcoesAutoridade([])
+    removerFoto(); setTurnstileToken('')
+  }
+
   async function enviar() {
     if (!input.trim() || enviando) return
-    const novaMensagem: Mensagem = { role: 'user', content: input.trim() }
-    const historico = [...mensagens, novaMensagem]
-    setMensagens(historico)
+    const texto = input.trim()
+    setMensagens(prev => [...prev, { role: 'user', content: texto }])
     setInput('')
+
+    // Durante a etapa de endereço, o texto digitado não vai pra IA — é tratado direto
+    if (etapaDemanda === 'perguntar_endereco') {
+      await buscarEnderecoEAbrirMapa(texto)
+      return
+    }
+
+    const historico = [...mensagens, { role: 'user' as const, content: texto }]
     setEnviando(true)
 
     try {
@@ -138,16 +151,16 @@ export default function ChatBot() {
       const data = await res.json()
       const resposta: string = data.resposta || 'Erro ao processar mensagem.'
 
-      // Detecta se é um comando de criar demanda
-      const jsonMatch = resposta.match(/\{"action":"criar_demanda"[^}]+\}/)
+      const jsonMatch = resposta.match(/\{"action":"detectar_demanda"[^}]+\}/)
       if (jsonMatch) {
         try {
-          const payload = JSON.parse(jsonMatch[0]) as DemandaPayload
-          setPendente(payload)
-          setMensagens(prev => [...prev, {
-            role: 'assistant',
-            content: `Ótimo! Vou registrar a seguinte demanda:\n\nEndereço: ${payload.endereco}\nCategoria: ${payload.categoria_nome}\nDirecionada para: ${payload.entidade_nome}\nDescrição: ${payload.descricao}\n\nConfirma o registro?`
-          }])
+          const payload = JSON.parse(jsonMatch[0])
+          setDescricaoDemanda(payload.descricao || texto)
+          setCategoriaIdDemanda(payload.categoria_id || '')
+          const catNome = payload.categoria_nome || 'Outros'
+          setCategoriaNomeDemanda(catNome)
+          setMensagens(prev => [...prev, { role: 'assistant', content: `Percebi que você quer relatar um problema sobre ${catNome.toLowerCase()}. Quer registrar uma demanda sobre isso?` }])
+          setEtapaDemanda('perguntar_registrar')
         } catch {
           setMensagens(prev => [...prev, { role: 'assistant', content: resposta }])
         }
@@ -161,8 +174,80 @@ export default function ChatBot() {
     }
   }
 
+  function aoConfirmarQuerRegistrar() {
+    setMensagens(prev => [...prev, { role: 'user', content: 'Sim, registrar' }])
+    const vinculadas = catEntidades[categoriaIdDemanda] || []
+    const opcoes = vinculadas.length > 0 ? entidades.filter(en => vinculadas.includes(en.id)) : entidades
+
+    if (opcoes.length === 0) {
+      setMensagens(prev => [...prev, { role: 'assistant', content: 'Não encontrei nenhuma autoridade cadastrada no sistema no momento. Não é possível registrar a demanda agora.' }])
+      resetFluxoDemanda()
+      return
+    }
+
+    setOpcoesAutoridade(opcoes)
+    if (opcoes.length === 1) {
+      const ent = opcoes[0]
+      setMensagens(prev => [...prev, { role: 'assistant', content: `Esse tipo de problema eu vou direcionar para ${ent.nome} (${ent.cargo}). Confirma?` }])
+    } else {
+      setMensagens(prev => [...prev, { role: 'assistant', content: 'Pra qual dessas autoridades você quer direcionar?' }])
+    }
+    setEtapaDemanda('escolher_autoridade')
+  }
+
+  function aoRecusarRegistrar() {
+    setMensagens(prev => [...prev, { role: 'user', content: 'Não' }, { role: 'assistant', content: 'Sem problemas! Posso ajudar com mais alguma coisa?' }])
+    resetFluxoDemanda()
+  }
+
+  function aoEscolherAutoridade(ent: Entidade) {
+    setEntidadeIdDemanda(ent.id)
+    setEntidadeNomeDemanda(ent.nome)
+    setMensagens(prev => [...prev, { role: 'user', content: ent.nome }, { role: 'assistant', content: 'Qual o endereço onde isso está acontecendo?' }])
+    setEtapaDemanda('perguntar_endereco')
+  }
+
+  async function buscarEnderecoEAbrirMapa(enderecoTexto: string) {
+    setEnviando(true)
+    let lat = FRUTAL_LAT, lng = FRUTAL_LNG, label = enderecoTexto
+    try {
+      const q = encodeURIComponent(`${enderecoTexto}, Frutal, Minas Gerais`)
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${MAPBOX_TOKEN}&country=BR&language=pt&limit=1&proximity=${FRUTAL_LNG},${FRUTAL_LAT}`
+      const geo = await fetch(url)
+      const geoData = await geo.json()
+      if (geoData?.features?.length) {
+        ;[lng, lat] = geoData.features[0].center
+        label = geoData.features[0].place_name?.split(',')[0] || enderecoTexto
+      }
+    } catch { /* usa coordenadas padrão */ }
+
+    setCoordDemanda({ lat, lng, label })
+    setMensagens(prev => [...prev, { role: 'assistant', content: 'Mova o mapa até o local exato e toque em "Confirmar localização".' }])
+    setEtapaDemanda('confirmar_mapa')
+    setEnviando(false)
+  }
+
+  function aoConfirmarLocalizacao(lat: number, lng: number) {
+    setCoordDemanda(prev => prev ? { ...prev, lat, lng } : prev)
+    setMensagens(prev => [...prev, { role: 'assistant', content: 'Local confirmado! Quer anexar uma foto do problema?' }])
+    setEtapaDemanda('perguntar_foto')
+  }
+
+  function aoClicarSemFoto() {
+    setMensagens(prev => [...prev, { role: 'user', content: 'Sem foto' }])
+    irParaResumo()
+  }
+
+  function irParaResumo() {
+    setMensagens(prev => [...prev, {
+      role: 'assistant',
+      content: `Confira os dados antes de enviar:\n\nEndereço: ${coordDemanda?.label}\nCategoria: ${categoriaNomeDemanda}\nDirecionada para: ${entidadeNomeDemanda}\nDescrição: ${descricaoDemanda}\n\nConfirma o registro?`
+    }])
+    setEtapaDemanda('resumo')
+  }
+
   async function confirmarDemanda() {
-    if (!pendente || criando) return
+    if (etapaDemanda !== 'resumo' || criando || !coordDemanda) return
     if (!turnstileToken) {
       setMensagens(prev => [...prev, { role: 'assistant', content: 'Aguarde a verificação de segurança concluir e tente novamente.' }])
       return
@@ -170,20 +255,6 @@ export default function ChatBot() {
     setCriando(true)
 
     try {
-      // Geocodifica o endereço via Mapbox
-      let lat = FRUTAL_LAT, lng = FRUTAL_LNG, enderecoLabel = pendente.endereco
-      try {
-        const q = encodeURIComponent(`${pendente.endereco}, Frutal, Minas Gerais`)
-        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${MAPBOX_TOKEN}&country=BR&language=pt&limit=1&proximity=${FRUTAL_LNG},${FRUTAL_LAT}`
-        const geo = await fetch(url)
-        const geoData = await geo.json()
-        if (geoData?.features?.length) {
-          ;[lng, lat] = geoData.features[0].center
-          enderecoLabel = geoData.features[0].place_name?.split(',')[0] || pendente.endereco
-        }
-      } catch { /* usa coordenadas padrão */ }
-
-      // Envia a foto anexada, se houver
       let foto_url: string | null = null
       if (fotoFile) {
         try {
@@ -202,12 +273,12 @@ export default function ChatBot() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
         body: JSON.stringify({
-          descricao: pendente.descricao,
-          endereco_label: enderecoLabel,
-          lat,
-          lng,
-          categoria_id: pendente.categoria_id,
-          entidade_id: pendente.entidade_id,
+          descricao: descricaoDemanda,
+          endereco_label: coordDemanda.label,
+          lat: coordDemanda.lat,
+          lng: coordDemanda.lng,
+          categoria_id: categoriaIdDemanda,
+          entidade_id: entidadeIdDemanda,
           morador_nome: perfil?.nome || nomeUsuario,
           foto_url,
           via_chatbot: true,
@@ -216,9 +287,7 @@ export default function ChatBot() {
       })
 
       if (res.ok) {
-        setPendente(null)
-        removerFoto()
-        setTurnstileToken('')
+        resetFluxoDemanda()
         setMensagens(prev => [...prev, { role: 'assistant', content: 'Demanda registrada com sucesso! Ela aparecerá no mapa após análise. Posso ajudar com mais alguma coisa?' }])
         setNotif('Demanda registrada!')
         setTimeout(() => setNotif(''), 4000)
@@ -234,10 +303,11 @@ export default function ChatBot() {
   }
 
   function cancelarDemanda() {
-    setPendente(null)
-    removerFoto()
-    setMensagens(prev => [...prev, { role: 'assistant', content: 'Ok, cancelei o registro. Quer alterar alguma informação ou posso ajudar com outra coisa?' }])
+    resetFluxoDemanda()
+    setMensagens(prev => [...prev, { role: 'assistant', content: 'Ok, cancelei o registro. Posso ajudar com mais alguma coisa?' }])
   }
+
+  const inputDesabilitado = enviando || (etapaDemanda !== 'nenhuma' && etapaDemanda !== 'perguntar_endereco')
 
   return (
     <>
@@ -284,7 +354,6 @@ export default function ChatBot() {
             borderRadius: '16px 16px 0 0',
             position: 'relative', overflow: 'visible',
           }}>
-            {/* Avatar centralizado vazando acima do card */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -318,27 +387,58 @@ export default function ChatBot() {
               </div>
             ))}
 
-            {/* Anexo de foto + botões de confirmação de demanda */}
-            {pendente && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {fotoPreview ? (
-                  <div style={{ position: 'relative', width: '72px' }}>
-                    <img src={fotoPreview} alt="Foto anexada" style={{ width: '72px', height: '72px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
-                    <button onClick={removerFoto} disabled={criando}
-                      style={{ position: 'absolute', top: '-6px', right: '-6px', width: '20px', height: '20px', borderRadius: '50%', background: '#dc2626', color: 'white', border: '2px solid white', fontSize: '11px', lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
-                      ×
-                    </button>
-                  </div>
-                ) : (
-                  <button onClick={() => fotoInputRef.current?.click()} disabled={criando}
-                    style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '6px', background: 'white', color: '#111827', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-                    </svg>
-                    Anexar foto
+            {/* Etapa: perguntar se quer registrar */}
+            {etapaDemanda === 'perguntar_registrar' && (
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start' }}>
+                <button onClick={aoConfirmarQuerRegistrar}
+                  style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                  Sim, registrar
+                </button>
+                <button onClick={aoRecusarRegistrar}
+                  style={{ background: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                  Não
+                </button>
+              </div>
+            )}
+
+            {/* Etapa: escolher/confirmar autoridade */}
+            {etapaDemanda === 'escolher_autoridade' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
+                {opcoesAutoridade.map(ent => (
+                  <button key={ent.id} onClick={() => aoEscolherAutoridade(ent)}
+                    style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
+                    {opcoesAutoridade.length === 1 ? 'Sim, confirmar' : `${ent.nome} — ${ent.cargo}`}
                   </button>
-                )}
+                ))}
+              </div>
+            )}
+
+            {/* Etapa: mini-mapa */}
+            {etapaDemanda === 'confirmar_mapa' && coordDemanda && (
+              <MiniMapaConfirmar latInicial={coordDemanda.lat} lngInicial={coordDemanda.lng} onConfirmar={aoConfirmarLocalizacao} />
+            )}
+
+            {/* Etapa: perguntar sobre foto */}
+            {etapaDemanda === 'perguntar_foto' && (
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start' }}>
+                <button onClick={() => fotoInputRef.current?.click()}
+                  style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                  Anexar foto
+                </button>
+                <button onClick={aoClicarSemFoto}
+                  style={{ background: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                  Sem foto
+                </button>
                 <input ref={fotoInputRef} type="file" accept="image/*" onChange={selecionarFoto} style={{ display: 'none' }} />
+              </div>
+            )}
+
+            {/* Etapa: resumo final + captcha + confirmar */}
+            {etapaDemanda === 'resumo' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {fotoPreview && (
+                  <img src={fotoPreview} alt="Foto anexada" style={{ width: '72px', height: '72px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
+                )}
                 <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start' }}>
                   <button onClick={confirmarDemanda} disabled={criando}
@@ -370,12 +470,12 @@ export default function ChatBot() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), enviar())}
-              placeholder="Digite sua mensagem..."
-              disabled={enviando}
+              placeholder={etapaDemanda === 'perguntar_endereco' ? 'Digite o endereço...' : 'Digite sua mensagem...'}
+              disabled={inputDesabilitado}
               style={{ flex: 1, border: '1px solid #e5e7eb', borderRadius: '8px', padding: '9px 12px', fontSize: '13px', outline: 'none', resize: 'none' }}
             />
-            <button onClick={enviar} disabled={enviando || !input.trim()}
-              style={{ background: enviando || !input.trim() ? '#6b7280' : '#4256c8', color: 'white', border: 'none', borderRadius: '8px', padding: '9px 14px', cursor: enviando || !input.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}>
+            <button onClick={enviar} disabled={inputDesabilitado || !input.trim()}
+              style={{ background: inputDesabilitado || !input.trim() ? '#6b7280' : '#4256c8', color: 'white', border: 'none', borderRadius: '8px', padding: '9px 14px', cursor: inputDesabilitado || !input.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12" />
                 <polyline points="13 6 19 12 13 18" />
@@ -384,7 +484,6 @@ export default function ChatBot() {
           </div>
         </div>
       )}
-
 
       {notif && (
         <div style={{ position: 'fixed', bottom: '100px', right: '24px', zIndex: 1001, background: '#166534', color: 'white', borderRadius: '8px', padding: '10px 16px', fontSize: '13px', fontWeight: 600, boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>

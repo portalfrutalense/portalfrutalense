@@ -6,21 +6,20 @@ import { useAuth } from '@/components/AuthProvider'
 import ModalAuth from '@/components/ModalAuth'
 import Navbar from '@/components/Navbar'
 import Turnstile from '@/components/Turnstile'
+import MiniMapaConfirmar from '@/components/MiniMapaConfirmar'
 
 interface Mensagem {
   role: 'user' | 'assistant'
   content: string
 }
 
-interface DemandaPayload {
-  action: 'criar_demanda'
-  descricao: string
-  endereco: string
-  categoria_id: string
-  categoria_nome: string
-  entidade_id: string
-  entidade_nome: string
+interface Entidade {
+  id: string
+  nome: string
+  cargo: string
 }
+
+type EtapaDemanda = 'nenhuma' | 'perguntar_registrar' | 'escolher_autoridade' | 'perguntar_endereco' | 'confirmar_mapa' | 'perguntar_foto' | 'resumo'
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 const FRUTAL_LAT = -20.0234
@@ -54,7 +53,6 @@ export default function LucasPage() {
   const [mensagens, setMensagens] = useState<Mensagem[]>([])
   const [input, setInput] = useState('')
   const [enviando, setEnviando] = useState(false)
-  const [pendente, setPendente] = useState<DemandaPayload | null>(null)
   const [criando, setCriando] = useState(false)
   const [notif, setNotif] = useState('')
   const [modalAuth, setModalAuth] = useState(false)
@@ -63,6 +61,19 @@ export default function LucasPage() {
   const [fotoFile, setFotoFile] = useState<File | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
   const [turnstileToken, setTurnstileToken] = useState('')
+
+  // Fluxo de registro de demanda (etapas conduzidas por código, não pela IA)
+  const [etapaDemanda, setEtapaDemanda] = useState<EtapaDemanda>('nenhuma')
+  const [descricaoDemanda, setDescricaoDemanda] = useState('')
+  const [categoriaIdDemanda, setCategoriaIdDemanda] = useState('')
+  const [categoriaNomeDemanda, setCategoriaNomeDemanda] = useState('')
+  const [entidadeIdDemanda, setEntidadeIdDemanda] = useState('')
+  const [entidadeNomeDemanda, setEntidadeNomeDemanda] = useState('')
+  const [coordDemanda, setCoordDemanda] = useState<{ lat: number; lng: number; label: string } | null>(null)
+  const [opcoesAutoridade, setOpcoesAutoridade] = useState<Entidade[]>([])
+  const [entidades, setEntidades] = useState<Entidade[]>([])
+  const [catEntidades, setCatEntidades] = useState<Record<string, string[]>>({})
+
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const pageBottomRef = useRef<HTMLDivElement>(null)
@@ -70,12 +81,28 @@ export default function LucasPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null)
 
+  // Carrega autoridades e vínculos com categorias (usado para escolher autoridade sem precisar da IA)
+  useEffect(() => {
+    supabase.from('entidades').select('id, nome, cargo').eq('ativo', true).then(({ data }) => setEntidades((data as Entidade[]) || []))
+    supabase.from('categoria_entidades').select('categoria_id, entidade_id').then(({ data }) => {
+      const mapa: Record<string, string[]> = {}
+      for (const row of (data || [])) {
+        if (!mapa[row.categoria_id]) mapa[row.categoria_id] = []
+        mapa[row.categoria_id].push(row.entidade_id)
+      }
+      setCatEntidades(mapa)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   function selecionarFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     setFotoFile(file)
     setFotoPreview(URL.createObjectURL(file))
     e.target.value = ''
+    setMensagens(prev => [...prev, { role: 'user', content: 'Foto anexada.' }])
+    irParaResumo()
   }
 
   function removerFoto() {
@@ -116,6 +143,7 @@ export default function LucasPage() {
   }
 
   const temMensagens = mensagens.length > 0
+  const inputDesabilitado = enviando || (etapaDemanda !== 'nenhuma' && etapaDemanda !== 'perguntar_endereco')
 
   const campoInput = (
     <>
@@ -137,22 +165,22 @@ export default function LucasPage() {
           value={input}
           onChange={e => { setInput(e.target.value); autoResize(e.target) }}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar() } }}
-          placeholder={user ? 'Registre demandas, tire dúvidas ou peça uma ajuda...' : 'Entre na sua conta para conversar'}
-          disabled={enviando || !user}
+          placeholder={!user ? 'Entre na sua conta para conversar' : etapaDemanda === 'perguntar_endereco' ? 'Digite o endereço...' : 'Registre demandas, tire dúvidas ou peça uma ajuda...'}
+          disabled={inputDesabilitado || !user}
           style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none', fontSize: '15px', color: '#111827', resize: 'none', lineHeight: 1.5, maxHeight: '160px', padding: 0, display: 'block', overflowX: 'hidden', overflowY: 'auto' }}
         />
         {micDisponivel && user && (
           <button
             type="button"
             onClick={alternarGravacao}
-            disabled={enviando}
+            disabled={inputDesabilitado}
             title={gravando ? 'Parar gravação' : 'Falar em vez de digitar'}
             style={{
               background: gravando ? '#dc2626' : 'transparent',
               color: gravando ? 'white' : '#6b7280',
               border: 'none', borderRadius: '10px',
               width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: enviando ? 'default' : 'pointer',
+              cursor: inputDesabilitado ? 'default' : 'pointer',
               flexShrink: 0, transition: 'background 0.15s',
               animation: gravando ? 'abx-pulse 1.2s infinite' : 'none',
             }}>
@@ -165,13 +193,13 @@ export default function LucasPage() {
         )}
         <button
           onClick={user ? enviar : () => setModalAuth(true)}
-          disabled={enviando || (!!user && !input.trim())}
+          disabled={inputDesabilitado || (!!user && !input.trim())}
           style={{
             background: (!user || input.trim()) ? '#4256c8' : 'transparent',
             color: (!user || input.trim()) ? 'white' : '#6b7280',
             border: 'none', borderRadius: '10px',
             width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: (enviando || (user && !input.trim())) ? 'default' : 'pointer',
+            cursor: (inputDesabilitado || (user && !input.trim())) ? 'default' : 'pointer',
             flexShrink: 0, transition: 'background 0.15s',
           }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -192,7 +220,7 @@ export default function LucasPage() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [mensagens, pendente, enviando])
+  }, [mensagens, etapaDemanda, enviando])
 
   // Ao enviar a 1ª mensagem, rola a página inteira até a base (onde fica o campo de input),
   // que em mobile pode ficar escondido atrás da barra do navegador
@@ -213,15 +241,30 @@ export default function LucasPage() {
     el.style.height = Math.min(el.scrollHeight, 160) + 'px'
   }
 
+  function resetFluxoDemanda() {
+    setEtapaDemanda('nenhuma')
+    setDescricaoDemanda(''); setCategoriaIdDemanda(''); setCategoriaNomeDemanda('')
+    setEntidadeIdDemanda(''); setEntidadeNomeDemanda('')
+    setCoordDemanda(null); setOpcoesAutoridade([])
+    removerFoto(); setTurnstileToken('')
+  }
+
   async function enviar() {
     if (!input.trim() || enviando) return
     if (!user) { setModalAuth(true); return }
 
-    const novaMensagem: Mensagem = { role: 'user', content: input.trim() }
-    const historico = [...mensagens, novaMensagem]
-    setMensagens(historico)
+    const texto = input.trim()
+    const novaMensagem: Mensagem = { role: 'user', content: texto }
+    setMensagens(prev => [...prev, novaMensagem])
     setInput('')
     if (inputRef.current) { inputRef.current.style.height = 'auto' }
+
+    if (etapaDemanda === 'perguntar_endereco') {
+      await buscarEnderecoEAbrirMapa(texto)
+      return
+    }
+
+    const historico = [...mensagens, novaMensagem]
     setEnviando(true)
 
     try {
@@ -234,15 +277,16 @@ export default function LucasPage() {
       const data = await res.json()
       const resposta: string = data.resposta || 'Erro ao processar mensagem.'
 
-      const jsonMatch = resposta.match(/\{"action":"criar_demanda"[^}]+\}/)
+      const jsonMatch = resposta.match(/\{"action":"detectar_demanda"[^}]+\}/)
       if (jsonMatch) {
         try {
-          const payload = JSON.parse(jsonMatch[0]) as DemandaPayload
-          setPendente(payload)
-          setMensagens(prev => [...prev, {
-            role: 'assistant',
-            content: `Ótimo! Vou registrar a seguinte demanda:\n\nEndereço: ${payload.endereco}\nCategoria: ${payload.categoria_nome}\nDirecionada para: ${payload.entidade_nome}\nDescrição: ${payload.descricao}\n\nConfirma o registro?`
-          }])
+          const payload = JSON.parse(jsonMatch[0])
+          setDescricaoDemanda(payload.descricao || texto)
+          setCategoriaIdDemanda(payload.categoria_id || '')
+          const catNome = payload.categoria_nome || 'Outros'
+          setCategoriaNomeDemanda(catNome)
+          setMensagens(prev => [...prev, { role: 'assistant', content: `Percebi que você quer relatar um problema sobre ${catNome.toLowerCase()}. Quer registrar uma demanda sobre isso?` }])
+          setEtapaDemanda('perguntar_registrar')
         } catch {
           setMensagens(prev => [...prev, { role: 'assistant', content: resposta }])
         }
@@ -256,27 +300,86 @@ export default function LucasPage() {
     }
   }
 
+  function aoConfirmarQuerRegistrar() {
+    setMensagens(prev => [...prev, { role: 'user', content: 'Sim, registrar' }])
+    const vinculadas = catEntidades[categoriaIdDemanda] || []
+    const opcoes = vinculadas.length > 0 ? entidades.filter(en => vinculadas.includes(en.id)) : entidades
+
+    if (opcoes.length === 0) {
+      setMensagens(prev => [...prev, { role: 'assistant', content: 'Não encontrei nenhuma autoridade cadastrada no sistema no momento. Não é possível registrar a demanda agora.' }])
+      resetFluxoDemanda()
+      return
+    }
+
+    setOpcoesAutoridade(opcoes)
+    if (opcoes.length === 1) {
+      const ent = opcoes[0]
+      setMensagens(prev => [...prev, { role: 'assistant', content: `Esse tipo de problema eu vou direcionar para ${ent.nome} (${ent.cargo}). Confirma?` }])
+    } else {
+      setMensagens(prev => [...prev, { role: 'assistant', content: 'Pra qual dessas autoridades você quer direcionar?' }])
+    }
+    setEtapaDemanda('escolher_autoridade')
+  }
+
+  function aoRecusarRegistrar() {
+    setMensagens(prev => [...prev, { role: 'user', content: 'Não' }, { role: 'assistant', content: 'Sem problemas! Posso ajudar com mais alguma coisa?' }])
+    resetFluxoDemanda()
+  }
+
+  function aoEscolherAutoridade(ent: Entidade) {
+    setEntidadeIdDemanda(ent.id)
+    setEntidadeNomeDemanda(ent.nome)
+    setMensagens(prev => [...prev, { role: 'user', content: ent.nome }, { role: 'assistant', content: 'Qual o endereço onde isso está acontecendo?' }])
+    setEtapaDemanda('perguntar_endereco')
+  }
+
+  async function buscarEnderecoEAbrirMapa(enderecoTexto: string) {
+    setEnviando(true)
+    let lat = FRUTAL_LAT, lng = FRUTAL_LNG, label = enderecoTexto
+    try {
+      const q = encodeURIComponent(`${enderecoTexto}, Frutal, Minas Gerais`)
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${MAPBOX_TOKEN}&country=BR&language=pt&limit=1&proximity=${FRUTAL_LNG},${FRUTAL_LAT}`
+      const geo = await fetch(url)
+      const geoData = await geo.json()
+      if (geoData?.features?.length) {
+        ;[lng, lat] = geoData.features[0].center
+        label = geoData.features[0].place_name?.split(',')[0] || enderecoTexto
+      }
+    } catch { /* usa coordenadas padrão */ }
+
+    setCoordDemanda({ lat, lng, label })
+    setMensagens(prev => [...prev, { role: 'assistant', content: 'Mova o mapa até o local exato e toque em "Confirmar localização".' }])
+    setEtapaDemanda('confirmar_mapa')
+    setEnviando(false)
+  }
+
+  function aoConfirmarLocalizacao(lat: number, lng: number) {
+    setCoordDemanda(prev => prev ? { ...prev, lat, lng } : prev)
+    setMensagens(prev => [...prev, { role: 'assistant', content: 'Local confirmado! Quer anexar uma foto do problema?' }])
+    setEtapaDemanda('perguntar_foto')
+  }
+
+  function aoClicarSemFoto() {
+    setMensagens(prev => [...prev, { role: 'user', content: 'Sem foto' }])
+    irParaResumo()
+  }
+
+  function irParaResumo() {
+    setMensagens(prev => [...prev, {
+      role: 'assistant',
+      content: `Confira os dados antes de enviar:\n\nEndereço: ${coordDemanda?.label}\nCategoria: ${categoriaNomeDemanda}\nDirecionada para: ${entidadeNomeDemanda}\nDescrição: ${descricaoDemanda}\n\nConfirma o registro?`
+    }])
+    setEtapaDemanda('resumo')
+  }
+
   async function confirmarDemanda() {
-    if (!pendente || criando) return
+    if (etapaDemanda !== 'resumo' || criando || !coordDemanda) return
     if (!turnstileToken) {
       setMensagens(prev => [...prev, { role: 'assistant', content: 'Aguarde a verificação de segurança concluir e tente novamente.' }])
       return
     }
     setCriando(true)
     try {
-      let lat = FRUTAL_LAT, lng = FRUTAL_LNG, enderecoLabel = pendente.endereco
-      try {
-        const q = encodeURIComponent(`${pendente.endereco}, Frutal, Minas Gerais`)
-        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${MAPBOX_TOKEN}&country=BR&language=pt&limit=1&proximity=${FRUTAL_LNG},${FRUTAL_LAT}`
-        const geo = await fetch(url)
-        const geoData = await geo.json()
-        if (geoData?.features?.length) {
-          ;[lng, lat] = geoData.features[0].center
-          enderecoLabel = geoData.features[0].place_name?.split(',')[0] || pendente.endereco
-        }
-      } catch { /* usa coordenadas padrão */ }
-
-      // Envia a foto anexada, se houver
       let foto_url: string | null = null
       if (fotoFile) {
         try {
@@ -295,11 +398,12 @@ export default function LucasPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
         body: JSON.stringify({
-          descricao: pendente.descricao,
-          endereco_label: enderecoLabel,
-          lat, lng,
-          categoria_id: pendente.categoria_id,
-          entidade_id: pendente.entidade_id,
+          descricao: descricaoDemanda,
+          endereco_label: coordDemanda.label,
+          lat: coordDemanda.lat,
+          lng: coordDemanda.lng,
+          categoria_id: categoriaIdDemanda,
+          entidade_id: entidadeIdDemanda,
           morador_nome: perfil?.nome || nomeUsuario,
           foto_url,
           via_chatbot: true,
@@ -307,9 +411,7 @@ export default function LucasPage() {
         }),
       })
       if (res.ok) {
-        setPendente(null)
-        removerFoto()
-        setTurnstileToken('')
+        resetFluxoDemanda()
         setMensagens(prev => [...prev, { role: 'assistant', content: 'Demanda registrada com sucesso! Ela aparecerá no mapa após análise. Posso ajudar com mais alguma coisa?' }])
         setNotif('Demanda registrada!')
         setTimeout(() => setNotif(''), 4000)
@@ -325,9 +427,8 @@ export default function LucasPage() {
   }
 
   function cancelarDemanda() {
-    setPendente(null)
-    removerFoto()
-    setMensagens(prev => [...prev, { role: 'assistant', content: 'Ok, cancelei o registro. Quer alterar alguma informação ou posso ajudar com outra coisa?' }])
+    resetFluxoDemanda()
+    setMensagens(prev => [...prev, { role: 'assistant', content: 'Ok, cancelei o registro. Posso ajudar com mais alguma coisa?' }])
   }
 
   return (
@@ -393,27 +494,60 @@ export default function LucasPage() {
               </div>
             ))}
 
-            {/* Anexo de foto + botões de confirmação */}
-            {pendente && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingLeft: '46px' }}>
-                {fotoPreview ? (
-                  <div style={{ position: 'relative', width: '84px' }}>
-                    <img src={fotoPreview} alt="Foto anexada" style={{ width: '84px', height: '84px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #e5e7eb' }} />
-                    <button onClick={removerFoto} disabled={criando}
-                      style={{ position: 'absolute', top: '-6px', right: '-6px', width: '22px', height: '22px', borderRadius: '50%', background: '#dc2626', color: 'white', border: '2px solid white', fontSize: '12px', lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
-                      ×
-                    </button>
-                  </div>
-                ) : (
-                  <button onClick={() => fotoInputRef.current?.click()} disabled={criando}
-                    style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '6px', background: 'white', color: '#111827', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '8px 14px', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-                    </svg>
-                    Anexar foto
+            {/* Etapa: perguntar se quer registrar */}
+            {etapaDemanda === 'perguntar_registrar' && (
+              <div style={{ display: 'flex', gap: '10px', paddingLeft: '46px' }}>
+                <button onClick={aoConfirmarQuerRegistrar}
+                  style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '10px', padding: '10px 22px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+                  Sim, registrar
+                </button>
+                <button onClick={aoRecusarRegistrar}
+                  style={{ background: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '10px 22px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+                  Não
+                </button>
+              </div>
+            )}
+
+            {/* Etapa: escolher/confirmar autoridade */}
+            {etapaDemanda === 'escolher_autoridade' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start', paddingLeft: '46px' }}>
+                {opcoesAutoridade.map(ent => (
+                  <button key={ent.id} onClick={() => aoEscolherAutoridade(ent)}
+                    style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '10px', padding: '10px 22px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
+                    {opcoesAutoridade.length === 1 ? 'Sim, confirmar' : `${ent.nome} — ${ent.cargo}`}
                   </button>
-                )}
+                ))}
+              </div>
+            )}
+
+            {/* Etapa: mini-mapa */}
+            {etapaDemanda === 'confirmar_mapa' && coordDemanda && (
+              <div style={{ paddingLeft: '46px', maxWidth: '480px' }}>
+                <MiniMapaConfirmar latInicial={coordDemanda.lat} lngInicial={coordDemanda.lng} onConfirmar={aoConfirmarLocalizacao} />
+              </div>
+            )}
+
+            {/* Etapa: perguntar sobre foto */}
+            {etapaDemanda === 'perguntar_foto' && (
+              <div style={{ display: 'flex', gap: '10px', paddingLeft: '46px' }}>
+                <button onClick={() => fotoInputRef.current?.click()}
+                  style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '10px', padding: '10px 22px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+                  Anexar foto
+                </button>
+                <button onClick={aoClicarSemFoto}
+                  style={{ background: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '10px 22px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+                  Sem foto
+                </button>
                 <input ref={fotoInputRef} type="file" accept="image/*" onChange={selecionarFoto} style={{ display: 'none' }} />
+              </div>
+            )}
+
+            {/* Etapa: resumo final + captcha + confirmar */}
+            {etapaDemanda === 'resumo' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingLeft: '46px' }}>
+                {fotoPreview && (
+                  <img src={fotoPreview} alt="Foto anexada" style={{ width: '84px', height: '84px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #e5e7eb' }} />
+                )}
                 <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button onClick={confirmarDemanda} disabled={criando}
