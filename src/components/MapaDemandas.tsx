@@ -68,7 +68,7 @@ export default function MapaDemandas() {
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches)
   const [sheetState, setSheetState] = useState<'peek' | 'half' | 'full'>('peek')
   const arrasteRef = useRef<{ startY: number; startFrac: number } | null>(null)
-  const SNAP: Record<'peek' | 'half' | 'full', number> = { peek: 0.15, half: 0.45, full: 0.75 }
+  const SNAP: Record<'peek' | 'half' | 'full', number> = { peek: 0.17, half: 0.45, full: 0.75 }
 
   // Filtros
   const [filtroStatus, setFiltroStatus] = useState('')
@@ -293,7 +293,11 @@ export default function MapaDemandas() {
   }, [])
 
   function cicloSheet() {
-    setSheetState(prev => prev === 'peek' ? 'half' : prev === 'half' ? 'full' : 'peek')
+    setSheetState(prev => {
+      if (prev === 'peek') return 'half'
+      if (prev === 'half') return demandaSelecionada ? 'full' : 'peek'
+      return 'peek'
+    })
   }
 
   function aoIniciarArraste(e: React.TouchEvent) {
@@ -314,7 +318,8 @@ export default function MapaDemandas() {
     arrasteRef.current = null
     let melhor: 'peek' | 'half' | 'full' = 'peek'
     let menorDist = Infinity
-    ;(['peek', 'half', 'full'] as const).forEach((s) => {
+    const candidatos = demandaSelecionada ? (['peek', 'half', 'full'] as const) : (['peek', 'half'] as const)
+    candidatos.forEach((s) => {
       const d = Math.abs(SNAP[s] - alturaAtual)
       if (d < menorDist) { menorDist = d; melhor = s }
     })
@@ -477,7 +482,7 @@ export default function MapaDemandas() {
               {/* Voltar */}
               <div style={{ padding: '12px 14px', borderBottom: '1px solid #f9fafb', flexShrink: 0 }}>
                 <button
-                  onClick={() => { setDemandaSelecionada(null); setSheetState('half') }}
+                  onClick={() => { setDemandaSelecionada(null); setSheetState('peek') }}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#4256c8', padding: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
                   ← Voltar
                 </button>
