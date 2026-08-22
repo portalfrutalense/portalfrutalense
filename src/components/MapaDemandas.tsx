@@ -636,7 +636,7 @@ export default function MapaDemandas() {
               </div>
             ) : (
               <>
-              <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 24px' }}>
               <form id="form-registrar-demanda" onSubmit={handleEnviar} className="registro-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
                 {erro && <div style={{ gridColumn: '1 / -1', color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
 
