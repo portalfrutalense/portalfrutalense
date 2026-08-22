@@ -23,8 +23,8 @@ export default function PublicShell({ children }: { children: React.ReactNode })
       <ChatBot />
       <style>{`
         @media (max-width: 640px) {
-          .mapa-shell { height: auto !important; min-height: 100vh; overflow: visible !important; }
-          .mapa-main { overflow: visible !important; }
+          .mapa-shell { height: 100dvh !important; overflow: hidden !important; }
+          .mapa-main { overflow: hidden !important; padding: 0 !important; }
         }
       `}</style>
     </div>

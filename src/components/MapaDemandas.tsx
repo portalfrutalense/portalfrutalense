@@ -64,6 +64,12 @@ export default function MapaDemandas() {
   const [catEntidades, setCatEntidades] = useState<Record<string, string[]>>({})
   const [demandaSelecionada, setDemandaSelecionada] = useState<Demanda | null>(null)
 
+  // Bottom sheet (mobile)
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches)
+  const [sheetState, setSheetState] = useState<'peek' | 'half' | 'full'>('peek')
+  const arrasteRef = useRef<{ startY: number; startFrac: number } | null>(null)
+  const SNAP: Record<'peek' | 'half' | 'full', number> = { peek: 0.32, half: 0.62, full: 0.92 }
+
   // Filtros
   const [filtroStatus, setFiltroStatus] = useState('')
   const [filtroCategoria, setFiltroCategoria] = useState('')
@@ -243,6 +249,7 @@ export default function MapaDemandas() {
 
       if (!toRect) {
         setDemandaSelecionada(demanda)
+        setSheetState('full')
         mapa.closePopup()
         return
       }
@@ -260,6 +267,7 @@ export default function MapaDemandas() {
 
       setTimeout(() => {
         setDemandaSelecionada(demanda)
+        setSheetState('full')
         setVoo(null)
       }, 380)
     }
@@ -275,6 +283,43 @@ export default function MapaDemandas() {
       setLocConfirmada(false)
     }
   }, [etapa, coordenadas])
+
+  // Detecta mobile (mesmo breakpoint do resto do layout)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)')
+    const aoMudar = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', aoMudar)
+    return () => mq.removeEventListener('change', aoMudar)
+  }, [])
+
+  function cicloSheet() {
+    setSheetState(prev => prev === 'peek' ? 'half' : prev === 'half' ? 'full' : 'peek')
+  }
+
+  function aoIniciarArraste(e: React.TouchEvent) {
+    arrasteRef.current = { startY: e.touches[0].clientY, startFrac: SNAP[sheetState] }
+    if (sidebarRef.current) sidebarRef.current.style.transition = 'none'
+  }
+
+  function aoArrastar(e: React.TouchEvent) {
+    if (!arrasteRef.current || !sidebarRef.current) return
+    const deltaY = arrasteRef.current.startY - e.touches[0].clientY
+    const novaFrac = Math.min(0.94, Math.max(0.12, arrasteRef.current.startFrac + deltaY / window.innerHeight))
+    sidebarRef.current.style.height = `${novaFrac * 100}vh`
+  }
+
+  function aoSoltarArraste() {
+    if (!arrasteRef.current || !sidebarRef.current) return
+    const alturaAtual = sidebarRef.current.getBoundingClientRect().height / window.innerHeight
+    arrasteRef.current = null
+    let melhor: 'peek' | 'half' | 'full' = 'peek'
+    let menorDist = Infinity
+    ;(['peek', 'half', 'full'] as const).forEach((s) => {
+      const d = Math.abs(SNAP[s] - alturaAtual)
+      if (d < menorDist) { menorDist = d; melhor = s }
+    })
+    setSheetState(melhor)
+  }
 
   function alternarCamada() {
     if (!mapaObj.current || !leafletObj.current) return
@@ -388,13 +433,33 @@ export default function MapaDemandas() {
     return true
   })
 
+  const layoutEstilo: React.CSSProperties = isMobile
+    ? { position: 'relative', height: '100%', overflow: 'hidden' }
+    : { display: 'flex', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', flex: 1 }
+
+  const sidebarEstilo: React.CSSProperties = isMobile
+    ? { position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1500, background: 'white', borderTopLeftRadius: '16px', borderTopRightRadius: '16px', boxShadow: '0 -2px 16px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', height: `${SNAP[sheetState] * 100}vh`, transition: 'height 0.25s ease', overflow: 'hidden' }
+    : { width: '260px', flexShrink: 0, background: 'white', borderRight: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', minHeight: 'clamp(300px, 55vw, 500px)', overflow: 'hidden' }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Layout principal: sidebar + mapa */}
-      <div className="mapa-layout" style={{ display: 'flex', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', flex: 1 }}>
+      <div className="mapa-layout" style={layoutEstilo}>
 
         {/* SIDEBAR */}
-        <div ref={sidebarRef} className="mapa-sidebar" style={{ width: '260px', flexShrink: 0, background: 'white', borderRight: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', minHeight: 'clamp(300px, 55vw, 500px)', overflowY: 'auto' }}>
+        <div ref={sidebarRef} className="mapa-sidebar" style={sidebarEstilo}>
+          {isMobile && (
+            <div
+              onClick={cicloSheet}
+              onTouchStart={aoIniciarArraste}
+              onTouchMove={aoArrastar}
+              onTouchEnd={aoSoltarArraste}
+              style={{ flexShrink: 0, padding: '10px 0 8px', display: 'flex', justifyContent: 'center', cursor: 'grab', touchAction: 'none' }}
+            >
+              <div style={{ width: '40px', height: '5px', borderRadius: '3px', background: '#d1d5db' }} />
+            </div>
+          )}
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
 
           {demandaSelecionada ? (
             /* ── DETALHE DA DEMANDA ── */
@@ -402,7 +467,7 @@ export default function MapaDemandas() {
               {/* Voltar */}
               <div style={{ padding: '12px 14px', borderBottom: '1px solid #f9fafb', flexShrink: 0 }}>
                 <button
-                  onClick={() => setDemandaSelecionada(null)}
+                  onClick={() => { setDemandaSelecionada(null); setSheetState('half') }}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#4256c8', padding: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
                   ← Voltar
                 </button>
@@ -581,10 +646,11 @@ export default function MapaDemandas() {
 
             </>
           )}
+          </div>{/* fecha área rolável do sheet */}
         </div>
 
         {/* MAPA */}
-        <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
+        <div style={isMobile ? { position: 'absolute', inset: 0 } : { flex: 1, position: 'relative', minWidth: 0 }}>
           <div ref={mapRef} className="mapa-map-div" style={{ width: '100%', height: '100%', minHeight: 'clamp(300px, 55vw, 500px)' }} />
 
           {/* Controles sobrepostos */}
@@ -733,9 +799,6 @@ export default function MapaDemandas() {
 
       <style>{`
         @media (max-width: 640px) {
-          .mapa-layout { flex-direction: column-reverse !important; }
-          .mapa-sidebar { width: 100% !important; border-right: none !important; border-top: 1px solid #e5e7eb; min-height: unset !important; max-height: 46vh; overflow-y: auto; }
-          .mapa-map-div { min-height: 46vh !important; }
           .registro-form-grid { grid-template-columns: 1fr !important; }
         }
         @keyframes card-assenta {
