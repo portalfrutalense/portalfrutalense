@@ -17,11 +17,7 @@ interface Entidade {
   cargo: string
 }
 
-type EtapaDemanda = 'nenhuma' | 'perguntar_registrar' | 'escolher_autoridade' | 'perguntar_endereco' | 'confirmar_mapa' | 'perguntar_foto' | 'resumo'
-
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-const FRUTAL_LAT = -20.0234
-const FRUTAL_LNG = -48.9338
+type EtapaDemanda = 'nenhuma' | 'perguntar_registrar' | 'escolher_autoridade' | 'perguntar_endereco' | 'perguntar_foto' | 'resumo'
 
 async function comprimirFoto(file: File): Promise<Blob> {
   return new Promise((resolve, reject) => {
@@ -160,12 +156,6 @@ export default function ChatBot() {
     setMensagens(prev => [...prev, { role: 'user', content: texto }])
     setInput('')
 
-    // Durante a etapa de endereço, o texto digitado não vai pra IA — é tratado direto
-    if (etapaDemanda === 'perguntar_endereco') {
-      await buscarEnderecoEAbrirMapa(texto)
-      return
-    }
-
     const historico = [...mensagens, { role: 'user' as const, content: texto }]
     setEnviando(true)
 
@@ -238,34 +228,14 @@ export default function ChatBot() {
     setEntidadeNomeDemanda(ent.nome)
     setMensagens(prev => [...prev, { role: 'user', content: ent.nome }])
     comDigitando(() => {
-      setMensagens(prev => [...prev, { role: 'assistant', content: 'Onde fica esse local? Pode me mandar o endereço completo?' }])
+      setMensagens(prev => [...prev, { role: 'assistant', content: 'Onde fica esse local? Digite o endereço ou aponte no mapa abaixo.' }])
       setEtapaDemanda('perguntar_endereco')
     })
   }
 
-  async function buscarEnderecoEAbrirMapa(enderecoTexto: string) {
-    setEnviando(true)
-    let lat = FRUTAL_LAT, lng = FRUTAL_LNG, label = enderecoTexto
-    try {
-      const q = encodeURIComponent(`${enderecoTexto}, Frutal, Minas Gerais`)
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${MAPBOX_TOKEN}&country=BR&language=pt&limit=1&proximity=${FRUTAL_LNG},${FRUTAL_LAT}`
-      const geo = await fetch(url)
-      const geoData = await geo.json()
-      if (geoData?.features?.length) {
-        ;[lng, lat] = geoData.features[0].center
-        label = geoData.features[0].place_name?.split(',')[0] || enderecoTexto
-      }
-    } catch { /* usa coordenadas padrão */ }
-
-    setCoordDemanda({ lat, lng, label })
-    setMensagens(prev => [...prev, { role: 'assistant', content: 'Mova o mapa até o local exato e toque em "Confirmar localização".' }])
-    setEtapaDemanda('confirmar_mapa')
-    setEnviando(false)
-  }
-
-  function aoConfirmarLocalizacao(lat: number, lng: number) {
-    setCoordDemanda(prev => prev ? { ...prev, lat, lng } : prev)
-    setMensagens(prev => [...prev, { role: 'user', content: 'Localização confirmada.' }])
+  function aoConfirmarEnderecoMapa(endereco: string, lat: number, lng: number) {
+    setCoordDemanda({ lat, lng, label: endereco })
+    setMensagens(prev => [...prev, { role: 'user', content: `Localização confirmada: ${endereco}` }])
     comDigitando(() => {
       setMensagens(prev => [...prev, { role: 'assistant', content: 'Localização salva! Envie uma foto do local para ajudar a identificar melhor o problema.' }])
       setEtapaDemanda('perguntar_foto')
@@ -352,7 +322,7 @@ export default function ChatBot() {
     setMensagens(prev => [...prev, { role: 'assistant', content: 'Ok, cancelei o registro. Posso ajudar com mais alguma coisa?' }])
   }
 
-  const inputDesabilitado = enviando || (etapaDemanda !== 'nenhuma' && etapaDemanda !== 'perguntar_endereco')
+  const inputDesabilitado = enviando || etapaDemanda !== 'nenhuma'
 
   return (
     <>
@@ -458,9 +428,9 @@ export default function ChatBot() {
               </div>
             )}
 
-            {/* Etapa: mini-mapa */}
-            {etapaDemanda === 'confirmar_mapa' && coordDemanda && (
-              <MiniMapaConfirmar latInicial={coordDemanda.lat} lngInicial={coordDemanda.lng} onConfirmar={aoConfirmarLocalizacao} />
+            {/* Etapa: endereço + mini-mapa numa tela só */}
+            {etapaDemanda === 'perguntar_endereco' && (
+              <MiniMapaConfirmar onConfirmar={aoConfirmarEnderecoMapa} />
             )}
 
             {/* Etapa: perguntar sobre foto */}
@@ -517,7 +487,7 @@ export default function ChatBot() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), enviar())}
-              placeholder={etapaDemanda === 'perguntar_endereco' ? 'Digite o endereço...' : 'Digite sua mensagem...'}
+              placeholder="Digite sua mensagem..."
               disabled={inputDesabilitado}
               style={{ flex: 1, border: '1px solid #e5e7eb', borderRadius: '8px', padding: '9px 12px', fontSize: '13px', outline: 'none', resize: 'none' }}
             />

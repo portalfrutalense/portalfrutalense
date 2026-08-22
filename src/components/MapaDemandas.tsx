@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from './AuthProvider'
 import ModalAuth from './ModalAuth'
 import Turnstile from './Turnstile'
+import MiniMapaConfirmar from './MiniMapaConfirmar'
 import { Demanda, CategoriaMapa, Entidade } from '@/types'
 
 const FRUTAL_LAT = -20.02752
@@ -54,15 +55,9 @@ export default function MapaDemandas() {
   const resizeObserverRef = useRef<ResizeObserver | null>(null)
   const sidebarRef = useRef<HTMLDivElement>(null)
   const [voo, setVoo] = useState<{ fromX: number; fromY: number; fromW: number; fromH: number; toX: number; toY: number; toW: number; toH: number; animando: boolean } | null>(null)
-  const miniMapRef = useRef<HTMLDivElement>(null)
-  const miniMapObj = useRef<any>(null)
-  const miniMapIniciado = useRef(false)
-  const miniTileAtual = useRef<any>(null)
-
   const [mapaCarregado, setMapaCarregado] = useState(false)
   const [satelite, setSatelite] = useState(true)
   const sateliteRef = useRef(true)
-  const [miniSatelite, setMiniSatelite] = useState(false)
   const [demandas, setDemandas] = useState<Demanda[]>([])
   const [categorias, setCategorias] = useState<CategoriaMapa[]>([])
   const [entidades, setEntidades] = useState<Entidade[]>([])
@@ -78,11 +73,9 @@ export default function MapaDemandas() {
   const [descricao, setDescricao] = useState('')
   const [categoriaId, setCategoriaId] = useState('')
   const [entidadeId, setEntidadeId] = useState('')
-  const [endereco, setEndereco] = useState('')
   const [coordenadas, setCoordenadas] = useState<{ lat: number; lng: number; label: string } | null>(null)
   const [turnstileToken, setTurnstileToken] = useState('')
   const [locConfirmada, setLocConfirmada] = useState(false)
-  const [buscando, setBuscando] = useState(false)
   const [fotoFile, setFotoFile] = useState<File | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
@@ -277,23 +270,8 @@ export default function MapaDemandas() {
     }
   }, [demandas, user, mapaCarregado, filtroStatus, filtroCategoria])
 
-  // Mini-mapa no formulário
-  useEffect(() => {
-    if (!coordenadas || !miniMapRef.current || !leafletObj.current || miniMapIniciado.current) return
-    const L = leafletObj.current
-    miniMapIniciado.current = true
-    const mapa = L.map(miniMapRef.current, { zoomControl: true }).setView([coordenadas.lat, coordenadas.lng], 17)
-    const tile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' })
-    tile.addTo(mapa)
-    miniTileAtual.current = tile
-    miniMapObj.current = mapa
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coordenadas !== null])
-
   useEffect(() => {
     if (etapa !== 'formulario' || !coordenadas) {
-      if (miniMapObj.current) { miniMapObj.current.remove(); miniMapObj.current = null }
-      miniMapIniciado.current = false
       setLocConfirmada(false)
     }
   }, [etapa, coordenadas])
@@ -320,61 +298,8 @@ export default function MapaDemandas() {
     }
   }
 
-  // Verifica se coordenadas estão dentro de ~15km de Frutal-MG
-  function dentroFrutal(lat: number, lng: number): boolean {
-    const dlat = lat - FRUTAL_LAT
-    const dlng = lng - FRUTAL_LNG
-    return Math.sqrt(dlat * dlat + dlng * dlng) < 0.15
-  }
-
-  const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-
-  async function buscarEndereco() {
-    if (!endereco.trim()) return
-    setBuscando(true); setCoordenadas(null); setErro('')
-    try {
-      const q = encodeURIComponent(`${endereco}, Frutal, Minas Gerais`)
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${MAPBOX_TOKEN}&country=BR&language=pt&limit=1&proximity=${FRUTAL_LNG},${FRUTAL_LAT}`
-      const res = await fetch(url)
-      const data = await res.json()
-      if (!data?.features?.length) { setErro('Endereço não encontrado em Frutal-MG.'); return }
-      const [lng, lat] = data.features[0].center
-      if (!dentroFrutal(lat, lng)) { setErro('Endereço encontrado fora de Frutal-MG. Tente ser mais específico ou use sua localização.'); return }
-      const label = data.features[0].place_name?.split(',')[0] || endereco.trim()
-      setCoordenadas({ lat, lng, label })
-    } catch { setErro('Erro ao buscar endereço.') }
-    finally { setBuscando(false) }
-  }
-
-  async function usarMinhaLocalizacao() {
-    if (!navigator.geolocation) { setErro('Geolocalização não suportada.'); return }
-    setBuscando(true); setErro('')
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude
-        const lng = pos.coords.longitude
-        // Geocodificação reversa via Mapbox
-        let label = 'Minha localização'
-        try {
-          const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}&language=pt&types=address`
-          const res = await fetch(url)
-          const data = await res.json()
-          if (data?.features?.length) {
-            label = data.features[0].place_name?.split(',')[0] || label
-          }
-        } catch { /* mantém label padrão */ }
-        setCoordenadas({ lat, lng, label })
-        setBuscando(false)
-      },
-      () => { setErro('Não foi possível obter sua localização.'); setBuscando(false) },
-      { enableHighAccuracy: true, timeout: 15000 }
-    )
-  }
-
-  function confirmarLocalizacao() {
-    if (!miniMapObj.current) return
-    const c = miniMapObj.current.getCenter()
-    setCoordenadas(prev => prev ? { ...prev, lat: c.lat, lng: c.lng } : null)
+  function aoConfirmarEndereco(endereco: string, lat: number, lng: number) {
+    setCoordenadas({ lat, lng, label: endereco })
     setLocConfirmada(true)
   }
 
@@ -417,7 +342,7 @@ export default function MapaDemandas() {
       })
       if (!res.ok) { const d = await res.json(); throw new Error(d.error) }
       setSucesso(true)
-      setDescricao(''); setCategoriaId(''); setEntidadeId(''); setEndereco('')
+      setDescricao(''); setCategoriaId(''); setEntidadeId('')
       setCoordenadas(null); setLocConfirmada(false); setFotoFile(null); setFotoPreview(null); setTurnstileToken('')
     } catch (err: any) {
       setErro(err.message || 'Erro ao enviar.')
@@ -426,7 +351,7 @@ export default function MapaDemandas() {
 
   function fecharFormulario() {
     setEtapa('fechado'); setSucesso(false); setErro('')
-    setDescricao(''); setCategoriaId(''); setEntidadeId(''); setEndereco('')
+    setDescricao(''); setCategoriaId(''); setEntidadeId('')
     setCoordenadas(null); setLocConfirmada(false); setFotoFile(null); setFotoPreview(null); setTurnstileToken('')
   }
 
@@ -746,65 +671,16 @@ export default function MapaDemandas() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Endereço *</label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input type="text" value={endereco} onChange={(e) => setEndereco(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), buscarEndereco())}
-                      placeholder="Ex: Rua XV de Novembro, 123"
-                      style={{ flex: 1, border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none' }} />
-                    <button type="button" onClick={buscarEndereco} disabled={buscando}
-                      style={{ backgroundColor: '#4256c8', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                      {buscando ? '...' : 'Buscar'}
-                    </button>
-                  </div>
-                  <button type="button" onClick={usarMinhaLocalizacao} disabled={buscando}
-                    style={{ marginTop: '8px', background: 'none', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 12px', fontSize: '12px', color: '#111827', cursor: 'pointer', width: '100%' }}>
-                    {buscando ? 'Obtendo...' : '📍 Usar minha localização'}
-                  </button>
-                  {coordenadas && !locConfirmada && (
-                    <div style={{ marginTop: '8px' }}>
-                      <p style={{ fontSize: '12px', color: '#92400e', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '6px 10px', margin: '0 0 6px' }}>
-                        Mova o mapa até o local exato e toque em <strong>Confirmar localização</strong>.
-                      </p>
-                      <div style={{ position: 'relative', width: '100%' }}>
-                        {/* Botão satélite fora do overflow:hidden */}
-                        <button type="button" onClick={() => {
-                          if (!miniMapObj.current || !leafletObj.current) return
-                          const L = leafletObj.current
-                          if (miniTileAtual.current) miniTileAtual.current.remove()
-                          const novo = !miniSatelite
-                          const t = novo
-                            ? L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' })
-                            : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' })
-                          t.addTo(miniMapObj.current)
-                          miniTileAtual.current = t
-                          setMiniSatelite(novo)
-                        }} style={{ position: 'absolute', top: '6px', right: '6px', zIndex: 1001, background: 'white', border: '1px solid #e5e7eb', borderRadius: '4px', padding: '4px 8px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', color: '#111827', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>
-                          {miniSatelite ? '🗺 Mapa' : '🛰 Satélite'}
-                        </button>
-                      <div style={{ position: 'relative', width: '100%', height: '220px', borderRadius: '6px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-                        <div ref={miniMapRef} style={{ width: '100%', height: '100%' }} />
-                        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -100%)', zIndex: 1000, pointerEvents: 'none' }}>
-                          <svg width="32" height="40" viewBox="0 0 32 40" fill="none">
-                            <path d="M16 0C7.163 0 0 7.163 0 16c0 10.627 14.4 23.04 15.04 23.573a1.333 1.333 0 001.92 0C17.6 39.04 32 26.627 32 16 32 7.163 24.837 0 16 0z" fill="#4256c8"/>
-                            <circle cx="16" cy="16" r="7" fill="white"/>
-                          </svg>
-                        </div>
-                        <button type="button" onClick={confirmarLocalizacao}
-                          style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, backgroundColor: '#4256c8', color: 'white', border: 'none', borderRadius: '6px', padding: '10px 24px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
-                          Confirmar localização
-                        </button>
-                      </div>
-                      </div>{/* fecha wrapper externo */}
-                    </div>
-                  )}
-                  {coordenadas && locConfirmada && (
-                    <div style={{ marginTop: '8px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '12px', color: '#166534', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  {coordenadas && locConfirmada ? (
+                    <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '12px', color: '#166534', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span><strong>{coordenadas.label}</strong></span>
                       <button type="button" onClick={() => { setCoordenadas(null); setLocConfirmada(false) }}
                         style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline', padding: 0, marginLeft: '8px' }}>
                         Alterar
                       </button>
                     </div>
+                  ) : (
+                    <MiniMapaConfirmar onConfirmar={aoConfirmarEndereco} />
                   )}
                 </div>
                 </div>{/* fecha coluna esquerda */}

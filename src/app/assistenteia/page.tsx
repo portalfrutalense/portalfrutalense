@@ -19,11 +19,7 @@ interface Entidade {
   cargo: string
 }
 
-type EtapaDemanda = 'nenhuma' | 'perguntar_registrar' | 'escolher_autoridade' | 'perguntar_endereco' | 'confirmar_mapa' | 'perguntar_foto' | 'resumo'
-
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-const FRUTAL_LAT = -20.0234
-const FRUTAL_LNG = -48.9338
+type EtapaDemanda = 'nenhuma' | 'perguntar_registrar' | 'escolher_autoridade' | 'perguntar_endereco' | 'perguntar_foto' | 'resumo'
 
 async function comprimirFoto(file: File): Promise<Blob> {
   return new Promise((resolve, reject) => {
@@ -129,26 +125,6 @@ export default function LucasPage() {
     el.style.height = Math.min(el.scrollHeight, 160) + 'px'
   }
 
-  async function buscarEnderecoEAbrirMapa(enderecoTexto: string) {
-    setEnviando(true)
-    let lat = FRUTAL_LAT, lng = FRUTAL_LNG, label = enderecoTexto
-    try {
-      const q = encodeURIComponent(`${enderecoTexto}, Frutal, Minas Gerais`)
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${MAPBOX_TOKEN}&country=BR&language=pt&limit=1&proximity=${FRUTAL_LNG},${FRUTAL_LAT}`
-      const geo = await fetch(url)
-      const geoData = await geo.json()
-      if (geoData?.features?.length) {
-        ;[lng, lat] = geoData.features[0].center
-        label = geoData.features[0].place_name?.split(',')[0] || enderecoTexto
-      }
-    } catch { /* usa coordenadas padrão */ }
-
-    setCoordDemanda({ lat, lng, label })
-    setMensagens(prev => [...prev, { role: 'assistant', content: 'Mova o mapa até o local exato e toque em "Confirmar localização".' }])
-    setEtapaDemanda('confirmar_mapa')
-    setEnviando(false)
-  }
-
   async function enviar() {
     if (!input.trim() || enviando) return
     if (!user) { setModalAuth(true); return }
@@ -158,11 +134,6 @@ export default function LucasPage() {
     setMensagens(prev => [...prev, novaMensagem])
     setInput('')
     if (inputRef.current) { inputRef.current.style.height = 'auto' }
-
-    if (etapaDemanda === 'perguntar_endereco') {
-      await buscarEnderecoEAbrirMapa(texto)
-      return
-    }
 
     const historico = [...mensagens, novaMensagem]
     setEnviando(true)
@@ -227,7 +198,7 @@ export default function LucasPage() {
   }
 
   const temMensagens = mensagens.length > 0
-  const inputDesabilitado = enviando || (etapaDemanda !== 'nenhuma' && etapaDemanda !== 'perguntar_endereco')
+  const inputDesabilitado = enviando || etapaDemanda !== 'nenhuma'
 
   const campoInput = (
     <>
@@ -249,7 +220,7 @@ export default function LucasPage() {
           value={input}
           onChange={e => { setInput(e.target.value); autoResize(e.target) }}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar() } }}
-          placeholder={!user ? 'Entre na sua conta para conversar' : etapaDemanda === 'perguntar_endereco' ? 'Digite o endereço...' : 'Registre demandas, tire dúvidas ou peça uma ajuda...'}
+          placeholder={!user ? 'Entre na sua conta para conversar' : 'Registre demandas, tire dúvidas ou peça uma ajuda...'}
           disabled={inputDesabilitado || !user}
           style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none', fontSize: '15px', color: '#111827', resize: 'none', lineHeight: 1.5, maxHeight: '160px', padding: 0, display: 'block', overflowX: 'hidden', overflowY: 'auto' }}
         />
@@ -364,14 +335,14 @@ export default function LucasPage() {
     setEntidadeNomeDemanda(ent.nome)
     setMensagens(prev => [...prev, { role: 'user', content: ent.nome }])
     comDigitando(() => {
-      setMensagens(prev => [...prev, { role: 'assistant', content: 'Onde fica esse local? Pode me mandar o endereço completo?' }])
+      setMensagens(prev => [...prev, { role: 'assistant', content: 'Onde fica esse local? Digite o endereço ou aponte no mapa abaixo.' }])
       setEtapaDemanda('perguntar_endereco')
     })
   }
 
-  function aoConfirmarLocalizacao(lat: number, lng: number) {
-    setCoordDemanda(prev => prev ? { ...prev, lat, lng } : prev)
-    setMensagens(prev => [...prev, { role: 'user', content: 'Localização confirmada.' }])
+  function aoConfirmarEnderecoMapa(endereco: string, lat: number, lng: number) {
+    setCoordDemanda({ lat, lng, label: endereco })
+    setMensagens(prev => [...prev, { role: 'user', content: `Localização confirmada: ${endereco}` }])
     comDigitando(() => {
       setMensagens(prev => [...prev, { role: 'assistant', content: 'Localização salva! Envie uma foto do local para ajudar a identificar melhor o problema.' }])
       setEtapaDemanda('perguntar_foto')
@@ -545,10 +516,10 @@ export default function LucasPage() {
               </div>
             )}
 
-            {/* Etapa: mini-mapa */}
-            {etapaDemanda === 'confirmar_mapa' && coordDemanda && (
+            {/* Etapa: endereço + mini-mapa numa tela só */}
+            {etapaDemanda === 'perguntar_endereco' && (
               <div style={{ paddingLeft: '46px', maxWidth: '480px' }}>
-                <MiniMapaConfirmar latInicial={coordDemanda.lat} lngInicial={coordDemanda.lng} onConfirmar={aoConfirmarLocalizacao} />
+                <MiniMapaConfirmar onConfirmar={aoConfirmarEnderecoMapa} />
               </div>
             )}
 
