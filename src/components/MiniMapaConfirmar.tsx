@@ -83,7 +83,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
       // Mapbox faz correspondência aproximada — só aceita se for um endereço de fato
       // (não uma cidade/bairro genérico), com relevância razoável, e realmente perto de Frutal
       // (evita aceitar uma rua de mesmo nome em outra cidade)
-      if (feature && feature.relevance >= 0.5 && mapaObj.current) {
+      if (feature && feature.relevance >= 0.85 && mapaObj.current) {
         const [lng, lat] = feature.center
         if (!dentroFrutal(lat, lng)) {
           setAviso('Esse endereço parece ficar fora de Frutal-MG. Verifique o que digitou ou arraste o mapa até o local certo.')
