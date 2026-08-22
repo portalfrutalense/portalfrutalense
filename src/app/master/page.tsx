@@ -329,9 +329,9 @@ export default function MasterPage() {
                 <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Visão geral do CidadanIA Frutal.</p>
               </div>
 
-              <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '20px', marginBottom: '32px' }}>
+              <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '20px', marginBottom: '32px', maxWidth: '280px' }}>
                 <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Mapa de Demandas</h2>
-                <div className="master-card-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   {[
                     { label: 'Total de demandas', valor: stats.total, cor: '#1e3a5f' },
                     { label: 'Pendentes (IA)', valor: stats.pendente, cor: '#92400e' },
@@ -340,9 +340,9 @@ export default function MasterPage() {
                     { label: 'Resolvidas', valor: stats.resolvida, cor: '#065f46' },
                     { label: 'Não resolvidas', valor: stats.nao_resolvida, cor: '#991b1b' },
                   ].map((s) => (
-                    <div key={s.label}>
-                      <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 6px', fontWeight: 500 }}>{s.label}</p>
-                      <p style={{ fontSize: '28px', fontWeight: 800, color: s.cor, margin: 0, lineHeight: 1 }}>{s.valor}</p>
+                    <div key={s.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, fontWeight: 500 }}>{s.label}</p>
+                      <p style={{ fontSize: '20px', fontWeight: 800, color: s.cor, margin: 0, lineHeight: 1 }}>{s.valor}</p>
                     </div>
                   ))}
                 </div>
