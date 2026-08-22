@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import type * as Leaflet from 'leaflet'
 
 interface Props {
   latInicial: number
@@ -10,9 +11,9 @@ interface Props {
 
 export default function MiniMapaConfirmar({ latInicial, lngInicial, onConfirmar }: Props) {
   const mapRef = useRef<HTMLDivElement>(null)
-  const mapaObj = useRef<any>(null)
-  const tileAtual = useRef<any>(null)
-  const leafletObj = useRef<any>(null)
+  const mapaObj = useRef<Leaflet.Map | null>(null)
+  const tileAtual = useRef<Leaflet.TileLayer | null>(null)
+  const leafletObj = useRef<typeof Leaflet | null>(null)
   const iniciado = useRef(false)
   const [satelite, setSatelite] = useState(false)
 

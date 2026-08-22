@@ -57,7 +57,10 @@ export default function LucasPage() {
   const [notif, setNotif] = useState('')
   const [modalAuth, setModalAuth] = useState(false)
   const [gravando, setGravando] = useState(false)
-  const [micDisponivel, setMicDisponivel] = useState(true)
+  const [micDisponivel, setMicDisponivel] = useState(() => {
+    if (typeof window === 'undefined') return true
+    return !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition) // eslint-disable-line @typescript-eslint/no-explicit-any
+  })
   const [fotoFile, setFotoFile] = useState<File | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
   const [turnstileToken, setTurnstileToken] = useState('')
@@ -111,10 +114,81 @@ export default function LucasPage() {
     setFotoPreview(null)
   }
 
-  useEffect(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition // eslint-disable-line @typescript-eslint/no-explicit-any
-    if (!SpeechRecognition) setMicDisponivel(false)
-  }, [])
+  function autoResize(el: HTMLTextAreaElement) {
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 160) + 'px'
+  }
+
+  async function buscarEnderecoEAbrirMapa(enderecoTexto: string) {
+    setEnviando(true)
+    let lat = FRUTAL_LAT, lng = FRUTAL_LNG, label = enderecoTexto
+    try {
+      const q = encodeURIComponent(`${enderecoTexto}, Frutal, Minas Gerais`)
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${MAPBOX_TOKEN}&country=BR&language=pt&limit=1&proximity=${FRUTAL_LNG},${FRUTAL_LAT}`
+      const geo = await fetch(url)
+      const geoData = await geo.json()
+      if (geoData?.features?.length) {
+        ;[lng, lat] = geoData.features[0].center
+        label = geoData.features[0].place_name?.split(',')[0] || enderecoTexto
+      }
+    } catch { /* usa coordenadas padrão */ }
+
+    setCoordDemanda({ lat, lng, label })
+    setMensagens(prev => [...prev, { role: 'assistant', content: 'Mova o mapa até o local exato e toque em "Confirmar localização".' }])
+    setEtapaDemanda('confirmar_mapa')
+    setEnviando(false)
+  }
+
+  async function enviar() {
+    if (!input.trim() || enviando) return
+    if (!user) { setModalAuth(true); return }
+
+    const texto = input.trim()
+    const novaMensagem: Mensagem = { role: 'user', content: texto }
+    setMensagens(prev => [...prev, novaMensagem])
+    setInput('')
+    if (inputRef.current) { inputRef.current.style.height = 'auto' }
+
+    if (etapaDemanda === 'perguntar_endereco') {
+      await buscarEnderecoEAbrirMapa(texto)
+      return
+    }
+
+    const historico = [...mensagens, novaMensagem]
+    setEnviando(true)
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ mensagens: historico, nomeUsuario }),
+      })
+      const data = await res.json()
+      const resposta: string = data.resposta || 'Erro ao processar mensagem.'
+
+      const jsonMatch = resposta.match(/\{"action":"detectar_demanda"[^}]+\}/)
+      if (jsonMatch) {
+        try {
+          const payload = JSON.parse(jsonMatch[0])
+          setDescricaoDemanda(payload.descricao || texto)
+          setCategoriaIdDemanda(payload.categoria_id || '')
+          const catNome = payload.categoria_nome || 'Outros'
+          setCategoriaNomeDemanda(catNome)
+          setMensagens(prev => [...prev, { role: 'assistant', content: `Percebi que você quer relatar um problema sobre ${catNome.toLowerCase()}. Quer registrar uma demanda sobre isso?` }])
+          setEtapaDemanda('perguntar_registrar')
+        } catch {
+          setMensagens(prev => [...prev, { role: 'assistant', content: resposta }])
+        }
+      } else {
+        setMensagens(prev => [...prev, { role: 'assistant', content: resposta }])
+      }
+    } catch {
+      setMensagens(prev => [...prev, { role: 'assistant', content: 'Erro de conexão. Tente novamente.' }])
+    } finally {
+      setEnviando(false)
+    }
+  }
 
   function alternarGravacao() {
     if (gravando) {
@@ -236,68 +310,12 @@ export default function LucasPage() {
     }
   }, [mensagens.length])
 
-  function autoResize(el: HTMLTextAreaElement) {
-    el.style.height = 'auto'
-    el.style.height = Math.min(el.scrollHeight, 160) + 'px'
-  }
-
   function resetFluxoDemanda() {
     setEtapaDemanda('nenhuma')
     setDescricaoDemanda(''); setCategoriaIdDemanda(''); setCategoriaNomeDemanda('')
     setEntidadeIdDemanda(''); setEntidadeNomeDemanda('')
     setCoordDemanda(null); setOpcoesAutoridade([])
     removerFoto(); setTurnstileToken('')
-  }
-
-  async function enviar() {
-    if (!input.trim() || enviando) return
-    if (!user) { setModalAuth(true); return }
-
-    const texto = input.trim()
-    const novaMensagem: Mensagem = { role: 'user', content: texto }
-    setMensagens(prev => [...prev, novaMensagem])
-    setInput('')
-    if (inputRef.current) { inputRef.current.style.height = 'auto' }
-
-    if (etapaDemanda === 'perguntar_endereco') {
-      await buscarEnderecoEAbrirMapa(texto)
-      return
-    }
-
-    const historico = [...mensagens, novaMensagem]
-    setEnviando(true)
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ mensagens: historico, nomeUsuario }),
-      })
-      const data = await res.json()
-      const resposta: string = data.resposta || 'Erro ao processar mensagem.'
-
-      const jsonMatch = resposta.match(/\{"action":"detectar_demanda"[^}]+\}/)
-      if (jsonMatch) {
-        try {
-          const payload = JSON.parse(jsonMatch[0])
-          setDescricaoDemanda(payload.descricao || texto)
-          setCategoriaIdDemanda(payload.categoria_id || '')
-          const catNome = payload.categoria_nome || 'Outros'
-          setCategoriaNomeDemanda(catNome)
-          setMensagens(prev => [...prev, { role: 'assistant', content: `Percebi que você quer relatar um problema sobre ${catNome.toLowerCase()}. Quer registrar uma demanda sobre isso?` }])
-          setEtapaDemanda('perguntar_registrar')
-        } catch {
-          setMensagens(prev => [...prev, { role: 'assistant', content: resposta }])
-        }
-      } else {
-        setMensagens(prev => [...prev, { role: 'assistant', content: resposta }])
-      }
-    } catch {
-      setMensagens(prev => [...prev, { role: 'assistant', content: 'Erro de conexão. Tente novamente.' }])
-    } finally {
-      setEnviando(false)
-    }
   }
 
   function aoConfirmarQuerRegistrar() {
@@ -331,26 +349,6 @@ export default function LucasPage() {
     setEntidadeNomeDemanda(ent.nome)
     setMensagens(prev => [...prev, { role: 'user', content: ent.nome }, { role: 'assistant', content: 'Qual o endereço onde isso está acontecendo?' }])
     setEtapaDemanda('perguntar_endereco')
-  }
-
-  async function buscarEnderecoEAbrirMapa(enderecoTexto: string) {
-    setEnviando(true)
-    let lat = FRUTAL_LAT, lng = FRUTAL_LNG, label = enderecoTexto
-    try {
-      const q = encodeURIComponent(`${enderecoTexto}, Frutal, Minas Gerais`)
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${MAPBOX_TOKEN}&country=BR&language=pt&limit=1&proximity=${FRUTAL_LNG},${FRUTAL_LAT}`
-      const geo = await fetch(url)
-      const geoData = await geo.json()
-      if (geoData?.features?.length) {
-        ;[lng, lat] = geoData.features[0].center
-        label = geoData.features[0].place_name?.split(',')[0] || enderecoTexto
-      }
-    } catch { /* usa coordenadas padrão */ }
-
-    setCoordDemanda({ lat, lng, label })
-    setMensagens(prev => [...prev, { role: 'assistant', content: 'Mova o mapa até o local exato e toque em "Confirmar localização".' }])
-    setEtapaDemanda('confirmar_mapa')
-    setEnviando(false)
   }
 
   function aoConfirmarLocalizacao(lat: number, lng: number) {

@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 
+interface BaseConhecimento { titulo: string; conteudo: string }
+interface Categoria { id: string; nome: string }
+interface ChatConfig {
+  nome_bot?: string | null
+  descricao_bot?: string | null
+  tom_voz?: string | null
+  responsabilidades?: string | null
+  prompt_extra?: string | null
+}
+interface MensagemChat { role: 'user' | 'assistant'; content: string }
+
 async function verificarUsuario(req: NextRequest) {
   const token = req.headers.get('authorization')?.replace('Bearer ', '')
   if (!token) return null
@@ -23,10 +34,10 @@ export async function POST(req: NextRequest) {
     supabaseServer.from('chatbot_config').select('nome_bot, descricao_bot, tom_voz, responsabilidades, prompt_extra').eq('id', 1).maybeSingle(),
   ])
 
-  const baseTexto = (base || []).map((e: any) => `### ${e.titulo}\n${e.conteudo}`).join('\n\n')
-  const categoriasTexto = (categorias || []).map((c: any) => `- ${c.nome} (id: ${c.id})`).join('\n')
+  const baseTexto = ((base || []) as BaseConhecimento[]).map((e) => `### ${e.titulo}\n${e.conteudo}`).join('\n\n')
+  const categoriasTexto = ((categorias || []) as Categoria[]).map((c) => `- ${c.nome} (id: ${c.id})`).join('\n')
 
-  const cfg: any = chatConfig || {}
+  const cfg: ChatConfig = chatConfig || {}
 
   const systemPrompt = `Você é um assistente virtual do CidadanIA Frutal, plataforma de cidadania do município de Frutal-MG.
 Você está conversando com ${nomeUsuario}.
@@ -53,7 +64,7 @@ REGRAS IMPORTANTES:
 - Nunca use emojis em nenhuma mensagem.
 ${cfg.prompt_extra ? `\nINSTRUÇÕES ADICIONAIS:\n${cfg.prompt_extra}` : ''}`
 
-  const contents = mensagens.map((m: any) => ({
+  const contents = (mensagens as MensagemChat[]).map((m) => ({
     role: m.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: m.content }],
   }))
@@ -91,7 +102,7 @@ ${cfg.prompt_extra ? `\nINSTRUÇÕES ADICIONAIS:\n${cfg.prompt_extra}` : ''}`
   const semResposta = frasesSemResposta.some(f => resposta.toLowerCase().includes(f))
 
   if (semResposta) {
-    const ultimaMensagemUsuario = [...mensagens].reverse().find((m: any) => m.role === 'user')
+    const ultimaMensagemUsuario = [...(mensagens as MensagemChat[])].reverse().find((m) => m.role === 'user')
     if (ultimaMensagemUsuario) {
       await supabaseServer.from('chatbot_sem_resposta').insert({
         user_id: user.id,
