@@ -86,7 +86,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
       if (feature && feature.relevance >= 0.85 && mapaObj.current) {
         const [lng, lat] = feature.center
         if (!dentroFrutal(lat, lng)) {
-          setAviso('Esse endereço parece ficar fora de Frutal-MG. Verifique o que digitou ou arraste o mapa até o local certo.')
+          setAviso('Esse endereço parece ficar fora de Frutal-MG. Arraste o mapa até o local certo.')
           return
         }
         mapaObj.current.setView([lat, lng], ZOOM_ENCONTRADO)
