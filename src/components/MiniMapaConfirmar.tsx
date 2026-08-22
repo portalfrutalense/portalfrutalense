@@ -69,11 +69,14 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
     setAviso('')
     try {
       const q = encodeURIComponent(`${endereco.trim()}, Frutal, Minas Gerais`)
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${MAPBOX_TOKEN}&country=BR&language=pt&limit=1&proximity=${FRUTAL_LNG},${FRUTAL_LAT}`
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${MAPBOX_TOKEN}&country=BR&language=pt&limit=1&proximity=${FRUTAL_LNG},${FRUTAL_LAT}&types=address`
       const res = await fetch(url)
       const data = await res.json()
-      if (data?.features?.length && mapaObj.current) {
-        const [lng, lat] = data.features[0].center
+      const feature = data?.features?.[0]
+      // Mapbox faz correspondência aproximada — só aceita se for um endereço de fato
+      // (não uma cidade/bairro genérico) e com relevância razoável
+      if (feature && feature.relevance >= 0.5 && mapaObj.current) {
+        const [lng, lat] = feature.center
         mapaObj.current.setView([lat, lng], ZOOM_ENCONTRADO)
       } else {
         setAviso('Não encontramos esse endereço automaticamente. Arraste o mapa até o local certo.')
