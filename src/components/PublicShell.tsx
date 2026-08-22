@@ -1,5 +1,6 @@
 ﻿'use client'
 
+import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Navbar from './Navbar'
 import ChatBot from './ChatBot'
@@ -10,6 +11,20 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   const isLanding = pathname === '/'
   const isMapa = pathname === '/mapa'
   const isLucas = pathname === '/assistenteia'
+
+  // Trava html/body de verdade no /mapa — evita scroll/rubber-band nativo do
+  // navegador (que empurra a navbar pra trás da barra de endereço em mobile)
+  useEffect(() => {
+    if (!isMapa) return
+    const html = document.documentElement
+    const body = document.body
+    html.classList.add('mapa-lock-body')
+    body.classList.add('mapa-lock-body')
+    return () => {
+      html.classList.remove('mapa-lock-body')
+      body.classList.remove('mapa-lock-body')
+    }
+  }, [isMapa])
 
   // Master, landing e Lucas têm seu próprio layout
   if (isMaster || isLanding || isLucas) return <>{children}</>
@@ -22,8 +37,16 @@ export default function PublicShell({ children }: { children: React.ReactNode })
       </main>
       <ChatBot />
       <style>{`
+        html.mapa-lock-body, body.mapa-lock-body {
+          position: fixed;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+          overscroll-behavior: none;
+        }
         @media (max-width: 640px) {
-          .mapa-shell { height: 100dvh !important; overflow: hidden !important; }
+          .mapa-shell { height: 100dvh !important; overflow: hidden !important; overscroll-behavior: none !important; }
           .mapa-main { overflow: hidden !important; padding: 0 !important; }
         }
       `}</style>
