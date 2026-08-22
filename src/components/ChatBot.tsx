@@ -54,6 +54,11 @@ export default function ChatBot() {
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
   const [turnstileToken, setTurnstileToken] = useState('')
   const [captchaVisivel, setCaptchaVisivel] = useState(false)
+  const [gravando, setGravando] = useState(false)
+  const [micDisponivel, setMicDisponivel] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition) // eslint-disable-line @typescript-eslint/no-explicit-any
+  })
 
   // Fluxo de registro de demanda (etapas conduzidas por código, não pela IA)
   const [etapaDemanda, setEtapaDemanda] = useState<EtapaDemanda>('nenhuma')
@@ -70,6 +75,8 @@ export default function ChatBot() {
   const bottomRef = useRef<HTMLDivElement>(null)
   const botaoRef = useRef<HTMLButtonElement>(null)
   const fotoInputRef = useRef<HTMLInputElement>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null)
 
   // Carrega autoridades e vínculos com categorias (usado para escolher autoridade sem precisar da IA)
   useEffect(() => {
@@ -148,6 +155,31 @@ export default function ChatBot() {
     setEntidadeIdDemanda(''); setEntidadeNomeDemanda('')
     setCoordDemanda(null); setOpcoesAutoridade([])
     removerFoto(); setTurnstileToken(''); setCaptchaVisivel(false)
+  }
+
+  function alternarGravacao() {
+    if (gravando) {
+      recognitionRef.current?.stop()
+      return
+    }
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (!SpeechRecognition) { setMicDisponivel(false); return }
+
+    const recognition = new SpeechRecognition()
+    recognition.lang = 'pt-BR'
+    recognition.continuous = false
+    recognition.interimResults = false
+
+    recognition.onresult = (event: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      const texto = event.results[0][0].transcript
+      setInput(prev => (prev ? `${prev} ${texto}` : texto))
+    }
+    recognition.onerror = () => setGravando(false)
+    recognition.onend = () => setGravando(false)
+
+    recognitionRef.current = recognition
+    recognition.start()
+    setGravando(true)
   }
 
   async function enviar() {
@@ -495,6 +527,17 @@ export default function ChatBot() {
               disabled={inputDesabilitado}
               style={{ flex: 1, border: '1px solid #e5e7eb', borderRadius: '8px', padding: '9px 12px', fontSize: '13px', outline: 'none', resize: 'none' }}
             />
+            {micDisponivel && (
+              <button onClick={alternarGravacao} disabled={inputDesabilitado}
+                title={gravando ? 'Parar gravação' : 'Falar em vez de digitar'}
+                style={{ background: gravando ? '#dc2626' : '#f9fafb', color: gravando ? 'white' : '#6b7280', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '9px 10px', cursor: inputDesabilitado ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', animation: gravando ? 'chatbot-mic-pulse 1.2s infinite' : 'none' }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="2" width="6" height="12" rx="3" />
+                  <path d="M5 10a7 7 0 0 0 14 0" />
+                  <line x1="12" y1="19" x2="12" y2="22" />
+                </svg>
+              </button>
+            )}
             <button onClick={enviar} disabled={inputDesabilitado || !input.trim()}
               style={{ background: inputDesabilitado || !input.trim() ? '#6b7280' : '#4256c8', color: 'white', border: 'none', borderRadius: '8px', padding: '9px 14px', cursor: inputDesabilitado || !input.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -511,6 +554,13 @@ export default function ChatBot() {
           {notif}
         </div>
       )}
+
+      <style>{`
+        @keyframes chatbot-mic-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.55; }
+        }
+      `}</style>
     </>
   )
 }

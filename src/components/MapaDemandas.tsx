@@ -45,6 +45,7 @@ export default function MapaDemandas() {
   const supabase = createClient()
   const { user, perfil } = useAuth()
   const [modalAuth, setModalAuth] = useState(false)
+  const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
 
   const mapRef = useRef<HTMLDivElement>(null)
   const mapaIniciado = useRef(false)
@@ -557,7 +558,7 @@ export default function MapaDemandas() {
                     <img
                       src={demandaSelecionada.foto_url}
                       alt="Foto da demanda"
-                      onClick={() => window.open(demandaSelecionada.foto_url!, '_blank')}
+                      onClick={() => setFotoAmpliada(demandaSelecionada.foto_url!)}
                       style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '6px', cursor: 'pointer', border: '1px solid #e5e7eb' }}
                     />
                   )}
@@ -720,6 +721,27 @@ export default function MapaDemandas() {
       {/* Modal de auth */}
       {modalAuth && <ModalAuth onFechar={() => setModalAuth(false)} />}
 
+      {/* Lightbox: foto da demanda ampliada, sem sair da pagina */}
+      {fotoAmpliada && (
+        <div
+          onClick={() => setFotoAmpliada(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', cursor: 'zoom-out' }}
+        >
+          <button
+            onClick={() => setFotoAmpliada(null)}
+            style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', width: '36px', height: '36px', borderRadius: '50%', fontSize: '22px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+            ×
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={fotoAmpliada}
+            alt="Foto da demanda ampliada"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: '8px', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', cursor: 'default' }}
+          />
+        </div>
+      )}
+
       {/* Formulário de demanda */}
       {etapa === 'formulario' && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
@@ -786,7 +808,7 @@ export default function MapaDemandas() {
                   </label>
                   {!fotoPreview ? (
                     <label style={{ display: 'block', border: '2px dashed #e5e7eb', borderRadius: '8px', padding: '20px', textAlign: 'center', cursor: 'pointer' }}>
-                      <input type="file" accept="image/*" capture="environment" onChange={handleFotoChange} style={{ display: 'none' }} />
+                      <input type="file" accept="image/*" onChange={handleFotoChange} style={{ display: 'none' }} />
                       <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}><strong style={{ color: '#4256c8' }}>Toque para tirar foto</strong> ou escolher da galeria</div>
                     </label>
                   ) : (
