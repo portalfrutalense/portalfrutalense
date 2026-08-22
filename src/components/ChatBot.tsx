@@ -336,12 +336,12 @@ export default function ChatBot() {
             width: '64px', height: '64px', borderRadius: '50%',
             background: '#4256c8', border: 'none', cursor: 'pointer',
             boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
-            padding: '0', overflow: 'hidden',
+            padding: '0', overflow: 'visible',
           }}
           title="Falar com o assistente"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/assistenteia.png" alt="Assistente virtual" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src="/assistenteia.png" alt="Assistente virtual" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} />
         </button>
       )}
 
@@ -369,9 +369,9 @@ export default function ChatBot() {
             position: 'relative', overflow: 'visible',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', overflow: 'hidden', flexShrink: 0 }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', position: 'relative', overflow: 'visible', flexShrink: 0 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/assistenteia.png" alt="Assistente virtual" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src="/assistenteia.png" alt="Assistente virtual" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} />
               </div>
               <div>
                 <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'white' }}>Lucas</p>
