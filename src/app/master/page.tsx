@@ -329,20 +329,23 @@ export default function MasterPage() {
                 <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Visão geral do CidadanIA Frutal.</p>
               </div>
 
-              <div className="master-card-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '32px' }}>
-                {[
-                  { label: 'Total de demandas', valor: stats.total, cor: '#1e3a5f', fundo: '#eff6ff' },
-                  { label: 'Pendentes (IA)', valor: stats.pendente, cor: '#92400e', fundo: '#fef3c7' },
-                  { label: 'Aguardando resposta', valor: stats.aguardando, cor: '#1e40af', fundo: '#dbeafe' },
-                  { label: 'Respondidas', valor: stats.respondida, cor: '#166534', fundo: '#dcfce7' },
-                  { label: 'Resolvidas', valor: stats.resolvida, cor: '#065f46', fundo: '#d1fae5' },
-                  { label: 'Não resolvidas', valor: stats.nao_resolvida, cor: '#991b1b', fundo: '#fee2e2' },
-                ].map((s) => (
-                  <div key={s.label} style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '20px' }}>
-                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 8px', fontWeight: 500 }}>{s.label}</p>
-                    <p style={{ fontSize: '32px', fontWeight: 800, color: s.cor, margin: 0, lineHeight: 1 }}>{s.valor}</p>
-                  </div>
-                ))}
+              <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '20px', marginBottom: '32px' }}>
+                <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Mapa de Demandas</h2>
+                <div className="master-card-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
+                  {[
+                    { label: 'Total de demandas', valor: stats.total, cor: '#1e3a5f' },
+                    { label: 'Pendentes (IA)', valor: stats.pendente, cor: '#92400e' },
+                    { label: 'Aguardando resposta', valor: stats.aguardando, cor: '#1e40af' },
+                    { label: 'Respondidas', valor: stats.respondida, cor: '#166534' },
+                    { label: 'Resolvidas', valor: stats.resolvida, cor: '#065f46' },
+                    { label: 'Não resolvidas', valor: stats.nao_resolvida, cor: '#991b1b' },
+                  ].map((s) => (
+                    <div key={s.label}>
+                      <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 6px', fontWeight: 500 }}>{s.label}</p>
+                      <p style={{ fontSize: '28px', fontWeight: 800, color: s.cor, margin: 0, lineHeight: 1 }}>{s.valor}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
 
             </div>
