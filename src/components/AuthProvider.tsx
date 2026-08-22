@@ -72,7 +72,10 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     setPerfil(null)
   }
 
-  const precisaCPF = !!user && !carregando && (!perfil || !perfil.nome?.trim() || !perfil.cpf?.trim())
+  // CPF só é exigido de cidadãos (ou de contas novas, ainda sem perfil/role definido).
+  // Autoridades e empresas nunca precisam de CPF.
+  const ehCidadaoOuNovo = !perfil || !perfil.role || perfil.role === 'cidadao'
+  const precisaCPF = !!user && !carregando && ehCidadaoOuNovo && (!perfil || !perfil.nome?.trim() || !perfil.cpf?.trim())
   const bloqueado = !!user && !carregando && !!perfil?.bloqueado
 
   return (
