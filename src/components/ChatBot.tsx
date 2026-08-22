@@ -89,6 +89,15 @@ export default function ChatBot() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Simula "digitando..." antes de respostas prontas (não vindas da IA), pra parecer natural
+  function comDigitando(fn: () => void, delay = 650) {
+    setEnviando(true)
+    setTimeout(() => {
+      fn()
+      setEnviando(false)
+    }, delay)
+  }
+
   function selecionarFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -96,7 +105,7 @@ export default function ChatBot() {
     setFotoPreview(URL.createObjectURL(file))
     e.target.value = ''
     setMensagens(prev => [...prev, { role: 'user', content: 'Foto anexada.' }])
-    irParaResumo()
+    comDigitando(irParaResumo)
   }
 
   function removerFoto() {
@@ -198,32 +207,40 @@ export default function ChatBot() {
     const vinculadas = catEntidades[categoriaIdDemanda] || []
     const opcoes = vinculadas.length > 0 ? entidades.filter(en => vinculadas.includes(en.id)) : entidades
 
-    if (opcoes.length === 0) {
-      setMensagens(prev => [...prev, { role: 'assistant', content: 'Não encontrei nenhuma autoridade cadastrada no sistema no momento. Não é possível registrar a demanda agora.' }])
-      resetFluxoDemanda()
-      return
-    }
+    comDigitando(() => {
+      if (opcoes.length === 0) {
+        setMensagens(prev => [...prev, { role: 'assistant', content: 'Não encontrei nenhuma autoridade cadastrada no sistema no momento. Não é possível registrar a demanda agora.' }])
+        resetFluxoDemanda()
+        return
+      }
 
-    setOpcoesAutoridade(opcoes)
-    if (opcoes.length === 1) {
-      const ent = opcoes[0]
-      setMensagens(prev => [...prev, { role: 'assistant', content: `Esse tipo de problema eu vou direcionar para ${ent.nome} (${ent.cargo}). Confirma?` }])
-    } else {
-      setMensagens(prev => [...prev, { role: 'assistant', content: 'Pra qual dessas autoridades você quer direcionar?' }])
-    }
-    setEtapaDemanda('escolher_autoridade')
+      setOpcoesAutoridade(opcoes)
+      if (opcoes.length === 1) {
+        const ent = opcoes[0]
+        setMensagens(prev => [...prev, { role: 'assistant', content: `Esse tipo de problema eu vou direcionar para ${ent.nome} (${ent.cargo}). Confirma?` }])
+      } else {
+        setMensagens(prev => [...prev, { role: 'assistant', content: 'Pra qual dessas autoridades você quer direcionar?' }])
+      }
+      setEtapaDemanda('escolher_autoridade')
+    })
   }
 
   function aoRecusarRegistrar() {
-    setMensagens(prev => [...prev, { role: 'user', content: 'Não' }, { role: 'assistant', content: 'Sem problemas! Posso ajudar com mais alguma coisa?' }])
-    resetFluxoDemanda()
+    setMensagens(prev => [...prev, { role: 'user', content: 'Não' }])
+    comDigitando(() => {
+      setMensagens(prev => [...prev, { role: 'assistant', content: 'Sem problemas! Posso ajudar com mais alguma coisa?' }])
+      resetFluxoDemanda()
+    })
   }
 
   function aoEscolherAutoridade(ent: Entidade) {
     setEntidadeIdDemanda(ent.id)
     setEntidadeNomeDemanda(ent.nome)
-    setMensagens(prev => [...prev, { role: 'user', content: ent.nome }, { role: 'assistant', content: 'Onde fica esse local? Pode me mandar o endereço completo?' }])
-    setEtapaDemanda('perguntar_endereco')
+    setMensagens(prev => [...prev, { role: 'user', content: ent.nome }])
+    comDigitando(() => {
+      setMensagens(prev => [...prev, { role: 'assistant', content: 'Onde fica esse local? Pode me mandar o endereço completo?' }])
+      setEtapaDemanda('perguntar_endereco')
+    })
   }
 
   async function buscarEnderecoEAbrirMapa(enderecoTexto: string) {
@@ -248,13 +265,16 @@ export default function ChatBot() {
 
   function aoConfirmarLocalizacao(lat: number, lng: number) {
     setCoordDemanda(prev => prev ? { ...prev, lat, lng } : prev)
-    setMensagens(prev => [...prev, { role: 'user', content: 'Localização confirmada.' }, { role: 'assistant', content: 'Localização salva! Envie uma foto do local para ajudar a identificar melhor o problema.' }])
-    setEtapaDemanda('perguntar_foto')
+    setMensagens(prev => [...prev, { role: 'user', content: 'Localização confirmada.' }])
+    comDigitando(() => {
+      setMensagens(prev => [...prev, { role: 'assistant', content: 'Localização salva! Envie uma foto do local para ajudar a identificar melhor o problema.' }])
+      setEtapaDemanda('perguntar_foto')
+    })
   }
 
   function aoClicarSemFoto() {
     setMensagens(prev => [...prev, { role: 'user', content: 'Sem foto' }])
-    irParaResumo()
+    comDigitando(irParaResumo)
   }
 
   function irParaResumo() {
