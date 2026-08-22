@@ -620,8 +620,8 @@ export default function MapaDemandas() {
       {/* Formulário de demanda */}
       {etapa === 'formulario' && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '760px', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: '16px 20px', borderBottom: '1px solid #e5e7eb' }}>
+          <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '760px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: '8px 20px', borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
               <h2 style={{ fontWeight: 700, color: '#111827', margin: 0, fontSize: '15px' }}>Registrar uma nova demanda</h2>
               <button onClick={fecharFormulario} style={{ position: 'absolute', right: '20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#6b7280', lineHeight: 1, padding: 0 }}>×</button>
             </div>
@@ -635,7 +635,9 @@ export default function MapaDemandas() {
                 <button onClick={fecharFormulario} style={{ fontSize: '13px', color: '#4256c8', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Fechar</button>
               </div>
             ) : (
-              <form onSubmit={handleEnviar} className="registro-form-grid" style={{ padding: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
+              <>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+              <form id="form-registrar-demanda" onSubmit={handleEnviar} className="registro-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
                 {erro && <div style={{ gridColumn: '1 / -1', color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
 
                 {/* Coluna esquerda */}
@@ -705,13 +707,17 @@ export default function MapaDemandas() {
                 </div>
 
                 <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
-
-                <button type="submit" disabled={enviando}
-                  style={{ backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
-                  {enviando ? 'Enviando...' : 'Registrar Demanda'}
-                </button>
                 </div>{/* fecha coluna direita */}
               </form>
+              </div>{/* fecha área rolável */}
+
+              <div style={{ padding: '12px 20px', borderTop: '1px solid #e5e7eb', flexShrink: 0 }}>
+                <button type="submit" form="form-registrar-demanda" disabled={enviando}
+                  style={{ width: '100%', backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+                  {enviando ? 'Enviando...' : 'Registrar Demanda'}
+                </button>
+              </div>
+              </>
             )}
           </div>
         </div>
