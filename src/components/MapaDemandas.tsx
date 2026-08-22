@@ -464,7 +464,12 @@ export default function MapaDemandas() {
               <div style={{ width: '40px', height: '5px', borderRadius: '3px', background: '#d1d5db' }} />
             </div>
           )}
-          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+          <div
+            style={{ flex: 1, overflowY: isMobile && sheetState === 'peek' ? 'hidden' : 'auto', minHeight: 0, touchAction: isMobile && sheetState === 'peek' ? 'none' : undefined }}
+            onTouchStart={isMobile && sheetState === 'peek' ? aoIniciarArraste : undefined}
+            onTouchMove={isMobile && sheetState === 'peek' ? aoArrastar : undefined}
+            onTouchEnd={isMobile && sheetState === 'peek' ? aoSoltarArraste : undefined}
+          >
 
           {demandaSelecionada ? (
             /* ── DETALHE DA DEMANDA ── */
