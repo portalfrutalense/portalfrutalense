@@ -71,13 +71,13 @@ export default function ModalAuth({ onFechar }: Props) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-      <div style={{ background: 'white', borderRadius: '12px', width: '100%', maxWidth: '380px', overflow: 'hidden' }}>
+      <div style={{ background: 'white', borderRadius: '12px', width: '100%', maxWidth: '340px', overflow: 'hidden' }}>
 
         {/* Header */}
-        <div style={{ background: '#4256c8', padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ background: '#4256c8', height: '66px', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'visible' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: '26px', width: 'auto', display: 'block' }} />
-          <button onClick={onFechar} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: '22px', lineHeight: 1, padding: 0 }}>×</button>
+          <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: '46px', width: 'auto', display: 'block' }} />
+          <button onClick={onFechar} style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: '22px', lineHeight: 1, padding: 0 }}>×</button>
         </div>
 
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
