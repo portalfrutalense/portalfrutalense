@@ -1241,7 +1241,7 @@ function MasterChatbot() {
 
   async function salvarConfig() {
     setSalvandoConfig(true)
-    await sbClient.from('chatbot_config').upsert({
+    const { error } = await sbClient.from('chatbot_config').upsert({
       id: 1,
       nome_bot: cfgNomeBot,
       descricao_bot: cfgDescricao,
@@ -1251,6 +1251,7 @@ function MasterChatbot() {
       updated_at: new Date().toISOString(),
     })
     setSalvandoConfig(false)
+    if (error) { mostrarNotif(`Erro ao salvar: ${error.message}`, true); return }
     mostrarNotif('Configurações salvas.')
   }
 
