@@ -454,7 +454,7 @@ export default function LucasPage() {
             <div className="abx-empty-state" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
               <div style={{ width: '240px', height: '240px', borderRadius: '50%', background: '#4256c8', position: 'relative', overflow: 'visible', marginBottom: '16px' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/assistenteia.png" alt="Assistente virtual" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: 'auto', pointerEvents: 'none' }} />
+                <img src="/assistenteia.png" alt="Assistente virtual" style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', height: '150%', width: 'auto', pointerEvents: 'none' }} />
               </div>
               <h1 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 700, color: '#111827', margin: '0 0 8px', letterSpacing: '-0.5px' }}>
                 Olá{nomeUsuario ? `, ${nomeUsuario}` : ''}! Sou o Lucas!
