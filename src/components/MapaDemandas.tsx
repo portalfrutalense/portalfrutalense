@@ -656,8 +656,21 @@ export default function MapaDemandas() {
 
           {/* Controles sobrepostos */}
           <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', zIndex: 1000 }}>
-            <button onClick={alternarCamada} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: '#1e3a5f', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {satelite ? '🗺️ Mapa de ruas' : '🛰️ Satélite'}
+            <button onClick={alternarCamada} style={{
+              position: 'relative', display: 'flex', width: '150px', height: '28px',
+              background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '20px', padding: '3px',
+              cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+            }}>
+              <div style={{
+                position: 'absolute', top: '3px', left: satelite ? '75px' : '3px', width: '72px', height: '22px',
+                background: '#1e3a5f', borderRadius: '16px', transition: 'left 0.2s ease',
+              }} />
+              <span style={{ position: 'relative', zIndex: 1, flex: 1, textAlign: 'center', fontSize: '11px', fontWeight: 600, lineHeight: '22px', color: satelite ? '#6b7280' : 'white' }}>
+                Padrão
+              </span>
+              <span style={{ position: 'relative', zIndex: 1, flex: 1, textAlign: 'center', fontSize: '11px', fontWeight: 600, lineHeight: '22px', color: satelite ? 'white' : '#6b7280' }}>
+                Satélite
+              </span>
             </button>
           </div>
 
