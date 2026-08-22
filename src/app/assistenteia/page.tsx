@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '@/components/AuthProvider'
 import ModalAuth from '@/components/ModalAuth'
 import Navbar from '@/components/Navbar'
+import Turnstile from '@/components/Turnstile'
 
 interface Mensagem {
   role: 'user' | 'assistant'
@@ -61,6 +62,7 @@ export default function LucasPage() {
   const [micDisponivel, setMicDisponivel] = useState(true)
   const [fotoFile, setFotoFile] = useState<File | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
+  const [turnstileToken, setTurnstileToken] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const pageBottomRef = useRef<HTMLDivElement>(null)
@@ -256,6 +258,10 @@ export default function LucasPage() {
 
   async function confirmarDemanda() {
     if (!pendente || criando) return
+    if (!turnstileToken) {
+      setMensagens(prev => [...prev, { role: 'assistant', content: 'Aguarde a verificação de segurança concluir e tente novamente.' }])
+      return
+    }
     setCriando(true)
     try {
       let lat = FRUTAL_LAT, lng = FRUTAL_LNG, enderecoLabel = pendente.endereco
@@ -297,11 +303,13 @@ export default function LucasPage() {
           morador_nome: perfil?.nome || nomeUsuario,
           foto_url,
           via_chatbot: true,
+          turnstile_token: turnstileToken,
         }),
       })
       if (res.ok) {
         setPendente(null)
         removerFoto()
+        setTurnstileToken('')
         setMensagens(prev => [...prev, { role: 'assistant', content: 'Demanda registrada com sucesso! Ela aparecerá no mapa após análise. Posso ajudar com mais alguma coisa?' }])
         setNotif('Demanda registrada!')
         setTimeout(() => setNotif(''), 4000)
@@ -406,6 +414,7 @@ export default function LucasPage() {
                   </button>
                 )}
                 <input ref={fotoInputRef} type="file" accept="image/*" onChange={selecionarFoto} style={{ display: 'none' }} />
+                <Turnstile onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button onClick={confirmarDemanda} disabled={criando}
                     style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '10px', padding: '10px 22px', fontSize: '14px', fontWeight: 600, cursor: criando ? 'wait' : 'pointer' }}>

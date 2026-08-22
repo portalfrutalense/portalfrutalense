@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from './AuthProvider'
+import Turnstile from './Turnstile'
 
 interface Mensagem {
   role: 'user' | 'assistant'
@@ -63,6 +64,7 @@ export default function ChatBot() {
   const [painelVisivel, setPainelVisivel] = useState(false)
   const [fotoFile, setFotoFile] = useState<File | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
+  const [turnstileToken, setTurnstileToken] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const botaoRef = useRef<HTMLButtonElement>(null)
   const avatarHeaderRef = useRef<HTMLImageElement>(null)
@@ -161,6 +163,10 @@ export default function ChatBot() {
 
   async function confirmarDemanda() {
     if (!pendente || criando) return
+    if (!turnstileToken) {
+      setMensagens(prev => [...prev, { role: 'assistant', content: 'Aguarde a verificação de segurança concluir e tente novamente.' }])
+      return
+    }
     setCriando(true)
 
     try {
@@ -205,12 +211,14 @@ export default function ChatBot() {
           morador_nome: perfil?.nome || nomeUsuario,
           foto_url,
           via_chatbot: true,
+          turnstile_token: turnstileToken,
         }),
       })
 
       if (res.ok) {
         setPendente(null)
         removerFoto()
+        setTurnstileToken('')
         setMensagens(prev => [...prev, { role: 'assistant', content: 'Demanda registrada com sucesso! Ela aparecerá no mapa após análise. Posso ajudar com mais alguma coisa?' }])
         setNotif('Demanda registrada!')
         setTimeout(() => setNotif(''), 4000)
@@ -331,6 +339,7 @@ export default function ChatBot() {
                   </button>
                 )}
                 <input ref={fotoInputRef} type="file" accept="image/*" onChange={selecionarFoto} style={{ display: 'none' }} />
+                <Turnstile onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start' }}>
                   <button onClick={confirmarDemanda} disabled={criando}
                     style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: criando ? 'wait' : 'pointer' }}>

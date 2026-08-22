@@ -13,16 +13,41 @@ async function getUser(req: NextRequest) {
   return user
 }
 
+async function verificarTurnstile(token: string | undefined, ip: string | null) {
+  if (!token) return false
+  try {
+    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        secret: process.env.TURNSTILE_SECRET_KEY!,
+        response: token,
+        ...(ip ? { remoteip: ip } : {}),
+      }),
+    })
+    const data = await res.json()
+    return !!data.success
+  } catch {
+    return false
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const user = await getUser(req)
     if (!user) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
 
     const body = await req.json()
-    const { descricao, lat, lng, categoria_id, entidade_id, foto_url, endereco_label } = body
+    const { descricao, lat, lng, categoria_id, entidade_id, foto_url, endereco_label, turnstile_token } = body
 
     if (!descricao || !lat || !lng || !categoria_id || !entidade_id) {
       return NextResponse.json({ error: 'Campos obrigatórios ausentes.' }, { status: 400 })
+    }
+
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null
+    const turnstileOk = await verificarTurnstile(turnstile_token, ip)
+    if (!turnstileOk) {
+      return NextResponse.json({ error: 'Verificação de segurança falhou. Tente novamente.' }, { status: 400 })
     }
 
     const { data: perfil } = await supabaseServer.from('perfis').select('nome, cpf, email').eq('id', user.id).single()

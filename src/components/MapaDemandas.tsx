@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from './AuthProvider'
 import ModalAuth from './ModalAuth'
+import Turnstile from './Turnstile'
 import { Demanda, CategoriaMapa, Entidade } from '@/types'
 
 const FRUTAL_LAT = -20.02752
@@ -79,6 +80,7 @@ export default function MapaDemandas() {
   const [entidadeId, setEntidadeId] = useState('')
   const [endereco, setEndereco] = useState('')
   const [coordenadas, setCoordenadas] = useState<{ lat: number; lng: number; label: string } | null>(null)
+  const [turnstileToken, setTurnstileToken] = useState('')
   const [locConfirmada, setLocConfirmada] = useState(false)
   const [buscando, setBuscando] = useState(false)
   const [fotoFile, setFotoFile] = useState<File | null>(null)
@@ -392,6 +394,7 @@ export default function MapaDemandas() {
     if (!entidadeId) { setErro('Selecione a autoridade responsável.'); return }
     if (!descricao.trim() || descricao.trim().length < 10) { setErro('Descreva melhor o problema.'); return }
     if (!coordenadas || !locConfirmada) { setErro('Confirme a localização no mapa.'); return }
+    if (!turnstileToken) { setErro('Aguarde a verificação de segurança concluir.'); return }
     setEnviando(true)
 
     let foto_url: string | null = null
@@ -410,12 +413,12 @@ export default function MapaDemandas() {
       const res = await fetch('/api/demandas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ descricao: descricao.trim(), lat: coordenadas.lat, lng: coordenadas.lng, categoria_id: categoriaId, entidade_id: entidadeId, foto_url, endereco_label: coordenadas.label }),
+        body: JSON.stringify({ descricao: descricao.trim(), lat: coordenadas.lat, lng: coordenadas.lng, categoria_id: categoriaId, entidade_id: entidadeId, foto_url, endereco_label: coordenadas.label, turnstile_token: turnstileToken }),
       })
       if (!res.ok) { const d = await res.json(); throw new Error(d.error) }
       setSucesso(true)
       setDescricao(''); setCategoriaId(''); setEntidadeId(''); setEndereco('')
-      setCoordenadas(null); setLocConfirmada(false); setFotoFile(null); setFotoPreview(null)
+      setCoordenadas(null); setLocConfirmada(false); setFotoFile(null); setFotoPreview(null); setTurnstileToken('')
     } catch (err: any) {
       setErro(err.message || 'Erro ao enviar.')
     } finally { setEnviando(false) }
@@ -424,7 +427,7 @@ export default function MapaDemandas() {
   function fecharFormulario() {
     setEtapa('fechado'); setSucesso(false); setErro('')
     setDescricao(''); setCategoriaId(''); setEntidadeId(''); setEndereco('')
-    setCoordenadas(null); setLocConfirmada(false); setFotoFile(null); setFotoPreview(null)
+    setCoordenadas(null); setLocConfirmada(false); setFotoFile(null); setFotoPreview(null); setTurnstileToken('')
   }
 
   const statusOpcoes: { value: string; label: string }[] = [
@@ -693,9 +696,9 @@ export default function MapaDemandas() {
       {etapa === 'formulario' && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '760px', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #e5e7eb' }}>
-              <h2 style={{ fontWeight: 700, color: '#111827', margin: 0, fontSize: '15px' }}>Registrar Demanda</h2>
-              <button onClick={fecharFormulario} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#6b7280', lineHeight: 1, padding: 0 }}>×</button>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: '16px 20px', borderBottom: '1px solid #e5e7eb' }}>
+              <h2 style={{ fontWeight: 700, color: '#111827', margin: 0, fontSize: '15px' }}>Registrar uma nova demanda</h2>
+              <button onClick={fecharFormulario} style={{ position: 'absolute', right: '20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#6b7280', lineHeight: 1, padding: 0 }}>×</button>
             </div>
 
             {sucesso ? (
@@ -833,6 +836,10 @@ export default function MapaDemandas() {
                   )}
                 </div>
                 </div>{/* fecha coluna direita */}
+
+                <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center' }}>
+                  <Turnstile onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
+                </div>
 
                 <button type="submit" disabled={enviando}
                   style={{ gridColumn: '1 / -1', backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
