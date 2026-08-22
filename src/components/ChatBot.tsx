@@ -340,8 +340,11 @@ export default function ChatBot() {
           }}
           title="Falar com o assistente"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/assistenteia.png" alt="Assistente virtual" style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', height: '150%', width: 'auto', pointerEvents: 'none' }} />
+          {/* Da metade pra baixo a foto fica presa ao circulo; da metade pra cima pode vazar */}
+          <div style={{ position: 'absolute', inset: 0, clipPath: 'inset(-1000px 0 0 0 round 0 0 32px 32px)' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/assistenteia.png" alt="Assistente virtual" style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', height: '150%', width: 'auto', pointerEvents: 'none' }} />
+          </div>
         </button>
       )}
 
@@ -369,9 +372,12 @@ export default function ChatBot() {
             position: 'relative', overflow: 'visible',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', position: 'relative', overflow: 'visible', flexShrink: 0 }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/assistenteia.png" alt="Assistente virtual" style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', height: '150%', width: 'auto', pointerEvents: 'none' }} />
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', position: 'relative', flexShrink: 0 }}>
+                {/* Da metade pra baixo a foto fica presa ao circulo; da metade pra cima pode vazar */}
+                <div style={{ position: 'absolute', inset: 0, clipPath: 'inset(-1000px 0 0 0 round 0 0 18px 18px)' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/assistenteia.png" alt="Assistente virtual" style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', height: '150%', width: 'auto', pointerEvents: 'none' }} />
+                </div>
               </div>
               <div>
                 <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'white' }}>Lucas</p>
