@@ -50,6 +50,7 @@ export default function MapaDemandas() {
   const leafletObj = useRef<any>(null)
   const tileAtual = useRef<any>(null)
   const markersRef = useRef<any[]>([])
+  const resizeObserverRef = useRef<ResizeObserver | null>(null)
   const miniMapRef = useRef<HTMLDivElement>(null)
   const miniMapObj = useRef<any>(null)
   const miniMapIniciado = useRef(false)
@@ -139,7 +140,18 @@ export default function MapaDemandas() {
       mapa.on('zoomend', atualizarBlur)
       mapa.whenReady(() => requestAnimationFrame(atualizarBlur))
       mapa.once('tilesloaded', atualizarBlur)
+
+      // Corrige o mapa esticando quando o tamanho do container muda (zoom do navegador, resize de janela)
+      const resizeObserver = new ResizeObserver(() => {
+        mapa.invalidateSize()
+      })
+      resizeObserver.observe(mapRef.current!)
+      resizeObserverRef.current = resizeObserver
     })
+
+    return () => {
+      resizeObserverRef.current?.disconnect()
+    }
   }, [])
 
   // Renderiza markers conforme filtros
