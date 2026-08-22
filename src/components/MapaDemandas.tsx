@@ -69,7 +69,7 @@ export default function MapaDemandas() {
   const [sheetState, setSheetState] = useState<'peek' | 'half' | 'full'>('peek')
   const [dicaArrasteVisivel, setDicaArrasteVisivel] = useState(true)
   const arrasteRef = useRef<{ startY: number; startFrac: number } | null>(null)
-  const SNAP: Record<'peek' | 'half' | 'full', number> = { peek: 0.17, half: 0.45, full: 0.75 }
+  const SNAP: Record<'peek' | 'half' | 'full', number> = { peek: 0.14, half: 0.47, full: 0.75 }
 
   // Filtros
   const [filtroStatus, setFiltroStatus] = useState('')
