@@ -60,7 +60,7 @@ export default function PageResponder() {
 
   if (carregando) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '14px' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontSize: '14px' }}>
         Carregando...
       </div>
     )
@@ -91,7 +91,7 @@ export default function PageResponder() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f6f8', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 'clamp(24px,5vw,48px) 16px' }}>
+    <div style={{ minHeight: '100vh', background: '#f9fafb', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 'clamp(24px,5vw,48px) 16px' }}>
       <div style={{ maxWidth: '560px', width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div style={{ textAlign: 'center' }}>
           <p style={{ fontWeight: 700, color: '#1e3a5f', fontSize: '16px', margin: 0 }}>Portal Frutalense</p>
@@ -106,10 +106,10 @@ export default function PageResponder() {
         </div>
 
         <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '20px' }}>
-          <p style={{ fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>
+          <p style={{ fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>
             Cobrança de {dados?.morador_nome}
           </p>
-          <p style={{ color: '#374151', fontSize: '14px', lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}>
+          <p style={{ color: '#111827', fontSize: '14px', lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}>
             {dados?.mensagem}
           </p>
         </div>
@@ -120,17 +120,17 @@ export default function PageResponder() {
           </label>
           <textarea value={resposta} onChange={(e) => setResposta(e.target.value)} rows={7}
             placeholder="Digite aqui seu posicionamento oficial sobre a demanda acima..."
-            style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '10px 12px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box', lineHeight: 1.6 }} />
-          <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>
+            style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '10px 12px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box', lineHeight: 1.6 }} />
+          <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
             Sua resposta será publicada publicamente no portal com seu nome e cargo.
           </p>
 
           <button onClick={handleEnviar} disabled={enviando}
-            style={{ backgroundColor: enviando ? '#9ca3af' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '12px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+            style={{ backgroundColor: enviando ? '#6b7280' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '12px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
             {enviando ? 'Enviando...' : 'Publicar Resposta Oficial'}
           </button>
 
-          <p style={{ fontSize: '11px', color: '#9ca3af', margin: 0, lineHeight: 1.5 }}>
+          <p style={{ fontSize: '11px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
             Ao responder, seu acesso é registrado para fins de transparência pública e segurança, em conformidade com a LGPD.
           </p>
         </div>

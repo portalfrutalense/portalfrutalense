@@ -24,15 +24,15 @@ export default function Navbar() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             {user ? (
               <>
-                <Link href="/perfil" style={{ fontSize: '13px', color: '#93c5fd', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px', textDecoration: 'none' }}>
+                <Link href="/perfil" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.75)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px', textDecoration: 'none' }}>
                   Olá, {nomeExibido}
                 </Link>
-                <button onClick={sair} style={{ fontSize: '13px', color: '#93c5fd', background: 'none', border: '1px solid #2d5a8f', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                <button onClick={sair} style={{ fontSize: '13px', color: 'rgba(255,255,255,0.75)', background: 'none', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                   Sair
                 </button>
               </>
             ) : (
-              <button onClick={() => setModalAuth(true)} style={{ fontSize: '13px', color: '#93c5fd', background: 'none', border: '1px solid #2d5a8f', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              <button onClick={() => setModalAuth(true)} style={{ fontSize: '13px', color: 'rgba(255,255,255,0.75)', background: 'none', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                 Entrar
               </button>
             )}

@@ -30,7 +30,7 @@ export default function MasterPage() {
   const [novaEntEmail, setNovaEntEmail] = useState('')
   const [novaEntCats, setNovaEntCats] = useState<string[]>([])
   const [novaCatNome, setNovaCatNome] = useState('')
-  const [novaCatCor, setNovaCatCor] = useState('#ef4444')
+  const [novaCatCor, setNovaCatCor] = useState('#dc2626')
   const [novaCatIcone, setNovaCatIcone] = useState<File | null>(null)
   const [editandoEnt, setEditandoEnt] = useState<string | null>(null)
   const [editEntNome, setEditEntNome] = useState('')
@@ -39,7 +39,7 @@ export default function MasterPage() {
   const [editEntCats, setEditEntCats] = useState<string[]>([])
   const [editandoCat, setEditandoCat] = useState<string | null>(null)
   const [editCatNome, setEditCatNome] = useState('')
-  const [editCatCor, setEditCatCor] = useState('#ef4444')
+  const [editCatCor, setEditCatCor] = useState('#dc2626')
   const [editCatIcone, setEditCatIcone] = useState<File | null>(null)
 
   // Stats dashboard
@@ -143,7 +143,7 @@ export default function MasterPage() {
       const url = await uploadIconeCategoria(novaCatIcone, nova.id)
       if (url) await client.from('categorias_mapa').update({ icone_url: url }).eq('id', nova.id)
     }
-    setNovaCatNome(''); setNovaCatCor('#ef4444'); setNovaCatIcone(null)
+    setNovaCatNome(''); setNovaCatCor('#dc2626'); setNovaCatIcone(null)
     carregarDados()
   }
   async function excluirCategoria(id: string) {
@@ -175,14 +175,14 @@ export default function MasterPage() {
   const btnAcao = (label: string, onClick: () => void, variante: 'primario' | 'perigo' | 'neutro') => {
     const cores: Record<string, React.CSSProperties> = {
       primario: { background: '#1e3a5f', color: 'white', border: 'none' },
-      perigo:   { background: 'white', color: '#dc2626', border: '1px solid #fecaca' },
+      perigo:   { background: 'white', color: '#dc2626', border: '1px solid #e5e7eb' },
       neutro:   { background: 'white', color: '#6b7280', border: '1px solid #e5e7eb' },
     }
     return <button onClick={onClick} style={{ ...cores[variante], fontSize: '12px', borderRadius: '5px', padding: '5px 12px', fontWeight: 500, cursor: 'pointer' }}>{label}</button>
   }
 
   if (carregandoAuth || !user || perfil?.role !== 'master') {
-    return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '14px', background: '#f8fafc' }}>Carregando...</div>
+    return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontSize: '14px', background: '#f9fafb' }}>Carregando...</div>
   }
 
   // ── PAINEL ────────────────────────────────────────────────
@@ -194,7 +194,7 @@ export default function MasterPage() {
   ]
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#f9fafb' }}>
 
       {/* ── SIDEBAR ── */}
       <aside style={{
@@ -335,10 +335,10 @@ export default function MasterPage() {
                   {[
                     { label: 'Total de demandas', valor: stats.total, cor: '#1e3a5f' },
                     { label: 'Pendentes (IA)', valor: stats.pendente, cor: '#92400e' },
-                    { label: 'Aguardando resposta', valor: stats.aguardando, cor: '#1e40af' },
+                    { label: 'Aguardando resposta', valor: stats.aguardando, cor: '#1e3a5f' },
                     { label: 'Respondidas', valor: stats.respondida, cor: '#166534' },
-                    { label: 'Resolvidas', valor: stats.resolvida, cor: '#065f46' },
-                    { label: 'Não resolvidas', valor: stats.nao_resolvida, cor: '#991b1b' },
+                    { label: 'Resolvidas', valor: stats.resolvida, cor: '#166534' },
+                    { label: 'Não resolvidas', valor: stats.nao_resolvida, cor: '#dc2626' },
                   ].map((s) => (
                     <div key={s.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, fontWeight: 500 }}>{s.label}</p>
@@ -381,12 +381,12 @@ export default function MasterPage() {
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   {configurando ? (
                     <button onClick={() => setConfigurando(false)}
-                      style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: '#374151', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer' }}>
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer' }}>
                       Voltar as demandas
                     </button>
                   ) : (
                     <button onClick={() => { setConfigurando(true); setAbaConfig('categorias') }}
-                      style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: '#374151', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer' }}>
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer' }}>
                       Configurar
                     </button>
                   )}
@@ -421,10 +421,10 @@ export default function MasterPage() {
                         <h2 style={{ fontWeight: 600, color: '#111827', fontSize: '15px', marginBottom: '16px' }}>Nova Categoria</h2>
                         <form onSubmit={salvarCategoria} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                           <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                            <input value={novaCatNome} onChange={(e) => setNovaCatNome(e.target.value)} placeholder="Nome da categoria (ex: Buraco na via)" required style={{ flex: 1, minWidth: '200px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', outline: 'none' }} />
+                            <input value={novaCatNome} onChange={(e) => setNovaCatNome(e.target.value)} placeholder="Nome da categoria (ex: Buraco na via)" required style={{ flex: 1, minWidth: '200px', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', outline: 'none' }} />
                             <div>
                               <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Cor do pin</label>
-                              <input type="color" value={novaCatCor} onChange={(e) => setNovaCatCor(e.target.value)} style={{ width: '44px', height: '38px', borderRadius: '8px', cursor: 'pointer', border: '1px solid #d1d5db', padding: '2px' }} />
+                              <input type="color" value={novaCatCor} onChange={(e) => setNovaCatCor(e.target.value)} style={{ width: '44px', height: '38px', borderRadius: '8px', cursor: 'pointer', border: '1px solid #e5e7eb', padding: '2px' }} />
                             </div>
                             <div>
                               <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Ícone (opcional, PNG com fundo transparente)</label>
@@ -435,16 +435,16 @@ export default function MasterPage() {
                         </form>
                       </div>
                       <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-                        {categorias.length === 0 && <p style={{ color: '#9ca3af', fontSize: '13px', padding: '20px' }}>Nenhuma categoria cadastrada.</p>}
+                        {categorias.length === 0 && <p style={{ color: '#6b7280', fontSize: '13px', padding: '20px' }}>Nenhuma categoria cadastrada.</p>}
                         {categorias.map((c, i) => (
-                          <div key={c.id} style={{ padding: '14px 20px', borderTop: i > 0 ? '1px solid #f3f4f6' : 'none' }}>
+                          <div key={c.id} style={{ padding: '14px 20px', borderTop: i > 0 ? '1px solid #f9fafb' : 'none' }}>
                             {editandoCat === c.id ? (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                  <input value={editCatNome} onChange={(e) => setEditCatNome(e.target.value)} placeholder="Nome" style={{ flex: 1, minWidth: '160px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
+                                  <input value={editCatNome} onChange={(e) => setEditCatNome(e.target.value)} placeholder="Nome" style={{ flex: 1, minWidth: '160px', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
                                   <div>
                                     <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Cor</label>
-                                    <input type="color" value={editCatCor} onChange={(e) => setEditCatCor(e.target.value)} style={{ width: '44px', height: '34px', borderRadius: '8px', cursor: 'pointer', border: '1px solid #d1d5db', padding: '2px' }} />
+                                    <input type="color" value={editCatCor} onChange={(e) => setEditCatCor(e.target.value)} style={{ width: '44px', height: '34px', borderRadius: '8px', cursor: 'pointer', border: '1px solid #e5e7eb', padding: '2px' }} />
                                   </div>
                                 </div>
                                 <div>
@@ -468,7 +468,7 @@ export default function MasterPage() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                   <span style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: c.cor, display: 'inline-block', border: '1px solid #e5e7eb', flexShrink: 0 }} />
                                   <p style={{ fontWeight: 500, color: '#111827', fontSize: '14px', margin: 0 }}>{c.nome}</p>
-                                  <span style={{ fontSize: '11px', color: '#9ca3af', fontFamily: 'monospace' }}>{c.cor}</span>
+                                  <span style={{ fontSize: '11px', color: '#6b7280', fontFamily: 'monospace' }}>{c.cor}</span>
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px' }}>
                                   {btnAcao('Editar', () => { setEditandoCat(c.id); setEditCatNome(c.nome); setEditCatCor(c.cor) }, 'neutro')}
@@ -616,11 +616,11 @@ function MasterDemandas({ token }: { token: string | null }) {
   }
 
   const statusCor: Record<string, { bg: string; color: string }> = {
-    pendente:           { bg: '#fef3c7', color: '#92400e' },
-    aguardando_resposta:{ bg: '#dbeafe', color: '#1e40af' },
-    respondida:         { bg: '#dcfce7', color: '#166534' },
-    rejeitada_ia:       { bg: '#fef2f2', color: '#dc2626' },
-    resolvida:          { bg: '#f0fdf4', color: '#15803d' },
+    pendente:           { bg: '#f9fafb', color: '#92400e' },
+    aguardando_resposta:{ bg: '#f9fafb', color: '#1e3a5f' },
+    respondida:         { bg: '#f9fafb', color: '#166534' },
+    rejeitada_ia:       { bg: '#f9fafb', color: '#dc2626' },
+    resolvida:          { bg: '#f9fafb', color: '#166534' },
   }
 
   const filtradas = filtro === 'todos' ? demandas : demandas.filter(d => d.status === filtro)
@@ -628,7 +628,7 @@ function MasterDemandas({ token }: { token: string | null }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {notif && (
-        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#166534' }}>
+        <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#166534' }}>
           {notif}
         </div>
       )}
@@ -643,7 +643,7 @@ function MasterDemandas({ token }: { token: string | null }) {
               fontSize: '12px', fontWeight: 600, padding: '6px 12px', borderRadius: '20px', cursor: 'pointer',
               border: filtro === f ? '2px solid #1e3a5f' : '1px solid #e5e7eb',
               background: filtro === f ? '#1e3a5f' : 'white',
-              color: filtro === f ? 'white' : '#374151',
+              color: filtro === f ? 'white' : '#111827',
             }}
           >
             {f === 'todos' ? `Todas (${demandas.length})` : `${statusLabel[f]} (${demandas.filter(d => d.status === f).length})`}
@@ -652,18 +652,18 @@ function MasterDemandas({ token }: { token: string | null }) {
       </div>
 
       {carregandoDemandas && (
-        <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '40px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
+        <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '40px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>
           Carregando demandas...
         </div>
       )}
       {!carregandoDemandas && filtradas.length === 0 && (
-        <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '40px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
+        <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '40px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>
           Nenhuma demanda encontrada.
         </div>
       )}
 
       {filtradas.map((d: any) => {
-        const cor = statusCor[d.status] || { bg: '#f3f4f6', color: '#6b7280' }
+        const cor = statusCor[d.status] || { bg: '#f9fafb', color: '#6b7280' }
         const editando = editandoId === d.id
         const menuAberto = menuAbertoDemandaId === d.id
         const expandida = expandidas.has(d.id)
@@ -676,7 +676,7 @@ function MasterDemandas({ token }: { token: string | null }) {
               onClick={() => toggleExpandida(d.id)}
               style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 48px 12px 20px', cursor: 'pointer' }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
                 style={{ flexShrink: 0, transform: expandida ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>
                 <polyline points="9 18 15 12 9 6" />
               </svg>
@@ -686,7 +686,7 @@ function MasterDemandas({ token }: { token: string | null }) {
               <span style={{ fontSize: '13px', fontWeight: 500, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                 {titleCase(d.morador_nome)} · {d.categoria?.nome ? titleCase(d.categoria.nome) : '—'}
               </span>
-              <span style={{ fontSize: '11px', color: '#9ca3af', flexShrink: 0 }}>
+              <span style={{ fontSize: '11px', color: '#6b7280', flexShrink: 0 }}>
                 {new Date(d.created_at).toLocaleDateString('pt-BR')}
               </span>
             </div>
@@ -695,7 +695,7 @@ function MasterDemandas({ token }: { token: string | null }) {
             <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: '14px', right: '16px', zIndex: 10 }}>
               <button
                 onClick={() => setMenuAbertoDemandaId(menuAberto ? null : d.id)}
-                style={{ fontSize: '16px', fontWeight: 700, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', lineHeight: 1, borderRadius: '4px' }}
+                style={{ fontSize: '16px', fontWeight: 700, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', lineHeight: 1, borderRadius: '4px' }}
               >
                 ···
               </button>
@@ -706,13 +706,13 @@ function MasterDemandas({ token }: { token: string | null }) {
                   <div style={{ position: 'absolute', top: '28px', right: 0, background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', minWidth: '160px', zIndex: 20, padding: '4px 0' }}>
                     <button
                       onClick={() => { setEditandoId(editando ? null : d.id); setEditDescricao(d.descricao); setMenuAbertoDemandaId(null) }}
-                      style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#374151', background: 'none', border: 'none', cursor: 'pointer' }}>
+                      style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#111827', background: 'none', border: 'none', cursor: 'pointer' }}>
                       {editando ? 'Cancelar edição' : 'Editar demanda'}
                     </button>
                     {d.status === 'aguardando_resposta' && (
                       <button
                         onClick={() => { reenviarLink(d.id); setMenuAbertoDemandaId(null) }}
-                        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#374151', background: 'none', border: 'none', cursor: 'pointer' }}>
+                        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#111827', background: 'none', border: 'none', cursor: 'pointer' }}>
                         Reenviar link
                       </button>
                     )}
@@ -727,7 +727,7 @@ function MasterDemandas({ token }: { token: string | null }) {
                         Marcar como resolvida
                       </button>
                     )}
-                    <div style={{ height: '1px', background: '#f3f4f6', margin: '4px 0' }} />
+                    <div style={{ height: '1px', background: '#f9fafb', margin: '4px 0' }} />
                     <button
                       onClick={() => { excluirDemanda(d.id); setMenuAbertoDemandaId(null) }}
                       style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}>
@@ -789,7 +789,7 @@ function MasterDemandas({ token }: { token: string | null }) {
                   style={{
                     alignSelf: 'flex-start', marginTop: '2px',
                     fontSize: '12px', fontWeight: 500,
-                    color: d.foto_url ? '#1e40af' : '#d1d5db',
+                    color: d.foto_url ? '#1e3a5f' : '#e5e7eb',
                     background: 'none', border: 'none',
                     cursor: d.foto_url ? 'pointer' : 'default',
                     padding: 0, textDecoration: d.foto_url ? 'underline' : 'none',
@@ -804,8 +804,8 @@ function MasterDemandas({ token }: { token: string | null }) {
                 <div style={{
                   fontSize: '12px',
                   color: d.status === 'rejeitada_ia' ? '#dc2626' : '#6b7280',
-                  background: d.status === 'rejeitada_ia' ? '#fef2f2' : '#f9fafb',
-                  border: `1px solid ${d.status === 'rejeitada_ia' ? '#fecaca' : '#e5e7eb'}`,
+                  background: d.status === 'rejeitada_ia' ? '#f9fafb' : '#f9fafb',
+                  border: `1px solid ${d.status === 'rejeitada_ia' ? '#e5e7eb' : '#e5e7eb'}`,
                   borderRadius: '6px',
                   padding: '7px 10px',
                   lineHeight: 1.5,
@@ -1016,7 +1016,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
         </p>
       </div>
 
-      {notif && <div style={{ background: notif.startsWith('⚠️') ? '#fef2f2' : '#f0fdf4', border: `1px solid ${notif.startsWith('⚠️') ? '#fecaca' : '#bbf7d0'}`, borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: notif.startsWith('⚠️') ? '#dc2626' : '#166534', marginBottom: '16px' }}>{notif}</div>}
+      {notif && <div style={{ background: notif.startsWith('⚠️') ? '#f9fafb' : '#f9fafb', border: `1px solid ${notif.startsWith('⚠️') ? '#e5e7eb' : '#e5e7eb'}`, borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: notif.startsWith('⚠️') ? '#dc2626' : '#166534', marginBottom: '16px' }}>{notif}</div>}
 
       {/* Formulário de criação — só para autoridade e empresa */}
       {subSecao !== 'cidadao' && (
@@ -1033,21 +1033,21 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
                 Nova {subSecao === 'autoridade' ? 'Autoridade' : 'Empresa'}
               </p>
               <input value={novoNome} onChange={e => setNovoNome(e.target.value)} placeholder="Nome completo"
-                style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 10px', fontSize: '13px', outline: 'none' }} />
+                style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 10px', fontSize: '13px', outline: 'none' }} />
               <input value={novoEmail} onChange={e => setNovoEmail(e.target.value)} placeholder="E-mail" type="email"
-                style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 10px', fontSize: '13px', outline: 'none' }} />
+                style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 10px', fontSize: '13px', outline: 'none' }} />
               <input value={novaSenha} onChange={e => setNovaSenha(e.target.value)} placeholder="Senha inicial" type="password"
-                style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 10px', fontSize: '13px', outline: 'none' }} />
+                style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 10px', fontSize: '13px', outline: 'none' }} />
               {subSecao === 'autoridade' && (
                 <>
                   <input value={novoCargo} onChange={e => setNovoCargo(e.target.value)} placeholder="Cargo (ex: Secretário de Obras)"
-                    style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 10px', fontSize: '13px', outline: 'none' }} />
+                    style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 10px', fontSize: '13px', outline: 'none' }} />
                   <div>
-                    <p style={{ fontSize: '12px', fontWeight: 600, color: '#374151', margin: '0 0 6px' }}>Categorias</p>
+                    <p style={{ fontSize: '12px', fontWeight: 600, color: '#111827', margin: '0 0 6px' }}>Categorias</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '140px', overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px' }}>
-                      {categorias.length === 0 && <span style={{ fontSize: '12px', color: '#9ca3af' }}>Nenhuma categoria cadastrada.</span>}
+                      {categorias.length === 0 && <span style={{ fontSize: '12px', color: '#6b7280' }}>Nenhuma categoria cadastrada.</span>}
                       {categorias.map(cat => (
-                        <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#374151', cursor: 'pointer' }}>
+                        <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#111827', cursor: 'pointer' }}>
                           <input type="checkbox" checked={novasCats.includes(cat.id)}
                             onChange={e => setNovasCats(prev => e.target.checked ? [...prev, cat.id] : prev.filter(id => id !== cat.id))} />
                           {cat.nome}
@@ -1076,7 +1076,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
         <input
           type="text" value={busca} onChange={e => setBusca(e.target.value)}
           placeholder="Buscar por nome, e-mail ou CPF..."
-          style={{ border: '1px solid #d1d5db', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', width: '260px', outline: 'none' }}
+          style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', width: '260px', outline: 'none' }}
         />
       </div>
 
@@ -1088,7 +1088,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
                 <div style={{ position: 'absolute', top: '12px', right: '12px' }}>
                   <button
                     onClick={() => setMenuAbertoId(menuAbertoId === p.id ? null : p.id)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', fontWeight: 700, color: '#9ca3af', padding: '2px 6px' }}>
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', fontWeight: 700, color: '#6b7280', padding: '2px 6px' }}>
                     ···
                   </button>
                   {menuAbertoId === p.id && (
@@ -1096,7 +1096,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
                       <div onClick={() => setMenuAbertoId(null)} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
                       <div style={{ position: 'absolute', top: '28px', right: 0, background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', minWidth: '160px', zIndex: 20, padding: '4px 0' }}>
                         <button onClick={() => { setEditandoId(p.id); setEditNome(p.nome || ''); setEditCpf(p.cpf || ''); setEditEmail(p.email || ''); setEditCargo(p.cargo || ''); setEditCats(catEntidades[p.id] || []); setMenuAbertoId(null) }}
-                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#374151', background: 'none', border: 'none', cursor: 'pointer' }}>
+                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#111827', background: 'none', border: 'none', cursor: 'pointer' }}>
                           Editar
                         </button>
                         {!p._legado && (
@@ -1105,7 +1105,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
                             {p.bloqueado ? 'Liberar acesso' : 'Bloquear acesso'}
                           </button>
                         )}
-                        <div style={{ height: '1px', background: '#f3f4f6', margin: '4px 0' }} />
+                        <div style={{ height: '1px', background: '#f9fafb', margin: '4px 0' }} />
                         <button onClick={() => { excluir(p.id); setMenuAbertoId(null) }}
                           style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}>
                           Excluir
@@ -1119,22 +1119,22 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
                 {editandoId === p.id ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '40px' }}>
                     <input value={editNome} onChange={e => setEditNome(e.target.value)} placeholder="Nome"
-                      style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
+                      style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
                     {p.role !== 'autoridade' && (
                       <input value={editCpf} onChange={e => setEditCpf(e.target.value)} placeholder="CPF"
-                        style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
+                        style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
                     )}
                     <input value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="E-mail"
-                      style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
+                      style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
                     {p.role === 'autoridade' && (
                       <>
                         <input value={editCargo} onChange={e => setEditCargo(e.target.value)} placeholder="Cargo"
-                          style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
+                          style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
                         <div>
-                          <p style={{ fontSize: '12px', fontWeight: 600, color: '#374151', margin: '0 0 6px' }}>Categorias</p>
+                          <p style={{ fontSize: '12px', fontWeight: 600, color: '#111827', margin: '0 0 6px' }}>Categorias</p>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '140px', overflowY: 'auto' }}>
                             {categorias.map(cat => (
-                              <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#374151', cursor: 'pointer' }}>
+                              <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#111827', cursor: 'pointer' }}>
                                 <input type="checkbox" checked={editCats.includes(cat.id)}
                                   onChange={e => setEditCats(prev => e.target.checked ? [...prev, cat.id] : prev.filter(id => id !== cat.id))} />
                                 {cat.nome}
@@ -1159,22 +1159,22 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
                   <div style={{ paddingRight: '40px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>{p.nome || '—'}</span>
-                      {p.bloqueado && <span style={{ fontSize: '10px', fontWeight: 700, background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '20px', padding: '2px 8px' }}>BLOQUEADO</span>}
-                      {p._legado && <span style={{ fontSize: '10px', fontWeight: 600, background: '#fefce8', color: '#92400e', border: '1px solid #fde68a', borderRadius: '20px', padding: '2px 8px' }}>sem login</span>}
+                      {p.bloqueado && <span style={{ fontSize: '10px', fontWeight: 700, background: '#f9fafb', color: '#dc2626', border: '1px solid #e5e7eb', borderRadius: '20px', padding: '2px 8px' }}>BLOQUEADO</span>}
+                      {p._legado && <span style={{ fontSize: '10px', fontWeight: 600, background: '#f9fafb', color: '#92400e', border: '1px solid #e5e7eb', borderRadius: '20px', padding: '2px 8px' }}>sem login</span>}
                     </div>
                     {p.role === 'autoridade' && p.cargo && (
-                      <span style={{ fontSize: '12px', color: '#374151' }}>{p.cargo}</span>
+                      <span style={{ fontSize: '12px', color: '#111827' }}>{p.cargo}</span>
                     )}
                     <span style={{ fontSize: '12px', color: '#6b7280' }}>{p.email || '—'}</span>
                     {p.role !== 'autoridade' && (
-                      <span style={{ fontSize: '12px', color: '#9ca3af' }}>CPF: {p.cpf || '—'}</span>
+                      <span style={{ fontSize: '12px', color: '#6b7280' }}>CPF: {p.cpf || '—'}</span>
                     )}
                     {p.role === 'autoridade' && catEntidades[p.id]?.length > 0 && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '2px' }}>
                         {catEntidades[p.id].map(catId => {
                           const cat = categorias.find(c => c.id === catId)
                           return cat ? (
-                            <span key={catId} style={{ fontSize: '10px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: '20px', padding: '2px 8px' }}>
+                            <span key={catId} style={{ fontSize: '10px', background: '#f9fafb', color: '#1e3a5f', border: '1px solid #e5e7eb', borderRadius: '20px', padding: '2px 8px' }}>
                               {cat.nome}
                             </span>
                           ) : null
@@ -1186,10 +1186,10 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
               </div>
             ))}
             {filtrados.length === 0 && !carregando && (
-              <p style={{ color: '#9ca3af', fontSize: '14px' }}>Nenhum cadastro encontrado.</p>
+              <p style={{ color: '#6b7280', fontSize: '14px' }}>Nenhum cadastro encontrado.</p>
             )}
             {carregando && (
-              <p style={{ color: '#9ca3af', fontSize: '14px' }}>Carregando...</p>
+              <p style={{ color: '#6b7280', fontSize: '14px' }}>Carregando...</p>
             )}
           </div>
     </div>
@@ -1316,8 +1316,8 @@ function MasterChatbot() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {notif && (
         <div style={{
-          background: notifErro ? '#fef2f2' : '#f0fdf4',
-          border: `1px solid ${notifErro ? '#fecaca' : '#bbf7d0'}`,
+          background: notifErro ? '#f9fafb' : '#f9fafb',
+          border: `1px solid ${notifErro ? '#e5e7eb' : '#e5e7eb'}`,
           borderRadius: '8px', padding: '10px 14px', fontSize: '13px',
           color: notifErro ? '#dc2626' : '#166534',
         }}>
@@ -1340,7 +1340,7 @@ function MasterChatbot() {
 
       {/* ── Base de conhecimento ── */}
       {aba === 'base' && <>
-      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '12px 16px', fontSize: '13px', color: '#1e40af', lineHeight: 1.6 }}>
+      <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '12px 16px', fontSize: '13px', color: '#1e3a5f', lineHeight: 1.6 }}>
         <strong>Como funciona:</strong> Cada entrada abaixo é um bloco de conhecimento que o chatbot usa para responder aos cidadãos. Adicione telefones úteis, horários, informações de serviços públicos, etc. O bot só responde com base no que está aqui.
       </div>
 
@@ -1350,12 +1350,12 @@ function MasterChatbot() {
         <form onSubmit={adicionar} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <input value={novoTitulo} onChange={e => setNovoTitulo(e.target.value)} required
             placeholder="Título (ex: UBS Central — Horário e telefone)"
-            style={{ border: '1px solid #d1d5db', borderRadius: '7px', padding: '9px 12px', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
+            style={{ border: '1px solid #e5e7eb', borderRadius: '7px', padding: '9px 12px', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
           <textarea value={novoConteudo} onChange={e => setNovoConteudo(e.target.value)} required rows={4}
             placeholder="Conteúdo (ex: UBS Central funciona de segunda a sexta, das 7h às 17h. Telefone: (34) 3321-xxxx. Endereço: Rua XV de Novembro, 200.)"
-            style={{ border: '1px solid #d1d5db', borderRadius: '7px', padding: '9px 12px', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.5 }} />
+            style={{ border: '1px solid #e5e7eb', borderRadius: '7px', padding: '9px 12px', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.5 }} />
           <button type="submit" disabled={salvando}
-            style={{ alignSelf: 'flex-start', backgroundColor: salvando ? '#9ca3af' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '9px 20px', borderRadius: '7px', border: 'none', cursor: salvando ? 'not-allowed' : 'pointer', fontSize: '13px' }}>
+            style={{ alignSelf: 'flex-start', backgroundColor: salvando ? '#6b7280' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '9px 20px', borderRadius: '7px', border: 'none', cursor: salvando ? 'not-allowed' : 'pointer', fontSize: '13px' }}>
             {salvando ? 'Salvando...' : 'Adicionar'}
           </button>
         </form>
@@ -1364,12 +1364,12 @@ function MasterChatbot() {
       {/* Lista de entradas */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {entradas.length === 0 && (
-          <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '32px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
+          <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '32px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>
             Nenhuma entrada cadastrada ainda.
           </div>
         )}
         {entradas.map((e: any) => (
-          <div key={e.id} style={{ background: 'white', borderRadius: '10px', border: `1px solid ${e.ativo ? '#e5e7eb' : '#f3f4f6'}`, padding: '16px', opacity: e.ativo ? 1 : 0.55 }}>
+          <div key={e.id} style={{ background: 'white', borderRadius: '10px', border: `1px solid ${e.ativo ? '#e5e7eb' : '#f9fafb'}`, padding: '16px', opacity: e.ativo ? 1 : 0.55 }}>
             {editandoId === e.id ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <input value={editTitulo} onChange={ev => setEditTitulo(ev.target.value)}
@@ -1387,7 +1387,7 @@ function MasterChatbot() {
                   <button
                     onClick={() => toggleExpandir(e.id)}
                     style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left', flex: 1, minWidth: 0 }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                       style={{ flexShrink: 0, transition: 'transform 0.15s', transform: expandidos.has(e.id) ? 'rotate(90deg)' : 'rotate(0deg)' }}>
                       <polyline points="9 18 15 12 9 6" />
                     </svg>
@@ -1395,15 +1395,15 @@ function MasterChatbot() {
                   </button>
                   <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
                     <button onClick={() => toggleAtivo(e.id, e.ativo)}
-                      style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', border: 'none', cursor: 'pointer', background: e.ativo ? '#dcfce7' : '#f3f4f6', color: e.ativo ? '#166534' : '#6b7280' }}>
+                      style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', border: 'none', cursor: 'pointer', background: e.ativo ? '#f9fafb' : '#f9fafb', color: e.ativo ? '#166534' : '#6b7280' }}>
                       {e.ativo ? 'Ativo' : 'Inativo'}
                     </button>
                     <button onClick={() => { setEditandoId(e.id); setEditTitulo(e.titulo); setEditConteudo(e.conteudo) }}
-                      style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', border: '1px solid #e5e7eb', cursor: 'pointer', background: 'white', color: '#374151' }}>
+                      style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', border: '1px solid #e5e7eb', cursor: 'pointer', background: 'white', color: '#111827' }}>
                       Editar
                     </button>
                     <button onClick={() => excluir(e.id)}
-                      style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', border: '1px solid #fecaca', cursor: 'pointer', background: 'white', color: '#dc2626' }}>
+                      style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', border: '1px solid #e5e7eb', cursor: 'pointer', background: 'white', color: '#dc2626' }}>
                       Excluir
                     </button>
                   </div>
@@ -1438,12 +1438,12 @@ function MasterChatbot() {
                 onChange={e => campo.set(e.target.value)}
                 rows={campo.rows}
                 placeholder={campo.placeholder}
-                style={{ border: '1px solid #d1d5db', borderRadius: '7px', padding: '9px 12px', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6 }}
+                style={{ border: '1px solid #e5e7eb', borderRadius: '7px', padding: '9px 12px', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6 }}
               />
             </div>
           ))}
           <button onClick={salvarConfig} disabled={salvandoConfig}
-            style={{ alignSelf: 'flex-start', background: salvandoConfig ? '#9ca3af' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '7px', padding: '9px 20px', fontSize: '13px', fontWeight: 600, cursor: salvandoConfig ? 'not-allowed' : 'pointer' }}>
+            style={{ alignSelf: 'flex-start', background: salvandoConfig ? '#6b7280' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '7px', padding: '9px 20px', fontSize: '13px', fontWeight: 600, cursor: salvandoConfig ? 'not-allowed' : 'pointer' }}>
             {salvandoConfig ? 'Salvando...' : 'Salvar configurações'}
           </button>
         </div>
@@ -1454,7 +1454,7 @@ function MasterChatbot() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Perguntas que o chatbot não soube responder. Use para identificar o que adicionar na base de conhecimento.</p>
           {semResposta.length === 0 && (
-            <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '32px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
+            <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '32px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>
               Nenhuma pergunta sem resposta registrada.
             </div>
           )}
@@ -1463,10 +1463,10 @@ function MasterChatbot() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
                   <span style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>"{r.pergunta}"</span>
-                  <span style={{ fontSize: '11px', color: '#9ca3af' }}>{new Date(r.created_at).toLocaleString('pt-BR')}</span>
+                  <span style={{ fontSize: '11px', color: '#6b7280' }}>{new Date(r.created_at).toLocaleString('pt-BR')}</span>
                 </div>
                 <button onClick={() => excluirSemResposta(r.id)}
-                  style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', border: '1px solid #fecaca', cursor: 'pointer', background: 'white', color: '#dc2626', flexShrink: 0 }}>
+                  style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', border: '1px solid #e5e7eb', cursor: 'pointer', background: 'white', color: '#dc2626', flexShrink: 0 }}>
                   Excluir
                 </button>
               </div>
@@ -1506,38 +1506,38 @@ function MasterIA() {
   }
 
   if (erro) return <p style={{ color: '#dc2626', fontSize: '13px' }}>{erro}</p>
-  if (!config) return <p style={{ color: '#9ca3af', fontSize: '13px' }}>Carregando...</p>
+  if (!config) return <p style={{ color: '#6b7280', fontSize: '13px' }}>Carregando...</p>
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {notif && <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#166534' }}>{notif}</div>}
+      {notif && <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#166534' }}>{notif}</div>}
 
       <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '20px' }}>
         <h2 style={{ fontWeight: 700, color: '#111827', fontSize: '15px', marginBottom: '20px' }}>Configurações da IA</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
             <div>
               <p style={{ fontSize: '14px', fontWeight: 600, color: '#111827', margin: 0 }}>Análise automática ativa</p>
               <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0' }}>Quando desativada, demandas ficam pendentes para aprovação manual</p>
             </div>
             <button onClick={() => setConfig({ ...config, ativo: !config.ativo })}
-              style={{ width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: config.ativo ? '#1e3a5f' : '#d1d5db', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+              style={{ width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: config.ativo ? '#1e3a5f' : '#e5e7eb', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
               <span style={{ position: 'absolute', top: '2px', left: config.ativo ? '22px' : '2px', width: '20px', height: '20px', borderRadius: '50%', background: 'white', transition: 'left 0.2s', display: 'block' }} />
             </button>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>Nível de rigor</label>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#111827', marginBottom: '8px' }}>Nível de rigor</label>
             <div style={{ display: 'flex', gap: '8px' }}>
               {['permissivo', 'moderado', 'rigoroso'].map(r => (
                 <button key={r} onClick={() => setConfig({ ...config, rigor: r })}
-                  style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1.5px solid', borderColor: config.rigor === r ? '#1e3a5f' : '#e5e7eb', background: config.rigor === r ? '#eff6ff' : 'white', color: config.rigor === r ? '#1e3a5f' : '#374151', fontSize: '13px', fontWeight: config.rigor === r ? 600 : 400, cursor: 'pointer', textTransform: 'capitalize' }}>
+                  style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1.5px solid', borderColor: config.rigor === r ? '#1e3a5f' : '#e5e7eb', background: config.rigor === r ? '#f9fafb' : 'white', color: config.rigor === r ? '#1e3a5f' : '#111827', fontSize: '13px', fontWeight: config.rigor === r ? 600 : 400, cursor: 'pointer', textTransform: 'capitalize' }}>
                   {r}
                 </button>
               ))}
             </div>
-            <p style={{ fontSize: '11px', color: '#9ca3af', margin: '6px 0 0' }}>
+            <p style={{ fontSize: '11px', color: '#6b7280', margin: '6px 0 0' }}>
               {config.rigor === 'permissivo' && 'Rejeita apenas conteúdo claramente ofensivo ou spam.'}
               {config.rigor === 'moderado' && 'Rejeita conteúdo ofensivo, político-partidário ou sem relação com serviços públicos.'}
               {config.rigor === 'rigoroso' && 'Rejeita demandas vagas, sem endereço ou que não sejam solicitações legítimas.'}
@@ -1545,13 +1545,13 @@ function MasterIA() {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>Prompt de análise</label>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#111827', marginBottom: '8px' }}>Prompt de análise</label>
             <textarea value={config.prompt} onChange={(e) => setConfig({ ...config, prompt: e.target.value })} rows={6}
-              style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', lineHeight: 1.6 }} />
+              style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', lineHeight: 1.6 }} />
           </div>
 
           <button onClick={salvar} disabled={salvando}
-            style={{ backgroundColor: salvando ? '#9ca3af' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '8px', border: 'none', cursor: salvando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+            style={{ backgroundColor: salvando ? '#6b7280' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '8px', border: 'none', cursor: salvando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
             {salvando ? 'Salvando...' : 'Salvar configurações'}
           </button>
         </div>

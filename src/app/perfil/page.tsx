@@ -16,12 +16,12 @@ const statusLabel: Record<string, string> = {
 }
 
 const statusCor: Record<string, { bg: string; color: string }> = {
-  pendente:            { bg: '#f3f4f6', color: '#6b7280' },
-  aguardando_resposta: { bg: '#dbeafe', color: '#1e40af' },
-  respondida:          { bg: '#dcfce7', color: '#166534' },
-  rejeitada_ia:        { bg: '#fef2f2', color: '#dc2626' },
-  nao_resolvida:       { bg: '#fef3c7', color: '#92400e' },
-  resolvida:           { bg: '#f3f4f6', color: '#6b7280' },
+  pendente:            { bg: '#f9fafb', color: '#6b7280' },
+  aguardando_resposta: { bg: '#f9fafb', color: '#1e3a5f' },
+  respondida:          { bg: '#f9fafb', color: '#166534' },
+  rejeitada_ia:        { bg: '#f9fafb', color: '#dc2626' },
+  nao_resolvida:       { bg: '#f9fafb', color: '#92400e' },
+  resolvida:           { bg: '#f9fafb', color: '#6b7280' },
 }
 
 export default function PerfilPage() {
@@ -98,7 +98,7 @@ export default function PerfilPage() {
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               padding: '8px 18px', fontSize: '14px', fontWeight: 600,
-              color: abaAtiva === aba ? '#1e3a5f' : '#9ca3af',
+              color: abaAtiva === aba ? '#1e3a5f' : '#6b7280',
               borderBottom: abaAtiva === aba ? '2px solid #1e3a5f' : '2px solid transparent',
               marginBottom: '-2px', transition: 'color 0.15s',
             }}>
@@ -127,7 +127,7 @@ export default function PerfilPage() {
                 onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.05)')}
               >
                 <span style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>Demandas</span>
-                <span style={{ fontSize: '11px', color: '#9ca3af' }}>{demandas.length} registro{demandas.length !== 1 ? 's' : ''}</span>
+                <span style={{ fontSize: '11px', color: '#6b7280' }}>{demandas.length} registro{demandas.length !== 1 ? 's' : ''}</span>
               </button>
             </div>
           )}
@@ -158,7 +158,7 @@ export default function PerfilPage() {
                     </span>
                     <span style={{
                       fontSize: '11px', fontWeight: 600, borderRadius: '20px', padding: '3px 10px',
-                      background: statusCor[d.status]?.bg || '#f3f4f6',
+                      background: statusCor[d.status]?.bg || '#f9fafb',
                       color: statusCor[d.status]?.color || '#6b7280',
                     }}>
                       {statusLabel[d.status] || d.status}
@@ -179,34 +179,34 @@ export default function PerfilPage() {
 
                   {/* Resposta da autoridade */}
                   {d.resposta && (
-                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: '#166534', lineHeight: 1.5 }}>
+                    <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: '#166534', lineHeight: 1.5 }}>
                       <strong>Resposta:</strong> {d.resposta}
                     </div>
                   )}
 
                   {/* Motivo rejeição IA */}
                   {d.status === 'rejeitada_ia' && d.ia_motivo && (
-                    <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: '#dc2626', lineHeight: 1.5 }}>
+                    <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: '#dc2626', lineHeight: 1.5 }}>
                       <strong>Motivo:</strong> {d.ia_motivo}
                     </div>
                   )}
 
                   {/* Data + ações */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                    <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                    <span style={{ fontSize: '11px', color: '#6b7280' }}>
                       {new Date(d.created_at).toLocaleDateString('pt-BR')}
                     </span>
                     <div style={{ display: 'flex', gap: '6px' }}>
                       {['aguardando_resposta', 'respondida', 'nao_resolvida'].includes(d.status) && (
                         <button
                           onClick={() => marcarResolvida(d.id)}
-                          style={{ fontSize: '11px', color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontWeight: 500 }}>
+                          style={{ fontSize: '11px', color: '#166534', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontWeight: 500 }}>
                           Marcar como resolvida
                         </button>
                       )}
                       <button
                         onClick={() => excluirDemanda(d.id)}
-                        style={{ fontSize: '11px', color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontWeight: 500 }}>
+                        style={{ fontSize: '11px', color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontWeight: 500 }}>
                         Excluir
                       </button>
                     </div>
@@ -241,7 +241,7 @@ export default function PerfilPage() {
                 })
                 if (res.ok) window.location.href = '/'
               }}
-              style={{ fontSize: '13px', color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontWeight: 500 }}>
+              style={{ fontSize: '13px', color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontWeight: 500 }}>
               Excluir conta
             </button>
           </div>
@@ -255,7 +255,7 @@ export default function PerfilPage() {
 function Campo({ label, valor }: { label: string; valor: string }) {
   return (
     <div>
-      <p style={{ fontSize: '11px', color: '#9ca3af', margin: '0 0 2px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</p>
+      <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 2px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</p>
       <p style={{ fontSize: '14px', color: '#111827', margin: 0 }}>{valor}</p>
     </div>
   )

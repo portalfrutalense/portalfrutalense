@@ -160,7 +160,7 @@ export default function MapaDemandas() {
     })
 
     function criarIcone(d: typeof filtradas[0], zoom: number) {
-      const cor = d.categoria?.cor || '#3b82f6'
+      const cor = d.categoria?.cor || '#1e3a5f'
       const iconeUrl = d.categoria?.icone_url
 
       // Miolo do pin — o que muda entre os 3 casos
@@ -367,10 +367,10 @@ export default function MapaDemandas() {
   }
 
   const statusCor: Record<string, { bg: string; color: string }> = {
-    aguardando_resposta: { bg: '#dbeafe', color: '#1e40af' },
-    respondida:          { bg: '#dcfce7', color: '#166534' },
-    nao_resolvida:       { bg: '#fef3c7', color: '#92400e' },
-    resolvida:           { bg: '#f3f4f6', color: '#6b7280' },
+    aguardando_resposta: { bg: '#f9fafb', color: '#1e3a5f' },
+    respondida:          { bg: '#f9fafb', color: '#166534' },
+    nao_resolvida:       { bg: '#f9fafb', color: '#92400e' },
+    resolvida:           { bg: '#f9fafb', color: '#6b7280' },
   }
 
   const demandasVisiveis = demandas.filter(d => {
@@ -385,13 +385,13 @@ export default function MapaDemandas() {
       <div className="mapa-layout" style={{ display: 'flex', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', flex: 1 }}>
 
         {/* SIDEBAR */}
-        <div className="mapa-sidebar" style={{ width: '260px', flexShrink: 0, background: 'white', borderRight: '1px solid #d1d5db', display: 'flex', flexDirection: 'column', minHeight: 'clamp(300px, 55vw, 500px)', overflowY: 'auto' }}>
+        <div className="mapa-sidebar" style={{ width: '260px', flexShrink: 0, background: 'white', borderRight: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', minHeight: 'clamp(300px, 55vw, 500px)', overflowY: 'auto' }}>
 
           {demandaSelecionada ? (
             /* ── DETALHE DA DEMANDA ── */
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
               {/* Voltar */}
-              <div style={{ padding: '12px 14px', borderBottom: '1px solid #f3f4f6', flexShrink: 0 }}>
+              <div style={{ padding: '12px 14px', borderBottom: '1px solid #f9fafb', flexShrink: 0 }}>
                 <button
                   onClick={() => setDemandaSelecionada(null)}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#1e3a5f', padding: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -406,7 +406,7 @@ export default function MapaDemandas() {
                 <div>
                   <span style={{
                     fontSize: '11px', fontWeight: 600, borderRadius: '20px', padding: '3px 10px',
-                    background: statusCor[demandaSelecionada.status]?.bg || '#f3f4f6',
+                    background: statusCor[demandaSelecionada.status]?.bg || '#f9fafb',
                     color: statusCor[demandaSelecionada.status]?.color || '#6b7280',
                   }}>
                     {statusLabel[demandaSelecionada.status] || demandaSelecionada.status}
@@ -462,7 +462,7 @@ export default function MapaDemandas() {
                           setDemandas(prev => prev.map(d => d.id === demandaSelecionada.id ? { ...d, status: 'resolvida' } : d))
                           setDemandaSelecionada(prev => prev ? { ...prev, status: 'resolvida' } : null)
                         }}
-                        style={{ fontSize: '12px', color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '7px', cursor: 'pointer', fontWeight: 500 }}>
+                        style={{ fontSize: '12px', color: '#166534', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px', cursor: 'pointer', fontWeight: 500 }}>
                         Marcar como resolvida
                       </button>
                     )}
@@ -473,7 +473,7 @@ export default function MapaDemandas() {
                         setDemandas(prev => prev.filter(d => d.id !== demandaSelecionada.id))
                         setDemandaSelecionada(null)
                       }}
-                      style={{ fontSize: '12px', color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px', cursor: 'pointer', fontWeight: 500 }}>
+                      style={{ fontSize: '12px', color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px', cursor: 'pointer', fontWeight: 500 }}>
                       Excluir
                     </button>
                   </div>
@@ -481,7 +481,7 @@ export default function MapaDemandas() {
 
                 {/* Criada em */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                  <span style={{ fontSize: '11px', color: '#6b7280' }}>
                     Criada em {new Date(demandaSelecionada.created_at).toLocaleDateString('pt-BR')}
                   </span>
                 </div>
@@ -492,7 +492,7 @@ export default function MapaDemandas() {
             <>
               {/* Topo: título + descrição + filtros */}
               <div style={{ flex: 1, overflowY: 'auto', padding: '18px 14px 12px' }}>
-                <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#0f2440', margin: '0 0 6px', lineHeight: 1.3 }}>Mapa de Demandas</h2>
+                <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 6px', lineHeight: 1.3 }}>Mapa de Demandas</h2>
                 <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 12px', lineHeight: 1.5 }}>
                   Demandas dos cidadãos de Frutal-MG direcionadas às autoridades públicas.
                 </p>
@@ -514,11 +514,11 @@ export default function MapaDemandas() {
 
                 {/* Filtro de status */}
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#374151', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Status</label>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#111827', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Status</label>
                   <select
                     value={filtroStatus}
                     onChange={(e) => setFiltroStatus(e.target.value)}
-                    style={{ width: '100%', fontSize: '13px', fontWeight: 500, color: '#374151', background: 'white', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 28px 8px 10px', cursor: 'pointer', outline: 'none', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', boxSizing: 'border-box' }}>
+                    style={{ width: '100%', fontSize: '13px', fontWeight: 500, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 28px 8px 10px', cursor: 'pointer', outline: 'none', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', boxSizing: 'border-box' }}>
                     {statusOpcoes.map(o => (
                       <option key={o.value} value={o.value}>{o.label}</option>
                     ))}
@@ -528,11 +528,11 @@ export default function MapaDemandas() {
                 {/* Filtro de categoria */}
                 {categorias.length > 0 && (
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#374151', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Categoria</label>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#111827', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Categoria</label>
                     <select
                       value={filtroCategoria}
                       onChange={(e) => setFiltroCategoria(e.target.value)}
-                      style={{ width: '100%', fontSize: '13px', fontWeight: 500, color: '#374151', background: 'white', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 28px 8px 10px', cursor: 'pointer', outline: 'none', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', boxSizing: 'border-box' }}>
+                      style={{ width: '100%', fontSize: '13px', fontWeight: 500, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 28px 8px 10px', cursor: 'pointer', outline: 'none', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', boxSizing: 'border-box' }}>
                       <option value="">Todas as categorias</option>
                       {categorias.map((c) => (
                         <option key={c.id} value={c.id}>{c.nome}</option>
@@ -543,17 +543,17 @@ export default function MapaDemandas() {
               </div>
 
               {/* Contador + Zoom */}
-              <div style={{ padding: '10px 14px', borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '11px', color: '#9ca3af' }}>{demandasVisiveis.length} demanda{demandasVisiveis.length !== 1 ? 's' : ''}</span>
+              <div style={{ padding: '10px 14px', borderTop: '1px solid #f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '11px', color: '#6b7280' }}>{demandasVisiveis.length} demanda{demandasVisiveis.length !== 1 ? 's' : ''}</span>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   <button
                     onClick={() => mapaObj.current?.zoomIn()}
-                    style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', fontSize: '16px', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+                    style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', fontSize: '16px', fontWeight: 600, color: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
                     +
                   </button>
                   <button
                     onClick={() => mapaObj.current?.zoomOut()}
-                    style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', fontSize: '16px', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+                    style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', fontSize: '16px', fontWeight: 600, color: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
                     −
                   </button>
                 </div>
@@ -578,7 +578,7 @@ export default function MapaDemandas() {
           {!user && (
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(15,36,64,0.92), transparent)', padding: '40px 24px 20px', zIndex: 1000, textAlign: 'center' }}>
               <p style={{ color: 'white', fontWeight: 600, fontSize: '14px', margin: '0 0 10px' }}>Faça login para ver as demandas completas</p>
-              <button onClick={() => setModalAuth(true)} style={{ background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
+              <button onClick={() => setModalAuth(true)} style={{ background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
                 Entrar com Google
               </button>
             </div>
@@ -595,7 +595,7 @@ export default function MapaDemandas() {
           <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #e5e7eb' }}>
               <h2 style={{ fontWeight: 700, color: '#111827', margin: 0, fontSize: '15px' }}>Registrar Demanda</h2>
-              <button onClick={fecharFormulario} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#9ca3af', lineHeight: 1, padding: 0 }}>×</button>
+              <button onClick={fecharFormulario} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#6b7280', lineHeight: 1, padding: 0 }}>×</button>
             </div>
 
             {sucesso ? (
@@ -608,29 +608,29 @@ export default function MapaDemandas() {
               </div>
             ) : (
               <form onSubmit={handleEnviar} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {erro && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
+                {erro && <div style={{ color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Cidadão</label>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '8px 12px', background: '#f0fdf4' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Cidadão</label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', background: '#f9fafb' }}>
                     <span style={{ fontSize: '14px', color: '#166534', fontWeight: 500 }}>{perfil?.nome}</span>
-                    <span style={{ fontSize: '11px', background: '#dcfce7', color: '#166534', borderRadius: '4px', padding: '2px 7px', fontWeight: 600 }}>Google</span>
+                    <span style={{ fontSize: '11px', background: '#f9fafb', color: '#166534', borderRadius: '4px', padding: '2px 7px', fontWeight: 600 }}>Google</span>
                   </div>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Categoria *</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Categoria *</label>
                   <select value={categoriaId} onChange={(e) => { setCategoriaId(e.target.value); setEntidadeId('') }}
-                    style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', background: 'white', outline: 'none', boxSizing: 'border-box' }}>
+                    style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', background: 'white', outline: 'none', boxSizing: 'border-box' }}>
                     <option value="">Selecione</option>
                     {categorias.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
                   </select>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Autoridade responsável *</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Autoridade responsável *</label>
                   <select value={entidadeId} onChange={(e) => setEntidadeId(e.target.value)}
-                    style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', background: 'white', outline: 'none', boxSizing: 'border-box' }}>
+                    style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', background: 'white', outline: 'none', boxSizing: 'border-box' }}>
                     <option value="">Selecione a autoridade</option>
                     {(categoriaId && catEntidades[categoriaId]?.length
                       ? entidades.filter(en => catEntidades[categoriaId].includes(en.id))
@@ -640,24 +640,24 @@ export default function MapaDemandas() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Endereço *</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Endereço *</label>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <input type="text" value={endereco} onChange={(e) => setEndereco(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), buscarEndereco())}
                       placeholder="Ex: Rua XV de Novembro, 123"
-                      style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none' }} />
+                      style={{ flex: 1, border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none' }} />
                     <button type="button" onClick={buscarEndereco} disabled={buscando}
                       style={{ backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                       {buscando ? '...' : 'Buscar'}
                     </button>
                   </div>
                   <button type="button" onClick={usarMinhaLocalizacao} disabled={buscando}
-                    style={{ marginTop: '8px', background: 'none', border: '1px solid #d1d5db', borderRadius: '6px', padding: '7px 12px', fontSize: '12px', color: '#374151', cursor: 'pointer', width: '100%' }}>
+                    style={{ marginTop: '8px', background: 'none', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 12px', fontSize: '12px', color: '#111827', cursor: 'pointer', width: '100%' }}>
                     {buscando ? 'Obtendo...' : '📍 Usar minha localização'}
                   </button>
                   {coordenadas && !locConfirmada && (
                     <div style={{ marginTop: '8px' }}>
-                      <p style={{ fontSize: '12px', color: '#92400e', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '6px', padding: '6px 10px', margin: '0 0 6px' }}>
+                      <p style={{ fontSize: '12px', color: '#92400e', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '6px 10px', margin: '0 0 6px' }}>
                         Mova o mapa até o local exato e toque em <strong>Confirmar localização</strong>.
                       </p>
                       <div style={{ position: 'relative', width: '100%' }}>
@@ -673,14 +673,14 @@ export default function MapaDemandas() {
                           t.addTo(miniMapObj.current)
                           miniTileAtual.current = t
                           setMiniSatelite(novo)
-                        }} style={{ position: 'absolute', top: '6px', right: '6px', zIndex: 1001, background: 'white', border: '1px solid #d1d5db', borderRadius: '4px', padding: '4px 8px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', color: '#374151', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>
+                        }} style={{ position: 'absolute', top: '6px', right: '6px', zIndex: 1001, background: 'white', border: '1px solid #e5e7eb', borderRadius: '4px', padding: '4px 8px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', color: '#111827', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>
                           {miniSatelite ? '🗺 Mapa' : '🛰 Satélite'}
                         </button>
-                      <div style={{ position: 'relative', width: '100%', height: '220px', borderRadius: '6px', border: '1px solid #d1d5db', overflow: 'hidden' }}>
+                      <div style={{ position: 'relative', width: '100%', height: '220px', borderRadius: '6px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
                         <div ref={miniMapRef} style={{ width: '100%', height: '100%' }} />
                         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -100%)', zIndex: 1000, pointerEvents: 'none' }}>
                           <svg width="32" height="40" viewBox="0 0 32 40" fill="none">
-                            <path d="M16 0C7.163 0 0 7.163 0 16c0 10.627 14.4 23.04 15.04 23.573a1.333 1.333 0 001.92 0C17.6 39.04 32 26.627 32 16 32 7.163 24.837 0 16 0z" fill="#f97316"/>
+                            <path d="M16 0C7.163 0 0 7.163 0 16c0 10.627 14.4 23.04 15.04 23.573a1.333 1.333 0 001.92 0C17.6 39.04 32 26.627 32 16 32 7.163 24.837 0 16 0z" fill="#1e3a5f"/>
                             <circle cx="16" cy="16" r="7" fill="white"/>
                           </svg>
                         </div>
@@ -693,7 +693,7 @@ export default function MapaDemandas() {
                     </div>
                   )}
                   {coordenadas && locConfirmada && (
-                    <div style={{ marginTop: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '8px 12px', fontSize: '12px', color: '#166534', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ marginTop: '8px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '12px', color: '#166534', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span><strong>{coordenadas.label}</strong></span>
                       <button type="button" onClick={() => { setCoordenadas(null); setLocConfirmada(false) }}
                         style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline', padding: 0, marginLeft: '8px' }}>
@@ -704,19 +704,19 @@ export default function MapaDemandas() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Descrição *</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Descrição *</label>
                   <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={3} placeholder="Descreva o problema em detalhes..."
-                    style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
+                    style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>
-                    Foto <span style={{ color: '#9ca3af', fontWeight: 400 }}>(opcional)</span>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>
+                    Foto <span style={{ color: '#6b7280', fontWeight: 400 }}>(opcional)</span>
                   </label>
                   {!fotoPreview ? (
-                    <label style={{ display: 'block', border: '2px dashed #d1d5db', borderRadius: '8px', padding: '20px', textAlign: 'center', cursor: 'pointer' }}>
+                    <label style={{ display: 'block', border: '2px dashed #e5e7eb', borderRadius: '8px', padding: '20px', textAlign: 'center', cursor: 'pointer' }}>
                       <input type="file" accept="image/*" capture="environment" onChange={handleFotoChange} style={{ display: 'none' }} />
-                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}><strong style={{ color: '#2563eb' }}>Toque para tirar foto</strong> ou escolher da galeria</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}><strong style={{ color: '#1e3a5f' }}>Toque para tirar foto</strong> ou escolher da galeria</div>
                     </label>
                   ) : (
                     <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
@@ -729,7 +729,7 @@ export default function MapaDemandas() {
                 </div>
 
                 <button type="submit" disabled={enviando}
-                  style={{ backgroundColor: enviando ? '#9ca3af' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+                  style={{ backgroundColor: enviando ? '#6b7280' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
                   {enviando ? 'Enviando...' : 'Registrar Demanda'}
                 </button>
               </form>

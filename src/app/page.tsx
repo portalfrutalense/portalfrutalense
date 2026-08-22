@@ -13,13 +13,13 @@ export default function LandingPage() {
         padding: 'clamp(64px, 8vw, 96px) clamp(24px, 5vw, 48px) clamp(56px, 7vw, 80px)',
         position: 'relative',
         overflow: 'hidden',
-        borderBottom: '1px solid #e2e8f0',
+        borderBottom: '1px solid #e5e7eb',
       }}>
         {/* Grid decorativo */}
         <div style={{
           position: 'absolute',
           inset: 0,
-          backgroundImage: 'linear-gradient(#dbeafe 1px, transparent 1px), linear-gradient(90deg, #dbeafe 1px, transparent 1px)',
+          backgroundImage: 'linear-gradient(#f9fafb 1px, transparent 1px), linear-gradient(90deg, #f9fafb 1px, transparent 1px)',
           backgroundSize: '48px 48px',
           opacity: 0.35,
           pointerEvents: 'none',
@@ -41,17 +41,17 @@ export default function LandingPage() {
             fontWeight: 800,
             lineHeight: 1.06,
             letterSpacing: '-0.03em',
-            color: '#0f2440',
+            color: '#111827',
             marginBottom: '24px',
           }}>
             Frutal fala,<br />
-            <span style={{ color: '#2563eb' }}>a tecnologia resolve!</span>
+            <span style={{ color: '#1e3a5f' }}>a tecnologia resolve!</span>
           </h1>
 
           {/* Subtítulo */}
           <p style={{
             fontSize: '17px',
-            color: '#64748b',
+            color: '#6b7280',
             lineHeight: 1.7,
             maxWidth: '520px',
             marginBottom: '40px',

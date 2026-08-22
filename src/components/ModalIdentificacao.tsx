@@ -104,7 +104,7 @@ export default function ModalIdentificacao({ onConfirmar, onFechar }: Props) {
       <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '400px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #e5e7eb' }}>
           <h2 style={{ fontWeight: 700, color: '#111827', margin: 0, fontSize: '15px' }}>Identificação</h2>
-          <button onClick={onFechar} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#9ca3af', lineHeight: 1, padding: 0 }}>×</button>
+          <button onClick={onFechar} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#6b7280', lineHeight: 1, padding: 0 }}>×</button>
         </div>
 
         <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -113,7 +113,7 @@ export default function ModalIdentificacao({ onConfirmar, onFechar }: Props) {
           </p>
 
           {erro && (
-            <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>
+            <div style={{ color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>
               {erro}
             </div>
           )}
@@ -122,7 +122,7 @@ export default function ModalIdentificacao({ onConfirmar, onFechar }: Props) {
           <button
             onClick={iniciarGoogle}
             disabled={carregandoGoogle}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '11px 16px', border: '1px solid #e5e7eb', borderRadius: '8px', background: 'white', cursor: carregandoGoogle ? 'wait' : 'pointer', fontSize: '14px', fontWeight: 600, color: '#374151' }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '11px 16px', border: '1px solid #e5e7eb', borderRadius: '8px', background: 'white', cursor: carregandoGoogle ? 'wait' : 'pointer', fontSize: '14px', fontWeight: 600, color: '#111827' }}
           >
             <GoogleIcon />
             {carregandoGoogle ? 'Abrindo Google...' : 'Continuar com Google'}
@@ -131,31 +131,31 @@ export default function ModalIdentificacao({ onConfirmar, onFechar }: Props) {
           {/* Divisor */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }} />
-            <span style={{ fontSize: '12px', color: '#9ca3af' }}>ou identifique-se com CPF</span>
+            <span style={{ fontSize: '12px', color: '#6b7280' }}>ou identifique-se com CPF</span>
             <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }} />
           </div>
 
           {/* CPF */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>Nome Completo *</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Nome Completo *</label>
               <input
                 type="text"
                 value={nome}
                 onChange={(e) => setNome(capitalizarNome(e.target.value))}
                 placeholder="Seu nome completo"
-                style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#4b5563', marginBottom: '4px' }}>CPF *</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>CPF *</label>
               <input
                 type="text"
                 value={cpf}
                 onChange={(e) => handleCPF(e.target.value)}
                 placeholder="000.000.000-00"
                 maxLength={14}
-                style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }}
+                style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }}
               />
             </div>
             <button

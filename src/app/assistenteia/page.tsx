@@ -166,7 +166,7 @@ export default function LucasPage() {
           disabled={enviando || (!!user && !input.trim())}
           style={{
             background: (!user || input.trim()) ? '#1e3a5f' : 'transparent',
-            color: (!user || input.trim()) ? 'white' : '#9ca3af',
+            color: (!user || input.trim()) ? 'white' : '#6b7280',
             border: 'none', borderRadius: '10px',
             width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: (enviando || (user && !input.trim())) ? 'default' : 'pointer',
@@ -179,7 +179,7 @@ export default function LucasPage() {
         </button>
       </div>
       {!user && (
-        <p style={{ textAlign: 'center', fontSize: '12px', color: '#9ca3af', margin: '10px 0 0' }}>
+        <p style={{ textAlign: 'center', fontSize: '12px', color: '#6b7280', margin: '10px 0 0' }}>
           <button onClick={() => setModalAuth(true)} style={{ background: 'none', border: 'none', color: '#1e3a5f', fontWeight: 600, cursor: 'pointer', fontSize: '12px', textDecoration: 'underline' }}>
             Entre na sua conta
           </button>{' '}para conversar com o assistente
@@ -374,11 +374,11 @@ export default function LucasPage() {
                 {/* Conteúdo */}
                 {m.role === 'assistant' ? (
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#374151', margin: '0 0 6px' }}>Lucas</p>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827', margin: '0 0 6px' }}>Lucas</p>
                     <p style={{ fontSize: '15px', color: '#111827', margin: 0, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{m.content}</p>
                   </div>
                 ) : (
-                  <div style={{ maxWidth: '70%', background: '#f0f4f9', borderRadius: '20px', padding: '12px 18px', fontSize: '15px', color: '#111827', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                  <div style={{ maxWidth: '70%', background: '#f9fafb', borderRadius: '20px', padding: '12px 18px', fontSize: '15px', color: '#111827', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
                     {m.content}
                   </div>
                 )}
@@ -398,7 +398,7 @@ export default function LucasPage() {
                   </div>
                 ) : (
                   <button onClick={() => fotoInputRef.current?.click()} disabled={criando}
-                    style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '6px', background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '10px', padding: '8px 14px', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
+                    style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '6px', background: 'white', color: '#111827', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '8px 14px', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
                     </svg>
@@ -412,7 +412,7 @@ export default function LucasPage() {
                     {criando ? 'Registrando...' : 'Confirmar'}
                   </button>
                   <button onClick={cancelarDemanda} disabled={criando}
-                    style={{ background: 'white', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '10px', padding: '10px 22px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+                    style={{ background: 'white', color: '#dc2626', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '10px 22px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
                     Cancelar
                   </button>
                 </div>
@@ -422,8 +422,8 @@ export default function LucasPage() {
             {/* Digitando */}
             {enviando && (
               <div>
-                <p style={{ fontSize: '13px', fontWeight: 600, color: '#374151', margin: '0 0 6px' }}>Lucas</p>
-                <p style={{ fontSize: '15px', color: '#9ca3af', margin: 0 }}>Digitando...</p>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827', margin: '0 0 6px' }}>Lucas</p>
+                <p style={{ fontSize: '15px', color: '#6b7280', margin: 0 }}>Digitando...</p>
               </div>
             )}
 
@@ -434,7 +434,7 @@ export default function LucasPage() {
 
       {/* Input fixo na base (some no estado vazio, aparece após a 1ª mensagem) */}
       {temMensagens && (
-        <div style={{ padding: 'clamp(12px, 2vw, 20px) clamp(16px, 3vw, 32px)', background: 'white', borderTop: '1px solid #f3f4f6' }}>
+        <div style={{ padding: 'clamp(12px, 2vw, 20px) clamp(16px, 3vw, 32px)', background: 'white', borderTop: '1px solid #f9fafb' }}>
           {campoInput}
         </div>
       )}

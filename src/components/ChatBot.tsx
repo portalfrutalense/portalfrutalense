@@ -297,7 +297,7 @@ export default function ChatBot() {
               <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
                 <div style={{
                   maxWidth: '85%',
-                  background: m.role === 'user' ? '#1e3a5f' : '#f3f4f6',
+                  background: m.role === 'user' ? '#1e3a5f' : '#f9fafb',
                   color: m.role === 'user' ? 'white' : '#111827',
                   borderRadius: m.role === 'user' ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
                   padding: '9px 13px',
@@ -323,7 +323,7 @@ export default function ChatBot() {
                   </div>
                 ) : (
                   <button onClick={() => fotoInputRef.current?.click()} disabled={criando}
-                    style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '6px', background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}>
+                    style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '6px', background: 'white', color: '#111827', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
                     </svg>
@@ -337,7 +337,7 @@ export default function ChatBot() {
                     {criando ? 'Registrando...' : 'Confirmar'}
                   </button>
                   <button onClick={cancelarDemanda} disabled={criando}
-                    style={{ background: 'white', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                    style={{ background: 'white', color: '#dc2626', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
                     Cancelar
                   </button>
                 </div>
@@ -346,7 +346,7 @@ export default function ChatBot() {
 
             {enviando && (
               <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                <div style={{ background: '#f3f4f6', borderRadius: '12px 12px 12px 2px', padding: '9px 13px', fontSize: '13px', color: '#9ca3af' }}>
+                <div style={{ background: '#f9fafb', borderRadius: '12px 12px 12px 2px', padding: '9px 13px', fontSize: '13px', color: '#6b7280' }}>
                   Digitando...
                 </div>
               </div>
@@ -363,10 +363,10 @@ export default function ChatBot() {
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), enviar())}
               placeholder="Digite sua mensagem..."
               disabled={enviando}
-              style={{ flex: 1, border: '1px solid #d1d5db', borderRadius: '8px', padding: '9px 12px', fontSize: '13px', outline: 'none', resize: 'none' }}
+              style={{ flex: 1, border: '1px solid #e5e7eb', borderRadius: '8px', padding: '9px 12px', fontSize: '13px', outline: 'none', resize: 'none' }}
             />
             <button onClick={enviar} disabled={enviando || !input.trim()}
-              style={{ background: enviando || !input.trim() ? '#9ca3af' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', padding: '9px 14px', cursor: enviando || !input.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}>
+              style={{ background: enviando || !input.trim() ? '#6b7280' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', padding: '9px 14px', cursor: enviando || !input.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12" />
                 <polyline points="13 6 19 12 13 18" />

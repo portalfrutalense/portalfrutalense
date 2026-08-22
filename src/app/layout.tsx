@@ -27,7 +27,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body className={`${inter.className} bg-[#f4f6f8] min-h-screen`}>
+      <body className={`${inter.className} bg-[#f9fafb] min-h-screen`}>
         <AuthProvider>
           <GlobalModals />
           <PublicShell>

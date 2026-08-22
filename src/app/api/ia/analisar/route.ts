@@ -117,10 +117,10 @@ Não inclua nada além do JSON.`
               </div>
               <div style="background:white;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:24px;">
                 <p style="font-size:15px;color:#111827;">Olá, <strong>${demanda.entidade?.nome}</strong>,</p>
-                <p style="font-size:14px;color:#374151;line-height:1.6;">
+                <p style="font-size:14px;color:#111827;line-height:1.6;">
                   O cidadão <strong>${demanda.morador_nome}</strong> registrou uma demanda direcionada a você no CidadanIA Frutal.
                 </p>
-                <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:16px 0;">
+                <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:16px 0;">
                   <p style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px;">Descrição da demanda</p>
                   <p style="font-size:14px;color:#111827;margin:0;line-height:1.6;">${demanda.descricao}</p>
                   ${demanda.endereco_label ? `<p style="font-size:12px;color:#6b7280;margin:8px 0 0;">${demanda.endereco_label}</p>` : ''}
@@ -128,7 +128,7 @@ Não inclua nada além do JSON.`
                 <a href="${linkResposta}" style="display:block;background:#1e3a5f;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;margin:20px 0;">
                   Responder esta demanda →
                 </a>
-                <p style="font-size:12px;color:#9ca3af;text-align:center;">Este link expira em 7 dias.</p>
+                <p style="font-size:12px;color:#6b7280;text-align:center;">Este link expira em 7 dias.</p>
               </div>
             </div>
           `,

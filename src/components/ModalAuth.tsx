@@ -86,25 +86,25 @@ export default function ModalAuth({ onFechar }: Props) {
 
           {tela === 'inicial' ? (
             <>
-              <p style={{ margin: 0, fontSize: '14px', color: '#374151', textAlign: 'center' }}>
+              <p style={{ margin: 0, fontSize: '14px', color: '#111827', textAlign: 'center' }}>
                 Escolha como deseja acessar o portal
               </p>
 
               {/* Google */}
               <button onClick={entrarComGoogle} disabled={carregandoGoogle}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '13px 16px', border: '1.5px solid #e5e7eb', borderRadius: '8px', background: 'white', cursor: carregandoGoogle ? 'wait' : 'pointer', fontSize: '15px', fontWeight: 600, color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '13px 16px', border: '1.5px solid #e5e7eb', borderRadius: '8px', background: 'white', cursor: carregandoGoogle ? 'wait' : 'pointer', fontSize: '15px', fontWeight: 600, color: '#111827', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
                 <GoogleIcon />
                 {carregandoGoogle ? 'Redirecionando...' : 'Continuar com Google'}
               </button>
 
               {/* Email */}
               <button onClick={() => setTela('email')}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '13px 16px', border: '1.5px solid #e5e7eb', borderRadius: '8px', background: 'white', cursor: 'pointer', fontSize: '15px', fontWeight: 600, color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '13px 16px', border: '1.5px solid #e5e7eb', borderRadius: '8px', background: 'white', cursor: 'pointer', fontSize: '15px', fontWeight: 600, color: '#111827', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
                 <EmailIcon />
                 Entrar com e-mail
               </button>
 
-              {erro && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
+              {erro && <div style={{ color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
             </>
           ) : (
             <>
@@ -124,20 +124,20 @@ export default function ModalAuth({ onFechar }: Props) {
                 ))}
               </div>
 
-              {erro && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
-              {sucesso && <div style={{ color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '10px 12px', fontSize: '13px', lineHeight: 1.5 }}>{sucesso}</div>}
+              {erro && <div style={{ color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
+              {sucesso && <div style={{ color: '#166534', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '10px 12px', fontSize: '13px', lineHeight: 1.5 }}>{sucesso}</div>}
 
               {!sucesso && (
                 <form onSubmit={aba === 'entrar' ? entrarComEmail : cadastrarComEmail}
                   style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
                     placeholder="seu@email.com"
-                    style={{ width: '100%', border: '1.5px solid #d1d5db', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                    style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
                   <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required
                     placeholder={aba === 'cadastrar' ? 'Crie uma senha (mín. 6 caracteres)' : 'Sua senha'}
-                    style={{ width: '100%', border: '1.5px solid #d1d5db', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                    style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
                   <button type="submit" disabled={carregando}
-                    style={{ backgroundColor: carregando ? '#9ca3af' : '#1e3a5f', color: 'white', fontWeight: 700, padding: '12px', borderRadius: '8px', border: 'none', cursor: carregando ? 'not-allowed' : 'pointer', fontSize: '15px' }}>
+                    style={{ backgroundColor: carregando ? '#6b7280' : '#1e3a5f', color: 'white', fontWeight: 700, padding: '12px', borderRadius: '8px', border: 'none', cursor: carregando ? 'not-allowed' : 'pointer', fontSize: '15px' }}>
                     {carregando ? 'Aguarde...' : aba === 'entrar' ? 'Entrar' : 'Criar conta'}
                   </button>
                 </form>
@@ -145,11 +145,11 @@ export default function ModalAuth({ onFechar }: Props) {
             </>
           )}
 
-          <p style={{ fontSize: '11px', color: '#9ca3af', textAlign: 'center', margin: 0, lineHeight: 1.5 }}>
+          <p style={{ fontSize: '11px', color: '#6b7280', textAlign: 'center', margin: 0, lineHeight: 1.5 }}>
             Ao entrar, você concorda com os{' '}
-            <a href="/termos" target="_blank" style={{ color: '#2563eb' }}>Termos de Uso</a>
+            <a href="/termos" target="_blank" style={{ color: '#1e3a5f' }}>Termos de Uso</a>
             {' '}e a{' '}
-            <a href="/privacidade" target="_blank" style={{ color: '#2563eb' }}>Política de Privacidade</a>.
+            <a href="/privacidade" target="_blank" style={{ color: '#1e3a5f' }}>Política de Privacidade</a>.
           </p>
         </div>
       </div>
