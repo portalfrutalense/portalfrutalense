@@ -191,7 +191,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
         style={{
           width: '100%',
           height: '100%',
-          filter: fase === 'inicial' ? 'blur(4px)' : 'none',
+          filter: fase === 'inicial' ? 'blur(3px)' : 'none',
           transition: 'filter 0.35s ease',
         }}
       />
