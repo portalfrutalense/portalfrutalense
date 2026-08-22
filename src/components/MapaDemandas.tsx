@@ -303,6 +303,11 @@ export default function MapaDemandas() {
     setLocConfirmada(true)
   }
 
+  function aoAlterarEndereco() {
+    setCoordenadas(null)
+    setLocConfirmada(false)
+  }
+
   function handleFotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -665,21 +670,7 @@ export default function MapaDemandas() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Endereço *</label>
-                  {coordenadas && locConfirmada ? (
-                    <div style={{ height: '280px', borderRadius: '10px', border: '1px solid #e5e7eb', background: '#f9fafb', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '16px', textAlign: 'center', boxSizing: 'border-box' }}>
-                      <svg width="28" height="35" viewBox="0 0 32 40" fill="none">
-                        <path d="M16 0C7.163 0 0 7.163 0 16c0 10.627 14.4 23.04 15.04 23.573a1.333 1.333 0 001.92 0C17.6 39.04 32 26.627 32 16 32 7.163 24.837 0 16 0z" fill="#4256c8" />
-                        <circle cx="16" cy="16" r="7" fill="white" />
-                      </svg>
-                      <span style={{ fontSize: '13px', color: '#166534', fontWeight: 600, maxWidth: '260px' }}>{coordenadas.label}</span>
-                      <button type="button" onClick={() => { setCoordenadas(null); setLocConfirmada(false) }}
-                        style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline', padding: 0 }}>
-                        Alterar
-                      </button>
-                    </div>
-                  ) : (
-                    <MiniMapaConfirmar onConfirmar={aoConfirmarEndereco} />
-                  )}
+                  <MiniMapaConfirmar onConfirmar={aoConfirmarEndereco} onAlterar={aoAlterarEndereco} />
                 </div>
                 </div>{/* fecha coluna esquerda */}
 

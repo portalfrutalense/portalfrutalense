@@ -22,9 +22,10 @@ function dentroFrutal(lat: number, lng: number): boolean {
 interface Props {
   enderecoInicial?: string
   onConfirmar: (endereco: string, lat: number, lng: number) => void
+  onAlterar?: () => void
 }
 
-type Fase = 'inicial' | 'ajuste' | 'revisao'
+type Fase = 'inicial' | 'ajuste' | 'revisao' | 'confirmado'
 
 function aplicarTravamento(mapa: Leaflet.Map, travar: boolean) {
   if (travar) {
@@ -50,7 +51,7 @@ const botaoFlutuante: React.CSSProperties = {
   boxShadow: '0 1px 4px rgba(0,0,0,0.25)', color: '#111827',
 }
 
-export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }: Props) {
+export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, onAlterar }: Props) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapaObj = useRef<Leaflet.Map | null>(null)
   const tileAtual = useRef<Leaflet.TileLayer | null>(null)
@@ -71,6 +72,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
   const [zoomsFeitos, setZoomsFeitos] = useState(0)
   const [arrastesFeitos, setArrastesFeitos] = useState(0)
   const [textoAlterado, setTextoAlterado] = useState(false)
+  const [coordConfirmada, setCoordConfirmada] = useState<{ lat: number; lng: number } | null>(null)
 
   useEffect(() => {
     if (!mapRef.current || iniciado.current) return
@@ -105,14 +107,14 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
         setArrastesFeitos((a) => a + 1)
       })
 
-      aplicarTravamento(mapa, faseRef.current === 'inicial')
+      aplicarTravamento(mapa, faseRef.current !== 'ajuste')
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
     faseRef.current = fase
-    if (mapaObj.current) aplicarTravamento(mapaObj.current, fase === 'inicial')
+    if (mapaObj.current) aplicarTravamento(mapaObj.current, fase !== 'ajuste')
   }, [fase])
 
   function alternarCamada() {
@@ -211,7 +213,18 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
   function confirmarFinal() {
     if (!mapaObj.current || !endereco.trim()) return
     const c = mapaObj.current.getCenter()
+    setCoordConfirmada({ lat: c.lat, lng: c.lng })
     onConfirmar(endereco.trim(), c.lat, c.lng)
+    setFase('confirmado')
+  }
+
+  function alterar() {
+    if (!mapaObj.current) return
+    if (satelite !== sateliteAntesRevisao.current) alternarCamada()
+    if (zoomAntesRevisao.current !== null) mapaObj.current.setZoom(zoomAntesRevisao.current)
+    setCoordConfirmada(null)
+    setFase('ajuste')
+    onAlterar?.()
   }
 
   return (
@@ -236,8 +249,8 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
         </div>
       )}
 
-      {/* Barra de busca — centralizada na tela inicial, some na revisão, flutuante no topo na fase de ajuste */}
-      {fase !== 'revisao' && (
+      {/* Barra de busca — centralizada na tela inicial, flutuante no topo na fase de ajuste, some na revisão/confirmado */}
+      {(fase === 'inicial' || fase === 'ajuste') && (
         <div
           style={
             fase === 'inicial'
@@ -314,8 +327,11 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
 
       {fase === 'revisao' && (
         <div style={{ position: 'absolute', bottom: '10px', left: '10px', right: '10px', zIndex: 1000, background: 'white', borderRadius: '10px', padding: '10px 12px', boxShadow: '0 1px 8px rgba(0,0,0,0.3)', textAlign: 'center' }}>
-          <p style={{ margin: 0, marginBottom: '8px', fontSize: '12px', fontWeight: 600, color: '#111827' }}>
+          <p style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#111827' }}>
             O local está correto?
+          </p>
+          <p style={{ margin: '4px 0 8px', fontSize: '11px', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {endereco.trim()}
           </p>
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
             <button type="button" onClick={voltarDaRevisao}
@@ -327,6 +343,26 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
               Confirmar
             </button>
           </div>
+        </div>
+      )}
+
+      {fase === 'confirmado' && (
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 1000, background: 'white', borderRadius: '10px', padding: '12px 14px', boxShadow: '0 2px 10px rgba(0,0,0,0.3)', maxWidth: '85%', textAlign: 'center' }}>
+          <p style={{ margin: '0 0 4px', fontSize: '12px', fontWeight: 700, color: '#166534' }}>
+            Endereço confirmado
+          </p>
+          <p style={{ margin: '0 0 4px', fontSize: '12px', color: '#111827', fontWeight: 600, wordBreak: 'break-word' }}>
+            {endereco.trim()}
+          </p>
+          {coordConfirmada && (
+            <p style={{ margin: '0 0 10px', fontSize: '10px', color: '#6b7280', fontVariantNumeric: 'tabular-nums' }}>
+              {coordConfirmada.lat.toFixed(6)}, {coordConfirmada.lng.toFixed(6)}
+            </p>
+          )}
+          <button type="button" onClick={alterar}
+            style={{ background: 'none', border: 'none', color: '#4256c8', cursor: 'pointer', fontSize: '12px', fontWeight: 600, textDecoration: 'underline', padding: 0 }}>
+            Alterar
+          </button>
         </div>
       )}
     </div>
