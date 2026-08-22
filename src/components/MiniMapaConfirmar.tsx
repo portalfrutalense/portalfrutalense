@@ -39,6 +39,10 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
   const [buscando, setBuscando] = useState(false)
   const [obtendoGps, setObtendoGps] = useState(false)
   const [aviso, setAviso] = useState('')
+  const [precisaAjustar, setPrecisaAjustar] = useState(false)
+  const [zoomsFeitos, setZoomsFeitos] = useState(0)
+  const zoomAnterior = useRef<number | null>(null)
+  const ZOOMS_NECESSARIOS = 3
 
   useEffect(() => {
     if (!mapRef.current || iniciado.current) return
@@ -59,6 +63,15 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
       tileAtual.current = tile
       mapaObj.current = mapa
       leafletObj.current = L
+      zoomAnterior.current = mapa.getZoom()
+
+      mapa.on('zoomend', () => {
+        const novoZoom = mapa.getZoom()
+        if (zoomAnterior.current !== null && novoZoom > zoomAnterior.current) {
+          setZoomsFeitos((z) => z + 1)
+        }
+        zoomAnterior.current = novoZoom
+      })
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -74,6 +87,13 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
     t.addTo(mapaObj.current)
     tileAtual.current = t
     setSatelite(novo)
+  }
+
+  function marcarFalha() {
+    setAviso('Não encontramos esse endereço automaticamente. Arraste o mapa até o local certo.')
+    setPrecisaAjustar(true)
+    setZoomsFeitos(0)
+    if (mapaObj.current) zoomAnterior.current = mapaObj.current.getZoom()
   }
 
   async function buscarEndereco() {
@@ -92,15 +112,16 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
       if (feature && feature.relevance >= 0.85 && mapaObj.current) {
         const [lng, lat] = feature.center
         if (!dentroFrutal(lat, lng)) {
-          setAviso('Esse endereço parece ficar fora de Frutal-MG. Arraste o mapa até o local certo.')
+          marcarFalha()
           return
         }
+        setPrecisaAjustar(false)
         mapaObj.current.setView([lat, lng], ZOOM_ENCONTRADO)
       } else {
-        setAviso('Não encontramos esse endereço automaticamente. Arraste o mapa até o local certo.')
+        marcarFalha()
       }
     } catch {
-      setAviso('Não encontramos esse endereço automaticamente. Arraste o mapa até o local certo.')
+      marcarFalha()
     } finally {
       setBuscando(false)
     }
@@ -112,6 +133,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         mapaObj.current?.setView([pos.coords.latitude, pos.coords.longitude], ZOOM_ENCONTRADO)
+        setPrecisaAjustar(false)
         setObtendoGps(false)
       },
       () => setObtendoGps(false),
@@ -119,8 +141,10 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
     )
   }
 
+  const bloqueadoPorAjuste = precisaAjustar && zoomsFeitos < ZOOMS_NECESSARIOS
+
   function confirmar() {
-    if (!mapaObj.current || !endereco.trim()) return
+    if (!mapaObj.current || !endereco.trim() || bloqueadoPorAjuste) return
     const c = mapaObj.current.getCenter()
     onConfirmar(endereco.trim(), c.lat, c.lng)
   }
@@ -161,10 +185,18 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
         </button>
       </div>
 
-      {/* Aviso flutuante, abaixo da busca */}
+      {/* Aviso: mapa esmaece com blur, texto vermelho centralizado, botão OK */}
       {aviso && (
-        <div style={{ position: 'absolute', top: '54px', left: '10px', right: '10px', zIndex: 999, background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', color: '#92400e', boxShadow: '0 1px 6px rgba(0,0,0,0.2)' }}>
-          {aviso}
+        <div style={{ position: 'absolute', inset: 0, zIndex: 2000, background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ background: 'white', borderRadius: '10px', padding: '16px 18px', boxShadow: '0 4px 16px rgba(0,0,0,0.25)', maxWidth: '260px', textAlign: 'center' }}>
+            <p style={{ color: '#dc2626', fontSize: '13px', fontWeight: 600, margin: 0, marginBottom: '12px', lineHeight: 1.4 }}>
+              {aviso}
+            </p>
+            <button type="button" onClick={() => setAviso('')}
+              style={{ background: '#4256c8', color: 'white', border: 'none', borderRadius: '16px', padding: '6px 20px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+              OK
+            </button>
+          </div>
         </div>
       )}
 
@@ -187,9 +219,10 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
       </button>
 
       {/* Confirmar, centralizado embaixo */}
-      <button type="button" onClick={confirmar} disabled={!endereco.trim()}
-        style={{ position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, backgroundColor: endereco.trim() ? '#4256c8' : '#9ca3af', color: 'white', border: 'none', borderRadius: '20px', padding: '6px 16px', fontSize: '12px', fontWeight: 600, cursor: endereco.trim() ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap', boxShadow: '0 1px 6px rgba(0,0,0,0.3)' }}>
-        Confirmar
+      <button type="button" onClick={confirmar} disabled={!endereco.trim() || bloqueadoPorAjuste}
+        title={bloqueadoPorAjuste ? 'Ajuste o mapa (zoom) até achar o local certo antes de confirmar' : undefined}
+        style={{ position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, backgroundColor: (endereco.trim() && !bloqueadoPorAjuste) ? '#4256c8' : '#9ca3af', color: 'white', border: 'none', borderRadius: '20px', padding: '6px 16px', fontSize: '12px', fontWeight: 600, cursor: (endereco.trim() && !bloqueadoPorAjuste) ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap', boxShadow: '0 1px 6px rgba(0,0,0,0.3)' }}>
+        {bloqueadoPorAjuste ? `Ajuste o mapa (${zoomsFeitos}/${ZOOMS_NECESSARIOS})` : 'Confirmar'}
       </button>
     </div>
   )
