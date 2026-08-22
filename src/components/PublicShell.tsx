@@ -41,12 +41,12 @@ export default function PublicShell({ children }: { children: React.ReactNode })
           position: fixed;
           inset: 0;
           width: 100%;
-          height: 100%;
+          height: 100svh;
           overflow: hidden;
           overscroll-behavior: none;
         }
         @media (max-width: 640px) {
-          .mapa-shell { height: 100dvh !important; overflow: hidden !important; overscroll-behavior: none !important; }
+          .mapa-shell { height: 100svh !important; overflow: hidden !important; overscroll-behavior: none !important; }
           .mapa-main { overflow: hidden !important; padding: 0 !important; }
         }
       `}</style>
