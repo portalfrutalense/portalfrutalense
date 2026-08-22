@@ -165,7 +165,7 @@ export default function LucasPage() {
           onClick={user ? enviar : () => setModalAuth(true)}
           disabled={enviando || (!!user && !input.trim())}
           style={{
-            background: (!user || input.trim()) ? '#1e3a5f' : 'transparent',
+            background: (!user || input.trim()) ? '#4256c8' : 'transparent',
             color: (!user || input.trim()) ? 'white' : '#6b7280',
             border: 'none', borderRadius: '10px',
             width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -180,7 +180,7 @@ export default function LucasPage() {
       </div>
       {!user && (
         <p style={{ textAlign: 'center', fontSize: '12px', color: '#6b7280', margin: '10px 0 0' }}>
-          <button onClick={() => setModalAuth(true)} style={{ background: 'none', border: 'none', color: '#1e3a5f', fontWeight: 600, cursor: 'pointer', fontSize: '12px', textDecoration: 'underline' }}>
+          <button onClick={() => setModalAuth(true)} style={{ background: 'none', border: 'none', color: '#4256c8', fontWeight: 600, cursor: 'pointer', fontSize: '12px', textDecoration: 'underline' }}>
             Entre na sua conta
           </button>{' '}para conversar com o assistente
         </p>
@@ -347,7 +347,7 @@ export default function LucasPage() {
               }
             `}</style>
             <div className="abx-empty-state" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-              <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#1e3a5f', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+              <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#4256c8', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                 </svg>

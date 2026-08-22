@@ -14,7 +14,7 @@ export default function GlobalModals() {
         <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 24px', lineHeight: 1.5 }}>
           Sua conta foi bloqueada. Entre em contato com a administração do CidadanIA Frutal para mais informações.
         </p>
-        <button onClick={sair} style={{ background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+        <button onClick={sair} style={{ background: '#4256c8', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
           Sair
         </button>
       </div>

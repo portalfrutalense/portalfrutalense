@@ -241,7 +241,7 @@ export default function ChatBot() {
           style={{
             position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000,
             width: '64px', height: '64px', borderRadius: '50%',
-            background: '#1e3a5f', border: 'none', cursor: 'pointer',
+            background: '#4256c8', border: 'none', cursor: 'pointer',
             boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
             padding: '0', overflow: 'visible',
           }}
@@ -271,7 +271,7 @@ export default function ChatBot() {
 
           {/* Header */}
           <div style={{
-            background: '#1e3a5f', padding: '10px 16px',
+            background: '#4256c8', padding: '10px 16px',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             borderRadius: '16px 16px 0 0',
             position: 'relative', overflow: 'visible',
@@ -297,7 +297,7 @@ export default function ChatBot() {
               <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
                 <div style={{
                   maxWidth: '85%',
-                  background: m.role === 'user' ? '#1e3a5f' : '#f9fafb',
+                  background: m.role === 'user' ? '#4256c8' : '#f9fafb',
                   color: m.role === 'user' ? 'white' : '#111827',
                   borderRadius: m.role === 'user' ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
                   padding: '9px 13px',
@@ -366,7 +366,7 @@ export default function ChatBot() {
               style={{ flex: 1, border: '1px solid #e5e7eb', borderRadius: '8px', padding: '9px 12px', fontSize: '13px', outline: 'none', resize: 'none' }}
             />
             <button onClick={enviar} disabled={enviando || !input.trim()}
-              style={{ background: enviando || !input.trim() ? '#6b7280' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', padding: '9px 14px', cursor: enviando || !input.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}>
+              style={{ background: enviando || !input.trim() ? '#6b7280' : '#4256c8', color: 'white', border: 'none', borderRadius: '8px', padding: '9px 14px', cursor: enviando || !input.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12" />
                 <polyline points="13 6 19 12 13 18" />

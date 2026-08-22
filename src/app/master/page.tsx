@@ -174,7 +174,7 @@ export default function MasterPage() {
 
   const btnAcao = (label: string, onClick: () => void, variante: 'primario' | 'perigo' | 'neutro') => {
     const cores: Record<string, React.CSSProperties> = {
-      primario: { background: '#1e3a5f', color: 'white', border: 'none' },
+      primario: { background: '#4256c8', color: 'white', border: 'none' },
       perigo:   { background: 'white', color: '#dc2626', border: '1px solid #e5e7eb' },
       neutro:   { background: 'white', color: '#6b7280', border: '1px solid #e5e7eb' },
     }
@@ -200,7 +200,7 @@ export default function MasterPage() {
       <aside style={{
         width: '180px',
         flexShrink: 0,
-        background: '#1e3a5f',
+        background: '#4256c8',
         display: 'flex',
         flexDirection: 'column',
         position: 'fixed',
@@ -266,7 +266,7 @@ export default function MasterPage() {
                 <div onClick={() => setPerfisAberto(false)} style={{ position: 'fixed', inset: 0, zIndex: 98 }} />
                 <div style={{
                   position: 'absolute', left: 'calc(100% + 8px)', top: 0,
-                  background: '#1e3a5f', borderRadius: '10px',
+                  background: '#4256c8', borderRadius: '10px',
                   boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
                   minWidth: '150px', zIndex: 99, padding: '6px',
                 }}>
@@ -307,7 +307,7 @@ export default function MasterPage() {
       <main style={{ marginLeft: '180px', flex: 1, minWidth: 0 }} className="master-main">
 
         {/* Topbar mobile */}
-        <div className="master-topbar" style={{ display: 'none', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#1e3a5f', position: 'sticky', top: 0, zIndex: 50 }}>
+        <div className="master-topbar" style={{ display: 'none', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#4256c8', position: 'sticky', top: 0, zIndex: 50 }}>
           <button onClick={() => setMenuAberto(!menuAberto)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '4px 8px', fontSize: '13px', fontWeight: 600 }}>
             Menu
           </button>
@@ -406,7 +406,7 @@ export default function MasterPage() {
                       return (
                         <button key={a} onClick={() => setAbaConfig(a)} style={{
                           padding: '8px 16px', borderRadius: '6px 6px 0 0', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
-                          background: abaConfig === a ? '#1e3a5f' : 'transparent',
+                          background: abaConfig === a ? '#4256c8' : 'transparent',
                           color: abaConfig === a ? 'white' : '#6b7280',
                         }}>
                           {labels[a]}
@@ -431,7 +431,7 @@ export default function MasterPage() {
                               <input type="file" accept="image/png,image/webp,image/svg+xml" onChange={(e) => setNovaCatIcone(e.target.files?.[0] || null)} style={{ fontSize: '13px' }} />
                             </div>
                           </div>
-                          <button type="submit" style={{ alignSelf: 'flex-start', backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '9px 18px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px' }}>Salvar</button>
+                          <button type="submit" style={{ alignSelf: 'flex-start', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '9px 18px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px' }}>Salvar</button>
                         </form>
                       </div>
                       <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
@@ -617,7 +617,7 @@ function MasterDemandas({ token }: { token: string | null }) {
 
   const statusCor: Record<string, { bg: string; color: string }> = {
     pendente:           { bg: '#f9fafb', color: '#92400e' },
-    aguardando_resposta:{ bg: '#f9fafb', color: '#1e3a5f' },
+    aguardando_resposta:{ bg: '#f9fafb', color: '#4256c8' },
     respondida:         { bg: '#f9fafb', color: '#166534' },
     rejeitada_ia:       { bg: '#f9fafb', color: '#dc2626' },
     resolvida:          { bg: '#f9fafb', color: '#166534' },
@@ -641,8 +641,8 @@ function MasterDemandas({ token }: { token: string | null }) {
             onClick={() => setFiltro(f)}
             style={{
               fontSize: '12px', fontWeight: 600, padding: '6px 12px', borderRadius: '20px', cursor: 'pointer',
-              border: filtro === f ? '2px solid #1e3a5f' : '1px solid #e5e7eb',
-              background: filtro === f ? '#1e3a5f' : 'white',
+              border: filtro === f ? '2px solid #4256c8' : '1px solid #e5e7eb',
+              background: filtro === f ? '#4256c8' : 'white',
               color: filtro === f ? 'white' : '#111827',
             }}
           >
@@ -764,11 +764,11 @@ function MasterDemandas({ token }: { token: string | null }) {
                       value={editDescricao}
                       onChange={(e) => setEditDescricao(e.target.value)}
                       rows={3}
-                      style={{ width: '100%', border: '1.5px solid #1e3a5f', borderRadius: '7px', padding: '8px 12px', fontSize: '12px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', lineHeight: 1.5, background: 'white' }}
+                      style={{ width: '100%', border: '1.5px solid #4256c8', borderRadius: '7px', padding: '8px 12px', fontSize: '12px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', lineHeight: 1.5, background: 'white' }}
                     />
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button onClick={() => salvarEdicao(d.id)}
-                        style={{ fontSize: '12px', fontWeight: 600, background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer' }}>
+                        style={{ fontSize: '12px', fontWeight: 600, background: '#4256c8', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer' }}>
                         Salvar
                       </button>
                       <button onClick={() => setEditandoId(null)}
@@ -789,7 +789,7 @@ function MasterDemandas({ token }: { token: string | null }) {
                   style={{
                     alignSelf: 'flex-start', marginTop: '2px',
                     fontSize: '12px', fontWeight: 500,
-                    color: d.foto_url ? '#1e3a5f' : '#e5e7eb',
+                    color: d.foto_url ? '#4256c8' : '#e5e7eb',
                     background: 'none', border: 'none',
                     cursor: d.foto_url ? 'pointer' : 'default',
                     padding: 0, textDecoration: d.foto_url ? 'underline' : 'none',
@@ -1024,7 +1024,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
           {!criando ? (
             <button
               onClick={() => setCriando(true)}
-              style={{ background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+              style={{ background: '#4256c8', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
               + Nova conta
             </button>
           ) : (
@@ -1059,7 +1059,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
               )}
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={criarConta} disabled={salvandoNovo}
-                  style={{ background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '7px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', opacity: salvandoNovo ? 0.6 : 1 }}>
+                  style={{ background: '#4256c8', color: 'white', border: 'none', borderRadius: '6px', padding: '7px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', opacity: salvandoNovo ? 0.6 : 1 }}>
                   {salvandoNovo ? 'Criando...' : 'Criar conta'}
                 </button>
                 <button onClick={() => { setCriando(false); setNovoNome(''); setNovoEmail(''); setNovaSenha(''); setNovoCargo(''); setNovasCats([]) }}
@@ -1146,7 +1146,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
                     )}
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button onClick={() => salvarEdicao(p.id)}
-                        style={{ background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                        style={{ background: '#4256c8', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
                         Salvar
                       </button>
                       <button onClick={() => setEditandoId(null)}
@@ -1174,7 +1174,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
                         {catEntidades[p.id].map(catId => {
                           const cat = categorias.find(c => c.id === catId)
                           return cat ? (
-                            <span key={catId} style={{ fontSize: '10px', background: '#f9fafb', color: '#1e3a5f', border: '1px solid #e5e7eb', borderRadius: '20px', padding: '2px 8px' }}>
+                            <span key={catId} style={{ fontSize: '10px', background: '#f9fafb', color: '#4256c8', border: '1px solid #e5e7eb', borderRadius: '20px', padding: '2px 8px' }}>
                               {cat.nome}
                             </span>
                           ) : null
@@ -1329,7 +1329,7 @@ function MasterChatbot() {
       <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid #e5e7eb', paddingBottom: '0' }}>
         {ABAS_CHATBOT.map(a => (
           <button key={a.key} onClick={() => setAba(a.key)}
-            style={{ padding: '8px 16px', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer', borderRadius: '6px 6px 0 0', background: aba === a.key ? '#1e3a5f' : 'transparent', color: aba === a.key ? 'white' : '#6b7280' }}>
+            style={{ padding: '8px 16px', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer', borderRadius: '6px 6px 0 0', background: aba === a.key ? '#4256c8' : 'transparent', color: aba === a.key ? 'white' : '#6b7280' }}>
             {a.label}
             {a.key === 'sem_resposta' && semResposta.length > 0 && (
               <span style={{ marginLeft: '6px', background: '#dc2626', color: 'white', borderRadius: '20px', fontSize: '10px', padding: '1px 6px' }}>{semResposta.length}</span>
@@ -1340,7 +1340,7 @@ function MasterChatbot() {
 
       {/* ── Base de conhecimento ── */}
       {aba === 'base' && <>
-      <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '12px 16px', fontSize: '13px', color: '#1e3a5f', lineHeight: 1.6 }}>
+      <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '12px 16px', fontSize: '13px', color: '#4256c8', lineHeight: 1.6 }}>
         <strong>Como funciona:</strong> Cada entrada abaixo é um bloco de conhecimento que o chatbot usa para responder aos cidadãos. Adicione telefones úteis, horários, informações de serviços públicos, etc. O bot só responde com base no que está aqui.
       </div>
 
@@ -1355,7 +1355,7 @@ function MasterChatbot() {
             placeholder="Conteúdo (ex: UBS Central funciona de segunda a sexta, das 7h às 17h. Telefone: (34) 3321-xxxx. Endereço: Rua XV de Novembro, 200.)"
             style={{ border: '1px solid #e5e7eb', borderRadius: '7px', padding: '9px 12px', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.5 }} />
           <button type="submit" disabled={salvando}
-            style={{ alignSelf: 'flex-start', backgroundColor: salvando ? '#6b7280' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '9px 20px', borderRadius: '7px', border: 'none', cursor: salvando ? 'not-allowed' : 'pointer', fontSize: '13px' }}>
+            style={{ alignSelf: 'flex-start', backgroundColor: salvando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '9px 20px', borderRadius: '7px', border: 'none', cursor: salvando ? 'not-allowed' : 'pointer', fontSize: '13px' }}>
             {salvando ? 'Salvando...' : 'Adicionar'}
           </button>
         </form>
@@ -1373,11 +1373,11 @@ function MasterChatbot() {
             {editandoId === e.id ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <input value={editTitulo} onChange={ev => setEditTitulo(ev.target.value)}
-                  style={{ border: '1.5px solid #1e3a5f', borderRadius: '7px', padding: '8px 12px', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
+                  style={{ border: '1.5px solid #4256c8', borderRadius: '7px', padding: '8px 12px', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
                 <textarea value={editConteudo} onChange={ev => setEditConteudo(ev.target.value)} rows={4}
-                  style={{ border: '1.5px solid #1e3a5f', borderRadius: '7px', padding: '8px 12px', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.5 }} />
+                  style={{ border: '1.5px solid #4256c8', borderRadius: '7px', padding: '8px 12px', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.5 }} />
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={() => salvarEdicao(e.id)} style={{ background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '7px 16px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Salvar</button>
+                  <button onClick={() => salvarEdicao(e.id)} style={{ background: '#4256c8', color: 'white', border: 'none', borderRadius: '6px', padding: '7px 16px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Salvar</button>
                   <button onClick={() => setEditandoId(null)} style={{ background: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 16px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
                 </div>
               </div>
@@ -1443,7 +1443,7 @@ function MasterChatbot() {
             </div>
           ))}
           <button onClick={salvarConfig} disabled={salvandoConfig}
-            style={{ alignSelf: 'flex-start', background: salvandoConfig ? '#6b7280' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '7px', padding: '9px 20px', fontSize: '13px', fontWeight: 600, cursor: salvandoConfig ? 'not-allowed' : 'pointer' }}>
+            style={{ alignSelf: 'flex-start', background: salvandoConfig ? '#6b7280' : '#4256c8', color: 'white', border: 'none', borderRadius: '7px', padding: '9px 20px', fontSize: '13px', fontWeight: 600, cursor: salvandoConfig ? 'not-allowed' : 'pointer' }}>
             {salvandoConfig ? 'Salvando...' : 'Salvar configurações'}
           </button>
         </div>
@@ -1522,7 +1522,7 @@ function MasterIA() {
               <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0' }}>Quando desativada, demandas ficam pendentes para aprovação manual</p>
             </div>
             <button onClick={() => setConfig({ ...config, ativo: !config.ativo })}
-              style={{ width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: config.ativo ? '#1e3a5f' : '#e5e7eb', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+              style={{ width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: config.ativo ? '#4256c8' : '#e5e7eb', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
               <span style={{ position: 'absolute', top: '2px', left: config.ativo ? '22px' : '2px', width: '20px', height: '20px', borderRadius: '50%', background: 'white', transition: 'left 0.2s', display: 'block' }} />
             </button>
           </div>
@@ -1532,7 +1532,7 @@ function MasterIA() {
             <div style={{ display: 'flex', gap: '8px' }}>
               {['permissivo', 'moderado', 'rigoroso'].map(r => (
                 <button key={r} onClick={() => setConfig({ ...config, rigor: r })}
-                  style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1.5px solid', borderColor: config.rigor === r ? '#1e3a5f' : '#e5e7eb', background: config.rigor === r ? '#f9fafb' : 'white', color: config.rigor === r ? '#1e3a5f' : '#111827', fontSize: '13px', fontWeight: config.rigor === r ? 600 : 400, cursor: 'pointer', textTransform: 'capitalize' }}>
+                  style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1.5px solid', borderColor: config.rigor === r ? '#4256c8' : '#e5e7eb', background: config.rigor === r ? '#f9fafb' : 'white', color: config.rigor === r ? '#4256c8' : '#111827', fontSize: '13px', fontWeight: config.rigor === r ? 600 : 400, cursor: 'pointer', textTransform: 'capitalize' }}>
                   {r}
                 </button>
               ))}
@@ -1551,7 +1551,7 @@ function MasterIA() {
           </div>
 
           <button onClick={salvar} disabled={salvando}
-            style={{ backgroundColor: salvando ? '#6b7280' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '8px', border: 'none', cursor: salvando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+            style={{ backgroundColor: salvando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '8px', border: 'none', cursor: salvando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
             {salvando ? 'Salvando...' : 'Salvar configurações'}
           </button>
         </div>

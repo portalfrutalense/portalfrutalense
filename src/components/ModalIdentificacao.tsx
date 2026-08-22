@@ -160,7 +160,7 @@ export default function ModalIdentificacao({ onConfirmar, onFechar }: Props) {
             </div>
             <button
               onClick={confirmarCPF}
-              style={{ backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}
+              style={{ backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}
             >
               Continuar
             </button>

@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       subject: `[REENVIO] Demanda aguardando sua resposta — CidadanIA Frutal`,
       html: `
         <div style="font-family:Inter,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;">
-          <div style="background:#1e3a5f;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
+          <div style="background:#4256c8;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
             <h1 style="color:white;font-size:18px;margin:0;">CidadanIA Frutal</h1>
             <p style="color:rgba(255,255,255,0.6);font-size:13px;margin:4px 0 0;">Frutal-MG · Transparência e Cidadania</p>
           </div>
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
               <p style="font-size:14px;color:#111827;margin:0;line-height:1.6;">${demanda.descricao}</p>
               ${demanda.endereco_label ? `<p style="font-size:12px;color:#6b7280;margin:8px 0 0;">${demanda.endereco_label}</p>` : ''}
             </div>
-            <a href="${linkResposta}" style="display:block;background:#1e3a5f;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;margin:20px 0;">
+            <a href="${linkResposta}" style="display:block;background:#4256c8;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;margin:20px 0;">
               Responder esta demanda →
             </a>
             <p style="font-size:12px;color:#6b7280;text-align:center;">Este link expira em 7 dias.</p>

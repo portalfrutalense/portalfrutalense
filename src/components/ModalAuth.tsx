@@ -74,7 +74,7 @@ export default function ModalAuth({ onFechar }: Props) {
       <div style={{ background: 'white', borderRadius: '12px', width: '100%', maxWidth: '380px', overflow: 'hidden' }}>
 
         {/* Header */}
-        <div style={{ background: '#1e3a5f', padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ background: '#4256c8', padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontWeight: 800, fontSize: '16px', color: 'white' }}>CidadanIA Frutal</div>
             <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)', marginTop: '2px' }}>Frutal-MG · Transparência e Cidadania</div>
@@ -118,7 +118,7 @@ export default function ModalAuth({ onFechar }: Props) {
               <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb' }}>
                 {(['entrar', 'cadastrar'] as Aba[]).map((a) => (
                   <button key={a} onClick={() => { setAba(a); setErro(''); setSucesso('') }}
-                    style={{ flex: 1, padding: '10px', fontSize: '13px', fontWeight: aba === a ? 700 : 400, color: aba === a ? '#1e3a5f' : '#6b7280', background: 'none', border: 'none', borderBottom: aba === a ? '2px solid #1e3a5f' : '2px solid transparent', cursor: 'pointer' }}>
+                    style={{ flex: 1, padding: '10px', fontSize: '13px', fontWeight: aba === a ? 700 : 400, color: aba === a ? '#4256c8' : '#6b7280', background: 'none', border: 'none', borderBottom: aba === a ? '2px solid #4256c8' : '2px solid transparent', cursor: 'pointer' }}>
                     {a === 'entrar' ? 'Entrar' : 'Criar conta'}
                   </button>
                 ))}
@@ -137,7 +137,7 @@ export default function ModalAuth({ onFechar }: Props) {
                     placeholder={aba === 'cadastrar' ? 'Crie uma senha (mín. 6 caracteres)' : 'Sua senha'}
                     style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
                   <button type="submit" disabled={carregando}
-                    style={{ backgroundColor: carregando ? '#6b7280' : '#1e3a5f', color: 'white', fontWeight: 700, padding: '12px', borderRadius: '8px', border: 'none', cursor: carregando ? 'not-allowed' : 'pointer', fontSize: '15px' }}>
+                    style={{ backgroundColor: carregando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 700, padding: '12px', borderRadius: '8px', border: 'none', cursor: carregando ? 'not-allowed' : 'pointer', fontSize: '15px' }}>
                     {carregando ? 'Aguarde...' : aba === 'entrar' ? 'Entrar' : 'Criar conta'}
                   </button>
                 </form>
@@ -147,9 +147,9 @@ export default function ModalAuth({ onFechar }: Props) {
 
           <p style={{ fontSize: '11px', color: '#6b7280', textAlign: 'center', margin: 0, lineHeight: 1.5 }}>
             Ao entrar, você concorda com os{' '}
-            <a href="/termos" target="_blank" style={{ color: '#1e3a5f' }}>Termos de Uso</a>
+            <a href="/termos" target="_blank" style={{ color: '#4256c8' }}>Termos de Uso</a>
             {' '}e a{' '}
-            <a href="/privacidade" target="_blank" style={{ color: '#1e3a5f' }}>Política de Privacidade</a>.
+            <a href="/privacidade" target="_blank" style={{ color: '#4256c8' }}>Política de Privacidade</a>.
           </p>
         </div>
       </div>

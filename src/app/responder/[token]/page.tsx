@@ -94,7 +94,7 @@ export default function PageResponder() {
     <div style={{ minHeight: '100vh', background: '#f9fafb', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 'clamp(24px,5vw,48px) 16px' }}>
       <div style={{ maxWidth: '560px', width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div style={{ textAlign: 'center' }}>
-          <p style={{ fontWeight: 700, color: '#1e3a5f', fontSize: '16px', margin: 0 }}>Portal Frutalense</p>
+          <p style={{ fontWeight: 700, color: '#4256c8', fontSize: '16px', margin: 0 }}>Portal Frutalense</p>
           <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '4px 0' }}>
             Resposta Oficial{dados?.entidade ? ` de ${dados.entidade.nome}` : ''}
           </h1>
@@ -126,7 +126,7 @@ export default function PageResponder() {
           </p>
 
           <button onClick={handleEnviar} disabled={enviando}
-            style={{ backgroundColor: enviando ? '#6b7280' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '12px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+            style={{ backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '12px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
             {enviando ? 'Enviando...' : 'Publicar Resposta Oficial'}
           </button>
 

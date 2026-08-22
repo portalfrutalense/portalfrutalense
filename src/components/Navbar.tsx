@@ -13,7 +13,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header style={{ backgroundColor: '#1e3a5f', color: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
+      <header style={{ backgroundColor: '#4256c8', color: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
         <div style={{ padding: '0 16px 0 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '60px', gap: '12px' }}>
           {/* Logo */}
           <Link href="/" style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>

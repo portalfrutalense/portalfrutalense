@@ -45,7 +45,7 @@ export default function LandingPage() {
             marginBottom: '24px',
           }}>
             Frutal fala,<br />
-            <span style={{ color: '#1e3a5f' }}>a tecnologia resolve!</span>
+            <span style={{ color: '#4256c8' }}>a tecnologia resolve!</span>
           </h1>
 
           {/* Subtítulo */}
@@ -63,7 +63,7 @@ export default function LandingPage() {
           {/* CTAs */}
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <Link href="/mapa" style={{
-              background: '#1e3a5f',
+              background: '#4256c8',
               color: 'white',
               fontFamily: "'Plus Jakarta Sans', sans-serif",
               fontWeight: 700,

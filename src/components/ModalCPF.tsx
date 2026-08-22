@@ -49,7 +49,7 @@ export default function ModalCPF() {
     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
       <div style={{ background: 'white', borderRadius: '12px', width: '100%', maxWidth: '380px', overflow: 'hidden' }}>
         {/* Header */}
-        <div style={{ background: '#1e3a5f', padding: '24px', textAlign: 'center' }}>
+        <div style={{ background: '#4256c8', padding: '24px', textAlign: 'center' }}>
           <div style={{ fontWeight: 800, fontSize: '18px', color: 'white' }}>Quase lá!</div>
           <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', marginTop: '4px' }}>Complete seu cadastro</div>
         </div>
@@ -98,7 +98,7 @@ export default function ModalCPF() {
           <button
             type="submit"
             disabled={enviando}
-            style={{ backgroundColor: enviando ? '#6b7280' : '#1e3a5f', color: 'white', fontWeight: 700, padding: '13px', borderRadius: '8px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '15px' }}
+            style={{ backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 700, padding: '13px', borderRadius: '8px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '15px' }}
           >
             {enviando ? 'Salvando...' : 'Confirmar e entrar'}
           </button>

@@ -174,7 +174,7 @@ export default function MapaDemandas() {
     })
 
     function criarIcone(d: typeof filtradas[0], zoom: number) {
-      const cor = d.categoria?.cor || '#1e3a5f'
+      const cor = d.categoria?.cor || '#4256c8'
       const iconeUrl = d.categoria?.icone_url
 
       // Miolo do pin — o que muda entre os 3 casos
@@ -214,12 +214,12 @@ export default function MapaDemandas() {
       const popupHtml = `
         <div style="min-width:200px;max-width:230px;font-family:Inter,sans-serif;">
           ${d.foto_url ? `<img src="${d.foto_url}" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin-bottom:8px;display:block;" />` : ''}
-          <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#1e3a5f;text-transform:uppercase;letter-spacing:.03em;">${escapeHtml(d.categoria?.nome) || 'Sem categoria'}</p>
+          <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#4256c8;text-transform:uppercase;letter-spacing:.03em;">${escapeHtml(d.categoria?.nome) || 'Sem categoria'}</p>
           <p style="margin:0 0 6px;font-size:12px;color:#6b7280;">${escapeHtml(d.endereco_label)}</p>
           <p style="margin:0 0 10px;font-size:13px;color:#111827;line-height:1.4;">${escapeHtml(sentenceCase(d.descricao))}</p>
-          <button class="ver-mais-btn" data-ver-mais="${d.id}" style="background:none;border:none;padding:0;display:flex;align-items:center;gap:4px;color:#1e3a5f;font-size:13px;font-weight:600;cursor:pointer;">
+          <button class="ver-mais-btn" data-ver-mais="${d.id}" style="background:none;border:none;padding:0;display:flex;align-items:center;gap:4px;color:#4256c8;font-size:13px;font-weight:600;cursor:pointer;">
             Ver demanda
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1e3a5f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4256c8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
         </div>
       `
@@ -443,7 +443,7 @@ export default function MapaDemandas() {
   }
 
   const statusCor: Record<string, { bg: string; color: string }> = {
-    aguardando_resposta: { bg: '#f9fafb', color: '#1e3a5f' },
+    aguardando_resposta: { bg: '#f9fafb', color: '#4256c8' },
     respondida:          { bg: '#f9fafb', color: '#166534' },
     nao_resolvida:       { bg: '#f9fafb', color: '#92400e' },
     resolvida:           { bg: '#f9fafb', color: '#6b7280' },
@@ -470,7 +470,7 @@ export default function MapaDemandas() {
               <div style={{ padding: '12px 14px', borderBottom: '1px solid #f9fafb', flexShrink: 0 }}>
                 <button
                   onClick={() => setDemandaSelecionada(null)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#1e3a5f', padding: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#4256c8', padding: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
                   ← Voltar
                 </button>
               </div>
@@ -588,13 +588,13 @@ export default function MapaDemandas() {
                 {user ? (
                   <button
                     onClick={() => setEtapa('formulario')}
-                    style={{ width: '100%', backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '9px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', marginBottom: '16px' }}>
+                    style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '9px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', marginBottom: '16px' }}>
                     Registrar Demanda
                   </button>
                 ) : (
                   <button
                     onClick={() => setModalAuth(true)}
-                    style={{ width: '100%', backgroundColor: '#1e3a5f', color: 'white', fontWeight: 600, padding: '9px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', marginBottom: '16px' }}>
+                    style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '9px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', marginBottom: '16px' }}>
                     Entrar para registrar
                   </button>
                 )}
@@ -663,7 +663,7 @@ export default function MapaDemandas() {
             }}>
               <div style={{
                 position: 'absolute', top: '3px', left: satelite ? '75px' : '3px', width: '72px', height: '22px',
-                background: '#1e3a5f', borderRadius: '16px', transition: 'left 0.2s ease',
+                background: '#4256c8', borderRadius: '16px', transition: 'left 0.2s ease',
               }} />
               <span style={{ position: 'relative', zIndex: 1, flex: 1, textAlign: 'center', fontSize: '11px', fontWeight: 600, lineHeight: '22px', color: satelite ? '#6b7280' : 'white' }}>
                 Padrão
@@ -678,7 +678,7 @@ export default function MapaDemandas() {
           {!user && (
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(15,36,64,0.92), transparent)', padding: '40px 24px 20px', zIndex: 1000, textAlign: 'center' }}>
               <p style={{ color: 'white', fontWeight: 600, fontSize: '14px', margin: '0 0 10px' }}>Faça login para ver as demandas completas</p>
-              <button onClick={() => setModalAuth(true)} style={{ background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
+              <button onClick={() => setModalAuth(true)} style={{ background: '#4256c8', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
                 Entrar com Google
               </button>
             </div>
@@ -704,7 +704,7 @@ export default function MapaDemandas() {
                 <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px', lineHeight: 1.6 }}>
                   Sua demanda está sendo analisada. Se aprovada, aparecerá no mapa e a autoridade será notificada por e-mail.
                 </p>
-                <button onClick={fecharFormulario} style={{ fontSize: '13px', color: '#1e3a5f', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Fechar</button>
+                <button onClick={fecharFormulario} style={{ fontSize: '13px', color: '#4256c8', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Fechar</button>
               </div>
             ) : (
               <form onSubmit={handleEnviar} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -747,7 +747,7 @@ export default function MapaDemandas() {
                       placeholder="Ex: Rua XV de Novembro, 123"
                       style={{ flex: 1, border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', outline: 'none' }} />
                     <button type="button" onClick={buscarEndereco} disabled={buscando}
-                      style={{ backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                      style={{ backgroundColor: '#4256c8', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                       {buscando ? '...' : 'Buscar'}
                     </button>
                   </div>
@@ -780,12 +780,12 @@ export default function MapaDemandas() {
                         <div ref={miniMapRef} style={{ width: '100%', height: '100%' }} />
                         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -100%)', zIndex: 1000, pointerEvents: 'none' }}>
                           <svg width="32" height="40" viewBox="0 0 32 40" fill="none">
-                            <path d="M16 0C7.163 0 0 7.163 0 16c0 10.627 14.4 23.04 15.04 23.573a1.333 1.333 0 001.92 0C17.6 39.04 32 26.627 32 16 32 7.163 24.837 0 16 0z" fill="#1e3a5f"/>
+                            <path d="M16 0C7.163 0 0 7.163 0 16c0 10.627 14.4 23.04 15.04 23.573a1.333 1.333 0 001.92 0C17.6 39.04 32 26.627 32 16 32 7.163 24.837 0 16 0z" fill="#4256c8"/>
                             <circle cx="16" cy="16" r="7" fill="white"/>
                           </svg>
                         </div>
                         <button type="button" onClick={confirmarLocalizacao}
-                          style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', padding: '10px 24px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
+                          style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, backgroundColor: '#4256c8', color: 'white', border: 'none', borderRadius: '6px', padding: '10px 24px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
                           Confirmar localização
                         </button>
                       </div>
@@ -816,7 +816,7 @@ export default function MapaDemandas() {
                   {!fotoPreview ? (
                     <label style={{ display: 'block', border: '2px dashed #e5e7eb', borderRadius: '8px', padding: '20px', textAlign: 'center', cursor: 'pointer' }}>
                       <input type="file" accept="image/*" capture="environment" onChange={handleFotoChange} style={{ display: 'none' }} />
-                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}><strong style={{ color: '#1e3a5f' }}>Toque para tirar foto</strong> ou escolher da galeria</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}><strong style={{ color: '#4256c8' }}>Toque para tirar foto</strong> ou escolher da galeria</div>
                     </label>
                   ) : (
                     <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
@@ -829,7 +829,7 @@ export default function MapaDemandas() {
                 </div>
 
                 <button type="submit" disabled={enviando}
-                  style={{ backgroundColor: enviando ? '#6b7280' : '#1e3a5f', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+                  style={{ backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
                   {enviando ? 'Enviando...' : 'Registrar Demanda'}
                 </button>
               </form>

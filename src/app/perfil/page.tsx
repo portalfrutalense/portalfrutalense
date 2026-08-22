@@ -17,7 +17,7 @@ const statusLabel: Record<string, string> = {
 
 const statusCor: Record<string, { bg: string; color: string }> = {
   pendente:            { bg: '#f9fafb', color: '#6b7280' },
-  aguardando_resposta: { bg: '#f9fafb', color: '#1e3a5f' },
+  aguardando_resposta: { bg: '#f9fafb', color: '#4256c8' },
   respondida:          { bg: '#f9fafb', color: '#166534' },
   rejeitada_ia:        { bg: '#f9fafb', color: '#dc2626' },
   nao_resolvida:       { bg: '#f9fafb', color: '#92400e' },
@@ -83,7 +83,7 @@ export default function PerfilPage() {
           </p>
         </div>
         {perfil?.role === 'master' && (
-          <a href="/master" style={{ fontSize: '13px', fontWeight: 600, color: 'white', background: '#1e3a5f', border: 'none', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+          <a href="/master" style={{ fontSize: '13px', fontWeight: 600, color: 'white', background: '#4256c8', border: 'none', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' }}>
             Painel Master
           </a>
         )}
@@ -98,8 +98,8 @@ export default function PerfilPage() {
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               padding: '8px 18px', fontSize: '14px', fontWeight: 600,
-              color: abaAtiva === aba ? '#1e3a5f' : '#6b7280',
-              borderBottom: abaAtiva === aba ? '2px solid #1e3a5f' : '2px solid transparent',
+              color: abaAtiva === aba ? '#4256c8' : '#6b7280',
+              borderBottom: abaAtiva === aba ? '2px solid #4256c8' : '2px solid transparent',
               marginBottom: '-2px', transition: 'color 0.15s',
             }}>
             {aba === 'atividades' ? 'Minhas atividades' : 'Minha conta'}
@@ -137,7 +137,7 @@ export default function PerfilPage() {
             <div>
               <button
                 onClick={() => setSubModulo(null)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#1e3a5f', padding: '0 0 16px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#4256c8', padding: '0 0 16px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 ← Voltar
               </button>
               {carregandoDemandas ? (
