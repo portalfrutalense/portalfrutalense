@@ -48,9 +48,7 @@ export default function ChatBot() {
   const { user, perfil } = useAuth()
   const nomeUsuario = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || 'Cidadão'
   const [aberto, setAberto] = useState(false)
-  const [mensagens, setMensagens] = useState<Mensagem[]>([
-    { role: 'assistant', content: `Olá, ${nomeUsuario}! Sou o assistente virtual do CidadanIA Frutal. Posso responder dúvidas sobre os serviços da cidade ou registrar uma demanda pra você. O que está precisando?` }
-  ])
+  const [mensagens, setMensagens] = useState<Mensagem[]>([])
   const [input, setInput] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [criando, setCriando] = useState(false)
@@ -115,6 +113,26 @@ export default function ChatBot() {
     setPainelVisivel(false)
     setAberto(true)
     requestAnimationFrame(() => requestAnimationFrame(() => setPainelVisivel(true)))
+    if (mensagens.length === 0) enviarSaudacaoInicial()
+  }
+
+  async function enviarSaudacaoInicial() {
+    setEnviando(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ mensagens: [{ role: 'user', content: 'Oi' }], nomeUsuario }),
+      })
+      const data = await res.json()
+      const resposta: string = data.resposta || `Olá, ${nomeUsuario}! Como posso ajudar?`
+      setMensagens([{ role: 'assistant', content: resposta }])
+    } catch {
+      setMensagens([{ role: 'assistant', content: `Olá, ${nomeUsuario}! Como posso ajudar?` }])
+    } finally {
+      setEnviando(false)
+    }
   }
 
   if (!user) return null
