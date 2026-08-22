@@ -67,6 +67,7 @@ export default function MapaDemandas() {
   // Bottom sheet (mobile)
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches)
   const [sheetState, setSheetState] = useState<'peek' | 'half' | 'full'>('peek')
+  const [dicaArrasteVisivel, setDicaArrasteVisivel] = useState(true)
   const arrasteRef = useRef<{ startY: number; startFrac: number } | null>(null)
   const SNAP: Record<'peek' | 'half' | 'full', number> = { peek: 0.17, half: 0.45, full: 0.75 }
 
@@ -292,6 +293,12 @@ export default function MapaDemandas() {
     return () => mq.removeEventListener('change', aoMudar)
   }, [])
 
+  // Texto "Arraste para ver mais" some sozinho depois de 5s
+  useEffect(() => {
+    const t = setTimeout(() => setDicaArrasteVisivel(false), 5000)
+    return () => clearTimeout(t)
+  }, [])
+
   function cicloSheet() {
     setSheetState(prev => {
       if (prev === 'peek') return 'half'
@@ -303,6 +310,7 @@ export default function MapaDemandas() {
   function aoIniciarArraste(e: React.TouchEvent) {
     arrasteRef.current = { startY: e.touches[0].clientY, startFrac: SNAP[sheetState] }
     if (sidebarRef.current) sidebarRef.current.style.transition = 'none'
+    setDicaArrasteVisivel(false)
   }
 
   function aoArrastar(e: React.TouchEvent) {
@@ -464,9 +472,21 @@ export default function MapaDemandas() {
               onTouchStart={aoIniciarArraste}
               onTouchMove={aoArrastar}
               onTouchEnd={aoSoltarArraste}
-              style={{ flexShrink: 0, padding: '10px 0 8px', display: 'flex', justifyContent: 'center', cursor: 'grab', touchAction: 'none' }}
+              style={{ flexShrink: 0, padding: '8px 0 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'grab', touchAction: 'none' }}
             >
               <div style={{ width: '40px', height: '5px', borderRadius: '3px', background: '#d1d5db' }} />
+              <svg className="sheet-chevron" width="16" height="9" viewBox="0 0 16 9" fill="none" style={{ color: '#9ca3af' }}>
+                <path d="M1 1l7 6.5L15 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span style={{
+                fontSize: '11px', color: '#9ca3af', fontWeight: 500,
+                opacity: dicaArrasteVisivel ? 1 : 0,
+                maxHeight: dicaArrasteVisivel ? '16px' : '0px',
+                transition: 'opacity 0.5s ease, max-height 0.5s ease',
+                overflow: 'hidden',
+              }}>
+                Arraste para ver mais
+              </span>
             </div>
           )}
           <div
@@ -821,6 +841,11 @@ export default function MapaDemandas() {
           100% { transform: translateY(0); opacity: 1; }
         }
         .demanda-detalhe-anim { animation: card-assenta 0.28s cubic-bezier(.25,.46,.45,.94); }
+        @keyframes sheet-chevron-bounce {
+          0%, 100% { transform: translateY(0); opacity: 0.6; }
+          50% { transform: translateY(3px); opacity: 1; }
+        }
+        .sheet-chevron { animation: sheet-chevron-bounce 1.6s ease-in-out infinite; }
       `}</style>
 
     </div>
