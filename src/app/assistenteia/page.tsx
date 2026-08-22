@@ -452,10 +452,9 @@ export default function LucasPage() {
               }
             `}</style>
             <div className="abx-empty-state" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-              <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#4256c8', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
+              <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#4256c8', overflow: 'hidden', marginBottom: '16px' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/assistenteia.png" alt="Assistente virtual" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
               <h1 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 700, color: '#111827', margin: '0 0 8px', letterSpacing: '-0.5px' }}>
                 Olá{nomeUsuario ? `, ${nomeUsuario}` : ''}! Sou o Lucas!
@@ -475,6 +474,14 @@ export default function LucasPage() {
           <div style={{ flex: 1, padding: 'clamp(16px, 3vw, 32px)', display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '760px', width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
             {mensagens.map((m, i) => (
               <div key={i} style={{ display: 'flex', flexDirection: m.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-start', gap: '12px' }}>
+
+                {/* Avatar */}
+                {m.role === 'assistant' && (
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/assistenteia.png" alt="Assistente virtual" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                )}
 
                 {/* Conteúdo */}
                 {m.role === 'assistant' ? (
