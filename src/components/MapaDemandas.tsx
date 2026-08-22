@@ -707,16 +707,14 @@ export default function MapaDemandas() {
                 </div>
 
                 <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
+
+                <button type="submit" disabled={enviando}
+                  style={{ marginTop: 'auto', backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+                  {enviando ? 'Enviando...' : 'Registrar Demanda'}
+                </button>
                 </div>{/* fecha coluna direita */}
               </form>
               </div>{/* fecha área rolável */}
-
-              <div style={{ padding: '12px 20px', borderTop: '1px solid #e5e7eb', flexShrink: 0 }}>
-                <button type="submit" form="form-registrar-demanda" disabled={enviando}
-                  style={{ width: '100%', backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
-                  {enviando ? 'Enviando...' : 'Registrar Demanda'}
-                </button>
-              </div>
               </>
             )}
           </div>
