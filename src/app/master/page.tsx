@@ -331,18 +331,18 @@ export default function MasterPage() {
 
               <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '20px', marginBottom: '32px', maxWidth: '280px' }}>
                 <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Mapa de Demandas</h2>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {[
-                    { label: 'Total de demandas', valor: stats.total, cor: '#1e3a5f' },
-                    { label: 'Pendentes (IA)', valor: stats.pendente, cor: '#92400e' },
-                    { label: 'Aguardando resposta', valor: stats.aguardando, cor: '#1e3a5f' },
-                    { label: 'Respondidas', valor: stats.respondida, cor: '#166534' },
-                    { label: 'Resolvidas', valor: stats.resolvida, cor: '#166534' },
-                    { label: 'Não resolvidas', valor: stats.nao_resolvida, cor: '#dc2626' },
-                  ].map((s) => (
-                    <div key={s.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, fontWeight: 500 }}>{s.label}</p>
-                      <p style={{ fontSize: '20px', fontWeight: 800, color: s.cor, margin: 0, lineHeight: 1 }}>{s.valor}</p>
+                    { label: 'Total de demandas', valor: stats.total },
+                    { label: 'Pendentes (IA)', valor: stats.pendente },
+                    { label: 'Aguardando resposta', valor: stats.aguardando },
+                    { label: 'Respondidas', valor: stats.respondida },
+                    { label: 'Resolvidas', valor: stats.resolvida },
+                    { label: 'Não resolvidas', valor: stats.nao_resolvida },
+                  ].map((s, i) => (
+                    <div key={s.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderTop: i === 0 ? 'none' : '1px solid #e5e7eb' }}>
+                      <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, fontWeight: 500 }}>{s.label}</p>
+                      <p style={{ fontSize: '16px', color: '#111827', margin: 0, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{s.valor}</p>
                     </div>
                   ))}
                 </div>
