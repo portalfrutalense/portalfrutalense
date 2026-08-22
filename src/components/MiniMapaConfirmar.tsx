@@ -26,6 +26,24 @@ interface Props {
 
 type Fase = 'inicial' | 'ajuste' | 'revisao'
 
+function aplicarTravamento(mapa: Leaflet.Map, travar: boolean) {
+  if (travar) {
+    mapa.dragging.disable()
+    mapa.scrollWheelZoom.disable()
+    mapa.doubleClickZoom.disable()
+    mapa.touchZoom.disable()
+    mapa.boxZoom.disable()
+    mapa.keyboard.disable()
+  } else {
+    mapa.dragging.enable()
+    mapa.scrollWheelZoom.enable()
+    mapa.doubleClickZoom.enable()
+    mapa.touchZoom.enable()
+    mapa.boxZoom.enable()
+    mapa.keyboard.enable()
+  }
+}
+
 const botaoFlutuante: React.CSSProperties = {
   background: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -43,6 +61,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
   const sateliteAntesRevisao = useRef(false)
 
   const [fase, setFase] = useState<Fase>(enderecoInicial.trim() ? 'ajuste' : 'inicial')
+  const faseRef = useRef<Fase>(fase)
   const [satelite, setSatelite] = useState(false)
   const [endereco, setEndereco] = useState(enderecoInicial)
   const [buscando, setBuscando] = useState(false)
@@ -85,9 +104,16 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar }:
       mapa.on('dragend', () => {
         setArrastesFeitos((a) => a + 1)
       })
+
+      aplicarTravamento(mapa, faseRef.current === 'inicial')
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    faseRef.current = fase
+    if (mapaObj.current) aplicarTravamento(mapaObj.current, fase === 'inicial')
+  }, [fase])
 
   function alternarCamada() {
     if (!mapaObj.current || !leafletObj.current) return
