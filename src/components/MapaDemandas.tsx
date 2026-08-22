@@ -491,16 +491,6 @@ export default function MapaDemandas() {
 
                 {/* Caixa principal — pares label/valor empilhados */}
                 <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {demandaSelecionada.foto_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={demandaSelecionada.foto_url}
-                      alt="Foto da demanda"
-                      onClick={() => window.open(demandaSelecionada.foto_url!, '_blank')}
-                      style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '6px', cursor: 'pointer', border: '1px solid #e5e7eb' }}
-                    />
-                  )}
-
                   <div>
                     <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }}>Demanda</p>
                     <p style={{ fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.5 }}>{sentenceCase(demandaSelecionada.descricao)}</p>
@@ -531,6 +521,16 @@ export default function MapaDemandas() {
                       {demandaSelecionada.entidade?.cargo && <span style={{ color: '#6b7280' }}> ({titleCase(demandaSelecionada.entidade.cargo)})</span>}
                     </p>
                   </div>
+
+                  {demandaSelecionada.foto_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={demandaSelecionada.foto_url}
+                      alt="Foto da demanda"
+                      onClick={() => window.open(demandaSelecionada.foto_url!, '_blank')}
+                      style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '6px', cursor: 'pointer', border: '1px solid #e5e7eb' }}
+                    />
+                  )}
 
                   <p style={{ fontSize: '11px', color: '#6b7280', margin: 0, paddingTop: '8px', borderTop: '1px solid #e5e7eb' }}>
                     Criada em {new Date(demandaSelecionada.created_at).toLocaleDateString('pt-BR')}
