@@ -339,7 +339,7 @@ export default function ChatBot() {
                   </button>
                 )}
                 <input ref={fotoInputRef} type="file" accept="image/*" onChange={selecionarFoto} style={{ display: 'none' }} />
-                <Turnstile onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
+                <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start' }}>
                   <button onClick={confirmarDemanda} disabled={criando}
                     style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: criando ? 'wait' : 'pointer' }}>

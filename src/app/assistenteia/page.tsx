@@ -414,7 +414,7 @@ export default function LucasPage() {
                   </button>
                 )}
                 <input ref={fotoInputRef} type="file" accept="image/*" onChange={selecionarFoto} style={{ display: 'none' }} />
-                <Turnstile onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
+                <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button onClick={confirmarDemanda} disabled={criando}
                     style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '10px', padding: '10px 22px', fontSize: '14px', fontWeight: 600, cursor: criando ? 'wait' : 'pointer' }}>
