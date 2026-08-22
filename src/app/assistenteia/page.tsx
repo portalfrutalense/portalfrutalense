@@ -21,6 +21,11 @@ interface Entidade {
 
 type EtapaDemanda = 'nenhuma' | 'perguntar_registrar' | 'escolher_autoridade' | 'perguntar_endereco' | 'perguntar_foto' | 'resumo'
 
+// O Google as vezes manda o nome todo em minusculo -- garante a primeira letra maiuscula
+function capitalizar(nome: string) {
+  return nome ? nome.charAt(0).toUpperCase() + nome.slice(1) : nome
+}
+
 async function comprimirFoto(file: File): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image()
@@ -44,7 +49,7 @@ async function comprimirFoto(file: File): Promise<Blob> {
 export default function LucasPage() {
   const supabase = createClient()
   const { user, perfil } = useAuth()
-  const nomeUsuario = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || ''
+  const nomeUsuario = capitalizar(perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || '')
 
   const [mensagens, setMensagens] = useState<Mensagem[]>([])
   const [input, setInput] = useState('')
