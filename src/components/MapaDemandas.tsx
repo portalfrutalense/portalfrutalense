@@ -68,7 +68,7 @@ export default function MapaDemandas() {
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches)
   const [sheetState, setSheetState] = useState<'peek' | 'half' | 'full'>('peek')
   const arrasteRef = useRef<{ startY: number; startFrac: number } | null>(null)
-  const SNAP: Record<'peek' | 'half' | 'full', number> = { peek: 0.25, half: 0.50, full: 0.75 }
+  const SNAP: Record<'peek' | 'half' | 'full', number> = { peek: 0.15, half: 0.45, full: 0.75 }
 
   // Filtros
   const [filtroStatus, setFiltroStatus] = useState('')
