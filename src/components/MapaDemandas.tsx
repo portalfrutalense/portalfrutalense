@@ -681,10 +681,10 @@ export default function MapaDemandas() {
 
                 {/* Coluna direita */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Descrição *</label>
-                  <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={3} placeholder="Descreva o problema em detalhes..."
-                    style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
+                  <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descreva o problema em detalhes..."
+                    style={{ width: '100%', flex: 1, minHeight: '80px', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
                 </div>
 
                 <div>
