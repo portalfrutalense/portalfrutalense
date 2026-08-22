@@ -641,14 +641,6 @@ export default function MapaDemandas() {
                 {/* Coluna esquerda */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Cidadão</label>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', background: '#f9fafb' }}>
-                    <span style={{ fontSize: '14px', color: '#166534', fontWeight: 500 }}>{perfil?.nome}</span>
-                    <span style={{ fontSize: '11px', background: '#f9fafb', color: '#166534', borderRadius: '4px', padding: '2px 7px', fontWeight: 600 }}>Google</span>
-                  </div>
-                </div>
-
-                <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Categoria *</label>
                   <select value={categoriaId} onChange={(e) => { setCategoriaId(e.target.value); setEntidadeId('') }}
                     style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', background: 'white', outline: 'none', boxSizing: 'border-box' }}>
