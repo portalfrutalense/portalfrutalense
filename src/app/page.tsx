@@ -1,9 +1,12 @@
 'use client'
 
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '@/components/AuthProvider'
+
+const MiniMapaSatelite = dynamic(() => import('@/components/MiniMapaSatelite'), { ssr: false })
 
 function GoogleIcon() {
   return (
@@ -157,17 +160,17 @@ function CardUsuario({ nome, sair }: { nome: string; sair: () => void }) {
       borderRadius: '16px',
       width: '100%',
       maxWidth: '400px',
-      height: '440px',
       boxShadow: '0 20px 80px rgba(0,0,0,0.55)',
-      padding: '20px',
       position: 'relative',
       flexShrink: 0,
       display: 'flex',
       flexDirection: 'column',
-      justifyContent: 'flex-end',
-      alignItems: 'center',
+      overflow: 'hidden',
     }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%' }}>
+      {/* Mini mapa satélite travado no topo */}
+      <MiniMapaSatelite height={200} />
+
+      <div style={{ padding: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%', boxSizing: 'border-box' }}>
         {[
           { label: 'Demandas Municipais', href: '/mapa' },
           { label: 'Empregos', href: '/mapa' },
@@ -182,6 +185,7 @@ function CardUsuario({ nome, sair }: { nome: string; sair: () => void }) {
     </div>
   )
 }
+
 
 export default function LandingPage() {
   const { user, perfil, sair } = useAuth()
