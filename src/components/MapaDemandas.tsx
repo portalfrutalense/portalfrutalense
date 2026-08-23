@@ -415,7 +415,7 @@ export default function MapaDemandas() {
       const res = await fetch('/api/demandas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ descricao: descricao.trim(), lat: coordenadas.lat, lng: coordenadas.lng, categoria_id: categoriaId, entidade_id: entidadeId, foto_url, endereco_label: coordenadas.label, turnstile_token: turnstileToken }),
+        body: JSON.stringify({ descricao: descricao.trim(), lat: coordenadas.lat, lng: coordenadas.lng, categoria_id: categoriaId, entidade_ids: [entidadeId], foto_url, endereco_label: coordenadas.label, turnstile_token: turnstileToken }),
       })
       if (!res.ok) { const d = await res.json(); throw new Error(d.error) }
       setSucesso(true)

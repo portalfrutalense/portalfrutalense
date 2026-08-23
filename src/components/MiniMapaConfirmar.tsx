@@ -56,7 +56,6 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
   const mapaObj = useRef<Leaflet.Map | null>(null)
   const tileAtual = useRef<Leaflet.TileLayer | null>(null)
   const leafletObj = useRef<typeof Leaflet | null>(null)
-  const iniciado = useRef(false)
   const zoomAnterior = useRef<number | null>(null)
   const zoomAntesRevisao = useRef<number | null>(null)
   const sateliteAntesRevisao = useRef(false)
@@ -122,7 +121,6 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
         mapaObj.current = null
         tileAtual.current = null
         leafletObj.current = null
-        iniciado.current = false
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -404,7 +404,7 @@ export default function LucasPage() {
           lat: coordDemanda.lat,
           lng: coordDemanda.lng,
           categoria_id: categoriaIdDemanda,
-          entidade_id: entidadeIdDemanda,
+          entidade_ids: [entidadeIdDemanda],
           morador_nome: perfil?.nome || nomeUsuario,
           foto_url,
           via_chatbot: true,

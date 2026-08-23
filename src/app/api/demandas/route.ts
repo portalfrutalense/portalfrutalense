@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
 
     const { data: perfil } = await supabaseServer.from('perfis').select('nome, cpf, email').eq('id', user.id).single()
     if (!perfil) return NextResponse.json({ error: 'Perfil não encontrado.' }, { status: 400 })
+    if (!perfil.cpf?.trim()) return NextResponse.json({ error: 'CPF obrigatório para registrar uma demanda.' }, { status: 400 })
 
     // Garante que o email do Auth fica salvo no perfil
     if (!perfil.email && user.email) {

@@ -132,24 +132,6 @@ function CardLogin() {
   )
 }
 
-function CardUsuario({ nome, sair }: { nome: string; sair: () => void }) {
-  return (
-    <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 80px rgba(0,0,0,0.55)', padding: '20px', flexShrink: 0 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-        {[
-          { label: 'Demandas Municipais', href: '/mapa' },
-          { label: 'Empregos', href: '/mapa' },
-          { label: 'Achei/Perdi um Pet', href: '/mapa' },
-          { label: 'Classificados', href: '/mapa' },
-        ].map(({ label, href }) => (
-          <Link key={label} href={href} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 10px', borderRadius: '10px', background: '#4256c8', textDecoration: 'none', color: 'white', fontWeight: 600, fontSize: '13px', textAlign: 'center', lineHeight: 1.3 }}>
-            {label}
-          </Link>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 const FUNCIONALIDADES = [
   { label: 'Demandas Municipais', href: '/mapa' },

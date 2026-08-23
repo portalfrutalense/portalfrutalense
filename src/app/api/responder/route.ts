@@ -29,7 +29,6 @@ export async function GET(req: NextRequest) {
       mensagem: demanda?.descricao,
       morador_nome: demanda?.morador_nome,
       entidade,
-      _vinculo_id: vinculo.id, // usado no POST
     })
   }
 
@@ -84,7 +83,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Link expirado.' }, { status: 410 })
       }
 
-      // Salva resposta no vínculo
+      // Salva resposta no vínculo e invalida o token (uso único)
       const { error: updateVinculo } = await supabaseServer
         .from('demanda_entidades')
         .update({

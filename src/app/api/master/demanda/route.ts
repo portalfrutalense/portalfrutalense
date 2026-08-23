@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   const [{ data, error }, { data: perfis }] = await Promise.all([
     supabaseServer
       .from('demandas')
-      .select('*, categoria:categorias_mapa(*), entidade:entidades(*)')
+      .select('*, categoria:categorias_mapa(*), entidade:entidades(*), vinculos:demanda_entidades(id, status, resposta, respondida_em, entidade:entidades(nome, cargo))')
       .order('created_at', { ascending: false }),
     supabaseServer.from('perfis').select('id, email'),
   ])

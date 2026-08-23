@@ -2,7 +2,7 @@
 
 export default function PoliticaPrivacidade() {
   return (
-    <main style={{ maxWidth: '720px', margin: '0 auto', padding: 'clamp(24px,5vw,48px) clamp(16px,4vw,24px)', fontFamily: 'Inter, system-ui, sans-serif', color: '#111827', lineHeight: 1.7 }}>
+    <div style={{ maxWidth: '720px', margin: '0 auto', padding: 'clamp(24px,5vw,48px) clamp(16px,4vw,24px)', fontFamily: 'Inter, system-ui, sans-serif', color: '#111827', lineHeight: 1.7 }}>
       <div style={{ marginBottom: '32px' }}>
         <span style={{ fontSize: '12px', fontWeight: 600, color: '#4256c8', textTransform: 'uppercase', letterSpacing: '.08em' }}>CidadanIA Frutal</span>
         <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#111827', margin: '8px 0 4px' }}>Política de Privacidade</h1>
@@ -68,7 +68,7 @@ export default function PoliticaPrivacidade() {
       <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '24px', marginTop: '16px' }}>
         <a href="/" style={{ fontSize: '13px', color: '#4256c8', textDecoration: 'none' }}>Voltar ao CidadanIA Frutal</a>
       </div>
-    </main>
+    </div>
   )
 }
 

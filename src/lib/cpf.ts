@@ -27,10 +27,3 @@ export function formatarCPF(cpf: string): string {
   return limpo.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
 }
 
-/**
- * Mascara CPF para exibição parcial: "123.456.789-00" → "123.456.***-**"
- */
-export function mascararCPF(cpf: string): string {
-  const formatado = formatarCPF(cpf)
-  return formatado.replace(/(\d{3}\.\d{3})\.\d{3}-\d{2}/, '$1.***-**')
-}

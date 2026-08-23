@@ -44,7 +44,7 @@ export default function PerfilPage() {
       setCarregandoDemandas(true)
       const { data } = await supabase
         .from('demandas')
-        .select('*, categoria:categorias_mapa(*), entidade:entidades(*)')
+        .select('*, categoria:categorias_mapa(*), entidade:entidades(*), vinculos:demanda_entidades(id, status, resposta, respondida_em, entidade:entidades(nome, cargo))')
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false })
       setDemandas(data || [])
@@ -177,12 +177,19 @@ export default function PerfilPage() {
                     </p>
                   )}
 
-                  {/* Resposta da autoridade */}
-                  {d.resposta && (
+                  {/* Respostas das autoridades (novo sistema multi-entidade) */}
+                  {(d.vinculos?.filter(v => v.resposta) ?? []).length > 0 ? (
+                    d.vinculos!.filter(v => v.resposta).map(v => (
+                      <div key={v.id} style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: '#166534', lineHeight: 1.5 }}>
+                        <strong>{v.entidade?.nome || 'Autoridade'}:</strong> {v.resposta}
+                      </div>
+                    ))
+                  ) : d.resposta ? (
+                    // Fallback para demandas legadas (resposta no registro principal)
                     <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: '#166534', lineHeight: 1.5 }}>
                       <strong>Resposta:</strong> {d.resposta}
                     </div>
-                  )}
+                  ) : null}
 
                   {/* Motivo rejeição IA */}
                   {d.status === 'rejeitada_ia' && d.ia_motivo && (
@@ -261,8 +268,3 @@ function Campo({ label, valor }: { label: string; valor: string }) {
   )
 }
 
-function maskCPF(cpf: string) {
-  const d = cpf.replace(/\D/g, '')
-  if (d.length !== 11) return cpf
-  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`
-}

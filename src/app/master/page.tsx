@@ -186,12 +186,6 @@ export default function MasterPage() {
   }
 
   // ── PAINEL ────────────────────────────────────────────────
-  const navItems: { key: SecaoMaster; label: string }[] = [
-    { key: 'dashboard', label: 'Dashboard' },
-    { key: 'perfis',    label: 'Perfis' },
-    { key: 'demandas',  label: 'Mapa de Demandas' },
-    { key: 'chatbot',   label: 'Chatbot IA' },
-  ]
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f9fafb' }}>
@@ -612,15 +606,17 @@ function MasterDemandas({ token }: { token: string | null }) {
     aguardando_resposta: 'Aguardando resposta',
     respondida: 'Respondida',
     rejeitada_ia: 'Rejeitada pela IA',
+    nao_resolvida: 'Não resolvida',
     resolvida: 'Resolvida',
   }
 
   const statusCor: Record<string, { bg: string; color: string }> = {
-    pendente:           { bg: '#f9fafb', color: '#92400e' },
-    aguardando_resposta:{ bg: '#f9fafb', color: '#4256c8' },
-    respondida:         { bg: '#f9fafb', color: '#166534' },
-    rejeitada_ia:       { bg: '#f9fafb', color: '#dc2626' },
-    resolvida:          { bg: '#f9fafb', color: '#166534' },
+    pendente:            { bg: '#f9fafb', color: '#92400e' },
+    aguardando_resposta: { bg: '#f9fafb', color: '#4256c8' },
+    respondida:          { bg: '#f9fafb', color: '#166534' },
+    rejeitada_ia:        { bg: '#f9fafb', color: '#dc2626' },
+    nao_resolvida:       { bg: '#f9fafb', color: '#92400e' },
+    resolvida:           { bg: '#f9fafb', color: '#166534' },
   }
 
   const filtradas = filtro === 'todos' ? demandas : demandas.filter(d => d.status === filtro)
@@ -814,12 +810,19 @@ function MasterDemandas({ token }: { token: string | null }) {
                 </div>
               )}
 
-              {/* Resposta — oculta se não houver */}
-              {d.resposta && (
+              {/* Respostas das autoridades (novo sistema multi-entidade) */}
+              {(d.vinculos?.filter((v: any) => v.resposta) ?? []).length > 0 ? (
+                d.vinculos.filter((v: any) => v.resposta).map((v: any) => (
+                  <div key={v.id} style={{ fontSize: '12px', color: '#166534', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 10px', lineHeight: 1.5 }}>
+                    <strong>{v.entidade?.nome || 'Autoridade'}:</strong> {v.resposta}
+                  </div>
+                ))
+              ) : d.resposta ? (
+                // Fallback para demandas legadas
                 <div style={{ fontSize: '12px', color: '#6b7280', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 10px', lineHeight: 1.5 }}>
                   <strong>Resposta:</strong> {d.resposta}
                 </div>
-              )}
+              ) : null}
 
             </div>
             )}
