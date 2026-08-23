@@ -9,19 +9,22 @@ export default function LandingPage() {
 
       {/* HERO */}
       <section style={{
-        background: '#ffffff',
+        backgroundImage: "url('/fundo.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        minHeight: 'clamp(480px, 70vh, 720px)',
+        display: 'flex',
+        alignItems: 'center',
         padding: 'clamp(64px, 8vw, 96px) clamp(24px, 5vw, 48px) clamp(56px, 7vw, 80px)',
         position: 'relative',
         overflow: 'hidden',
         borderBottom: '1px solid #e5e7eb',
       }}>
-        {/* Grid decorativo */}
+        {/* Escurece a foto pra dar contraste ao texto */}
         <div style={{
           position: 'absolute',
           inset: 0,
-          backgroundImage: 'linear-gradient(#f9fafb 1px, transparent 1px), linear-gradient(90deg, #f9fafb 1px, transparent 1px)',
-          backgroundSize: '48px 48px',
-          opacity: 0.35,
+          background: 'linear-gradient(to right, rgba(10,15,30,0.82) 0%, rgba(10,15,30,0.55) 45%, rgba(10,15,30,0.2) 100%)',
           pointerEvents: 'none',
         }} />
         {/* Fade na base */}
@@ -41,20 +44,22 @@ export default function LandingPage() {
             fontWeight: 800,
             lineHeight: 1.06,
             letterSpacing: '-0.03em',
-            color: '#111827',
+            color: '#ffffff',
             marginBottom: '24px',
+            textShadow: '0 2px 16px rgba(0,0,0,0.25)',
           }}>
             Frutal fala,<br />
-            <span style={{ color: '#4256c8' }}>a tecnologia resolve!</span>
+            <span style={{ color: '#8ea2f5' }}>a tecnologia resolve!</span>
           </h1>
 
           {/* Subtítulo */}
           <p style={{
             fontSize: '17px',
-            color: '#6b7280',
+            color: 'rgba(255,255,255,0.85)',
             lineHeight: 1.7,
             maxWidth: '520px',
             marginBottom: '40px',
+            textShadow: '0 1px 8px rgba(0,0,0,0.2)',
           }}>
             A plataforma completa de Frutal. Registre demandas urbanas, acesse serviços locais,
             acompanhe a cidade e tire dúvidas em tempo real com o Lucas, nosso assistente de IA.
