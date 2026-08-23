@@ -224,7 +224,7 @@ function Navbar({ user, nome, sair, onEntrar }: { user: boolean; nome: string; s
       </div>
 
       {/* Auth — desktop */}
-      <div className="nav-auth" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+      <div className="nav-auth" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0, marginLeft: 'auto' }}>
         {user ? (
           <>
             <Link href="/perfil" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.9)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
@@ -409,13 +409,13 @@ export default function LandingPage() {
           .landing-col-direita { display: none !important; }
           .landing-btn-login-mobile { display: none !important; }
           /* Logo menor e sem margem extra */
-          .landing-logo { height: clamp(60px, 15vw, 100px) !important; margin-top: 0 !important; margin-bottom: 8px !important; }
+          .landing-logo { height: clamp(60px, 15vw, 100px) !important; margin-top: 15px !important; margin-bottom: 8px !important; }
           /* Título sem margem top grande */
-          .landing-h1 { margin-top: 8px !important; margin-bottom: 8px !important; font-size: clamp(18px, 5vw, 26px) !important; }
+          .landing-h1 { margin-top: 33px !important; margin-bottom: 8px !important; font-size: clamp(18px, 5vw, 26px) !important; }
           /* Layout coluna no mobile */
           .landing-inner { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; justify-content: flex-start !important; }
           /* Card login inline aparece */
-          .landing-login-mobile { display: block !important; }
+          .landing-login-mobile { display: block !important; margin-top: 40px !important; }
           /* Section padding menor no mobile (sem navbar) */
           .landing-section { padding-top: 20px !important; align-items: flex-start !important; }
           /* Navbar */
