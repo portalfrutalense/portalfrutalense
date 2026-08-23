@@ -163,11 +163,11 @@ function Navbar({ user, nome, sair, onEntrar }: { user: boolean; nome: string; s
   const [menuMobile, setMenuMobile] = useState(false)
 
   return (
-    <nav style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, background: '#4256c8', height: '56px', display: 'flex', alignItems: 'center', padding: '0 clamp(16px, 4vw, 48px)', gap: '24px', boxSizing: 'border-box' }}>
+    <nav style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, background: '#4256c8', height: '56px', display: 'flex', alignItems: 'center', padding: '0 clamp(16px, 4vw, 48px)', boxSizing: 'border-box' }}>
 
-      {/* Nav links — desktop */}
-      <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-        <Link href="/" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 500, textDecoration: 'none', padding: '6px 12px', borderRadius: '6px' }}>
+      {/* Nav links — desktop, centralizados */}
+      <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '4px', position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+        <Link href="/" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', fontWeight: 500, textDecoration: 'none', padding: '6px 14px', borderRadius: '6px' }}>
           Início
         </Link>
 
@@ -175,7 +175,7 @@ function Navbar({ user, nome, sair, onEntrar }: { user: boolean; nome: string; s
         <div style={{ position: 'relative' }}>
           <button
             onClick={() => setDropdown(!dropdown)}
-            style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 12px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}
+            style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 14px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}
           >
             Funcionalidades
             <span style={{ fontSize: '10px', opacity: 0.8 }}>{dropdown ? '▲' : '▼'}</span>
@@ -192,10 +192,10 @@ function Navbar({ user, nome, sair, onEntrar }: { user: boolean; nome: string; s
           )}
         </div>
 
-        <Link href="/sobre" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 500, textDecoration: 'none', padding: '6px 12px', borderRadius: '6px' }}>
+        <Link href="/sobre" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', fontWeight: 500, textDecoration: 'none', padding: '6px 14px', borderRadius: '6px' }}>
           Sobre
         </Link>
-        <Link href="/assistenteia" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 500, textDecoration: 'none', padding: '6px 12px', borderRadius: '6px' }}>
+        <Link href="/assistenteia" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', fontWeight: 500, textDecoration: 'none', padding: '6px 14px', borderRadius: '6px' }}>
           Assistente de IA
         </Link>
       </div>
@@ -293,7 +293,7 @@ export default function LandingPage() {
       )}
 
       {/* HERO — página inteira */}
-      <section style={{
+      <section className="landing-section" style={{
         backgroundImage: "url('/fundo.png')",
         backgroundSize: 'cover',
         backgroundPosition: 'center',
@@ -312,14 +312,14 @@ export default function LandingPage() {
         {/* Gradiente escuro */}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(10,15,30,0.82) 0%, rgba(10,15,30,0.4) 45%, rgba(10,15,30,0) 100%)', pointerEvents: 'none' }} />
 
-        <div style={{ position: 'relative', zIndex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '32px', flexWrap: 'wrap' }}>
+        <div className="landing-inner" style={{ position: 'relative', zIndex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '32px', flexWrap: 'wrap' }}>
 
           {/* Coluna esquerda */}
           <div style={{ maxWidth: '720px' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/CIDADANIA.png" alt="CidadanIA Frutal" className="landing-logo" style={{ height: 'clamp(160px, 24vh, 320px)', width: 'auto', maxWidth: '100%', display: 'block', marginBottom: 'clamp(10px, 2vh, 20px)' }} />
 
-            <h1 style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif", fontSize: 'clamp(20px, 3vw, 36px)', fontWeight: 800, lineHeight: 1.06, letterSpacing: '-0.03em', color: '#ffffff', marginTop: 'clamp(40px, 10vh, 100px)', marginBottom: 'clamp(10px, 2vh, 24px)', paddingLeft: '15px', textShadow: '0 2px 16px rgba(0,0,0,0.25)' }}>
+            <h1 className="landing-h1" style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif", fontSize: 'clamp(20px, 3vw, 36px)', fontWeight: 800, lineHeight: 1.06, letterSpacing: '-0.03em', color: '#ffffff', marginTop: 'clamp(40px, 10vh, 100px)', marginBottom: 'clamp(10px, 2vh, 24px)', paddingLeft: '15px', textShadow: '0 2px 16px rgba(0,0,0,0.25)' }}>
               Navegue por Frutal<br />
               <span style={{ color: '#8ea2f5' }}>Explore tudo ao seu redor</span>
             </h1>
@@ -331,9 +331,16 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Coluna direita — card de login só quando não logado */}
+          {/* Coluna direita — desktop only */}
           {!user && (
             <div className="landing-col-direita" style={{ display: 'flex', flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+              <CardLogin />
+            </div>
+          )}
+
+          {/* Card de login inline no mobile — abaixo do texto */}
+          {!user && (
+            <div className="landing-login-mobile" style={{ display: 'none', width: '100%' }}>
               <CardLogin />
             </div>
           )}
@@ -374,12 +381,22 @@ export default function LandingPage() {
           .blur-desktop { display: none !important; }
           .blur-mobile { display: block !important; }
           .landing-col-direita { display: none !important; }
-          .landing-logo { height: clamp(80px, 18vw, 140px) !important; margin-top: -40px !important; }
+          .landing-btn-login-mobile { display: none !important; }
+          /* Logo menor e sem margem extra */
+          .landing-logo { height: clamp(60px, 15vw, 100px) !important; margin-top: 0 !important; margin-bottom: 8px !important; }
+          /* Título sem margem top grande */
+          .landing-h1 { margin-top: 8px !important; margin-bottom: 8px !important; font-size: clamp(18px, 5vw, 26px) !important; }
+          /* Layout coluna no mobile */
+          .landing-inner { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; justify-content: flex-start !important; }
+          /* Card login inline aparece */
+          .landing-login-mobile { display: block !important; }
+          /* Section padding menor no mobile (sem navbar) */
+          .landing-section { padding-top: 20px !important; align-items: flex-start !important; }
+          /* Navbar */
           .nav-links { display: none !important; }
           .nav-auth { display: none !important; }
           .nav-hamburger { display: block !important; }
           .nav-auth-mobile { display: flex !important; }
-          .landing-btn-login-mobile { display: block !important; }
         }
       `}</style>
     </div>
