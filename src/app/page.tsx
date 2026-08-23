@@ -64,7 +64,7 @@ export default function LandingPage() {
           )}
         </div>
 
-        <div style={{ position: 'relative', zIndex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', zIndex: 1, width: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap', paddingBottom: 'clamp(24px, 6vh, 80px)' }}>
 
           {/* Coluna esquerda: logo + título + subtítulo */}
           <div style={{ maxWidth: '720px' }}>
@@ -74,7 +74,7 @@ export default function LandingPage() {
             {/* Headline */}
             <h1 style={{
               fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif",
-              fontSize: 'clamp(16px, 2.4vw, 28px)',
+              fontSize: 'clamp(20px, 3vw, 36px)',
               fontWeight: 800,
               lineHeight: 1.06,
               letterSpacing: '-0.03em',
@@ -88,7 +88,7 @@ export default function LandingPage() {
 
             {/* Subtítulo */}
             <p style={{
-              fontSize: 'clamp(11px, 1.8vh, 14px)',
+              fontSize: 'clamp(13px, 2vh, 17px)',
               color: 'rgba(255,255,255,0.85)',
               lineHeight: 1.6,
               maxWidth: '520px',
