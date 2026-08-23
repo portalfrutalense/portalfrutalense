@@ -218,6 +218,15 @@ export default function LandingPage() {
         overflow: 'hidden',
         boxSizing: 'border-box',
       }}>
+        {/* Blur leve no lado esquerdo */}
+        <div style={{
+          position: 'absolute',
+          top: 0, left: 0, bottom: 0,
+          width: '55%',
+          backdropFilter: 'blur(1px)',
+          WebkitBackdropFilter: 'blur(1px)',
+          pointerEvents: 'none',
+        }} />
         {/* Escurece a foto pra dar contraste ao texto */}
         <div style={{
           position: 'absolute',
