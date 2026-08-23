@@ -37,21 +37,29 @@ export async function PATCH(req: NextRequest) {
   const { id, categorias, ...campos } = await req.json()
   if (!id) return NextResponse.json({ error: 'id obrigatório.' }, { status: 400 })
 
-  // Sincronizar email com auth se alterado
-  if (campos.email) {
+  // Autoridades legadas (só existem em "entidades", sem perfil/conta Auth) não têm usuário
+  // no Supabase Auth para sincronizar — checa antes de tentar, senão o updateUserById falha.
+  const [{ data: perfil }, { data: entidade }] = await Promise.all([
+    supabaseServer.from('perfis').select('role').eq('id', id).single(),
+    supabaseServer.from('entidades').select('id').eq('id', id).single(),
+  ])
+  const temAuth = !!perfil
+
+  // Sincronizar email com auth se alterado (só quando existe conta Auth de fato)
+  if (campos.email && temAuth) {
     const { error: authError } = await supabaseServer.auth.admin.updateUserById(id, { email: campos.email, email_confirm: true })
     if (authError) return NextResponse.json({ error: `Erro ao atualizar email: ${authError.message}` }, { status: 500 })
   }
 
-  // Atualizar perfil
+  // Atualizar perfil (autoridade legada não tem linha em "perfis" — update simplesmente não afeta nada)
   const camposPerfil = { ...campos }
   delete camposPerfil.categorias
   const { error: perfilError } = await supabaseServer.from('perfis').update(camposPerfil).eq('id', id)
   if (perfilError) return NextResponse.json({ error: perfilError.message }, { status: 500 })
 
-  // Se for autoridade, sincronizar entidade também
-  const { data: perfil } = await supabaseServer.from('perfis').select('role').eq('id', id).single()
-  if (perfil?.role === 'autoridade') {
+  // Se for autoridade (novo fluxo com perfil, ou legada só em "entidades"), sincronizar entidade também
+  const ehAutoridade = perfil?.role === 'autoridade' || !!entidade
+  if (ehAutoridade) {
     const camposEnt: any = {}
     if (campos.nome) camposEnt.nome = campos.nome
     if (campos.cargo) camposEnt.cargo = campos.cargo
