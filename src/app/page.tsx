@@ -218,7 +218,13 @@ export default function LandingPage() {
         overflow: 'hidden',
         boxSizing: 'border-box',
       }}>
-        {/* Gradiente removido temporariamente */}
+        {/* Escurece a foto pra dar contraste ao texto */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(to right, rgba(10,15,30,0.82) 0%, rgba(10,15,30,0.55) 45%, rgba(10,15,30,0.2) 100%)',
+          pointerEvents: 'none',
+        }} />
 
         <div style={{ position: 'relative', zIndex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '32px', flexWrap: 'wrap' }}>
 
