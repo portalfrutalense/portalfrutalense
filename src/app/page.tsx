@@ -77,14 +77,16 @@ function CardLogin() {
       overflow: 'hidden',
       flexShrink: 0,
     }}>
+      {/* Header azul */}
+      <div style={{ background: '#4256c8', padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ margin: 0, fontSize: '14px', color: 'white', fontWeight: 700, textAlign: 'center' }}>
+          Faça login ou registre-se em segundos
+        </p>
+      </div>
+
       <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {tela === 'inicial' ? (
           <>
-            <div style={{ background: '#4256c8', borderRadius: '10px', padding: '14px 16px', textAlign: 'center' }}>
-              <p style={{ margin: 0, fontSize: '14px', color: 'white', fontWeight: 700 }}>
-                Faça login ou registre-se em segundos
-              </p>
-            </div>
 
             <button onClick={entrarComGoogle} disabled={carregandoGoogle}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '12px 16px', border: '1.5px solid #e5e7eb', borderRadius: '8px', background: 'white', cursor: carregandoGoogle ? 'wait' : 'pointer', fontSize: '14px', fontWeight: 600, color: '#111827', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
