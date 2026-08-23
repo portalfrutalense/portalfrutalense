@@ -868,13 +868,14 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
     const [resP, resC, resE] = await Promise.all([
       fetch('/api/master/perfis', { headers: { 'Authorization': `Bearer ${t}` } }),
       sbClient.from('categorias_mapa').select('id, nome').order('nome'),
-      sbClient.from('entidades').select('id, nome, cargo, email, ativo'),
+      fetch('/api/master/entidades', { headers: { 'Authorization': `Bearer ${t}` } }),
     ])
     const dataP = await resP.json()
+    const dataE = resE.ok ? await resE.json() : []
     if (resP.ok) {
       // Mesclar: autoridades antigas (só em entidades, sem perfil com role=autoridade)
       const perfisIds = new Set(dataP.map((p: any) => p.id))
-      const entidadesOrfas = (resE.data || [])
+      const entidadesOrfas = (dataE || [])
         .filter((e: any) => !perfisIds.has(e.id))
         .map((e: any) => ({ ...e, role: 'autoridade', _legado: true }))
       setPerfis([...dataP, ...entidadesOrfas])
