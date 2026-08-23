@@ -157,7 +157,7 @@ function CardUsuario({ nome, sair }: { nome: string; sair: () => void }) {
       borderRadius: '16px',
       width: '100%',
       maxWidth: '400px',
-      height: '600px',
+      height: '440px',
       boxShadow: '0 20px 80px rgba(0,0,0,0.55)',
       padding: '20px',
       position: 'relative',
