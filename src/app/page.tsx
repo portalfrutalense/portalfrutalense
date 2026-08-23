@@ -27,7 +27,7 @@ export default function LandingPage() {
 
       {/* HERO — página inteira, sem navbar, sem scroll */}
       <section style={{
-        backgroundImage: "url('/fundo.jpg')",
+        backgroundImage: "url('/fundo.png')",
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         height: '100%',
