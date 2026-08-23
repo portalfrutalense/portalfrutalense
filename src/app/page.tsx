@@ -171,7 +171,7 @@ function CardUsuario({ nome, sair }: { nome: string; sair: () => void }) {
       <div style={{ position: 'relative' }}>
         <MiniMapaSatelite height={300} />
         {/* Sombra inferior entre mapa e botões */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '80px', background: 'linear-gradient(to bottom, transparent, rgba(0,0,0,0.6))', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '120px', background: 'linear-gradient(to bottom, transparent, rgba(0,0,0,0.85))', pointerEvents: 'none' }} />
       </div>
 
       <div style={{ padding: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%', boxSizing: 'border-box' }}>
