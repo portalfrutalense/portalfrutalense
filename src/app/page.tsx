@@ -319,7 +319,7 @@ export default function LandingPage() {
       )}
 
       {/* HERO — página inteira */}
-      <section className="landing-section" style={{
+      <section className={`landing-section${user ? ' landing-logado' : ''}`} style={{
         backgroundImage: "url('/fundo.png')",
         backgroundSize: 'cover',
         backgroundPosition: 'center',
@@ -409,9 +409,11 @@ export default function LandingPage() {
           .landing-col-direita { display: none !important; }
           .landing-btn-login-mobile { display: none !important; }
           /* Logo menor e sem margem extra */
-          .landing-logo { height: clamp(60px, 15vw, 100px) !important; margin-top: 15px !important; margin-bottom: 8px !important; }
+          .landing-logo { height: clamp(60px, 15vw, 100px) !important; margin-top: 0 !important; margin-bottom: 8px !important; }
           /* Título sem margem top grande */
-          .landing-h1 { margin-top: 33px !important; margin-bottom: 8px !important; font-size: clamp(18px, 5vw, 26px) !important; }
+          .landing-h1 { margin-top: 8px !important; margin-bottom: 8px !important; font-size: clamp(18px, 5vw, 26px) !important; }
+          /* Navbar empurra o hero quando logado */
+          .landing-logado { padding-top: 56px !important; }
           /* Layout coluna no mobile */
           .landing-inner { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; justify-content: flex-start !important; }
           /* Card login inline aparece */
