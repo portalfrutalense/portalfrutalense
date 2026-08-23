@@ -192,6 +192,7 @@ function CardUsuario({ nome, sair }: { nome: string; sair: () => void }) {
 export default function LandingPage() {
   const { user, perfil, sair } = useAuth()
   const nomeExibido = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || 'Usuário'
+  const [modalMobile, setModalMobile] = useState(false)
 
   // Trava html/body de verdade — página inicial nunca rola, nem 1px
   useEffect(() => {
@@ -280,8 +281,8 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Coluna direita: login ou card do usuário — centralizado verticalmente */}
-          <div style={{ display: 'flex', flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: '100%' }}>
+          {/* Coluna direita: login ou card do usuário — só no desktop */}
+          <div className="landing-col-direita" style={{ display: 'flex', flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: '100%' }}>
             {user
               ? <CardUsuario nome={nomeExibido} sair={sair} />
               : <CardLogin />
@@ -290,9 +291,37 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Sair — canto inferior direito da tela, só quando logado */}
+      {/* Botão flutuante mobile — abre modal com login/card */}
+      <button
+        className="landing-btn-mobile"
+        onClick={() => setModalMobile(true)}
+        style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', zIndex: 10, background: '#4256c8', color: 'white', fontWeight: 700, fontSize: '15px', padding: '14px 32px', borderRadius: '50px', border: 'none', cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,0.4)', whiteSpace: 'nowrap' }}
+      >
+        {user ? `Olá, ${nomeExibido} — Ver funcionalidades` : 'Entrar ou criar conta'}
+      </button>
+
+      {/* Modal mobile */}
+      {modalMobile && (
+        <div
+          className="landing-modal-mobile"
+          style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setModalMobile(false) }}
+        >
+          <div style={{ width: '100%', maxWidth: '340px', position: 'relative' }}>
+            <button onClick={() => setModalMobile(false)} style={{ position: 'absolute', top: '-36px', right: 0, background: 'none', border: 'none', color: 'white', fontSize: '14px', cursor: 'pointer', opacity: 0.7 }}>
+              Fechar ✕
+            </button>
+            {user
+              ? <CardUsuario nome={nomeExibido} sair={() => { sair(); setModalMobile(false) }} />
+              : <CardLogin />
+            }
+          </div>
+        </div>
+      )}
+
+      {/* Sair — canto inferior direito da tela, só quando logado, só desktop */}
       {user && (
-        <button onClick={sair} style={{ position: 'fixed', bottom: '16px', right: '20px', zIndex: 10, background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: 'rgba(255,255,255,0.5)', padding: 0 }}>
+        <button className="landing-sair-desktop" onClick={sair} style={{ position: 'fixed', bottom: '16px', right: '20px', zIndex: 10, background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: 'rgba(255,255,255,0.5)', padding: 0 }}>
           Sair da conta
         </button>
       )}
@@ -306,6 +335,17 @@ export default function LandingPage() {
           height: 100svh;
           overflow: hidden;
           overscroll-behavior: none;
+        }
+        /* Desktop: coluna direita visível, botão mobile oculto */
+        .landing-col-direita { display: flex !important; }
+        .landing-btn-mobile { display: none !important; }
+        .landing-modal-mobile { display: flex !important; }
+        .landing-sair-desktop { display: block !important; }
+        /* Mobile */
+        @media (max-width: 768px) {
+          .landing-col-direita { display: none !important; }
+          .landing-btn-mobile { display: block !important; }
+          .landing-sair-desktop { display: none !important; }
         }
       `}</style>
     </div>
