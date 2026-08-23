@@ -67,9 +67,9 @@ export default function LandingPage() {
         <div style={{ position: 'relative', zIndex: 1, width: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap', paddingBottom: 'clamp(16px, 3vh, 40px)' }}>
 
           {/* Coluna esquerda: logo + título + subtítulo */}
-          <div style={{ maxWidth: '720px', marginTop: 'clamp(80px, 20vh, 200px)' }}>
+          <div style={{ maxWidth: '720px' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: 'clamp(160px, 24vh, 320px)', width: 'auto', maxWidth: '100%', display: 'block', marginBottom: 'clamp(10px, 2vh, 20px)' }} />
+            <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: 'clamp(160px, 24vh, 320px)', width: 'auto', maxWidth: '100%', display: 'block', marginBottom: 'clamp(32px, 8vh, 80px)' }} />
 
             {/* Headline */}
             <h1 style={{
