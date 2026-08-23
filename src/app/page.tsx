@@ -264,11 +264,13 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Coluna direita: login ou card do usuário */}
-          {user
-            ? <CardUsuario nome={nomeExibido} sair={sair} />
-            : <CardLogin />
-          }
+          {/* Coluna direita: login ou card do usuário — centralizado verticalmente */}
+          <div style={{ display: 'flex', flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: '100%' }}>
+            {user
+              ? <CardUsuario nome={nomeExibido} sair={sair} />
+              : <CardLogin />
+            }
+          </div>
         </div>
       </section>
 
