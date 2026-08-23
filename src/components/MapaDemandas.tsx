@@ -58,7 +58,6 @@ export default function MapaDemandas() {
   const [voo, setVoo] = useState<{ fromX: number; fromY: number; fromW: number; fromH: number; toX: number; toY: number; toW: number; toH: number; animando: boolean } | null>(null)
   const [mapaCarregado, setMapaCarregado] = useState(false)
   const [satelite, setSatelite] = useState(true)
-  const sateliteRef = useRef(true)
   const [demandas, setDemandas] = useState<Demanda[]>([])
   const [categorias, setCategorias] = useState<CategoriaMapa[]>([])
   const [entidades, setEntidades] = useState<Entidade[]>([])
@@ -132,18 +131,6 @@ export default function MapaDemandas() {
       mapaObj.current = mapa
       leafletObj.current = L
       setMapaCarregado(true)
-
-      // blur no tile pane em zoom alto, some em zoom baixo
-      function atualizarBlur() {
-        const z = mapa.getZoom()
-        const tilePane = mapa.getPanes().tilePane as HTMLElement | null
-        if (!tilePane) return
-        const zoomBlur = window.innerWidth <= 600 ? 13 : 14
-        tilePane.style.filter = z === zoomBlur ? 'blur(0.6px)' : 'none'
-      }
-      mapa.on('zoomend', atualizarBlur)
-      mapa.whenReady(() => requestAnimationFrame(atualizarBlur))
-      mapa.once('tilesloaded', atualizarBlur)
 
       // Corrige o mapa esticando quando o tamanho do container muda (zoom do navegador, resize de janela)
       const resizeObserver = new ResizeObserver(() => {
@@ -349,15 +336,7 @@ export default function MapaDemandas() {
       : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' })
     tile.addTo(mapaObj.current)
     tileAtual.current = tile
-    sateliteRef.current = novoSatelite
     setSatelite(novoSatelite)
-    // Atualiza o blur imediatamente ao trocar camada
-    const tilePane = mapaObj.current.getPanes().tilePane as HTMLElement | null
-    if (tilePane) {
-      const z = mapaObj.current.getZoom()
-      const zoomBlur = window.innerWidth <= 600 ? 13 : 14
-      tilePane.style.filter = z === zoomBlur ? 'blur(0.6px)' : 'none'
-    }
   }
 
   function aoConfirmarEndereco(endereco: string, lat: number, lng: number) {
