@@ -168,7 +168,7 @@ function CardUsuario({ nome, sair }: { nome: string; sair: () => void }) {
       overflow: 'hidden',
     }}>
       {/* Mini mapa satélite travado no topo */}
-      <div style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+      <div style={{ boxShadow: '0 3px 12px rgba(0,0,0,0.3)' }}>
         <MiniMapaSatelite height={300} />
       </div>
 
