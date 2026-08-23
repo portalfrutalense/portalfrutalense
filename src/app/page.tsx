@@ -27,15 +27,6 @@ export default function LandingPage() {
           background: 'linear-gradient(to right, rgba(10,15,30,0.82) 0%, rgba(10,15,30,0.55) 45%, rgba(10,15,30,0.2) 100%)',
           pointerEvents: 'none',
         }} />
-        {/* Fade na base */}
-        <div style={{
-          position: 'absolute',
-          bottom: 0, left: 0, right: 0,
-          height: '140px',
-          background: 'linear-gradient(to top, #ffffff, transparent)',
-          pointerEvents: 'none',
-        }} />
-
         <div style={{ position: 'relative', zIndex: 1, maxWidth: '720px' }}>
           {/* Headline */}
           <h1 style={{
