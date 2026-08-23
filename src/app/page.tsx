@@ -334,7 +334,7 @@ export default function LandingPage() {
         {/* Blur desktop: lado esquerdo com fade suave */}
         <div className="blur-desktop" style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: '75%', backdropFilter: 'blur(1px)', WebkitBackdropFilter: 'blur(1px)', WebkitMaskImage: 'linear-gradient(to right, black 0%, black 35%, transparent 100%)', maskImage: 'linear-gradient(to right, black 0%, black 35%, transparent 100%)', pointerEvents: 'none' }} />
         {/* Blur mobile: tela inteira */}
-        <div className="blur-mobile" style={{ position: 'absolute', inset: 0, backdropFilter: 'blur(1px)', WebkitBackdropFilter: 'blur(1px)', pointerEvents: 'none', display: 'none' }} />
+        <div className="blur-mobile" style={{ position: 'absolute', inset: 0, backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)', pointerEvents: 'none', display: 'none' }} />
         {/* Gradiente escuro */}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(10,15,30,0.82) 0%, rgba(10,15,30,0.4) 45%, rgba(10,15,30,0) 100%)', pointerEvents: 'none' }} />
 
@@ -415,7 +415,7 @@ export default function LandingPage() {
           /* Layout coluna no mobile */
           .landing-inner { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; justify-content: flex-start !important; }
           /* Card login inline aparece */
-          .landing-login-mobile { display: block !important; margin-top: 40px !important; }
+          .landing-login-mobile { display: block !important; margin-top: 90px !important; }
           /* Section padding menor no mobile (sem navbar) */
           .landing-section { padding-top: 20px !important; align-items: flex-start !important; }
           /* Navbar */
