@@ -44,10 +44,10 @@ export default function PerfilPage() {
       setCarregandoDemandas(true)
       const { data } = await supabase
         .from('demandas')
-        .select('*, categoria:categorias_mapa(*), entidade:entidades(*), vinculos:demanda_entidades(id, status, resposta, respondida_em, entidade:entidades(nome, cargo))')
+        .select('id, user_id, morador_nome, lat, lng, categoria_id, entidade_id, descricao, endereco_label, status, resposta, ia_motivo, created_at, categoria:categorias_mapa(*), entidade:entidades(nome, cargo), vinculos:demanda_entidades(id, status, resposta, respondida_em, entidade:entidades(nome, cargo))')
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false })
-      setDemandas(data || [])
+      setDemandas((data || []) as unknown as Demanda[])
       setCarregandoDemandas(false)
     }
     buscar()

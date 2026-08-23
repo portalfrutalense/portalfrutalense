@@ -97,19 +97,21 @@ export default function MapaDemandas() {
     if (!demandaSelecionada) { setVinculosDemanda([]); return }
     supabase
       .from('demanda_entidades')
-      .select('*, entidade:entidades(nome, cargo)')
+      .select('id, demanda_id, entidade_id, status, resposta, respondida_em, entidade:entidades(nome, cargo)')
       .eq('demanda_id', demandaSelecionada.id)
-      .then(({ data }) => setVinculosDemanda((data || []) as DemandaEntidade[]))
+      .then(({ data }) => setVinculosDemanda((data || []) as unknown as DemandaEntidade[]))
   }, [demandaSelecionada?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     Promise.all([
-      supabase.from('demandas').select('*, categoria:categorias_mapa(*), entidade:entidades(*)').in('status', ['aguardando_resposta', 'respondida', 'nao_resolvida', 'resolvida']).eq('oculto', false),
+      supabase.from('demandas')
+        .select('id, user_id, morador_nome, categoria_id, entidade_id, descricao, lat, lng, endereco_label, foto_url, status, resposta, oculto, created_at, categoria:categorias_mapa(*), entidade:entidades(nome, cargo)')
+        .in('status', ['aguardando_resposta', 'respondida', 'nao_resolvida', 'resolvida']).eq('oculto', false),
       supabase.from('categorias_mapa').select('*').eq('ativo', true).order('nome'),
-      supabase.from('entidades').select('*').eq('ativo', true).order('nome'),
+      supabase.from('entidades').select('id, nome, cargo').eq('ativo', true).order('nome'),
       supabase.from('categoria_entidades').select('categoria_id, entidade_id'),
     ]).then(([{ data: d }, { data: c }, { data: e }, { data: ce }]) => {
-      setDemandas((d || []) as Demanda[])
+      setDemandas((d || []) as unknown as Demanda[])
       setCategorias((c || []) as CategoriaMapa[])
       setEntidades((e || []) as Entidade[])
       const mapa: Record<string, string[]> = {}
