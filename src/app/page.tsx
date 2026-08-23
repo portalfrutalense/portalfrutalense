@@ -162,8 +162,12 @@ function CardUsuario({ nome, sair }: { nome: string; sair: () => void }) {
       padding: '20px',
       position: 'relative',
       flexShrink: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'flex-end',
+      alignItems: 'center',
     }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%' }}>
         {[
           { label: 'Demandas Municipais', href: '/mapa' },
           { label: 'Empregos', href: '/mapa' },
