@@ -227,12 +227,17 @@ function Navbar({ user, nome, sair, onEntrar }: { user: boolean; nome: string; s
         {menuMobile ? '✕' : '☰'}
       </button>
 
-      {/* Auth mobile — só Sair, sem Olá Nome */}
-      <div className="nav-auth-mobile" style={{ display: 'none', alignItems: 'center', marginLeft: 'auto' }}>
+      {/* Auth mobile — Olá Nome + Sair */}
+      <div className="nav-auth-mobile" style={{ display: 'none', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
         {user ? (
-          <button onClick={sair} style={{ fontSize: '12px', color: 'white', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer' }}>
-            Sair
-          </button>
+          <>
+            <Link href="/perfil" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.9)', textDecoration: 'none', whiteSpace: 'nowrap', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              Olá, {nome}
+            </Link>
+            <button onClick={sair} style={{ fontSize: '12px', color: 'white', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer' }}>
+              Sair
+            </button>
+          </>
         ) : (
           <button onClick={onEntrar} style={{ fontSize: '13px', color: 'white', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
             Entrar
@@ -333,6 +338,17 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Botão flutuante inferior — só mobile, só quando não logado */}
+      {!user && (
+        <button
+          className="landing-btn-login-mobile"
+          onClick={() => setModalLogin(true)}
+          style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', zIndex: 10, background: '#4256c8', color: 'white', fontWeight: 700, fontSize: '15px', padding: '14px 32px', borderRadius: '50px', border: 'none', cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,0.4)', whiteSpace: 'nowrap', display: 'none' }}
+        >
+          Entrar ou criar conta
+        </button>
+      )}
+
       {/* Modal de login (abre pelo botão Entrar da navbar no mobile) */}
       {modalLogin && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
@@ -359,6 +375,7 @@ export default function LandingPage() {
           .nav-auth { display: none !important; }
           .nav-hamburger { display: block !important; }
           .nav-auth-mobile { display: flex !important; }
+          .landing-btn-login-mobile { display: block !important; }
         }
       `}</style>
     </div>
