@@ -1,12 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '@/components/AuthProvider'
-
-const MiniMapaSatelite = dynamic(() => import('@/components/MiniMapaSatelite'), { ssr: false })
 
 function GoogleIcon() {
   return (
@@ -71,38 +68,25 @@ function CardLogin() {
   }
 
   return (
-    <div style={{
-      background: 'white',
-      borderRadius: '16px',
-      width: '100%',
-      maxWidth: '340px',
-      boxShadow: '0 20px 80px rgba(0,0,0,0.55)',
-      overflow: 'hidden',
-      flexShrink: 0,
-    }}>
-      {/* Header azul */}
+    <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '340px', boxShadow: '0 20px 80px rgba(0,0,0,0.55)', overflow: 'hidden', flexShrink: 0 }}>
       <div style={{ background: '#4256c8', padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <p style={{ margin: 0, fontSize: '14px', color: 'white', fontWeight: 700, textAlign: 'center' }}>
           Faça login ou registre-se em segundos
         </p>
       </div>
-
       <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {tela === 'inicial' ? (
           <>
-
             <button onClick={entrarComGoogle} disabled={carregandoGoogle}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '12px 16px', border: '1.5px solid #e5e7eb', borderRadius: '8px', background: 'white', cursor: carregandoGoogle ? 'wait' : 'pointer', fontSize: '14px', fontWeight: 600, color: '#111827', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
               <GoogleIcon />
               {carregandoGoogle ? 'Redirecionando...' : 'Continuar com Google'}
             </button>
-
             <button onClick={() => setTela('email')}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '12px 16px', border: '1.5px solid #e5e7eb', borderRadius: '8px', background: 'white', cursor: 'pointer', fontSize: '14px', fontWeight: 600, color: '#111827', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
               <EmailIcon />
               Entrar com e-mail
             </button>
-
             {erro && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
           </>
         ) : (
@@ -111,7 +95,6 @@ function CardLogin() {
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '13px', padding: 0, display: 'flex', alignItems: 'center', gap: '4px', alignSelf: 'flex-start' }}>
               ← Voltar
             </button>
-
             <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb' }}>
               {(['entrar', 'cadastrar'] as Aba[]).map((a) => (
                 <button key={a} onClick={() => { setAba(a); setErro(''); setSucesso('') }}
@@ -120,15 +103,12 @@ function CardLogin() {
                 </button>
               ))}
             </div>
-
             {erro && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
             {sucesso && <div style={{ color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '10px 12px', fontSize: '13px', lineHeight: 1.5 }}>{sucesso}</div>}
-
             {!sucesso && (
               <form onSubmit={aba === 'entrar' ? entrarComEmail : cadastrarComEmail}
                 style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-                  placeholder="seu@email.com"
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="seu@email.com"
                   style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
                 <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required
                   placeholder={aba === 'cadastrar' ? 'Crie uma senha (mín. 6 caracteres)' : 'Sua senha'}
@@ -141,7 +121,6 @@ function CardLogin() {
             )}
           </>
         )}
-
         <p style={{ fontSize: '11px', color: '#9ca3af', textAlign: 'center', margin: 0, lineHeight: 1.5 }}>
           Ao entrar, você concorda com os{' '}
           <a href="/termos" target="_blank" style={{ color: '#4256c8' }}>Termos de Uso</a>
@@ -155,24 +134,8 @@ function CardLogin() {
 
 function CardUsuario({ nome, sair }: { nome: string; sair: () => void }) {
   return (
-    <div style={{
-      background: 'white',
-      borderRadius: '16px',
-      width: '100%',
-      maxWidth: '400px',
-      boxShadow: '0 20px 80px rgba(0,0,0,0.55)',
-      position: 'relative',
-      flexShrink: 0,
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden',
-    }}>
-      {/* Mini mapa satélite travado no topo */}
-      <div style={{ boxShadow: '0 3px 12px rgba(0,0,0,0.3)' }}>
-        <MiniMapaSatelite height={300} />
-      </div>
-
-      <div style={{ padding: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%', boxSizing: 'border-box' }}>
+    <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 80px rgba(0,0,0,0.55)', padding: '20px', flexShrink: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
         {[
           { label: 'Demandas Municipais', href: '/mapa' },
           { label: 'Empregos', href: '/mapa' },
@@ -188,13 +151,127 @@ function CardUsuario({ nome, sair }: { nome: string; sair: () => void }) {
   )
 }
 
+const FUNCIONALIDADES = [
+  { label: 'Demandas Municipais', href: '/mapa' },
+  { label: 'Empregos', href: '/mapa' },
+  { label: 'Achei/Perdi um Pet', href: '/mapa' },
+  { label: 'Classificados', href: '/mapa' },
+]
+
+function Navbar({ user, nome, sair, onEntrar }: { user: boolean; nome: string; sair: () => void; onEntrar: () => void }) {
+  const [dropdown, setDropdown] = useState(false)
+  const [menuMobile, setMenuMobile] = useState(false)
+
+  return (
+    <nav style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, background: '#4256c8', height: '56px', display: 'flex', alignItems: 'center', padding: '0 clamp(16px, 4vw, 48px)', gap: '24px', boxSizing: 'border-box' }}>
+
+      {/* Logo */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: '36px', width: 'auto', flexShrink: 0 }} />
+
+      {/* Nav links — desktop */}
+      <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+        <Link href="/" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 500, textDecoration: 'none', padding: '6px 12px', borderRadius: '6px' }}>
+          Início
+        </Link>
+
+        {/* Funcionalidades com dropdown */}
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setDropdown(!dropdown)}
+            style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 12px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}
+          >
+            Funcionalidades
+            <span style={{ fontSize: '10px', opacity: 0.8 }}>{dropdown ? '▲' : '▼'}</span>
+          </button>
+          {dropdown && (
+            <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '4px', background: 'white', borderRadius: '10px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', overflow: 'hidden', minWidth: '200px', zIndex: 30 }}>
+              {FUNCIONALIDADES.map(({ label, href }) => (
+                <Link key={label} href={href} onClick={() => setDropdown(false)}
+                  style={{ display: 'block', padding: '12px 16px', fontSize: '14px', color: '#111827', textDecoration: 'none', fontWeight: 500, borderBottom: '1px solid #f3f4f6' }}>
+                  {label}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <Link href="/sobre" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 500, textDecoration: 'none', padding: '6px 12px', borderRadius: '6px' }}>
+          Sobre
+        </Link>
+        <Link href="/assistenteia" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 500, textDecoration: 'none', padding: '6px 12px', borderRadius: '6px' }}>
+          Assistente de IA
+        </Link>
+      </div>
+
+      {/* Auth — desktop */}
+      <div className="nav-auth" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+        {user ? (
+          <>
+            <Link href="/perfil" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.9)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+              Olá, {nome}
+            </Link>
+            <button onClick={sair} style={{ fontSize: '13px', color: 'white', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
+              Sair
+            </button>
+          </>
+        ) : (
+          <button onClick={onEntrar} style={{ fontSize: '13px', color: 'white', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
+            Entrar
+          </button>
+        )}
+      </div>
+
+      {/* Hambúrguer — mobile */}
+      <button
+        className="nav-hamburger"
+        onClick={() => setMenuMobile(!menuMobile)}
+        style={{ display: 'none', background: 'none', border: 'none', cursor: 'pointer', color: 'white', fontSize: '22px', padding: '4px', flexShrink: 0 }}
+      >
+        {menuMobile ? '✕' : '☰'}
+      </button>
+
+      {/* Auth mobile (Olá Nome / Entrar) — sempre visível no mobile */}
+      <div className="nav-auth-mobile" style={{ display: 'none', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+        {user ? (
+          <>
+            <Link href="/perfil" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.9)', textDecoration: 'none', whiteSpace: 'nowrap', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              Olá, {nome}
+            </Link>
+            <button onClick={sair} style={{ fontSize: '12px', color: 'white', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer' }}>
+              Sair
+            </button>
+          </>
+        ) : (
+          <button onClick={onEntrar} style={{ fontSize: '13px', color: 'white', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
+            Entrar
+          </button>
+        )}
+      </div>
+
+      {/* Menu mobile expandido */}
+      {menuMobile && (
+        <div style={{ position: 'absolute', top: '56px', left: 0, right: 0, background: '#3347b0', zIndex: 30, display: 'flex', flexDirection: 'column', padding: '8px 0' }}>
+          <Link href="/" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Início</Link>
+          <div style={{ padding: '12px 20px', color: 'rgba(255,255,255,0.7)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Funcionalidades</div>
+          {FUNCIONALIDADES.map(({ label, href }) => (
+            <Link key={label} href={href} onClick={() => setMenuMobile(false)} style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', textDecoration: 'none', padding: '10px 20px 10px 32px' }}>
+              {label}
+            </Link>
+          ))}
+          <Link href="/sobre" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Sobre</Link>
+          <Link href="/assistenteia" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Assistente de IA</Link>
+        </div>
+      )}
+    </nav>
+  )
+}
 
 export default function LandingPage() {
   const { user, perfil, sair } = useAuth()
   const nomeExibido = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || 'Usuário'
-  const [modalMobile, setModalMobile] = useState(false)
+  const [modalLogin, setModalLogin] = useState(false)
 
-  // Trava html/body de verdade — página inicial nunca rola, nem 1px
   useEffect(() => {
     const html = document.documentElement
     const body = document.body
@@ -209,7 +286,15 @@ export default function LandingPage() {
   return (
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", height: '100dvh', overflow: 'hidden' }}>
 
-      {/* HERO — página inteira, sem navbar, sem scroll */}
+      {/* Navbar azul sobreposta à foto */}
+      <Navbar
+        user={!!user}
+        nome={nomeExibido}
+        sair={sair}
+        onEntrar={() => setModalLogin(true)}
+      />
+
+      {/* HERO — página inteira */}
       <section style={{
         backgroundImage: "url('/fundo.png')",
         backgroundSize: 'cover',
@@ -217,72 +302,37 @@ export default function LandingPage() {
         height: '100%',
         display: 'flex',
         alignItems: 'center',
-        padding: 'clamp(16px, 4vh, 96px) clamp(20px, 5vw, 48px) clamp(16px, 4vh, 80px)',
+        padding: 'clamp(72px, 12vh, 140px) clamp(20px, 5vw, 48px) clamp(16px, 4vh, 80px)',
         position: 'relative',
         overflow: 'hidden',
         boxSizing: 'border-box',
       }}>
         {/* Blur leve no lado esquerdo com fade suave */}
-        <div style={{
-          position: 'absolute',
-          top: 0, left: 0, bottom: 0,
-          width: '75%',
-          backdropFilter: 'blur(1px)',
-          WebkitBackdropFilter: 'blur(1px)',
-          WebkitMaskImage: 'linear-gradient(to right, black 0%, black 35%, transparent 100%)',
-          maskImage: 'linear-gradient(to right, black 0%, black 35%, transparent 100%)',
-          pointerEvents: 'none',
-        }} />
-        {/* Escurece a foto pra dar contraste ao texto */}
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'linear-gradient(to right, rgba(10,15,30,0.82) 0%, rgba(10,15,30,0.4) 45%, rgba(10,15,30,0) 100%)',
-          pointerEvents: 'none',
-        }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: '75%', backdropFilter: 'blur(1px)', WebkitBackdropFilter: 'blur(1px)', WebkitMaskImage: 'linear-gradient(to right, black 0%, black 35%, transparent 100%)', maskImage: 'linear-gradient(to right, black 0%, black 35%, transparent 100%)', pointerEvents: 'none' }} />
+        {/* Gradiente escuro */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(10,15,30,0.82) 0%, rgba(10,15,30,0.4) 45%, rgba(10,15,30,0) 100%)', pointerEvents: 'none' }} />
 
         <div style={{ position: 'relative', zIndex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '32px', flexWrap: 'wrap' }}>
 
-          {/* Coluna esquerda: logo + título + subtítulo — não muda nada */}
+          {/* Coluna esquerda */}
           <div style={{ maxWidth: '720px' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/CIDADANIA.png" alt="CidadanIA Frutal" className="landing-logo" style={{ height: 'clamp(160px, 24vh, 320px)', width: 'auto', maxWidth: '100%', display: 'block', marginBottom: 'clamp(10px, 2vh, 20px)' }} />
 
-            {/* Headline */}
-            <h1 style={{
-              fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif",
-              fontSize: 'clamp(20px, 3vw, 36px)',
-              fontWeight: 800,
-              lineHeight: 1.06,
-              letterSpacing: '-0.03em',
-              color: '#ffffff',
-              marginTop: 'clamp(40px, 10vh, 100px)',
-              marginBottom: 'clamp(10px, 2vh, 24px)',
-              paddingLeft: '15px',
-              textShadow: '0 2px 16px rgba(0,0,0,0.25)',
-            }}>
+            <h1 style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif", fontSize: 'clamp(20px, 3vw, 36px)', fontWeight: 800, lineHeight: 1.06, letterSpacing: '-0.03em', color: '#ffffff', marginTop: 'clamp(40px, 10vh, 100px)', marginBottom: 'clamp(10px, 2vh, 24px)', paddingLeft: '15px', textShadow: '0 2px 16px rgba(0,0,0,0.25)' }}>
               Navegue por Frutal<br />
               <span style={{ color: '#8ea2f5' }}>Explore tudo ao seu redor</span>
             </h1>
 
-            {/* Subtítulo */}
-            <p style={{
-              fontSize: 'clamp(13px, 2vh, 17px)',
-              color: 'rgba(255,255,255,0.85)',
-              lineHeight: 1.6,
-              maxWidth: '520px',
-              margin: 0,
-              paddingLeft: '15px',
-              textShadow: '0 1px 8px rgba(0,0,0,0.2)',
-            }}>
+            <p style={{ fontSize: 'clamp(13px, 2vh, 17px)', color: 'rgba(255,255,255,0.85)', lineHeight: 1.6, maxWidth: '520px', margin: 0, paddingLeft: '15px', textShadow: '0 1px 8px rgba(0,0,0,0.2)' }}>
               Uma plataforma visual e interativa onde cada pino é uma oportunidade ou solução.
               Mude as camadas do mapa para cobrar melhorias públicas, achar empregos, localizar
               pets, entre outras. O Lucas (nosso assistente IA) te guia em cada passo.
             </p>
           </div>
 
-          {/* Coluna direita: login ou card do usuário — só no desktop */}
-          <div className="landing-col-direita" style={{ display: 'flex', flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: '100%' }}>
+          {/* Coluna direita — só desktop */}
+          <div className="landing-col-direita" style={{ display: 'flex', flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             {user
               ? <CardUsuario nome={nomeExibido} sair={sair} />
               : <CardLogin />
@@ -291,62 +341,32 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Botão flutuante mobile — abre modal com login/card */}
-      <button
-        className="landing-btn-mobile"
-        onClick={() => setModalMobile(true)}
-        style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', zIndex: 10, background: '#4256c8', color: 'white', fontWeight: 700, fontSize: '15px', padding: '14px 32px', borderRadius: '50px', border: 'none', cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,0.4)', whiteSpace: 'nowrap' }}
-      >
-        {user ? 'Ver funcionalidades' : 'Entrar ou criar conta'}
-      </button>
-
-      {/* Modal mobile */}
-      {modalMobile && (
-        <div
-          className="landing-modal-mobile"
-          style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setModalMobile(false) }}
-        >
+      {/* Modal de login (abre pelo botão Entrar da navbar no mobile) */}
+      {modalLogin && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setModalLogin(false) }}>
           <div style={{ width: '100%', maxWidth: '340px', position: 'relative' }}>
-            <button onClick={() => setModalMobile(false)} style={{ position: 'absolute', top: '-36px', right: 0, background: 'none', border: 'none', color: 'white', fontSize: '14px', cursor: 'pointer', opacity: 0.7 }}>
+            <button onClick={() => setModalLogin(false)} style={{ position: 'absolute', top: '-36px', right: 0, background: 'none', border: 'none', color: 'white', fontSize: '14px', cursor: 'pointer', opacity: 0.7 }}>
               Fechar ✕
             </button>
-            {user
-              ? <CardUsuario nome={nomeExibido} sair={() => { sair(); setModalMobile(false) }} />
-              : <CardLogin />
-            }
+            <CardLogin />
           </div>
         </div>
-      )}
-
-      {/* Sair — canto inferior direito da tela, só quando logado, só desktop */}
-      {user && (
-        <button className="landing-sair-desktop" onClick={sair} style={{ position: 'fixed', bottom: '16px', right: '20px', zIndex: 10, background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: 'rgba(255,255,255,0.5)', padding: 0 }}>
-          Sair da conta
-        </button>
       )}
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap');
         html.landing-lock-body, body.landing-lock-body {
-          position: fixed;
-          inset: 0;
-          width: 100%;
-          height: 100svh;
-          overflow: hidden;
-          overscroll-behavior: none;
+          position: fixed; inset: 0; width: 100%; height: 100svh; overflow: hidden; overscroll-behavior: none;
         }
-        /* Desktop: coluna direita visível, botão mobile oculto */
         .landing-col-direita { display: flex !important; }
-        .landing-btn-mobile { display: none !important; }
-        .landing-modal-mobile { display: flex !important; }
-        .landing-sair-desktop { display: block !important; }
-        /* Mobile */
         @media (max-width: 768px) {
           .landing-col-direita { display: none !important; }
-          .landing-btn-mobile { display: block !important; }
-          .landing-sair-desktop { display: none !important; }
           .landing-logo { height: clamp(80px, 18vw, 140px) !important; }
+          .nav-links { display: none !important; }
+          .nav-auth { display: none !important; }
+          .nav-hamburger { display: block !important; }
+          .nav-auth-mobile { display: flex !important; }
         }
       `}</style>
     </div>

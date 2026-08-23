@@ -58,8 +58,9 @@ export default function MiniMapaSatelite({ height = 200 }: { height?: number }) 
 
       if (!isMounted || !demandas) return
 
-      demandas.forEach((d: { lat: number; lng: number; categoria?: { cor?: string } | null }) => {
-        const cor = d.categoria?.cor || '#4256c8'
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      demandas.forEach((d: any) => {
+        const cor = (Array.isArray(d.categoria) ? d.categoria[0]?.cor : d.categoria?.cor) || '#4256c8'
         const icon = L.divIcon({
           className: '',
           html: `<div style="width:10px;height:10px;border-radius:50%;background:${cor};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4);"></div>`,
