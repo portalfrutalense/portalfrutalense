@@ -1,24 +1,42 @@
+'use client'
+
 import Link from 'next/link'
-import Navbar from '@/components/Navbar'
+import { useEffect, useState } from 'react'
+import { useAuth } from '@/components/AuthProvider'
+import ModalAuth from '@/components/ModalAuth'
 
 export default function LandingPage() {
+  const [modalAuth, setModalAuth] = useState(false)
+  const { user, perfil, sair } = useAuth()
+  const nomeExibido = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || 'Usuário'
+
+  // Trava html/body de verdade — página inicial nunca rola, nem 1px
+  useEffect(() => {
+    const html = document.documentElement
+    const body = document.body
+    html.classList.add('landing-lock-body')
+    body.classList.add('landing-lock-body')
+    return () => {
+      html.classList.remove('landing-lock-body')
+      body.classList.remove('landing-lock-body')
+    }
+  }, [])
+
   return (
-    <div style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div style={{ fontFamily: "'Inter', system-ui, sans-serif", height: '100dvh', overflow: 'hidden' }}>
 
-      <Navbar />
-
-      {/* HERO */}
+      {/* HERO — página inteira, sem navbar, sem scroll */}
       <section style={{
         backgroundImage: "url('/fundo.jpg')",
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        minHeight: 'clamp(480px, 70vh, 720px)',
+        height: '100%',
         display: 'flex',
         alignItems: 'center',
-        padding: 'clamp(64px, 8vw, 96px) clamp(24px, 5vw, 48px) clamp(56px, 7vw, 80px)',
+        padding: 'clamp(16px, 4vh, 96px) clamp(20px, 5vw, 48px) clamp(16px, 4vh, 80px)',
         position: 'relative',
         overflow: 'hidden',
-        borderBottom: '1px solid #e5e7eb',
+        boxSizing: 'border-box',
       }}>
         {/* Escurece a foto pra dar contraste ao texto */}
         <div style={{
@@ -28,11 +46,30 @@ export default function LandingPage() {
           pointerEvents: 'none',
         }} />
 
+        {/* Auth — canto superior direito, no lugar da navbar */}
+        <div style={{ position: 'absolute', top: 'clamp(12px, 3vh, 24px)', right: 'clamp(16px, 4vw, 32px)', zIndex: 2, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {user ? (
+            <>
+              <Link href="/perfil" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.9)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px', textDecoration: 'none', textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
+                Olá, {nomeExibido}
+              </Link>
+              <button onClick={sair} style={{ fontSize: '13px', color: 'white', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.35)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                Sair
+              </button>
+            </>
+          ) : (
+            <button onClick={() => setModalAuth(true)} style={{ fontSize: '13px', color: 'white', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.35)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              Entrar
+            </button>
+          )}
+        </div>
+
         <div style={{ position: 'relative', zIndex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap' }}>
+
           {/* Coluna esquerda: logo + título + subtítulo */}
           <div style={{ maxWidth: '720px' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: 'clamp(36px, 5vw, 48px)', width: 'auto', display: 'block', marginBottom: '20px' }} />
+            <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: 'clamp(28px, 4vh, 48px)', width: 'auto', display: 'block', marginBottom: 'clamp(10px, 2vh, 20px)' }} />
 
             {/* Headline */}
             <h1 style={{
@@ -42,7 +79,7 @@ export default function LandingPage() {
               lineHeight: 1.06,
               letterSpacing: '-0.03em',
               color: '#ffffff',
-              marginBottom: '24px',
+              marginBottom: 'clamp(10px, 2vh, 24px)',
               textShadow: '0 2px 16px rgba(0,0,0,0.25)',
             }}>
               Navegue por Frutal<br />
@@ -51,10 +88,11 @@ export default function LandingPage() {
 
             {/* Subtítulo */}
             <p style={{
-              fontSize: '17px',
+              fontSize: 'clamp(13px, 2.1vh, 17px)',
               color: 'rgba(255,255,255,0.85)',
-              lineHeight: 1.7,
+              lineHeight: 1.6,
               maxWidth: '520px',
+              margin: 0,
               textShadow: '0 1px 8px rgba(0,0,0,0.2)',
             }}>
               Uma plataforma visual e interativa onde cada pino é uma oportunidade ou solução.
@@ -84,10 +122,19 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {modalAuth && <ModalAuth onFechar={() => setModalAuth(false)} />}
+
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap');
+        html.landing-lock-body, body.landing-lock-body {
+          position: fixed;
+          inset: 0;
+          width: 100%;
+          height: 100svh;
+          overflow: hidden;
+          overscroll-behavior: none;
+        }
       `}</style>
     </div>
   )
 }
-
