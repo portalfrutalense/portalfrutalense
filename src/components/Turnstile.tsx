@@ -31,6 +31,7 @@ export default function Turnstile({ onVerify, onExpire, size = 'compact' }: Prop
       widgetId.current = window.turnstile.render(containerRef.current, {
         sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
         size,
+        theme: 'light',
         callback: onVerify,
         'expired-callback': () => onExpire?.(),
       })

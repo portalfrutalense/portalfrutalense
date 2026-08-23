@@ -21,6 +21,11 @@ html {
   overflow-y: scroll;
 }
 
+/* Sistema sempre no tema claro, independente do tema do dispositivo/navegador */
+html {
+  color-scheme: light only;
+}
+
 /* Imagens e iframes responsivos */
 img, iframe, video {
   max-width: 100%;
