@@ -347,7 +347,7 @@ export default function LandingPage() {
           onClick={() => setModalLogin(true)}
           style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', zIndex: 10, background: '#4256c8', color: 'white', fontWeight: 700, fontSize: '15px', padding: '14px 32px', borderRadius: '50px', border: 'none', cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,0.4)', whiteSpace: 'nowrap', display: 'none' }}
         >
-          Entrar ou criar conta
+          Entre ou registre-se
         </button>
       )}
 
