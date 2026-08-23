@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '@/components/AuthProvider'
-import { Entidade, CategoriaMapa } from '@/types'
+import { CategoriaMapa } from '@/types'
 
 type SecaoMaster = 'dashboard' | 'demandas' | 'chatbot' | 'perfis'
 type SubSecaoPerfis = 'cidadao' | 'autoridade' | 'empresa'
@@ -22,21 +22,10 @@ export default function MasterPage() {
   const [menuAberto, setMenuAberto] = useState(false)
 
   // Dados config
-  const [entidades, setEntidades] = useState<Entidade[]>([])
   const [categorias, setCategorias] = useState<CategoriaMapa[]>([])
-  const [catEntidades, setCatEntidades] = useState<Record<string, string[]>>({}) // categoria_id -> entidade_ids[]
-  const [novaEntNome, setNovaEntNome] = useState('')
-  const [novaEntCargo, setNovaEntCargo] = useState('')
-  const [novaEntEmail, setNovaEntEmail] = useState('')
-  const [novaEntCats, setNovaEntCats] = useState<string[]>([])
   const [novaCatNome, setNovaCatNome] = useState('')
   const [novaCatCor, setNovaCatCor] = useState('#dc2626')
   const [novaCatIcone, setNovaCatIcone] = useState<File | null>(null)
-  const [editandoEnt, setEditandoEnt] = useState<string | null>(null)
-  const [editEntNome, setEditEntNome] = useState('')
-  const [editEntCargo, setEditEntCargo] = useState('')
-  const [editEntEmail, setEditEntEmail] = useState('')
-  const [editEntCats, setEditEntCats] = useState<string[]>([])
   const [editandoCat, setEditandoCat] = useState<string | null>(null)
   const [editCatNome, setEditCatNome] = useState('')
   const [editCatCor, setEditCatCor] = useState('#dc2626')
@@ -61,16 +50,7 @@ export default function MasterPage() {
   }, [carregandoAuth, user, perfil])
 
   function carregarDados() {
-    client.from('entidades').select('*').order('nome').then(({ data }) => setEntidades((data as Entidade[]) || []))
     client.from('categorias_mapa').select('*').order('nome').then(({ data }) => setCategorias((data as CategoriaMapa[]) || []))
-    client.from('categoria_entidades').select('categoria_id, entidade_id').then(({ data }) => {
-      const mapa: Record<string, string[]> = {}
-      for (const row of (data || [])) {
-        if (!mapa[row.categoria_id]) mapa[row.categoria_id] = []
-        mapa[row.categoria_id].push(row.entidade_id)
-      }
-      setCatEntidades(mapa)
-    })
     client.from('demandas').select('status').then(({ data }) => {
       const d = data || []
       setStats({
@@ -84,33 +64,6 @@ export default function MasterPage() {
     })
   }
 
-  async function salvarEntidade(e: React.FormEvent) {
-    e.preventDefault()
-    const { data: nova } = await client.from('entidades').insert({ nome: novaEntNome, cargo: novaEntCargo, email: novaEntEmail, ativo: true }).select().single()
-    if (nova && novaEntCats.length > 0) {
-      const { error: errCat } = await client.from('categoria_entidades').insert(novaEntCats.map(catId => ({ categoria_id: catId, entidade_id: nova.id })))
-      if (errCat) console.error('ERRO categoria_entidades insert:', errCat)
-    }
-    setNovaEntNome(''); setNovaEntCargo(''); setNovaEntEmail(''); setNovaEntCats([])
-    carregarDados()
-  }
-  async function excluirEntidade(id: string) {
-    if (!confirm('Excluir esta autoridade?')) return
-    await client.from('entidades').delete().eq('id', id)
-    carregarDados()
-  }
-  async function salvarEdicaoEntidade(id: string) {
-    await client.from('entidades').update({ nome: editEntNome, cargo: editEntCargo, email: editEntEmail }).eq('id', id)
-    // Recria as relações: apaga tudo e insere as selecionadas
-    const { error: errDel } = await client.from('categoria_entidades').delete().eq('entidade_id', id)
-    if (errDel) console.error('ERRO categoria_entidades delete:', errDel)
-    if (editEntCats.length > 0) {
-      const { error: errIns } = await client.from('categoria_entidades').insert(editEntCats.map(catId => ({ categoria_id: catId, entidade_id: id })))
-      if (errIns) console.error('ERRO categoria_entidades insert (edit):', errIns)
-    }
-    setEditandoEnt(null)
-    carregarDados()
-  }
   async function comprimirIcone(file: File, maxSize = 64): Promise<Blob> {
     return new Promise((resolve) => {
       const img = new Image()
@@ -159,16 +112,6 @@ export default function MasterPage() {
     }
     await client.from('categorias_mapa').update({ nome: editCatNome, cor: editCatCor, ...(icone_url ? { icone_url } : {}) }).eq('id', id)
     setEditandoCat(null); setEditCatIcone(null)
-    carregarDados()
-  }
-
-  async function toggleCatEntidade(catId: string, entId: string) {
-    const atuais = catEntidades[catId] || []
-    if (atuais.includes(entId)) {
-      await client.from('categoria_entidades').delete().eq('categoria_id', catId).eq('entidade_id', entId)
-    } else {
-      await client.from('categoria_entidades').insert({ categoria_id: catId, entidade_id: entId })
-    }
     carregarDados()
   }
 
