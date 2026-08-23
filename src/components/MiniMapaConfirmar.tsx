@@ -75,8 +75,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
   const [coordConfirmada, setCoordConfirmada] = useState<{ lat: number; lng: number } | null>(null)
 
   useEffect(() => {
-    if (!mapRef.current || iniciado.current) return
-    iniciado.current = true
+    if (!mapRef.current) return
 
     if (!document.querySelector('link[data-leaflet-css]')) {
       const link = document.createElement('link')
@@ -86,8 +85,11 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
       document.head.appendChild(link)
     }
 
+    let mapa: Leaflet.Map | null = null
+
     import('leaflet').then((L) => {
-      const mapa = L.map(mapRef.current!, { zoomControl: false }).setView([FRUTAL_LAT, FRUTAL_LNG], ZOOM_CIDADE)
+      if (!mapRef.current) return
+      mapa = L.map(mapRef.current, { zoomControl: false }).setView([FRUTAL_LAT, FRUTAL_LNG], ZOOM_CIDADE)
       const tile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' })
       tile.addTo(mapa)
       tileAtual.current = tile
@@ -95,8 +97,11 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
       leafletObj.current = L
       zoomAnterior.current = mapa.getZoom()
 
+      // Garante que o Leaflet recalcule o tamanho após a montagem no DOM
+      setTimeout(() => mapa?.invalidateSize(), 100)
+
       mapa.on('zoomend', () => {
-        const novoZoom = mapa.getZoom()
+        const novoZoom = mapa!.getZoom()
         if (zoomAnterior.current !== null && novoZoom > zoomAnterior.current) {
           setZoomsFeitos((z) => z + 1)
         }
@@ -109,6 +114,17 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
 
       aplicarTravamento(mapa, faseRef.current !== 'ajuste')
     })
+
+    return () => {
+      if (mapa) {
+        mapa.remove()
+        mapa = null
+        mapaObj.current = null
+        tileAtual.current = null
+        leafletObj.current = null
+        iniciado.current = false
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
