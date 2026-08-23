@@ -218,13 +218,15 @@ export default function LandingPage() {
         overflow: 'hidden',
         boxSizing: 'border-box',
       }}>
-        {/* Blur leve no lado esquerdo */}
+        {/* Blur leve no lado esquerdo com fade suave */}
         <div style={{
           position: 'absolute',
           top: 0, left: 0, bottom: 0,
-          width: '55%',
+          width: '75%',
           backdropFilter: 'blur(1px)',
           WebkitBackdropFilter: 'blur(1px)',
+          WebkitMaskImage: 'linear-gradient(to right, black 0%, black 35%, transparent 100%)',
+          maskImage: 'linear-gradient(to right, black 0%, black 35%, transparent 100%)',
           pointerEvents: 'none',
         }} />
         {/* Escurece a foto pra dar contraste ao texto */}
