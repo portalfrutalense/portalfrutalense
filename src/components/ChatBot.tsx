@@ -232,11 +232,11 @@ export default function ChatBot() {
   function aoConfirmarQuerRegistrar() {
     setMensagens(prev => [...prev, { role: 'user', content: 'Sim, registrar' }])
     const vinculadas = catEntidades[categoriaIdDemanda] || []
-    const opcoes = vinculadas.length > 0 ? entidades.filter(en => vinculadas.includes(en.id)) : entidades
+    const opcoes = entidades.filter(en => vinculadas.includes(en.id))
 
     comDigitando(() => {
       if (opcoes.length === 0) {
-        setMensagens(prev => [...prev, { role: 'assistant', content: 'Não encontrei nenhuma autoridade cadastrada no sistema no momento. Não é possível registrar a demanda agora.' }])
+        setMensagens(prev => [...prev, { role: 'assistant', content: 'Não há autoridade vinculada a essa categoria no momento. Não é possível registrar a demanda agora.' }])
         resetFluxoDemanda()
         return
       }

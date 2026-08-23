@@ -760,11 +760,14 @@ export default function MapaDemandas() {
                   <select value={entidadeId} onChange={(e) => setEntidadeId(e.target.value)}
                     style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', background: 'white', outline: 'none', boxSizing: 'border-box' }}>
                     <option value="">Selecione a autoridade</option>
-                    {(categoriaId && catEntidades[categoriaId]?.length
-                      ? entidades.filter(en => catEntidades[categoriaId].includes(en.id))
-                      : entidades
-                    ).map((en) => <option key={en.id} value={en.id}>{en.nome} — {en.cargo}</option>)}
+                    {(categoriaId ? entidades.filter(en => catEntidades[categoriaId]?.includes(en.id)) : entidades)
+                      .map((en) => <option key={en.id} value={en.id}>{en.nome} — {en.cargo}</option>)}
                   </select>
+                  {categoriaId && !catEntidades[categoriaId]?.length && (
+                    <p style={{ fontSize: '11px', color: '#92400e', margin: '4px 0 0' }}>
+                      Nenhuma autoridade vinculada a essa categoria ainda. Contate o administrador.
+                    </p>
+                  )}
                 </div>
 
                 <div>
