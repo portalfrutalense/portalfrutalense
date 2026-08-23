@@ -810,7 +810,7 @@ export default function MapaDemandas() {
                         <span>Melhorando...</span>
                       ) : (
                         <>
-                          <svg width="13" height="13" viewBox="0 0 24 24">
+                          <svg width="16" height="16" viewBox="0 0 24 24">
                             <defs>
                               <linearGradient id="gradienteMelhorar" x1="0" y1="0" x2="1" y2="1">
                                 <stop offset="0%" stopColor="#4285f4" />
@@ -820,7 +820,7 @@ export default function MapaDemandas() {
                             </defs>
                             <path d="M11.47 2.365a.5.5 0 01.963 0l1.582 6.135a2 2 0 001.437 1.437l6.135 1.582a.5.5 0 010 .963l-6.135 1.582a2 2 0 00-1.437 1.437l-1.582 6.135a.5.5 0 01-.963 0l-1.582-6.135a2 2 0 00-1.437-1.437L2.316 12.482a.5.5 0 010-.963l6.135-1.582a2 2 0 001.437-1.437z" fill="url(#gradienteMelhorar)" />
                           </svg>
-                          <span>Melhorar</span>
+                          <span>Melhorar o texto com IA</span>
                         </>
                       )}
                     </button>
