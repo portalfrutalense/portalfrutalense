@@ -305,8 +305,10 @@ export default function LandingPage() {
         overflow: 'hidden',
         boxSizing: 'border-box',
       }}>
-        {/* Blur leve no lado esquerdo com fade suave */}
-        <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: '75%', backdropFilter: 'blur(1px)', WebkitBackdropFilter: 'blur(1px)', WebkitMaskImage: 'linear-gradient(to right, black 0%, black 35%, transparent 100%)', maskImage: 'linear-gradient(to right, black 0%, black 35%, transparent 100%)', pointerEvents: 'none' }} />
+        {/* Blur desktop: lado esquerdo com fade suave */}
+        <div className="blur-desktop" style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: '75%', backdropFilter: 'blur(1px)', WebkitBackdropFilter: 'blur(1px)', WebkitMaskImage: 'linear-gradient(to right, black 0%, black 35%, transparent 100%)', maskImage: 'linear-gradient(to right, black 0%, black 35%, transparent 100%)', pointerEvents: 'none' }} />
+        {/* Blur mobile: tela inteira */}
+        <div className="blur-mobile" style={{ position: 'absolute', inset: 0, backdropFilter: 'blur(1px)', WebkitBackdropFilter: 'blur(1px)', pointerEvents: 'none', display: 'none' }} />
         {/* Gradiente escuro */}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(10,15,30,0.82) 0%, rgba(10,15,30,0.4) 45%, rgba(10,15,30,0) 100%)', pointerEvents: 'none' }} />
 
@@ -369,6 +371,8 @@ export default function LandingPage() {
         }
         .landing-col-direita { display: flex !important; }
         @media (max-width: 768px) {
+          .blur-desktop { display: none !important; }
+          .blur-mobile { display: block !important; }
           .landing-col-direita { display: none !important; }
           .landing-logo { height: clamp(80px, 18vw, 140px) !important; margin-top: -40px !important; }
           .nav-links { display: none !important; }
