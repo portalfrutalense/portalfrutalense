@@ -81,7 +81,8 @@ export default function MapaDemandas() {
   const [descricao, setDescricao] = useState('')
   const [melhorandoTexto, setMelhorandoTexto] = useState(false)
   const [categoriaId, setCategoriaId] = useState('')
-  const [entidadeId, setEntidadeId] = useState('')
+  const [entidadeIds, setEntidadeIds] = useState<string[]>([])
+  const [dropdownAutoridade, setDropdownAutoridade] = useState(false)
   const [coordenadas, setCoordenadas] = useState<{ lat: number; lng: number; label: string } | null>(null)
   const [turnstileToken, setTurnstileToken] = useState('')
   const [locConfirmada, setLocConfirmada] = useState(false)
@@ -393,7 +394,7 @@ export default function MapaDemandas() {
     e.preventDefault(); setErro('')
     if (!user || !perfil) return
     if (!categoriaId) { setErro('Selecione a categoria.'); return }
-    if (!entidadeId) { setErro('Selecione a autoridade responsável.'); return }
+    if (entidadeIds.length === 0) { setErro('Selecione ao menos uma autoridade responsável.'); return }
     if (!descricao.trim() || descricao.trim().length < 10) { setErro('Descreva melhor o problema.'); return }
     if (!coordenadas || !locConfirmada) { setErro('Confirme a localização no mapa.'); return }
     if (!turnstileToken) { setErro('Aguarde a verificação de segurança concluir.'); return }
@@ -415,11 +416,11 @@ export default function MapaDemandas() {
       const res = await fetch('/api/demandas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ descricao: descricao.trim(), lat: coordenadas.lat, lng: coordenadas.lng, categoria_id: categoriaId, entidade_ids: [entidadeId], foto_url, endereco_label: coordenadas.label, turnstile_token: turnstileToken }),
+        body: JSON.stringify({ descricao: descricao.trim(), lat: coordenadas.lat, lng: coordenadas.lng, categoria_id: categoriaId, entidade_ids: entidadeIds, foto_url, endereco_label: coordenadas.label, turnstile_token: turnstileToken }),
       })
       if (!res.ok) { const d = await res.json(); throw new Error(d.error) }
       setSucesso(true)
-      setDescricao(''); setCategoriaId(''); setEntidadeId('')
+      setDescricao(''); setCategoriaId(''); setEntidadeIds([]); setDropdownAutoridade(false)
       setCoordenadas(null); setLocConfirmada(false); setFotoFile(null); setFotoPreview(null); setTurnstileToken('')
     } catch (err: any) {
       setErro(err.message || 'Erro ao enviar.')
@@ -428,7 +429,7 @@ export default function MapaDemandas() {
 
   function fecharFormulario() {
     setEtapa('fechado'); setSucesso(false); setErro('')
-    setDescricao(''); setCategoriaId(''); setEntidadeId('')
+    setDescricao(''); setCategoriaId(''); setEntidadeIds([]); setDropdownAutoridade(false)
     setCoordenadas(null); setLocConfirmada(false); setFotoFile(null); setFotoPreview(null); setTurnstileToken('')
   }
 
@@ -804,7 +805,7 @@ export default function MapaDemandas() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Categoria *</label>
-                  <select value={categoriaId} onChange={(e) => { setCategoriaId(e.target.value); setEntidadeId('') }}
+                  <select value={categoriaId} onChange={(e) => { setCategoriaId(e.target.value); setEntidadeIds([]) }}
                     style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', background: 'white', outline: 'none', boxSizing: 'border-box' }}>
                     <option value="">Selecione</option>
                     {categorias.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
@@ -812,13 +813,47 @@ export default function MapaDemandas() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Autoridade responsável *</label>
-                  <select value={entidadeId} onChange={(e) => setEntidadeId(e.target.value)}
-                    style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', background: 'white', outline: 'none', boxSizing: 'border-box' }}>
-                    <option value="">Selecione a autoridade</option>
-                    {(categoriaId ? entidades.filter(en => catEntidades[categoriaId]?.includes(en.id)) : entidades)
-                      .map((en) => <option key={en.id} value={en.id}>{en.nome} — {en.cargo}</option>)}
-                  </select>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Autoridade responsável * <span style={{ fontWeight: 400 }}>(até 3)</span></label>
+                  {(() => {
+                    const opcoesAutoridade = categoriaId ? entidades.filter(en => catEntidades[categoriaId]?.includes(en.id)) : entidades
+                    return (
+                      <div style={{ position: 'relative' }}>
+                        <button
+                          type="button"
+                          onClick={() => setDropdownAutoridade(!dropdownAutoridade)}
+                          style={{ width: '100%', background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#111827', boxSizing: 'border-box' }}
+                        >
+                          <span>{entidadeIds.length === 0 ? 'Selecione a(s) autoridade(s)' : `${entidadeIds.length} selecionada${entidadeIds.length > 1 ? 's' : ''}`}</span>
+                          <span style={{ fontSize: '10px', color: '#6b7280' }}>{dropdownAutoridade ? '▲' : '▼'}</span>
+                        </button>
+                        {dropdownAutoridade && (
+                          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', zIndex: 50, overflow: 'hidden', maxHeight: '220px', overflowY: 'auto' }}>
+                            {opcoesAutoridade.length === 0 ? (
+                              <p style={{ margin: 0, padding: '10px 12px', fontSize: '12px', color: '#6b7280' }}>Nenhuma autoridade disponível.</p>
+                            ) : opcoesAutoridade.map(en => {
+                              const selecionado = entidadeIds.includes(en.id)
+                              const desabilitado = !selecionado && entidadeIds.length >= 3
+                              return (
+                                <label key={en.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', cursor: desabilitado ? 'not-allowed' : 'pointer', borderBottom: '1px solid #f9fafb', opacity: desabilitado ? 0.4 : 1, background: selecionado ? '#eff6ff' : 'white' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={selecionado}
+                                    disabled={desabilitado}
+                                    onChange={() => setEntidadeIds(prev => selecionado ? prev.filter(id => id !== en.id) : prev.length >= 3 ? prev : [...prev, en.id])}
+                                    style={{ accentColor: '#4256c8', width: '15px', height: '15px', flexShrink: 0 }}
+                                  />
+                                  <div>
+                                    <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#111827' }}>{en.nome}</p>
+                                    <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>{en.cargo}</p>
+                                  </div>
+                                </label>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
                   {categoriaId && !catEntidades[categoriaId]?.length && (
                     <p style={{ fontSize: '11px', color: '#92400e', margin: '4px 0 0' }}>
                       Nenhuma autoridade vinculada a essa categoria ainda. Contate o administrador.

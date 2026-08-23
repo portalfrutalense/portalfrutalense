@@ -566,6 +566,20 @@ function MasterDemandas({ token }: { token: string | null }) {
     d.ok ? mostrarNotif('Link reenviado com sucesso.') : mostrarNotif(d.error, true)
   }
 
+  async function moderarDemanda(id: string, acao: 'aprovar' | 'rejeitar' | 'ocultar' | 'reexibir') {
+    const { data: { session } } = await sbClient.auth.getSession()
+    const res = await fetch('/api/master/moderar-demanda', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ demanda_id: id, acao }),
+    })
+    const d = await res.json()
+    if (!d.ok) { mostrarNotif(d.error, true); return }
+    const msg = { aprovar: 'Demanda aprovada e autoridades notificadas.', rejeitar: 'Demanda rejeitada.', ocultar: 'Demanda ocultada do mapa.', reexibir: 'Demanda reexibida no mapa.' }[acao]
+    mostrarNotif(msg)
+    carregarDemandas()
+  }
+
   async function getToken() {
     if (token) return token
     const { data: { session } } = await sbClient.auth.getSession()
@@ -679,6 +693,11 @@ function MasterDemandas({ token }: { token: string | null }) {
               <span style={{ fontSize: '11px', fontWeight: 600, background: cor.bg, color: cor.color, borderRadius: '20px', padding: '3px 10px', flexShrink: 0 }}>
                 {statusLabel[d.status] || d.status}
               </span>
+              {d.oculto && (
+                <span style={{ fontSize: '11px', fontWeight: 600, background: '#f9fafb', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '20px', padding: '3px 10px', flexShrink: 0 }}>
+                  Oculta
+                </span>
+              )}
               <span style={{ fontSize: '13px', fontWeight: 500, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                 {titleCase(d.morador_nome)} · {d.categoria?.nome ? titleCase(d.categoria.nome) : '—'}
               </span>
@@ -712,6 +731,25 @@ function MasterDemandas({ token }: { token: string | null }) {
                         Reenviar link
                       </button>
                     )}
+                    {d.status === 'pendente' && (
+                      <>
+                        <button
+                          onClick={() => { moderarDemanda(d.id, 'aprovar'); setMenuAbertoDemandaId(null) }}
+                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#166534', background: 'none', border: 'none', cursor: 'pointer' }}>
+                          Aprovar demanda
+                        </button>
+                        <button
+                          onClick={() => { moderarDemanda(d.id, 'rejeitar'); setMenuAbertoDemandaId(null) }}
+                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}>
+                          Rejeitar demanda
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => { moderarDemanda(d.id, d.oculto ? 'reexibir' : 'ocultar'); setMenuAbertoDemandaId(null) }}
+                      style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#111827', background: 'none', border: 'none', cursor: 'pointer' }}>
+                      {d.oculto ? 'Reexibir no mapa' : 'Ocultar do mapa'}
+                    </button>
                     {['aguardando_resposta', 'respondida', 'nao_resolvida'].includes(d.status) && (
                       <button
                         onClick={async () => {
