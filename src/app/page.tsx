@@ -74,7 +74,7 @@ export default function LandingPage() {
             {/* Headline */}
             <h1 style={{
               fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif",
-              fontSize: 'clamp(20px, 3vw, 34px)',
+              fontSize: 'clamp(16px, 2.4vw, 28px)',
               fontWeight: 800,
               lineHeight: 1.06,
               letterSpacing: '-0.03em',
@@ -88,7 +88,7 @@ export default function LandingPage() {
 
             {/* Subtítulo */}
             <p style={{
-              fontSize: 'clamp(13px, 2.1vh, 17px)',
+              fontSize: 'clamp(11px, 1.8vh, 14px)',
               color: 'rgba(255,255,255,0.85)',
               lineHeight: 1.6,
               maxWidth: '520px',
