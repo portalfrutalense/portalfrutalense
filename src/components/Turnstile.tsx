@@ -32,6 +32,7 @@ export default function Turnstile({ onVerify, onExpire, size = 'compact' }: Prop
         sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
         size,
         theme: 'light',
+        appearance: 'always',
         callback: onVerify,
         'expired-callback': () => onExpire?.(),
       })
