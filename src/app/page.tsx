@@ -73,7 +73,7 @@ function CardLogin() {
       borderRadius: '16px',
       width: '100%',
       maxWidth: '320px',
-      boxShadow: '0 8px 40px rgba(0,0,0,0.28)',
+      boxShadow: '0 20px 80px rgba(0,0,0,0.55)',
       overflow: 'hidden',
       flexShrink: 0,
     }}>
@@ -157,7 +157,7 @@ function CardUsuario({ nome, sair }: { nome: string; sair: () => void }) {
       borderRadius: '16px',
       width: '100%',
       maxWidth: '320px',
-      boxShadow: '0 8px 40px rgba(0,0,0,0.28)',
+      boxShadow: '0 20px 80px rgba(0,0,0,0.55)',
       overflow: 'hidden',
       flexShrink: 0,
     }}>
