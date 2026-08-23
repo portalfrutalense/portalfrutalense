@@ -350,7 +350,7 @@ export default function LandingPage() {
               <span style={{ color: '#8ea2f5' }}>Explore tudo ao seu redor</span>
             </h1>
 
-            <p style={{ fontSize: 'clamp(13px, 2vh, 17px)', color: 'rgba(255,255,255,0.85)', lineHeight: 1.6, maxWidth: '520px', margin: 0, paddingLeft: '15px', textShadow: '0 1px 8px rgba(0,0,0,0.2)' }}>
+            <p className="landing-descricao" style={{ fontSize: 'clamp(13px, 2vh, 17px)', color: 'rgba(255,255,255,0.85)', lineHeight: 1.6, maxWidth: '520px', margin: 0, paddingLeft: '15px', textShadow: '0 1px 8px rgba(0,0,0,0.2)' }}>
               Uma plataforma visual e interativa onde cada pino é uma oportunidade ou solução.
               Mude as camadas do mapa para cobrar melhorias públicas, achar empregos, localizar
               pets, entre outras. O Lucas (nosso assistente IA) te guia em cada passo.
@@ -412,8 +412,11 @@ export default function LandingPage() {
           .landing-logo { height: clamp(60px, 15vw, 100px) !important; margin-top: 0 !important; margin-bottom: 8px !important; }
           /* Título sem margem top grande */
           .landing-h1 { margin-top: 8px !important; margin-bottom: 8px !important; font-size: clamp(18px, 5vw, 26px) !important; }
-          /* Quando logado, coluna de conteúdo desce 90px */
+          /* Quando logado no mobile */
           .landing-logado .landing-col-esquerda { margin-top: 90px !important; }
+          .landing-logado .landing-logo { height: clamp(80px, 22vw, 130px) !important; }
+          .landing-logado .landing-h1 { margin-top: 78px !important; }
+          .landing-logado .landing-descricao { margin-top: 130px !important; }
           /* Layout coluna no mobile */
           .landing-inner { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; justify-content: flex-start !important; }
           /* Card login inline aparece */
