@@ -167,18 +167,22 @@ function CardUsuario({ nome, sair }: { nome: string; sair: () => void }) {
         <p style={{ margin: '4px 0 0', fontSize: '18px', fontWeight: 700, color: 'white' }}>Olá, {nome}! 👋</p>
       </div>
 
-      <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <Link href="/mapa" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '10px', background: '#f3f4f6', textDecoration: 'none', color: '#111827', fontWeight: 600, fontSize: '14px' }}>
-          <span style={{ fontSize: '20px' }}>🗺️</span> Mapa de Demandas
-        </Link>
-        <Link href="/assistenteia" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '10px', background: '#f3f4f6', textDecoration: 'none', color: '#111827', fontWeight: 600, fontSize: '14px' }}>
-          <span style={{ fontSize: '20px' }}>🤖</span> Assistente IA
-        </Link>
-        <Link href="/perfil" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '10px', background: '#f3f4f6', textDecoration: 'none', color: '#111827', fontWeight: 600, fontSize: '14px' }}>
-          <span style={{ fontSize: '20px' }}>👤</span> Meu Perfil
-        </Link>
+      <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          {[
+            { emoji: '🏛️', label: 'Demandas Municipais', href: '/mapa' },
+            { emoji: '💼', label: 'Empregos', href: '/mapa' },
+            { emoji: '🐾', label: 'Achei/Perdi um Pet', href: '/mapa' },
+            { emoji: '🛍️', label: 'Classificados', href: '/mapa' },
+          ].map(({ emoji, label, href }) => (
+            <Link key={label} href={href} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '16px 10px', borderRadius: '12px', background: '#f3f4f6', textDecoration: 'none', color: '#111827', fontWeight: 600, fontSize: '13px', textAlign: 'center', lineHeight: 1.3 }}>
+              <span style={{ fontSize: '24px' }}>{emoji}</span>
+              {label}
+            </Link>
+          ))}
+        </div>
 
-        <button onClick={sair} style={{ marginTop: '4px', background: 'none', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px', fontSize: '13px', color: '#6b7280', cursor: 'pointer', fontWeight: 500 }}>
+        <button onClick={sair} style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px', fontSize: '13px', color: '#6b7280', cursor: 'pointer', fontWeight: 500 }}>
           Sair da conta
         </button>
       </div>
