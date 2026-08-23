@@ -162,12 +162,7 @@ function CardUsuario({ nome, sair }: { nome: string; sair: () => void }) {
       position: 'relative',
       flexShrink: 0,
     }}>
-      {/* Sair — canto superior direito */}
-      <button onClick={sair} style={{ position: 'absolute', top: '12px', right: '14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: '#9ca3af', padding: 0 }}>
-        Sair
-      </button>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '8px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
         {[
           { label: 'Demandas Municipais', href: '/mapa' },
           { label: 'Empregos', href: '/mapa' },
@@ -281,6 +276,13 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Sair — canto inferior direito da tela, só quando logado */}
+      {user && (
+        <button onClick={sair} style={{ position: 'fixed', bottom: '16px', right: '20px', zIndex: 10, background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: 'rgba(255,255,255,0.5)', padding: 0 }}>
+          Sair da conta
+        </button>
+      )}
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap');
