@@ -75,7 +75,7 @@ function CardLogin() {
       background: 'white',
       borderRadius: '16px',
       width: '100%',
-      maxWidth: '300px',
+      maxWidth: '340px',
       boxShadow: '0 20px 80px rgba(0,0,0,0.55)',
       overflow: 'hidden',
       flexShrink: 0,
