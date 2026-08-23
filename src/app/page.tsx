@@ -46,7 +46,7 @@ function CardLogin() {
     setCarregandoGoogle(true); setErro('')
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=/mapa` },
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=/` },
     })
     if (error) { setErro('Erro ao conectar com Google.'); setCarregandoGoogle(false) }
   }
@@ -246,7 +246,7 @@ export default function LandingPage() {
           {/* Coluna esquerda: logo + título + subtítulo — não muda nada */}
           <div style={{ maxWidth: '720px' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: 'clamp(160px, 24vh, 320px)', width: 'auto', maxWidth: '100%', display: 'block', marginBottom: 'clamp(10px, 2vh, 20px)' }} />
+            <img src="/CIDADANIA.png" alt="CidadanIA Frutal" className="landing-logo" style={{ height: 'clamp(160px, 24vh, 320px)', width: 'auto', maxWidth: '100%', display: 'block', marginBottom: 'clamp(10px, 2vh, 20px)' }} />
 
             {/* Headline */}
             <h1 style={{
@@ -297,7 +297,7 @@ export default function LandingPage() {
         onClick={() => setModalMobile(true)}
         style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', zIndex: 10, background: '#4256c8', color: 'white', fontWeight: 700, fontSize: '15px', padding: '14px 32px', borderRadius: '50px', border: 'none', cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,0.4)', whiteSpace: 'nowrap' }}
       >
-        {user ? `Olá, ${nomeExibido} — Ver funcionalidades` : 'Entrar ou criar conta'}
+        {user ? 'Ver funcionalidades' : 'Entrar ou criar conta'}
       </button>
 
       {/* Modal mobile */}
@@ -346,6 +346,7 @@ export default function LandingPage() {
           .landing-col-direita { display: none !important; }
           .landing-btn-mobile { display: block !important; }
           .landing-sair-desktop { display: none !important; }
+          .landing-logo { height: clamp(80px, 18vw, 140px) !important; }
         }
       `}</style>
     </div>
