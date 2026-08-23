@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
     email,
     password: senha,
     email_confirm: true,
+    user_metadata: { full_name: nome.trim() },
   })
   if (authError) return NextResponse.json({ error: authError.message }, { status: 400 })
 
