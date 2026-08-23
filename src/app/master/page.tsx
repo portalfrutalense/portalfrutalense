@@ -32,7 +32,7 @@ export default function MasterPage() {
   const [editCatIcone, setEditCatIcone] = useState<File | null>(null)
 
   // Stats dashboard
-  const [stats, setStats] = useState({ total: 0, pendente: 0, aguardando: 0, respondida: 0, resolvida: 0, nao_resolvida: 0 })
+  const [stats, setStats] = useState({ total: 0, pendente: 0, aguardando: 0, respondida: 0, resolvida: 0, nao_resolvida: 0, denunciada: 0 })
 
   const client = createClient()
 
@@ -60,6 +60,7 @@ export default function MasterPage() {
         respondida: d.filter((x: any) => x.status === 'respondida').length,
         resolvida: d.filter((x: any) => x.status === 'resolvida').length,
         nao_resolvida: d.filter((x: any) => x.status === 'nao_resolvida').length,
+        denunciada: d.filter((x: any) => x.status === 'denunciada').length,
       })
     })
   }
@@ -276,6 +277,7 @@ export default function MasterPage() {
                     { label: 'Respondidas', valor: stats.respondida },
                     { label: 'Resolvidas', valor: stats.resolvida },
                     { label: 'Não resolvidas', valor: stats.nao_resolvida },
+                    { label: 'Denunciadas', valor: stats.denunciada },
                   ].map((s, i) => (
                     <div key={s.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderTop: i === 0 ? 'none' : '1px solid #e5e7eb' }}>
                       <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, fontWeight: 500 }}>{s.label}</p>
@@ -509,7 +511,7 @@ function MasterDemandas({ token }: { token: string | null }) {
     d.ok ? mostrarNotif('Link reenviado com sucesso.') : mostrarNotif(d.error, true)
   }
 
-  async function moderarDemanda(id: string, acao: 'aprovar' | 'rejeitar' | 'ocultar' | 'reexibir') {
+  async function moderarDemanda(id: string, acao: 'aprovar' | 'rejeitar' | 'ocultar' | 'reexibir' | 'reaprovar') {
     const { data: { session } } = await sbClient.auth.getSession()
     const res = await fetch('/api/master/moderar-demanda', {
       method: 'POST',
@@ -518,7 +520,7 @@ function MasterDemandas({ token }: { token: string | null }) {
     })
     const d = await res.json()
     if (!d.ok) { mostrarNotif(d.error, true); return }
-    const msg = { aprovar: 'Demanda aprovada e autoridades notificadas.', rejeitar: 'Demanda rejeitada.', ocultar: 'Demanda ocultada do mapa.', reexibir: 'Demanda reexibida no mapa.' }[acao]
+    const msg = { aprovar: 'Demanda aprovada e autoridades notificadas.', rejeitar: 'Demanda rejeitada.', ocultar: 'Demanda ocultada do mapa.', reexibir: 'Demanda reexibida no mapa.', reaprovar: 'Demanda reaprovada — volta a circular normalmente.' }[acao]
     mostrarNotif(msg)
     carregarDemandas()
   }
@@ -565,6 +567,7 @@ function MasterDemandas({ token }: { token: string | null }) {
     rejeitada_ia: 'Rejeitada pela IA',
     nao_resolvida: 'Não resolvida',
     resolvida: 'Resolvida',
+    denunciada: 'Denunciada',
   }
 
   const statusCor: Record<string, { bg: string; color: string }> = {
@@ -574,6 +577,7 @@ function MasterDemandas({ token }: { token: string | null }) {
     rejeitada_ia:        { bg: '#f9fafb', color: '#dc2626' },
     nao_resolvida:       { bg: '#f9fafb', color: '#92400e' },
     resolvida:           { bg: '#f9fafb', color: '#166534' },
+    denunciada:          { bg: '#f9fafb', color: '#dc2626' },
   }
 
   const filtradas = filtro === 'todos' ? demandas : demandas.filter(d => d.status === filtro)
@@ -588,7 +592,7 @@ function MasterDemandas({ token }: { token: string | null }) {
 
       {/* Filtro de status */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-        {(['todos', 'pendente', 'aguardando_resposta', 'respondida', 'resolvida', 'rejeitada_ia'] as const).map(f => (
+        {(['todos', 'pendente', 'aguardando_resposta', 'respondida', 'resolvida', 'rejeitada_ia', 'denunciada'] as const).map(f => (
           <button
             key={f}
             onClick={() => setFiltro(f)}
@@ -688,6 +692,13 @@ function MasterDemandas({ token }: { token: string | null }) {
                         </button>
                       </>
                     )}
+                    {d.status === 'denunciada' && (
+                      <button
+                        onClick={() => { moderarDemanda(d.id, 'reaprovar'); setMenuAbertoDemandaId(null) }}
+                        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#166534', background: 'none', border: 'none', cursor: 'pointer' }}>
+                        Reaprovar demanda
+                      </button>
+                    )}
                     <button
                       onClick={() => { moderarDemanda(d.id, d.oculto ? 'reexibir' : 'ocultar'); setMenuAbertoDemandaId(null) }}
                       style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#111827', background: 'none', border: 'none', cursor: 'pointer' }}>
@@ -776,18 +787,18 @@ function MasterDemandas({ token }: { token: string | null }) {
                 </button>
               </div>
 
-              {/* Análise IA — oculta se não houver */}
+              {/* Análise IA / motivo da denúncia — oculta se não houver */}
               {d.ia_motivo && (
                 <div style={{
                   fontSize: '12px',
-                  color: d.status === 'rejeitada_ia' ? '#dc2626' : '#6b7280',
-                  background: d.status === 'rejeitada_ia' ? '#f9fafb' : '#f9fafb',
-                  border: `1px solid ${d.status === 'rejeitada_ia' ? '#e5e7eb' : '#e5e7eb'}`,
+                  color: (d.status === 'rejeitada_ia' || d.status === 'denunciada') ? '#dc2626' : '#6b7280',
+                  background: '#f9fafb',
+                  border: '1px solid #e5e7eb',
                   borderRadius: '6px',
                   padding: '7px 10px',
                   lineHeight: 1.5,
                 }}>
-                  <strong>Análise IA:</strong> {d.ia_motivo}
+                  <strong>{d.status === 'denunciada' ? 'Motivo da denúncia:' : 'Análise IA:'}</strong> {d.ia_motivo}
                 </div>
               )}
 

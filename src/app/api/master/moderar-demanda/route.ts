@@ -37,6 +37,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
+    if (acao === 'reaprovar') {
+      // Volta uma demanda denunciada pra circulação. Sem reenviar e-mail nem gerar
+      // token novo — os magic_tokens que já existiam continuam válidos como estavam.
+      // O status de volta é calculado, não guardado: se algum vínculo já tem resposta,
+      // volta como "respondida"; senão, como "aguardando_resposta".
+      const { data: vinculos } = await supabaseServer
+        .from('demanda_entidades')
+        .select('resposta')
+        .eq('demanda_id', demanda_id)
+
+      const jaRespondida = (vinculos || []).some(v => !!v.resposta)
+      const { error } = await supabaseServer.from('demandas').update({
+        status: jaRespondida ? 'respondida' : 'aguardando_resposta',
+      }).eq('id', demanda_id)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ ok: true })
+    }
+
     if (acao === 'rejeitar') {
       const { error } = await supabaseServer.from('demandas').update({
         status: 'rejeitada_ia',

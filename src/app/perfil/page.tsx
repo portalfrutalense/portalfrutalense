@@ -13,6 +13,7 @@ const statusLabel: Record<string, string> = {
   rejeitada_ia: 'Rejeitada pela IA',
   nao_resolvida: 'Não resolvida',
   resolvida: 'Resolvida',
+  denunciada: 'Denunciada',
 }
 
 const statusCor: Record<string, { bg: string; color: string }> = {
@@ -22,6 +23,7 @@ const statusCor: Record<string, { bg: string; color: string }> = {
   rejeitada_ia:        { bg: '#f9fafb', color: '#dc2626' },
   nao_resolvida:       { bg: '#f9fafb', color: '#92400e' },
   resolvida:           { bg: '#f9fafb', color: '#6b7280' },
+  denunciada:          { bg: '#f9fafb', color: '#dc2626' },
 }
 
 export default function PerfilPage() {
@@ -38,8 +40,10 @@ export default function PerfilPage() {
     if (!carregando && !user) router.replace('/')
   }, [carregando, user, router])
 
+  const ehAutoridade = perfil?.role === 'autoridade'
+
   useEffect(() => {
-    if (!user) return
+    if (!user || ehAutoridade) return
     async function buscar() {
       setCarregandoDemandas(true)
       const { data } = await supabase
@@ -51,7 +55,7 @@ export default function PerfilPage() {
       setCarregandoDemandas(false)
     }
     buscar()
-  }, [user])
+  }, [user, ehAutoridade])
 
   async function marcarResolvida(id: string) {
     if (!confirm('Marcar esta demanda como resolvida?')) return
@@ -108,7 +112,10 @@ export default function PerfilPage() {
       </div>
 
       {/* Aba: Minhas atividades */}
-      {abaAtiva === 'atividades' && (
+      {abaAtiva === 'atividades' && ehAutoridade && (
+        <AtividadesAutoridade />
+      )}
+      {abaAtiva === 'atividades' && !ehAutoridade && (
         <div>
           {/* Cards de módulo */}
           {!subModulo && (
@@ -255,6 +262,159 @@ export default function PerfilPage() {
         </div>
       )}
 
+    </div>
+  )
+}
+
+interface VinculoAutoridade {
+  id: string
+  status: string
+  resposta?: string
+  respondida_em?: string
+  demanda: {
+    id: string
+    descricao: string
+    endereco_label?: string
+    foto_url?: string
+    morador_nome: string
+    status: string
+    created_at: string
+    categoria?: { nome: string; cor: string }
+  } | null
+}
+
+function AtividadesAutoridade() {
+  const supabase = createClient()
+  const [vinculos, setVinculos] = useState<VinculoAutoridade[]>([])
+  const [carregando, setCarregando] = useState(true)
+  const [respostaTexto, setRespostaTexto] = useState<Record<string, string>>({})
+  const [enviandoId, setEnviandoId] = useState<string | null>(null)
+  const [erro, setErro] = useState('')
+
+  async function buscar() {
+    setCarregando(true)
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/autoridade/demandas', {
+      headers: { 'Authorization': `Bearer ${session?.access_token}` },
+    })
+    if (res.ok) setVinculos(await res.json())
+    setCarregando(false)
+  }
+
+  useEffect(() => { buscar() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function responder(vinculoId: string) {
+    const texto = (respostaTexto[vinculoId] || '').trim()
+    if (texto.length < 10) { setErro('Escreva uma resposta com pelo menos 10 caracteres.'); return }
+    setErro('')
+    setEnviandoId(vinculoId)
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/autoridade/responder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ vinculo_id: vinculoId, resposta: texto }),
+    })
+    const d = await res.json()
+    setEnviandoId(null)
+    if (!res.ok) { setErro(d.error || 'Erro ao responder.'); return }
+    await buscar()
+  }
+
+  async function marcarResolvida(demandaId: string) {
+    if (!confirm('Marcar esta demanda como resolvida?')) return
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/autoridade/marcar-resolvida', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ demanda_id: demandaId }),
+    })
+    const d = await res.json()
+    if (!res.ok) { alert(d.error || 'Erro ao marcar como resolvida.'); return }
+    await buscar()
+  }
+
+  async function denunciar(demandaId: string) {
+    const motivo = prompt('O que há de errado com essa demanda? (opcional)') || ''
+    if (!confirm('Denunciar esta demanda? Ela vai sumir do mapa público e ficar em análise com o administrador.')) return
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/autoridade/denunciar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ demanda_id: demandaId, motivo }),
+    })
+    const d = await res.json()
+    if (!res.ok) { alert(d.error || 'Erro ao denunciar.'); return }
+    await buscar()
+  }
+
+  if (carregando) return <p style={{ fontSize: '14px', color: '#6b7280', textAlign: 'center', padding: '32px 0' }}>Carregando...</p>
+  if (vinculos.length === 0) return <p style={{ fontSize: '14px', color: '#6b7280', textAlign: 'center', padding: '32px 0' }}>Nenhuma demanda direcionada a você ainda.</p>
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {erro && <div style={{ color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
+      {vinculos.map(v => {
+        const d = v.demanda
+        if (!d) return null
+        const jaRespondeu = !!v.resposta
+        const podeResolver = jaRespondeu && d.status !== 'resolvida' && d.status !== 'denunciada'
+        const podeDenunciar = d.status !== 'denunciada'
+
+        return (
+          <div key={v.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 500 }}>{d.categoria?.nome || 'Sem categoria'}</span>
+              <span style={{ fontSize: '11px', fontWeight: 600, borderRadius: '20px', padding: '3px 10px', background: statusCor[d.status]?.bg || '#f9fafb', color: statusCor[d.status]?.color || '#6b7280' }}>
+                {statusLabel[d.status] || d.status}
+              </span>
+            </div>
+
+            <p style={{ fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.5 }}>{d.descricao}</p>
+            {d.endereco_label && <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>📍 {d.endereco_label}</p>}
+            <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>Registrada por: {d.morador_nome}</p>
+
+            {jaRespondeu ? (
+              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: '#166534', lineHeight: 1.5 }}>
+                <strong>Sua resposta:</strong> {v.resposta}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <textarea
+                  value={respostaTexto[v.id] || ''}
+                  onChange={e => setRespostaTexto(prev => ({ ...prev, [v.id]: e.target.value }))}
+                  placeholder="Escreva sua resposta..."
+                  rows={3}
+                  style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.5 }}
+                />
+                <button
+                  onClick={() => responder(v.id)}
+                  disabled={enviandoId === v.id}
+                  style={{ alignSelf: 'flex-start', fontSize: '12px', fontWeight: 600, color: 'white', background: enviandoId === v.id ? '#6b7280' : '#4256c8', border: 'none', borderRadius: '6px', padding: '6px 14px', cursor: enviandoId === v.id ? 'not-allowed' : 'pointer' }}>
+                  {enviandoId === v.id ? 'Enviando...' : 'Publicar resposta'}
+                </button>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <span style={{ fontSize: '11px', color: '#6b7280' }}>{new Date(d.created_at).toLocaleDateString('pt-BR')}</span>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {podeResolver && (
+                  <button onClick={() => marcarResolvida(d.id)}
+                    style={{ fontSize: '11px', color: '#166534', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontWeight: 500 }}>
+                    Marcar como resolvida
+                  </button>
+                )}
+                {podeDenunciar && (
+                  <button onClick={() => denunciar(d.id)}
+                    style={{ fontSize: '11px', color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontWeight: 500 }}>
+                    Denunciar
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
