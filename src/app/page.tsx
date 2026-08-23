@@ -227,17 +227,12 @@ function Navbar({ user, nome, sair, onEntrar }: { user: boolean; nome: string; s
         {menuMobile ? '✕' : '☰'}
       </button>
 
-      {/* Auth mobile (Olá Nome / Entrar) — sempre visível no mobile */}
-      <div className="nav-auth-mobile" style={{ display: 'none', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+      {/* Auth mobile — só Sair, sem Olá Nome */}
+      <div className="nav-auth-mobile" style={{ display: 'none', alignItems: 'center', marginLeft: 'auto' }}>
         {user ? (
-          <>
-            <Link href="/perfil" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.9)', textDecoration: 'none', whiteSpace: 'nowrap', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              Olá, {nome}
-            </Link>
-            <button onClick={sair} style={{ fontSize: '12px', color: 'white', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer' }}>
-              Sair
-            </button>
-          </>
+          <button onClick={sair} style={{ fontSize: '12px', color: 'white', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer' }}>
+            Sair
+          </button>
         ) : (
           <button onClick={onEntrar} style={{ fontSize: '13px', color: 'white', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
             Entrar
@@ -359,7 +354,7 @@ export default function LandingPage() {
         .landing-col-direita { display: flex !important; }
         @media (max-width: 768px) {
           .landing-col-direita { display: none !important; }
-          .landing-logo { height: clamp(80px, 18vw, 140px) !important; }
+          .landing-logo { height: clamp(80px, 18vw, 140px) !important; margin-top: -40px !important; }
           .nav-links { display: none !important; }
           .nav-auth { display: none !important; }
           .nav-hamburger { display: block !important; }
