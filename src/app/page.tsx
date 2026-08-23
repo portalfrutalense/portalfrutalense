@@ -341,7 +341,7 @@ export default function LandingPage() {
         <div className="landing-inner" style={{ position: 'relative', zIndex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '32px', flexWrap: 'wrap' }}>
 
           {/* Coluna esquerda */}
-          <div style={{ maxWidth: '720px' }}>
+          <div className="landing-col-esquerda" style={{ maxWidth: '720px' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/CIDADANIA.png" alt="CidadanIA Frutal" className="landing-logo" style={{ height: 'clamp(160px, 24vh, 320px)', width: 'auto', maxWidth: '100%', display: 'block', marginBottom: 'clamp(10px, 2vh, 20px)' }} />
 
@@ -412,8 +412,8 @@ export default function LandingPage() {
           .landing-logo { height: clamp(60px, 15vw, 100px) !important; margin-top: 0 !important; margin-bottom: 8px !important; }
           /* Título sem margem top grande */
           .landing-h1 { margin-top: 8px !important; margin-bottom: 8px !important; font-size: clamp(18px, 5vw, 26px) !important; }
-          /* Navbar empurra o hero quando logado */
-          .landing-logado { padding-top: 56px !important; }
+          /* Quando logado, coluna de conteúdo desce 90px */
+          .landing-logado .landing-col-esquerda { margin-top: 90px !important; }
           /* Layout coluna no mobile */
           .landing-inner { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; justify-content: flex-start !important; }
           /* Card login inline aparece */
