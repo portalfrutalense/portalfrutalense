@@ -27,6 +27,20 @@ export default function LandingPage() {
           background: 'linear-gradient(to right, rgba(10,15,30,0.82) 0%, rgba(10,15,30,0.55) 45%, rgba(10,15,30,0.2) 100%)',
           pointerEvents: 'none',
         }} />
+
+        {/* Logo solto no canto direito, nao disputa espaco com o texto */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{
+          position: 'absolute',
+          top: '50%',
+          right: 'clamp(24px, 5vw, 64px)',
+          transform: 'translateY(-50%)',
+          height: 'clamp(70px, 12vw, 130px)',
+          width: 'auto',
+          zIndex: 1,
+          pointerEvents: 'none',
+        }} />
+
         <div style={{ position: 'relative', zIndex: 1, maxWidth: '720px' }}>
           {/* Headline */}
           <h1 style={{
@@ -39,8 +53,8 @@ export default function LandingPage() {
             marginBottom: '24px',
             textShadow: '0 2px 16px rgba(0,0,0,0.25)',
           }}>
-            Frutal fala,<br />
-            <span style={{ color: '#8ea2f5' }}>a tecnologia resolve!</span>
+            Navegue por Frutal<br />
+            <span style={{ color: '#8ea2f5' }}>Explore tudo ao seu redor</span>
           </h1>
 
           {/* Subtítulo */}
@@ -52,8 +66,9 @@ export default function LandingPage() {
             marginBottom: '40px',
             textShadow: '0 1px 8px rgba(0,0,0,0.2)',
           }}>
-            A plataforma completa de Frutal. Registre demandas urbanas, acesse serviços locais,
-            acompanhe a cidade e tire dúvidas em tempo real com o Lucas, nosso assistente de IA.
+            Uma plataforma visual e interativa onde cada pino é uma oportunidade ou solução.
+            Mude as camadas do mapa para cobrar melhorias públicas, achar empregos, localizar
+            pets, entre outras. O Lucas (nosso assistente IA) te guia em cada passo.
           </p>
 
           {/* CTAs */}
