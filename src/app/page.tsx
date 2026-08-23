@@ -158,33 +158,26 @@ function CardUsuario({ nome, sair }: { nome: string; sair: () => void }) {
       width: '100%',
       maxWidth: '320px',
       boxShadow: '0 20px 80px rgba(0,0,0,0.55)',
-      overflow: 'hidden',
+      padding: '20px',
+      position: 'relative',
       flexShrink: 0,
     }}>
-      {/* Header */}
-      <div style={{ background: '#4256c8', padding: '20px 24px' }}>
-        <p style={{ margin: 0, fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Bem-vindo de volta</p>
-        <p style={{ margin: '4px 0 0', fontSize: '18px', fontWeight: 700, color: 'white' }}>Olá, {nome}! 👋</p>
-      </div>
+      {/* Sair — canto superior direito */}
+      <button onClick={sair} style={{ position: 'absolute', top: '12px', right: '14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: '#9ca3af', padding: 0 }}>
+        Sair
+      </button>
 
-      <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-          {[
-            { emoji: '🏛️', label: 'Demandas Municipais', href: '/mapa' },
-            { emoji: '💼', label: 'Empregos', href: '/mapa' },
-            { emoji: '🐾', label: 'Achei/Perdi um Pet', href: '/mapa' },
-            { emoji: '🛍️', label: 'Classificados', href: '/mapa' },
-          ].map(({ emoji, label, href }) => (
-            <Link key={label} href={href} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '16px 10px', borderRadius: '12px', background: '#f3f4f6', textDecoration: 'none', color: '#111827', fontWeight: 600, fontSize: '13px', textAlign: 'center', lineHeight: 1.3 }}>
-              <span style={{ fontSize: '24px' }}>{emoji}</span>
-              {label}
-            </Link>
-          ))}
-        </div>
-
-        <button onClick={sair} style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px', fontSize: '13px', color: '#6b7280', cursor: 'pointer', fontWeight: 500 }}>
-          Sair da conta
-        </button>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '8px' }}>
+        {[
+          { label: 'Demandas Municipais', href: '/mapa' },
+          { label: 'Empregos', href: '/mapa' },
+          { label: 'Achei/Perdi um Pet', href: '/mapa' },
+          { label: 'Classificados', href: '/mapa' },
+        ].map(({ label, href }) => (
+          <Link key={label} href={href} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 10px', borderRadius: '10px', background: '#4256c8', textDecoration: 'none', color: 'white', fontWeight: 600, fontSize: '13px', textAlign: 'center', lineHeight: 1.3 }}>
+            {label}
+          </Link>
+        ))}
       </div>
     </div>
   )
