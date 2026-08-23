@@ -28,67 +28,59 @@ export default function LandingPage() {
           pointerEvents: 'none',
         }} />
 
-        {/* Logo solto no canto direito, nao disputa espaco com o texto */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{
-          position: 'absolute',
-          top: '50%',
-          right: 'clamp(24px, 5vw, 64px)',
-          transform: 'translateY(-50%)',
-          height: 'clamp(70px, 12vw, 130px)',
-          width: 'auto',
-          zIndex: 1,
-          pointerEvents: 'none',
-        }} />
+        <div style={{ position: 'relative', zIndex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap' }}>
+          {/* Coluna esquerda: logo + título + subtítulo */}
+          <div style={{ maxWidth: '720px' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: 'clamp(36px, 5vw, 48px)', width: 'auto', display: 'block', marginBottom: '20px' }} />
 
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: '720px' }}>
-          {/* Headline */}
-          <h1 style={{
-            fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif",
-            fontSize: 'clamp(40px, 6vw, 68px)',
-            fontWeight: 800,
-            lineHeight: 1.06,
-            letterSpacing: '-0.03em',
-            color: '#ffffff',
-            marginBottom: '24px',
-            textShadow: '0 2px 16px rgba(0,0,0,0.25)',
-          }}>
-            Navegue por Frutal<br />
-            <span style={{ color: '#8ea2f5' }}>Explore tudo ao seu redor</span>
-          </h1>
-
-          {/* Subtítulo */}
-          <p style={{
-            fontSize: '17px',
-            color: 'rgba(255,255,255,0.85)',
-            lineHeight: 1.7,
-            maxWidth: '520px',
-            marginBottom: '40px',
-            textShadow: '0 1px 8px rgba(0,0,0,0.2)',
-          }}>
-            Uma plataforma visual e interativa onde cada pino é uma oportunidade ou solução.
-            Mude as camadas do mapa para cobrar melhorias públicas, achar empregos, localizar
-            pets, entre outras. O Lucas (nosso assistente IA) te guia em cada passo.
-          </p>
-
-          {/* CTAs */}
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            <Link href="/mapa" style={{
-              background: '#4256c8',
-              color: 'white',
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              fontWeight: 700,
-              fontSize: '14px',
-              padding: '13px 26px',
-              borderRadius: '8px',
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
+            {/* Headline */}
+            <h1 style={{
+              fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif",
+              fontSize: 'clamp(20px, 3vw, 34px)',
+              fontWeight: 800,
+              lineHeight: 1.06,
+              letterSpacing: '-0.03em',
+              color: '#ffffff',
+              marginBottom: '24px',
+              textShadow: '0 2px 16px rgba(0,0,0,0.25)',
             }}>
-              Ver o Mapa de Demandas
-            </Link>
+              Navegue por Frutal<br />
+              <span style={{ color: '#8ea2f5' }}>Explore tudo ao seu redor</span>
+            </h1>
+
+            {/* Subtítulo */}
+            <p style={{
+              fontSize: '17px',
+              color: 'rgba(255,255,255,0.85)',
+              lineHeight: 1.7,
+              maxWidth: '520px',
+              textShadow: '0 1px 8px rgba(0,0,0,0.2)',
+            }}>
+              Uma plataforma visual e interativa onde cada pino é uma oportunidade ou solução.
+              Mude as camadas do mapa para cobrar melhorias públicas, achar empregos, localizar
+              pets, entre outras. O Lucas (nosso assistente IA) te guia em cada passo.
+            </p>
           </div>
+
+          {/* Coluna direita: botão */}
+          <Link href="/mapa" style={{
+            background: '#4256c8',
+            color: 'white',
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontWeight: 700,
+            fontSize: '14px',
+            padding: '13px 26px',
+            borderRadius: '8px',
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+          }}>
+            Ver o Mapa de Demandas
+          </Link>
         </div>
       </section>
 
