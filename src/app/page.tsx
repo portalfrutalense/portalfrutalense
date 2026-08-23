@@ -64,12 +64,12 @@ export default function LandingPage() {
           )}
         </div>
 
-        <div style={{ position: 'relative', zIndex: 1, width: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap', paddingBottom: 'clamp(16px, 3vh, 40px)' }}>
+        <div style={{ position: 'relative', zIndex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap' }}>
 
           {/* Coluna esquerda: logo + título + subtítulo */}
           <div style={{ maxWidth: '720px' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: 'clamp(160px, 24vh, 320px)', width: 'auto', maxWidth: '100%', display: 'block', marginBottom: 'clamp(60px, 16vh, 160px)' }} />
+            <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: 'clamp(160px, 24vh, 320px)', width: 'auto', maxWidth: '100%', display: 'block', marginBottom: 'clamp(10px, 2vh, 20px)' }} />
 
             {/* Headline */}
             <h1 style={{
@@ -79,6 +79,7 @@ export default function LandingPage() {
               lineHeight: 1.06,
               letterSpacing: '-0.03em',
               color: '#ffffff',
+              marginTop: 'clamp(40px, 10vh, 100px)',
               marginBottom: 'clamp(10px, 2vh, 24px)',
               textShadow: '0 2px 16px rgba(0,0,0,0.25)',
             }}>
