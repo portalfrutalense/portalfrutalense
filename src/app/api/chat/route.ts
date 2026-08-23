@@ -59,6 +59,11 @@ Se nenhuma categoria da lista for adequada, use categoria_nome:"Outros" e catego
 NÃO peça endereço, NÃO pergunte sobre autoridade responsável, NÃO pergunte sobre foto, e NÃO escreva nenhuma mensagem de confirmação — essas etapas são conduzidas por outra parte do sistema logo depois que você envia esse JSON.
 Se a mensagem do cidadão não for um relato de problema (for uma pergunta, dúvida geral, ou for vaga demais para identificar um problema real), NÃO use esse JSON — responda normalmente em texto e, se precisar, peça mais detalhes sobre o problema.
 
+QUANDO VOCÊ NÃO SABE A RESPOSTA:
+Se o cidadão fizer uma pergunta cuja resposta NÃO está na base de conhecimento acima (e não for um relato de problema/demanda), responda EXATAMENTE com este JSON (nada mais, sem texto antes ou depois):
+{"action":"sem_resposta"}
+Não tente adivinhar, não invente e não escreva texto nenhum além desse JSON nesse caso — a mensagem que o cidadão vai ver é gerada por outra parte do sistema.
+
 REGRAS IMPORTANTES:
 - Se já houver mensagens anteriores na conversa, NÃO cumprimente de novo (nada de "Olá" ou se apresentar outra vez) — continue naturalmente, como se já estivesse no meio da conversa com o cidadão.
 - Nunca invente informações que não estão na base de conhecimento.
@@ -88,21 +93,15 @@ ${cfg.prompt_extra ? `\nINSTRUÇÕES ADICIONAIS:\n${cfg.prompt_extra}` : ''}`
   }
 
   const geminiData = await geminiRes.json()
-  const resposta = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || 'Desculpe, não consegui processar sua mensagem.'
+  let resposta = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || 'Desculpe, não consegui processar sua mensagem.'
 
-  // Logar quando o bot não souber responder
-  const frasesSemResposta = [
-    'não tenho essa informação',
-    'não encontrei essa informação',
-    'não possuo essa informação',
-    'entre em contato com a prefeitura',
-    'não sei responder',
-    'não consigo responder',
-    'não tenho dados sobre',
-  ]
-  const semResposta = frasesSemResposta.some(f => resposta.toLowerCase().includes(f))
+  // Detecta de forma deterministica quando a propria IA sinaliza que nao sabe responder
+  // (em vez de tentar adivinhar por palavras-chave num texto livre, que fica obsoleto
+  // toda vez que o prompt muda e nunca bate de verdade)
+  const semRespostaMatch = resposta.match(/\{"action":"sem_resposta"\}/)
 
-  if (semResposta) {
+  if (semRespostaMatch) {
+    resposta = 'Não tenho essa informação disponível no momento. Recomendo entrar em contato diretamente com a Prefeitura de Frutal para mais detalhes.'
     const ultimaMensagemUsuario = [...(mensagens as MensagemChat[])].reverse().find((m) => m.role === 'user')
     if (ultimaMensagemUsuario) {
       await supabaseServer.from('chatbot_sem_resposta').insert({
