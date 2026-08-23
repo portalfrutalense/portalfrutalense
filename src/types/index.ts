@@ -1,5 +1,15 @@
 export type StatusDemanda = 'pendente' | 'aguardando_resposta' | 'respondida' | 'rejeitada_ia' | 'resolvida' | 'nao_resolvida'
 
+export interface DemandaEntidade {
+  id: string
+  demanda_id: string
+  entidade_id: string
+  entidade?: Entidade
+  status: 'aguardando_resposta' | 'respondida'
+  resposta?: string
+  respondida_em?: string
+}
+
 export interface Demanda {
   id: string
   user_id: string
@@ -19,6 +29,7 @@ export interface Demanda {
   ia_motivo?: string
   resposta?: string
   respondido_em?: string
+  vinculos?: DemandaEntidade[]
   link_enviado?: boolean
   oculto?: boolean
   created_at: string

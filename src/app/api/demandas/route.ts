@@ -38,10 +38,13 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
 
     const body = await req.json()
-    const { descricao, lat, lng, categoria_id, entidade_id, foto_url, endereco_label, turnstile_token } = body
+    const { descricao, lat, lng, categoria_id, entidade_ids, foto_url, endereco_label, turnstile_token } = body
 
-    if (!descricao || !lat || !lng || !categoria_id || !entidade_id) {
+    if (!descricao || !lat || !lng || !categoria_id || !entidade_ids?.length) {
       return NextResponse.json({ error: 'Campos obrigatórios ausentes.' }, { status: 400 })
+    }
+    if (!Array.isArray(entidade_ids) || entidade_ids.length > 3) {
+      return NextResponse.json({ error: 'Máximo de 3 autoridades.' }, { status: 400 })
     }
 
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null
@@ -66,7 +69,7 @@ export async function POST(req: NextRequest) {
       lat,
       lng,
       categoria_id,
-      entidade_id,
+      entidade_id: entidade_ids[0], // mantém coluna legada com a primeira autoridade
       foto_url: foto_url || null,
       endereco_label: endereco_label || null,
       status: 'pendente',
@@ -75,6 +78,18 @@ export async function POST(req: NextRequest) {
     if (error) {
       console.error(error)
       return NextResponse.json({ error: 'Erro ao salvar.' }, { status: 500 })
+    }
+
+    // Insere vínculos com todas as autoridades selecionadas
+    const vinculos = entidade_ids.map((eid: string) => ({
+      demanda_id: demanda.id,
+      entidade_id: eid,
+      status: 'aguardando_resposta',
+    }))
+    const { error: vinculoError } = await supabaseServer.from('demanda_entidades').insert(vinculos)
+    if (vinculoError) {
+      console.error('Erro ao inserir demanda_entidades:', vinculoError)
+      // Não bloqueia — demanda já foi criada
     }
 
     const resposta = NextResponse.json({ ok: true, id: demanda.id }, { status: 201 })

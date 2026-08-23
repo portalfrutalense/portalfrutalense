@@ -70,8 +70,9 @@ export default function ChatBot() {
   const [descricaoDemanda, setDescricaoDemanda] = useState('')
   const [categoriaIdDemanda, setCategoriaIdDemanda] = useState('')
   const [categoriaNomeDemanda, setCategoriaNomeDemanda] = useState('')
-  const [entidadeIdDemanda, setEntidadeIdDemanda] = useState('')
-  const [entidadeNomeDemanda, setEntidadeNomeDemanda] = useState('')
+  const [entidadesIdsDemanda, setEntidadesIdsDemanda] = useState<string[]>([])
+  const [entidadesNomesDemanda, setEntidadesNomesDemanda] = useState<string[]>([])
+  const [dropdownAutoridade, setDropdownAutoridade] = useState(false)
   const [coordDemanda, setCoordDemanda] = useState<{ lat: number; lng: number; label: string } | null>(null)
   const [opcoesAutoridade, setOpcoesAutoridade] = useState<Entidade[]>([])
   const [entidades, setEntidades] = useState<Entidade[]>([])
@@ -157,7 +158,8 @@ export default function ChatBot() {
   function resetFluxoDemanda() {
     setEtapaDemanda('nenhuma')
     setDescricaoDemanda(''); setCategoriaIdDemanda(''); setCategoriaNomeDemanda('')
-    setEntidadeIdDemanda(''); setEntidadeNomeDemanda('')
+    setEntidadesIdsDemanda([]); setEntidadesNomesDemanda([])
+    setDropdownAutoridade(false)
     setCoordDemanda(null); setOpcoesAutoridade([])
     removerFoto(); setTurnstileToken(''); setCaptchaVisivel(false)
   }
@@ -243,10 +245,12 @@ export default function ChatBot() {
 
       setOpcoesAutoridade(opcoes)
       if (opcoes.length === 1) {
-        const ent = opcoes[0]
-        setMensagens(prev => [...prev, { role: 'assistant', content: `Esse tipo de problema eu vou direcionar para ${ent.nome} (${ent.cargo}). Confirma?` }])
+        // Pré-seleciona a única opção
+        setEntidadesIdsDemanda([opcoes[0].id])
+        setEntidadesNomesDemanda([opcoes[0].nome])
+        setMensagens(prev => [...prev, { role: 'assistant', content: `Esse tipo de problema será direcionado para ${opcoes[0].nome} (${opcoes[0].cargo}). Confirma?` }])
       } else {
-        setMensagens(prev => [...prev, { role: 'assistant', content: 'Pra qual dessas autoridades você quer direcionar?' }])
+        setMensagens(prev => [...prev, { role: 'assistant', content: `Selecione até 3 autoridades para direcionar esta demanda:` }])
       }
       setEtapaDemanda('escolher_autoridade')
     })
@@ -260,10 +264,23 @@ export default function ChatBot() {
     })
   }
 
-  function aoEscolherAutoridade(ent: Entidade) {
-    setEntidadeIdDemanda(ent.id)
-    setEntidadeNomeDemanda(ent.nome)
-    setMensagens(prev => [...prev, { role: 'user', content: ent.nome }])
+  function toggleAutoridade(ent: Entidade) {
+    setEntidadesIdsDemanda(prev => {
+      if (prev.includes(ent.id)) {
+        setEntidadesNomesDemanda(n => n.filter(nm => nm !== ent.nome))
+        return prev.filter(id => id !== ent.id)
+      }
+      if (prev.length >= 3) return prev
+      setEntidadesNomesDemanda(n => [...n, ent.nome])
+      return [...prev, ent.id]
+    })
+  }
+
+  function aoConfirmarAutoridades() {
+    if (entidadesIdsDemanda.length === 0) return
+    setDropdownAutoridade(false)
+    const nomes = entidadesNomesDemanda.join(', ')
+    setMensagens(prev => [...prev, { role: 'user', content: `Selecionado: ${nomes}` }])
     comDigitando(() => {
       setMensagens(prev => [...prev, { role: 'assistant', content: 'Onde fica esse local? Digite o endereço ou aponte no mapa abaixo.' }])
       setEtapaDemanda('perguntar_endereco')
@@ -287,7 +304,7 @@ export default function ChatBot() {
   function irParaResumo() {
     setMensagens(prev => [...prev, {
       role: 'assistant',
-      content: `Tudo pronto! Dá uma olhadinha no resumo antes de registrarmos:\n\nEndereço: ${coordDemanda?.label}\nCategoria: ${categoriaNomeDemanda}\nDirecionada para: ${entidadeNomeDemanda}\nDescrição: ${descricaoDemanda}\n\nConfirma o registro?`
+      content: `Tudo pronto! Dá uma olhadinha no resumo antes de registrarmos:\n\nEndereço: ${coordDemanda?.label}\nCategoria: ${categoriaNomeDemanda}\nDirecionada para: ${entidadesNomesDemanda.join(', ')}\nDescrição: ${descricaoDemanda}\n\nConfirma o registro?`
     }])
     setEtapaDemanda('resumo')
   }
@@ -330,7 +347,7 @@ export default function ChatBot() {
           lat: coordDemanda.lat,
           lng: coordDemanda.lng,
           categoria_id: categoriaIdDemanda,
-          entidade_id: entidadeIdDemanda,
+          entidade_ids: entidadesIdsDemanda,
           morador_nome: perfil?.nome || nomeUsuario,
           foto_url,
           via_chatbot: true,
@@ -457,15 +474,43 @@ export default function ChatBot() {
               </div>
             )}
 
-            {/* Etapa: escolher/confirmar autoridade */}
+            {/* Etapa: escolher autoridades — dropdown com checkboxes */}
             {etapaDemanda === 'escolher_autoridade' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
-                {opcoesAutoridade.map(ent => (
-                  <button key={ent.id} onClick={() => aoEscolherAutoridade(ent)}
-                    style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
-                    {opcoesAutoridade.length === 1 ? 'Sim, confirmar' : `${ent.nome} — ${ent.cargo}`}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => setDropdownAutoridade(!dropdownAutoridade)}
+                    style={{ width: '100%', background: 'white', border: '1px solid #d1d5db', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#111827' }}
+                  >
+                    <span>{entidadesIdsDemanda.length === 0 ? 'Selecione as autoridades' : `${entidadesIdsDemanda.length} selecionada${entidadesIdsDemanda.length > 1 ? 's' : ''}`}</span>
+                    <span style={{ fontSize: '10px', color: '#6b7280' }}>{dropdownAutoridade ? '▲' : '▼'}</span>
                   </button>
-                ))}
+                  {dropdownAutoridade && (
+                    <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: '4px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', zIndex: 50, overflow: 'hidden' }}>
+                      <p style={{ margin: 0, padding: '8px 12px', fontSize: '11px', color: '#6b7280', borderBottom: '1px solid #f3f4f6' }}>Máximo 3 autoridades</p>
+                      {opcoesAutoridade.map(ent => {
+                        const selecionado = entidadesIdsDemanda.includes(ent.id)
+                        const desabilitado = !selecionado && entidadesIdsDemanda.length >= 3
+                        return (
+                          <label key={ent.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', cursor: desabilitado ? 'not-allowed' : 'pointer', borderBottom: '1px solid #f9fafb', opacity: desabilitado ? 0.4 : 1, background: selecionado ? '#eff6ff' : 'white' }}>
+                            <input type="checkbox" checked={selecionado} disabled={desabilitado} onChange={() => toggleAutoridade(ent)} style={{ accentColor: '#4256c8', width: '15px', height: '15px', flexShrink: 0 }} />
+                            <div>
+                              <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#111827' }}>{ent.nome}</p>
+                              <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>{ent.cargo}</p>
+                            </div>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={aoConfirmarAutoridades}
+                  disabled={entidadesIdsDemanda.length === 0}
+                  style={{ background: entidadesIdsDemanda.length > 0 ? '#4256c8' : '#e5e7eb', color: entidadesIdsDemanda.length > 0 ? 'white' : '#9ca3af', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: entidadesIdsDemanda.length > 0 ? 'pointer' : 'not-allowed' }}
+                >
+                  Confirmar seleção
+                </button>
               </div>
             )}
 

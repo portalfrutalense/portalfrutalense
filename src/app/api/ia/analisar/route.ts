@@ -89,49 +89,81 @@ Não inclua nada além do JSON.`
     }
 
     if (decisao === 'aprovada') {
-      const token = gerarToken()
       const expiracao = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
+      // Busca todos os vínculos de autoridade desta demanda
+      const { data: vinculos } = await supabaseServer
+        .from('demanda_entidades')
+        .select('id, entidade_id, entidade:entidades(nome, cargo, email)')
+        .eq('demanda_id', demanda_id)
+
+      // Atualiza status da demanda
       await supabaseServer.from('demandas').update({
         status: 'aguardando_resposta',
         ia_decisao: 'aprovada',
         ia_motivo: motivo,
         ia_analisado_em: new Date().toISOString(),
-        magic_token: token,
-        magic_token_expira_em: expiracao,
         link_enviado: true,
       }).eq('id', demanda_id)
 
-      const emailAutoridade = demanda.entidade?.email
-      if (emailAutoridade) {
+      // Para cada autoridade: gera token individual e envia e-mail
+      for (const vinculo of (vinculos || [])) {
+        const token = gerarToken()
+        await supabaseServer.from('demanda_entidades').update({
+          magic_token: token,
+          magic_token_expira_em: expiracao,
+          link_enviado: true,
+          status: 'aguardando_resposta',
+        }).eq('id', vinculo.id)
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const ent = vinculo.entidade as any
+        if (ent?.email) {
+          const linkResposta = `${process.env.NEXT_PUBLIC_SITE_URL}/responder/${token}`
+          await resend.emails.send({
+            from: 'CidadanIA Frutal <onboarding@resend.dev>',
+            to: ent.email,
+            subject: `Nova demanda para ${ent.nome} — CidadanIA Frutal`,
+            html: `
+              <div style="font-family:Inter,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;">
+                <div style="background:#4256c8;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
+                  <h1 style="color:white;font-size:18px;margin:0;">CidadanIA Frutal</h1>
+                  <p style="color:rgba(255,255,255,0.6);font-size:13px;margin:4px 0 0;">Frutal-MG · Transparência e Cidadania</p>
+                </div>
+                <div style="background:white;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:24px;">
+                  <p style="font-size:15px;color:#111827;">Olá, <strong>${ent.nome}</strong>,</p>
+                  <p style="font-size:14px;color:#111827;line-height:1.6;">
+                    O cidadão <strong>${demanda.morador_nome}</strong> registrou uma demanda direcionada a você no CidadanIA Frutal.
+                  </p>
+                  <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:16px 0;">
+                    <p style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px;">Descrição da demanda</p>
+                    <p style="font-size:14px;color:#111827;margin:0;line-height:1.6;">${demanda.descricao}</p>
+                    ${demanda.endereco_label ? `<p style="font-size:12px;color:#6b7280;margin:8px 0 0;">${demanda.endereco_label}</p>` : ''}
+                  </div>
+                  <a href="${linkResposta}" style="display:block;background:#4256c8;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;margin:20px 0;">
+                    Responder esta demanda →
+                  </a>
+                  <p style="font-size:12px;color:#6b7280;text-align:center;">Este link expira em 7 dias.</p>
+                </div>
+              </div>
+            `,
+          })
+        }
+      }
+
+      // Se não há vínculos (demanda legada), usa entidade direta da demanda
+      if (!vinculos?.length && demanda.entidade?.email) {
+        const token = gerarToken()
+        await supabaseServer.from('demandas').update({
+          magic_token: token,
+          magic_token_expira_em: expiracao,
+        }).eq('id', demanda_id)
         const linkResposta = `${process.env.NEXT_PUBLIC_SITE_URL}/responder/${token}`
         await resend.emails.send({
           from: 'CidadanIA Frutal <onboarding@resend.dev>',
-          to: emailAutoridade,
-          subject: `Nova demanda para ${demanda.entidade?.nome} — CidadanIA Frutal`,
-          html: `
-            <div style="font-family:Inter,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;">
-              <div style="background:#4256c8;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
-                <h1 style="color:white;font-size:18px;margin:0;">CidadanIA Frutal</h1>
-                <p style="color:rgba(255,255,255,0.6);font-size:13px;margin:4px 0 0;">Frutal-MG · Transparência e Cidadania</p>
-              </div>
-              <div style="background:white;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:24px;">
-                <p style="font-size:15px;color:#111827;">Olá, <strong>${demanda.entidade?.nome}</strong>,</p>
-                <p style="font-size:14px;color:#111827;line-height:1.6;">
-                  O cidadão <strong>${demanda.morador_nome}</strong> registrou uma demanda direcionada a você no CidadanIA Frutal.
-                </p>
-                <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:16px 0;">
-                  <p style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px;">Descrição da demanda</p>
-                  <p style="font-size:14px;color:#111827;margin:0;line-height:1.6;">${demanda.descricao}</p>
-                  ${demanda.endereco_label ? `<p style="font-size:12px;color:#6b7280;margin:8px 0 0;">${demanda.endereco_label}</p>` : ''}
-                </div>
-                <a href="${linkResposta}" style="display:block;background:#4256c8;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;margin:20px 0;">
-                  Responder esta demanda →
-                </a>
-                <p style="font-size:12px;color:#6b7280;text-align:center;">Este link expira em 7 dias.</p>
-              </div>
-            </div>
-          `,
+          to: demanda.entidade.email,
+          subject: `Nova demanda para ${demanda.entidade.nome} — CidadanIA Frutal`,
+          html: `<a href="${linkResposta}">Responder demanda</a>`,
         })
       }
     } else {

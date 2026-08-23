@@ -6,7 +6,7 @@ import { useAuth } from './AuthProvider'
 import ModalAuth from './ModalAuth'
 import Turnstile from './Turnstile'
 import MiniMapaConfirmar from './MiniMapaConfirmar'
-import { Demanda, CategoriaMapa, Entidade } from '@/types'
+import { Demanda, CategoriaMapa, Entidade, DemandaEntidade } from '@/types'
 
 const FRUTAL_LAT = -20.02752
 const FRUTAL_LNG = -48.92702
@@ -63,6 +63,7 @@ export default function MapaDemandas() {
   const [entidades, setEntidades] = useState<Entidade[]>([])
   const [catEntidades, setCatEntidades] = useState<Record<string, string[]>>({})
   const [demandaSelecionada, setDemandaSelecionada] = useState<Demanda | null>(null)
+  const [vinculosDemanda, setVinculosDemanda] = useState<DemandaEntidade[]>([])
 
   // Bottom sheet (mobile)
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches)
@@ -89,6 +90,16 @@ export default function MapaDemandas() {
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState(false)
+
+  // Busca vínculos de autoridade quando uma demanda é selecionada
+  useEffect(() => {
+    if (!demandaSelecionada) { setVinculosDemanda([]); return }
+    supabase
+      .from('demanda_entidades')
+      .select('*, entidade:entidades(nome, cargo)')
+      .eq('demanda_id', demandaSelecionada.id)
+      .then(({ data }) => setVinculosDemanda((data || []) as DemandaEntidade[]))
+  }, [demandaSelecionada?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     Promise.all([
@@ -567,12 +578,37 @@ export default function MapaDemandas() {
                   </p>
                 </div>
 
-                {/* Resposta */}
-                {demandaSelecionada.resposta && (
+                {/* Respostas das autoridades */}
+                {vinculosDemanda.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <p style={{ margin: 0, fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Respostas das autoridades</p>
+                    {vinculosDemanda.map(v => (
+                      <div key={v.id} style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: v.resposta ? '4px' : 0 }}>
+                          <span style={{ fontSize: '11px' }}>{v.status === 'respondida' ? '✅' : '⏳'}</span>
+                          <span style={{ fontSize: '12px', fontWeight: 600, color: '#111827' }}>
+                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                            {(v.entidade as any)?.nome}
+                          </span>
+                          <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                            — {(v.entidade as any)?.cargo}
+                          </span>
+                        </div>
+                        {v.resposta ? (
+                          <p style={{ margin: 0, fontSize: '12px', color: '#374151', lineHeight: 1.5 }}>{v.resposta}</p>
+                        ) : (
+                          <p style={{ margin: 0, fontSize: '11px', color: '#9ca3af', fontStyle: 'italic' }}>Aguardando resposta...</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : demandaSelecionada.resposta ? (
+                  // Fallback legado: demanda antiga com resposta única
                   <div style={{ fontSize: '12px', color: '#6b7280', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 10px', lineHeight: 1.5 }}>
                     <strong>Resposta:</strong> {demandaSelecionada.resposta}
                   </div>
-                )}
+                ) : null}
 
                 {/* Ações do próprio usuário */}
                 {user && demandaSelecionada.user_id === user.id && (
