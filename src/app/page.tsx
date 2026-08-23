@@ -170,6 +170,9 @@ function Navbar({ user, nome, sair, onEntrar }: { user: boolean; nome: string; s
         <Link href="/" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', fontWeight: 500, textDecoration: 'none', padding: '6px 14px', borderRadius: '6px' }}>
           Início
         </Link>
+        <Link href="/sobre" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', fontWeight: 500, textDecoration: 'none', padding: '6px 14px', borderRadius: '6px' }}>
+          Sobre
+        </Link>
 
         {/* Funcionalidades com dropdown */}
         <div style={{ position: 'relative' }}>
@@ -192,11 +195,11 @@ function Navbar({ user, nome, sair, onEntrar }: { user: boolean; nome: string; s
           )}
         </div>
 
-        <Link href="/sobre" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', fontWeight: 500, textDecoration: 'none', padding: '6px 14px', borderRadius: '6px' }}>
-          Sobre
-        </Link>
         <Link href="/assistenteia" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', fontWeight: 500, textDecoration: 'none', padding: '6px 14px', borderRadius: '6px' }}>
           Assistente de IA
+        </Link>
+        <Link href="/perfil" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', fontWeight: 500, textDecoration: 'none', padding: '6px 14px', borderRadius: '6px' }}>
+          Minha conta
         </Link>
       </div>
 
@@ -249,14 +252,15 @@ function Navbar({ user, nome, sair, onEntrar }: { user: boolean; nome: string; s
       {menuMobile && (
         <div style={{ position: 'absolute', top: '56px', left: 0, right: 0, background: '#3347b0', zIndex: 30, display: 'flex', flexDirection: 'column', padding: '8px 0' }}>
           <Link href="/" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Início</Link>
+          <Link href="/sobre" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Sobre</Link>
           <div style={{ padding: '12px 20px', color: 'rgba(255,255,255,0.7)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Funcionalidades</div>
           {FUNCIONALIDADES.map(({ label, href }) => (
             <Link key={label} href={href} onClick={() => setMenuMobile(false)} style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', textDecoration: 'none', padding: '10px 20px 10px 32px' }}>
               {label}
             </Link>
           ))}
-          <Link href="/sobre" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Sobre</Link>
           <Link href="/assistenteia" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Assistente de IA</Link>
+          <Link href="/perfil" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Minha conta</Link>
         </div>
       )}
     </nav>
