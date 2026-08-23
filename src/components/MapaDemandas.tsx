@@ -10,6 +10,9 @@ import { Demanda, CategoriaMapa, Entidade, DemandaEntidade } from '@/types'
 
 const FRUTAL_LAT = -20.02752
 const FRUTAL_LNG = -48.92702
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+const TILE_SATELITE = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
+const TILE_RUA = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
 
 function titleCase(str?: string) {
   if (!str) return ''
@@ -140,7 +143,7 @@ export default function MapaDemandas() {
       })
       const zoom = window.innerWidth <= 600 ? 13 : 14
       const mapa = L.map(mapRef.current!, { zoomControl: false }).setView([FRUTAL_LAT, FRUTAL_LNG], zoom)
-      const tile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' })
+      const tile = L.tileLayer(TILE_SATELITE, { attribution: '© Mapbox' })
       tile.addTo(mapa)
       tileAtual.current = tile
       mapaObj.current = mapa
@@ -347,8 +350,8 @@ export default function MapaDemandas() {
     if (tileAtual.current) tileAtual.current.remove()
     const novoSatelite = !satelite
     const tile = novoSatelite
-      ? L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' })
-      : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' })
+      ? L.tileLayer(TILE_SATELITE, { attribution: '© Mapbox' })
+      : L.tileLayer(TILE_RUA, { attribution: '© Mapbox © OpenStreetMap' })
     tile.addTo(mapaObj.current)
     tileAtual.current = tile
     setSatelite(novoSatelite)

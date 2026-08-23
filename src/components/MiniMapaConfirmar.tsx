@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import type * as Leaflet from 'leaflet'
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+const TILE_SATELITE = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
+const TILE_RUA = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
 const FRUTAL_LAT = -20.0234
 const FRUTAL_LNG = -48.9338
 const ZOOM_CIDADE = 13
@@ -89,7 +91,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
     import('leaflet').then((L) => {
       if (!mapRef.current) return
       mapa = L.map(mapRef.current, { zoomControl: false }).setView([FRUTAL_LAT, FRUTAL_LNG], ZOOM_CIDADE)
-      const tile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' })
+      const tile = L.tileLayer(TILE_RUA, { attribution: '© Mapbox © OpenStreetMap' })
       tile.addTo(mapa)
       tileAtual.current = tile
       mapaObj.current = mapa
@@ -137,8 +139,8 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
     if (tileAtual.current) tileAtual.current.remove()
     const novo = !satelite
     const t = novo
-      ? L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' })
-      : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' })
+      ? L.tileLayer(TILE_SATELITE, { attribution: '© Mapbox' })
+      : L.tileLayer(TILE_RUA, { attribution: '© Mapbox © OpenStreetMap' })
     t.addTo(mapaObj.current)
     tileAtual.current = t
     setSatelite(novo)
