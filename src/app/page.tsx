@@ -81,6 +81,7 @@ export default function LandingPage() {
               color: '#ffffff',
               marginTop: 'clamp(40px, 10vh, 100px)',
               marginBottom: 'clamp(10px, 2vh, 24px)',
+              paddingLeft: '15px',
               textShadow: '0 2px 16px rgba(0,0,0,0.25)',
             }}>
               Navegue por Frutal<br />
@@ -94,6 +95,7 @@ export default function LandingPage() {
               lineHeight: 1.6,
               maxWidth: '520px',
               margin: 0,
+              paddingLeft: '15px',
               textShadow: '0 1px 8px rgba(0,0,0,0.2)',
             }}>
               Uma plataforma visual e interativa onde cada pino é uma oportunidade ou solução.
