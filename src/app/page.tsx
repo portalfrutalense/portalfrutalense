@@ -69,7 +69,7 @@ export default function LandingPage() {
           {/* Coluna esquerda: logo + título + subtítulo */}
           <div style={{ maxWidth: '720px' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: 'clamp(160px, 24vh, 320px)', width: 'auto', maxWidth: '100%', display: 'block', marginBottom: 'clamp(32px, 8vh, 80px)' }} />
+            <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: 'clamp(160px, 24vh, 320px)', width: 'auto', maxWidth: '100%', display: 'block', marginBottom: 'clamp(60px, 16vh, 160px)' }} />
 
             {/* Headline */}
             <h1 style={{
