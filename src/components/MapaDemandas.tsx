@@ -78,6 +78,7 @@ export default function MapaDemandas() {
   // Form state
   const [etapa, setEtapa] = useState<'fechado' | 'formulario'>('fechado')
   const [descricao, setDescricao] = useState('')
+  const [melhorandoTexto, setMelhorandoTexto] = useState(false)
   const [categoriaId, setCategoriaId] = useState('')
   const [entidadeId, setEntidadeId] = useState('')
   const [coordenadas, setCoordenadas] = useState<{ lat: number; lng: number; label: string } | null>(null)
@@ -342,6 +343,25 @@ export default function MapaDemandas() {
   function aoConfirmarEndereco(endereco: string, lat: number, lng: number) {
     setCoordenadas({ lat, lng, label: endereco })
     setLocConfirmada(true)
+  }
+
+  async function melhorarDescricao() {
+    if (!descricao.trim() || melhorandoTexto) return
+    setMelhorandoTexto(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/ia/melhorar-texto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ texto: descricao }),
+      })
+      const data = await res.json()
+      if (res.ok && data.texto) setDescricao(data.texto)
+    } catch {
+      // silencioso — o texto original permanece se algo falhar
+    } finally {
+      setMelhorandoTexto(false)
+    }
   }
 
   function aoAlterarEndereco() {
@@ -780,8 +800,24 @@ export default function MapaDemandas() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Descrição *</label>
-                  <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descreva o problema em detalhes..."
-                    style={{ width: '100%', flex: 1, minHeight: '80px', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
+                  <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
+                    <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descreva o problema em detalhes..."
+                      style={{ width: '100%', flex: 1, minHeight: '80px', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', paddingBottom: '32px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
+                    <button type="button" onClick={melhorarDescricao} disabled={!descricao.trim() || melhorandoTexto}
+                      title="Melhorar texto com IA"
+                      style={{ position: 'absolute', right: '8px', bottom: '8px', display: 'flex', alignItems: 'center', gap: '4px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 8px', fontSize: '11px', fontWeight: 600, color: descricao.trim() ? '#4256c8' : '#9ca3af', cursor: !descricao.trim() || melhorandoTexto ? 'default' : 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+                      {melhorandoTexto ? (
+                        <span>Melhorando...</span>
+                      ) : (
+                        <>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
+                          </svg>
+                          <span>Melhorar</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <div>
