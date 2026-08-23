@@ -810,8 +810,15 @@ export default function MapaDemandas() {
                         <span>Melhorando...</span>
                       ) : (
                         <>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
+                          <svg width="13" height="13" viewBox="0 0 24 24">
+                            <defs>
+                              <linearGradient id="gradienteMelhorar" x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0%" stopColor="#4285f4" />
+                                <stop offset="50%" stopColor="#9b72cb" />
+                                <stop offset="100%" stopColor="#d96570" />
+                              </linearGradient>
+                            </defs>
+                            <path d="M12 2l2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5z" fill="url(#gradienteMelhorar)" />
                           </svg>
                           <span>Melhorar</span>
                         </>
