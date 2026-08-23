@@ -818,7 +818,7 @@ export default function MapaDemandas() {
                                 <stop offset="100%" stopColor="#d96570" />
                               </linearGradient>
                             </defs>
-                            <path d="M12 2l2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5z" fill="url(#gradienteMelhorar)" />
+                            <path d="M11.47 2.365a.5.5 0 01.963 0l1.582 6.135a2 2 0 001.437 1.437l6.135 1.582a.5.5 0 010 .963l-6.135 1.582a2 2 0 00-1.437 1.437l-1.582 6.135a.5.5 0 01-.963 0l-1.582-6.135a2 2 0 00-1.437-1.437L2.316 12.482a.5.5 0 010-.963l6.135-1.582a2 2 0 001.437-1.437z" fill="url(#gradienteMelhorar)" />
                           </svg>
                           <span>Melhorar</span>
                         </>
