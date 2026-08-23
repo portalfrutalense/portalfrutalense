@@ -165,10 +165,6 @@ function Navbar({ user, nome, sair, onEntrar }: { user: boolean; nome: string; s
   return (
     <nav style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, background: '#4256c8', height: '56px', display: 'flex', alignItems: 'center', padding: '0 clamp(16px, 4vw, 48px)', gap: '24px', boxSizing: 'border-box' }}>
 
-      {/* Logo */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: '36px', width: 'auto', flexShrink: 0 }} />
-
       {/* Nav links — desktop */}
       <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
         <Link href="/" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 500, textDecoration: 'none', padding: '6px 12px', borderRadius: '6px' }}>
@@ -286,13 +282,15 @@ export default function LandingPage() {
   return (
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", height: '100dvh', overflow: 'hidden' }}>
 
-      {/* Navbar azul sobreposta à foto */}
-      <Navbar
-        user={!!user}
-        nome={nomeExibido}
-        sair={sair}
-        onEntrar={() => setModalLogin(true)}
-      />
+      {/* Navbar azul — só aparece quando logado */}
+      {user && (
+        <Navbar
+          user={!!user}
+          nome={nomeExibido}
+          sair={sair}
+          onEntrar={() => setModalLogin(true)}
+        />
+      )}
 
       {/* HERO — página inteira */}
       <section style={{
@@ -331,13 +329,12 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Coluna direita — só desktop */}
-          <div className="landing-col-direita" style={{ display: 'flex', flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            {user
-              ? <CardUsuario nome={nomeExibido} sair={sair} />
-              : <CardLogin />
-            }
-          </div>
+          {/* Coluna direita — card de login só quando não logado */}
+          {!user && (
+            <div className="landing-col-direita" style={{ display: 'flex', flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+              <CardLogin />
+            </div>
+          )}
         </div>
       </section>
 
