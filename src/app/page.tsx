@@ -282,8 +282,10 @@ export default function LandingPage() {
 
           {/* Coluna direita: login ou card do usuário — centralizado verticalmente */}
           <div style={{ display: 'flex', flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: '100%' }}>
-            {/* TEMPORÁRIO: forçando card do usuário para visualização */}
-            <CardUsuario nome="Lucas" sair={sair} />
+            {user
+              ? <CardUsuario nome={nomeExibido} sair={sair} />
+              : <CardLogin />
+            }
           </div>
         </div>
       </section>
