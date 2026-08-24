@@ -51,15 +51,15 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
 
         {/* Nav links — desktop, só quando logado, sempre centralizado igual em todas as páginas */}
         {user && (
-          <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '4px', position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
-            <Link href="/" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', fontWeight: 500, textDecoration: 'none', padding: '6px 14px', borderRadius: '6px' }}>
+          <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '2px', position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+            <Link href="/" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '13.5px', fontWeight: 500, textDecoration: 'none', padding: '6px 10px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
               Início
             </Link>
             {/* Funcionalidades com dropdown */}
             <div style={{ position: 'relative' }}>
               <button
                 onClick={() => setDropdown(!dropdown)}
-                style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 14px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                style={{ color: 'rgba(255,255,255,0.9)', fontSize: '13.5px', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
               >
                 Funcionalidades
                 <span style={{ fontSize: '10px', opacity: 0.8 }}>{dropdown ? '▲' : '▼'}</span>
@@ -76,10 +76,10 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
               )}
             </div>
 
-            <Link href="/assistenteia" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', fontWeight: 500, textDecoration: 'none', padding: '6px 14px', borderRadius: '6px' }}>
+            <Link href="/assistenteia" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '13.5px', fontWeight: 500, textDecoration: 'none', padding: '6px 10px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
               Assistente de IA
             </Link>
-            <Link href="/perfil" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', fontWeight: 500, textDecoration: 'none', padding: '6px 14px', borderRadius: '6px' }}>
+            <Link href="/perfil" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '13.5px', fontWeight: 500, textDecoration: 'none', padding: '6px 10px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
               Minhas atividades
             </Link>
           </div>
