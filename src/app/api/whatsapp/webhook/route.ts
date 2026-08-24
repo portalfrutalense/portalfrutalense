@@ -134,6 +134,11 @@ export async function POST(req: NextRequest) {
   }
   if (!conversa) return NextResponse.json({ ok: true })
 
+  // Evita reprocessar a mesma mensagem duas vezes (webhook duplicado)
+  const messageId = key?.id
+  if (messageId && conversa.ultimo_message_id === messageId) return NextResponse.json({ ok: true })
+  if (messageId) await supabaseServer.from('whatsapp_conversas').update({ ultimo_message_id: messageId }).eq('id', conversa.id)
+
   const historico: { role: string; content: string }[] = conversa.historico || []
   const dados: DadosPendentes = conversa.dados_pendentes || {}
   const etapa: string = conversa.etapa || 'nenhuma'
