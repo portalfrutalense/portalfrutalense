@@ -282,20 +282,41 @@ function CardAcesso() {
 
 /* -------------------------------------------------------- atalhos logado -- */
 
-function Atalhos() {
+function Atalhos({ bloqueado, onBloqueado }: { bloqueado?: boolean; onBloqueado?: () => void }) {
   return (
     <div className="atalhos">
+      {bloqueado && (
+        <p className="atalhos-aviso">Entre para acessar as funcionalidades</p>
+      )}
       {ATALHOS.map(({ href, titulo, desc, cor, icone }) => (
-        <Link key={href} href={href} className="atalho">
-          <span className="atalho-icone" style={{ color: cor, background: `${cor}1a`, borderColor: `${cor}33` }}>
-            {icone}
-          </span>
-          <span className="atalho-texto">
-            <strong>{titulo}</strong>
-            <small>{desc}</small>
-          </span>
-          <IconeSeta />
-        </Link>
+        bloqueado ? (
+          <button
+            key={href}
+            className={`atalho atalho-bloqueado`}
+            onClick={onBloqueado}
+            aria-label={`${titulo} — faça login para acessar`}
+          >
+            <span className="atalho-icone" style={{ color: cor, background: `${cor}1a`, borderColor: `${cor}33` }}>
+              {icone}
+            </span>
+            <span className="atalho-texto">
+              <strong>{titulo}</strong>
+              <small>{desc}</small>
+            </span>
+            <span className="atalho-cadeado" aria-hidden="true">🔒</span>
+          </button>
+        ) : (
+          <Link key={href} href={href} className="atalho">
+            <span className="atalho-icone" style={{ color: cor, background: `${cor}1a`, borderColor: `${cor}33` }}>
+              {icone}
+            </span>
+            <span className="atalho-texto">
+              <strong>{titulo}</strong>
+              <small>{desc}</small>
+            </span>
+            <IconeSeta />
+          </Link>
+        )
       ))}
     </div>
   )
@@ -305,6 +326,15 @@ function Atalhos() {
 
 export default function LandingPage() {
   const { user } = useAuth()
+  const cardRef = useRef<HTMLDivElement>(null)
+  const [tremendo, setTremendo] = useState(false)
+
+  function sacudir() {
+    if (tremendo) return
+    setTremendo(true)
+    cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    setTimeout(() => setTremendo(false), 600)
+  }
 
   useEffect(() => {
     const html = document.documentElement
@@ -318,7 +348,7 @@ export default function LandingPage() {
   }, [])
 
   return (
-    <div className={`palco${user ? ' palco-logado' : ''}`}>
+    <div className={`palco${user ? ' palco-logado' : ' palco-deslogado'}`}>
       {/* fundo: o traçado da cidade, vivo */}
       <div className="fundo" aria-hidden="true">
         <MapaVivo />
@@ -326,8 +356,8 @@ export default function LandingPage() {
         <div className="halo" />
       </div>
 
-      {/* navbar — inalterada, só aparece quando logado */}
-      {user && <Navbar overlay />}
+      {/* navbar — sempre visível na landing */}
+      <Navbar overlay />
 
       <main className="grade">
         <section className="coluna-conteudo">
@@ -363,7 +393,16 @@ export default function LandingPage() {
         </section>
 
         <section className="coluna-acao surge" style={{ animationDelay: '260ms' }}>
-          {user ? <Atalhos /> : <CardAcesso />}
+          {user ? (
+            <Atalhos />
+          ) : (
+            <div className="acao-deslogada">
+              <Atalhos bloqueado onBloqueado={sacudir} />
+              <div ref={cardRef} className={tremendo ? 'tremer' : ''}>
+                <CardAcesso />
+              </div>
+            </div>
+          )}
         </section>
       </main>
 
@@ -431,8 +470,8 @@ export default function LandingPage() {
           gap: clamp(28px, 5vw, 64px);
           box-sizing: border-box;
         }
-        /* quando logado, a navbar ocupa o topo — o palco cede o espaço dela */
-        .palco-logado .grade { padding-top: calc(56px + clamp(16px, 3vh, 36px)); }
+        /* a navbar ocupa o topo sempre — o palco cede o espaço */
+        .grade { padding-top: calc(56px + clamp(16px, 3vh, 36px)); }
 
         .coluna-conteudo { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
 
@@ -588,21 +627,29 @@ export default function LandingPage() {
           background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d;
         }
 
-        /* ---- atalhos (logado) ---- */
-        .atalhos { width: 100%; max-width: 372px; display: flex; flex-direction: column; gap: 10px; }
+        /* ---- atalhos ---- */
+        .acao-deslogada { width: 100%; max-width: 372px; display: flex; flex-direction: column; gap: 10px; }
+        .atalhos { width: 100%; max-width: 372px; display: flex; flex-direction: column; gap: 8px; }
+        .atalhos-aviso {
+          margin: 0 0 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em;
+          text-transform: uppercase; color: var(--tinta-fraca); text-align: center;
+        }
         .atalho {
-          display: flex; align-items: center; gap: 13px; padding: 13px 15px;
+          display: flex; align-items: center; gap: 13px; padding: 11px 14px;
           border-radius: 14px; border: 1px solid var(--borda); background: var(--cartao);
           text-decoration: none; color: var(--tinta);
           box-shadow: 0 1px 2px rgba(13,20,37,0.04), 0 10px 24px -14px rgba(13,20,37,0.22);
           transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+          width: 100%; text-align: left; cursor: pointer; font-family: inherit;
         }
         .atalho:hover {
           transform: translateX(4px); border-color: var(--borda-forte);
           box-shadow: 0 2px 4px rgba(13,20,37,0.06), 0 14px 28px -12px rgba(13,20,37,0.26);
         }
+        .atalho-bloqueado { opacity: 0.6; }
+        .atalho-bloqueado:hover { transform: none; box-shadow: 0 1px 2px rgba(13,20,37,0.04), 0 10px 24px -14px rgba(13,20,37,0.22); }
         .atalho-icone {
-          display: grid; place-items: center; width: 38px; height: 38px;
+          display: grid; place-items: center; width: 36px; height: 36px;
           border-radius: 11px; border: 1px solid; flex-shrink: 0;
         }
         .atalho-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
@@ -610,6 +657,20 @@ export default function LandingPage() {
         .atalho-texto small { font-size: 12px; color: var(--tinta-fraca); }
         .atalho-seta { color: #7d8799; flex-shrink: 0; transition: transform .18s ease, color .18s ease; }
         .atalho:hover .atalho-seta { transform: translateX(3px); color: var(--marca); }
+        .atalho-cadeado { font-size: 13px; flex-shrink: 0; opacity: 0.7; }
+
+        /* ---- tremor ao tentar acessar sem login ---- */
+        @keyframes tremer {
+          0%   { transform: translateX(0); }
+          15%  { transform: translateX(-7px); }
+          30%  { transform: translateX(6px); }
+          45%  { transform: translateX(-5px); }
+          60%  { transform: translateX(4px); }
+          75%  { transform: translateX(-3px); }
+          88%  { transform: translateX(2px); }
+          100% { transform: translateX(0); }
+        }
+        .tremer { animation: tremer 0.55s cubic-bezier(.36,.07,.19,.97) both; }
 
         /* ---- rodapé ---- */
         /* item do fluxo, não sobreposto: assim sempre reserva o próprio espaço
@@ -639,30 +700,35 @@ export default function LandingPage() {
           .grade {
             grid-template-columns: 1fr;
             align-content: center;
-            gap: clamp(14px, 2.4vh, 22px);
-            padding: clamp(16px, 3vh, 28px) 20px clamp(10px, 2vh, 18px);
+            gap: clamp(10px, 1.8vh, 16px);
+            padding: clamp(12px, 2.4vh, 22px) 20px clamp(8px, 1.6vh, 14px);
           }
           .coluna-acao { justify-content: flex-start; }
-          .cartao, .atalhos { max-width: 100%; }
+          .cartao, .atalhos, .acao-deslogada { max-width: 100%; }
           .halo { left: -30%; top: 8%; width: 110vw; height: 110vw; }
           .subtitulo { max-width: 100%; }
+          /* no mobile, coluna de conteúdo fica mais compacta */
+          .titulo { margin: clamp(10px, 1.6vh, 18px) 0 clamp(8px, 1.2vh, 14px); }
         }
 
         /* telas curtas: enxuga o que é secundário para nada vazar da tela */
-        @media (max-width: 860px) and (max-height: 720px) {
+        @media (max-width: 860px) and (max-height: 760px) {
           .subtitulo { display: none; }
-          .categorias { gap: 6px; }
-          .categorias li { font-size: 11.5px; padding: 5px 10px; }
-          .prova { margin-top: 12px; }
-          .cartao-topo { padding: 10px 16px; }
-          .cartao-corpo { padding: 14px; gap: 8px; }
+          .categorias { gap: 5px; }
+          .categorias li { font-size: 11px; padding: 4px 9px; }
+          .prova { margin-top: 10px; }
+          .cartao-topo { padding: 9px 16px; }
+          .cartao-corpo { padding: 12px; gap: 8px; }
           .separador { margin: 0; }
           .btn-primario, .btn-secundario, .btn-enviar { padding: 10px 14px; }
-          .campo { padding: 10px 13px; }
-          .atalho { padding: 11px 13px; }
+          .campo { padding: 9px 12px; }
+          .atalho { padding: 9px 12px; }
+          .acao-deslogada { gap: 8px; }
+          .atalhos { gap: 6px; }
         }
-        @media (max-width: 860px) and (max-height: 620px) {
+        @media (max-width: 860px) and (max-height: 640px) {
           .categorias, .prova, .etiqueta { display: none; }
+          .atalhos-aviso { display: none; }
         }
 
         /* com o formulário de e-mail aberto o cartão cresce; numa tela baixa o
@@ -673,6 +739,7 @@ export default function LandingPage() {
           .palco:has(.formulario) .etiqueta,
           .palco:has(.formulario) .subtitulo { display: none; }
           .palco:has(.formulario) .titulo { font-size: clamp(22px, 5.4vw, 30px); margin-top: 4px; }
+          .palco:has(.formulario) .atalhos { display: none; }
         }
 
         @media (prefers-reduced-motion: reduce) {
