@@ -369,15 +369,13 @@ export default function LandingPage() {
       <main className="grade">
         <section className="coluna-conteudo">
           <h1 className="titulo surge" style={{ animationDelay: '80ms' }}>
-            Tudo o que acontece em Frutal,
+            Navegue por Frutal
             <br />
-            <span className="titulo-realce">no mesmo mapa.</span>
+            <span className="titulo-realce">Explore tudo ao seu redor</span>
           </h1>
 
           <p className="subtitulo surge" style={{ animationDelay: '210ms' }}>
-            Um buraco na rua, uma vaga de emprego, um cachorro perdido. Cada pino é
-            alguém daqui pedindo ou oferecendo algo — e o Lucas, nosso assistente,
-            te guia em cada passo.
+            Cada pino é alguém da cidade pedindo ou oferecendo algo. Escolha um mapa para cobrar melhorias públicas, achar empregos, localizar pets, entre outras. O Lucas (nosso assistente IA) te guia em cada passo.
           </p>
 
           <div className="surge" style={{ animationDelay: '270ms' }}>
