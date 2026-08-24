@@ -634,7 +634,7 @@ export default function LandingPage() {
         }
         .atalho-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; text-align: left; }
         .atalho-texto strong { font-size: 14px; font-weight: 700; }
-        .atalho-texto small { font-size: 12px; color: var(--tinta-fraca); }
+        .atalho-texto small { font-size: 12px; color: var(--tinta-fraca); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .atalho-seta { color: #7d8799; flex-shrink: 0; transition: transform .18s ease, color .18s ease; }
         .atalho:hover .atalho-seta { transform: translateX(3px); color: var(--marca); }
 
