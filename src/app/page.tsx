@@ -142,7 +142,6 @@ const FUNCIONALIDADES = [
 
 function Navbar({ user, nome, sair, onEntrar }: { user: boolean; nome: string; sair: () => void; onEntrar: () => void }) {
   const [dropdown, setDropdown] = useState(false)
-  const [dropdownSobre, setDropdownSobre] = useState(false)
   const [menuMobile, setMenuMobile] = useState(false)
 
   return (
@@ -153,29 +152,6 @@ function Navbar({ user, nome, sair, onEntrar }: { user: boolean; nome: string; s
         <Link href="/" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', fontWeight: 500, textDecoration: 'none', padding: '6px 14px', borderRadius: '6px' }}>
           Início
         </Link>
-        {/* Sobre com dropdown */}
-        <div style={{ position: 'relative' }}>
-          <button
-            onClick={() => setDropdownSobre(!dropdownSobre)}
-            style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 14px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}
-          >
-            Sobre
-            <span style={{ fontSize: '10px', opacity: 0.8 }}>{dropdownSobre ? '▲' : '▼'}</span>
-          </button>
-          {dropdownSobre && (
-            <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '4px', background: 'white', borderRadius: '10px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', overflow: 'hidden', minWidth: '160px', zIndex: 30 }}>
-              <Link href="/termos" onClick={() => setDropdownSobre(false)}
-                style={{ display: 'block', padding: '12px 16px', fontSize: '14px', color: '#111827', textDecoration: 'none', fontWeight: 500, borderBottom: '1px solid #f3f4f6' }}>
-                Termos
-              </Link>
-              <a href="https://wa.me/5534991500046" target="_blank" rel="noopener noreferrer" onClick={() => setDropdownSobre(false)}
-                style={{ display: 'block', padding: '12px 16px', fontSize: '14px', color: '#111827', textDecoration: 'none', fontWeight: 500 }}>
-                Suporte
-              </a>
-            </div>
-          )}
-        </div>
-
         {/* Funcionalidades com dropdown */}
         <div style={{ position: 'relative' }}>
           <button
@@ -201,7 +177,7 @@ function Navbar({ user, nome, sair, onEntrar }: { user: boolean; nome: string; s
           Assistente de IA
         </Link>
         <Link href="/perfil" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', fontWeight: 500, textDecoration: 'none', padding: '6px 14px', borderRadius: '6px' }}>
-          Minha conta
+          Minhas atividades
         </Link>
       </div>
 
@@ -254,9 +230,6 @@ function Navbar({ user, nome, sair, onEntrar }: { user: boolean; nome: string; s
       {menuMobile && (
         <div style={{ position: 'absolute', top: '56px', left: 0, right: 0, background: '#3347b0', zIndex: 30, display: 'flex', flexDirection: 'column', padding: '8px 0' }}>
           <Link href="/" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Início</Link>
-          <div style={{ padding: '12px 20px', color: 'rgba(255,255,255,0.7)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sobre</div>
-          <Link href="/termos" onClick={() => setMenuMobile(false)} style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', textDecoration: 'none', padding: '10px 20px 10px 32px' }}>Termos</Link>
-          <a href="https://wa.me/5534991500046" target="_blank" rel="noopener noreferrer" onClick={() => setMenuMobile(false)} style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', textDecoration: 'none', padding: '10px 20px 10px 32px' }}>Suporte</a>
           <div style={{ padding: '12px 20px', color: 'rgba(255,255,255,0.7)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Funcionalidades</div>
           {FUNCIONALIDADES.map(({ label, href }) => (
             <Link key={label} href={href} onClick={() => setMenuMobile(false)} style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', textDecoration: 'none', padding: '10px 20px 10px 32px' }}>
@@ -264,7 +237,7 @@ function Navbar({ user, nome, sair, onEntrar }: { user: boolean; nome: string; s
             </Link>
           ))}
           <Link href="/assistenteia" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Assistente de IA</Link>
-          <Link href="/perfil" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Minha conta</Link>
+          <Link href="/perfil" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Minhas atividades</Link>
         </div>
       )}
     </nav>
@@ -365,6 +338,12 @@ export default function LandingPage() {
           Entre ou registre-se
         </button>
       )}
+
+      {/* Links de Termos/Privacidade — só texto flutuando por cima da foto, sem rodapé */}
+      <div style={{ position: 'fixed', bottom: '10px', left: '50%', transform: 'translateX(-50%)', zIndex: 10, display: 'flex', gap: '16px' }}>
+        <Link href="/termos" style={{ fontSize: '12px', color: 'rgba(255,255,255,0.65)', textDecoration: 'none' }}>Termos de Uso</Link>
+        <Link href="/privacidade" style={{ fontSize: '12px', color: 'rgba(255,255,255,0.65)', textDecoration: 'none' }}>Política de Privacidade</Link>
+      </div>
 
       {/* Modal de login (abre pelo botão Entrar da navbar no mobile) */}
       {modalLogin && (
