@@ -251,7 +251,7 @@ export async function POST(req: NextRequest) {
     const { data: catEnt } = await supabaseServer.from('categoria_entidades').select('entidade_id').eq('categoria_id', dados.categoria_id || '')
     const ids = (catEnt || []).map((c) => c.entidade_id)
     if (ids.length === 0) {
-      await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, 'Poxa, não tem nenhuma autoridade vinculada a essa categoria ainda, então não dá pra registrar por enquanto.')])
+      await Promise.all([salvarHistorico(conversa.id, historico, 'sem_autoridade', null), enviarWhatsapp(telefone, `Poxa, ainda não tem nenhuma autoridade cadastrada pra essa categoria (${dados.categoria_nome}). Assim que tiver, você pode tentar registrar de novo. Posso te ajudar com mais alguma coisa?`)])
       return NextResponse.json({ ok: true })
     }
     const { data: entidades } = await supabaseServer.from('entidades').select('id, nome, cargo').in('id', ids)
@@ -266,6 +266,18 @@ export async function POST(req: NextRequest) {
       const lista = opcoes.map((o, i) => `${i + 1}. ${o.nome} — ${o.cargo}`).join('\n')
       await Promise.all([salvarHistorico(conversa.id, historico, 'escolher_autoridade', dados), enviarWhatsapp(telefone, `Pra quem você quer direcionar essa demanda? Pode escolher até 3 (responde com os números, separados por vírgula):\n\n${lista}`)])
     }
+    return NextResponse.json({ ok: true })
+  }
+
+  // ── Etapa: sem autoridade (encerra o fluxo, próxima msg volta ao normal) ──
+  if (etapa === 'sem_autoridade') {
+    await salvarHistorico(conversa.id, historico, 'nenhuma', null)
+    // cai no bloco 'nenhuma' na próxima mensagem — essa apenas limpa a etapa
+    const systemPrompt = await montarSystemPrompt(nomeUsuario)
+    historico.push({ role: 'user', content: texto || '...' })
+    const resposta = await chamarGemini(systemPrompt, historico)
+    historico.push({ role: 'assistant', content: resposta })
+    await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, resposta)])
     return NextResponse.json({ ok: true })
   }
 
