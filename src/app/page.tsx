@@ -746,6 +746,11 @@ export default function LandingPage() {
           .ponto-vivo { animation: none; }
           .atalho, .btn-primario, .btn-enviar, .atalho-seta { transition: none; }
         }
+
+        @media (hover: none) {
+          .atalho, .atalho-func-btn { transition: none; }
+          .atalho:hover, .atalho-func-btn:hover { transform: none; box-shadow: 0 1px 2px rgba(13,20,37,0.04), 0 10px 24px -14px rgba(13,20,37,0.22); border-color: var(--borda); }
+        }
       `}</style>
     </div>
   )
