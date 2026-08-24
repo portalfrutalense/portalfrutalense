@@ -532,6 +532,7 @@ export default function LandingPage() {
           width: 100%; max-width: 372px; border-radius: 18px; overflow: hidden;
           border: 1px solid var(--borda); background: var(--cartao);
           box-shadow: 0 1px 2px rgba(13,20,37,0.05), 0 18px 45px -12px rgba(13,20,37,0.18);
+          text-align: left;
         }
         .cartao-topo {
           display: flex; align-items: center; justify-content: center; gap: 9px;
@@ -631,7 +632,7 @@ export default function LandingPage() {
           display: grid; place-items: center; width: 38px; height: 38px;
           border-radius: 11px; border: 1px solid; flex-shrink: 0;
         }
-        .atalho-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+        .atalho-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; text-align: left; }
         .atalho-texto strong { font-size: 14px; font-weight: 700; }
         .atalho-texto small { font-size: 12px; color: var(--tinta-fraca); }
         .atalho-seta { color: #7d8799; flex-shrink: 0; transition: transform .18s ease, color .18s ease; }
@@ -640,7 +641,7 @@ export default function LandingPage() {
         /* ---- funcionalidades expansível ---- */
         .atalho-func { width: 100%; position: relative; }
         .atalho-func-btn { border-radius: 14px; border: 1px solid var(--borda); background: var(--cartao); box-shadow: 0 1px 2px rgba(13,20,37,0.04), 0 10px 24px -14px rgba(13,20,37,0.22); width: 100%; }
-        .atalho-func-btn:hover { transform: none; border-color: var(--borda-forte); box-shadow: 0 2px 4px rgba(13,20,37,0.06), 0 14px 28px -12px rgba(13,20,37,0.26); background: var(--cartao); }
+        .atalho-func-btn:hover { transform: translateX(4px); border-color: var(--borda-forte); box-shadow: 0 2px 4px rgba(13,20,37,0.06), 0 14px 28px -12px rgba(13,20,37,0.26); background: var(--cartao); }
         .atalho-chevron { color: #7d8799; flex-shrink: 0; transition: transform .22s ease, color .18s ease; display: flex; }
         .atalho-func-btn:hover .atalho-chevron { color: var(--marca); }
         .func-lista {
