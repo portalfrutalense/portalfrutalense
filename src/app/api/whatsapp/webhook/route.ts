@@ -207,20 +207,16 @@ export async function POST(req: NextRequest) {
         if (!perfilLigado) {
           const linkVinculo = `${process.env.NEXT_PUBLIC_SITE_URL}/vincular-whatsapp?tel=${telefone}`
           const msgVinculo = `Antes de registrar, preciso confirmar sua identidade. Entre nesse link pra vincular sua conta:\n${linkVinculo}\n\nDepois de vincular, volta aqui que a gente continua.`
-          await salvarHistorico(conversa.id, historico, 'aguardando_vinculo', novosDados)
-          await enviarWhatsapp(telefone, msgVinculo)
+          await Promise.all([salvarHistorico(conversa.id, historico, 'aguardando_vinculo', novosDados), enviarWhatsapp(telefone, msgVinculo)])
         } else {
-          await salvarHistorico(conversa.id, historico, 'perguntar_registrar', novosDados)
-          await enviarWhatsapp(telefone, msg)
+          await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_registrar', novosDados), enviarWhatsapp(telefone, msg)])
         }
       } catch {
-        await salvarHistorico(conversa.id, historico, 'nenhuma', null)
-        await enviarWhatsapp(telefone, resposta)
+        await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, resposta)])
       }
     } else {
       historico.push({ role: 'assistant', content: resposta })
-      await salvarHistorico(conversa.id, historico, 'nenhuma', null)
-      await enviarWhatsapp(telefone, resposta)
+      await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, resposta)])
     }
     return NextResponse.json({ ok: true })
   }
@@ -228,8 +224,10 @@ export async function POST(req: NextRequest) {
   // ── Etapa: aguardando vínculo de conta ──
   if (etapa === 'aguardando_vinculo') {
     if (perfilLigado) {
-      await salvarHistorico(conversa.id, historico, 'perguntar_registrar', dados)
-      await enviarWhatsapp(telefone, `Prontinho, sua conta foi vinculada! Vamos continuar: confirma que quer registrar "${dados.descricao}"? (sim ou não)`)
+      await Promise.all([
+        salvarHistorico(conversa.id, historico, 'perguntar_registrar', dados),
+        enviarWhatsapp(telefone, `Prontinho, sua conta foi vinculada! Vamos continuar: confirma que quer registrar "${dados.descricao}"? (sim ou não)`),
+      ])
     } else {
       const linkVinculo = `${process.env.NEXT_PUBLIC_SITE_URL}/vincular-whatsapp?tel=${telefone}`
       await enviarWhatsapp(telefone, `Ainda não vi sua conta vinculada por aqui. Termina o cadastro nesse link e volta que a gente continua:\n${linkVinculo}`)
@@ -242,8 +240,7 @@ export async function POST(req: NextRequest) {
     const positivo = /^(sim|s|quero|pode|claro|ok)/i.test(texto)
     const negativo = /^(n[aã]o|n)/i.test(texto)
     if (negativo) {
-      await salvarHistorico(conversa.id, historico, 'nenhuma', null)
-      await enviarWhatsapp(telefone, 'Sem problemas! Posso ajudar com mais alguma coisa?')
+      await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, 'Sem problemas! Posso ajudar com mais alguma coisa?')])
       return NextResponse.json({ ok: true })
     }
     if (!positivo) {
@@ -254,8 +251,7 @@ export async function POST(req: NextRequest) {
     const { data: catEnt } = await supabaseServer.from('categoria_entidades').select('entidade_id').eq('categoria_id', dados.categoria_id || '')
     const ids = (catEnt || []).map((c) => c.entidade_id)
     if (ids.length === 0) {
-      await salvarHistorico(conversa.id, historico, 'nenhuma', null)
-      await enviarWhatsapp(telefone, 'Poxa, não tem nenhuma autoridade vinculada a essa categoria ainda, então não dá pra registrar por enquanto.')
+      await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, 'Poxa, não tem nenhuma autoridade vinculada a essa categoria ainda, então não dá pra registrar por enquanto.')])
       return NextResponse.json({ ok: true })
     }
     const { data: entidades } = await supabaseServer.from('entidades').select('id, nome, cargo').in('id', ids)
@@ -264,13 +260,11 @@ export async function POST(req: NextRequest) {
     if (opcoes.length === 1) {
       dados.entidades_ids = [opcoes[0].id]
       dados.entidades_nomes = [opcoes[0].nome]
-      await salvarHistorico(conversa.id, historico, 'perguntar_endereco', dados)
-      await enviarWhatsapp(telefone, `Beleza, sua demanda vai ser direcionada para ${opcoes[0].nome} (${opcoes[0].cargo}).\n\nAgora me conta: qual o endereço do local? Pode digitar ou, se preferir, é só compartilhar sua localização aqui pelo WhatsApp.`)
+      await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_endereco', dados), enviarWhatsapp(telefone, `Beleza, sua demanda vai ser direcionada para ${opcoes[0].nome} (${opcoes[0].cargo}).\n\nAgora me conta: qual o endereço do local? Pode digitar ou, se preferir, é só compartilhar sua localização aqui pelo WhatsApp.`)])
     } else {
       dados.opcoes_autoridade = opcoes
       const lista = opcoes.map((o, i) => `${i + 1}. ${o.nome} — ${o.cargo}`).join('\n')
-      await salvarHistorico(conversa.id, historico, 'escolher_autoridade', dados)
-      await enviarWhatsapp(telefone, `Pra quem você quer direcionar essa demanda? Pode escolher até 3 (responde com os números, separados por vírgula):\n\n${lista}`)
+      await Promise.all([salvarHistorico(conversa.id, historico, 'escolher_autoridade', dados), enviarWhatsapp(telefone, `Pra quem você quer direcionar essa demanda? Pode escolher até 3 (responde com os números, separados por vírgula):\n\n${lista}`)])
     }
     return NextResponse.json({ ok: true })
   }
@@ -286,8 +280,7 @@ export async function POST(req: NextRequest) {
     const escolhidas = [...new Set(indices)].map((i) => opcoes[i - 1])
     dados.entidades_ids = escolhidas.map((e) => e.id)
     dados.entidades_nomes = escolhidas.map((e) => e.nome)
-    await salvarHistorico(conversa.id, historico, 'perguntar_endereco', dados)
-    await enviarWhatsapp(telefone, `Beleza, direcionada para: ${dados.entidades_nomes.join(', ')}.\n\nAgora me conta: qual o endereço do local? Pode digitar ou, se preferir, é só compartilhar sua localização aqui pelo WhatsApp.`)
+    await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_endereco', dados), enviarWhatsapp(telefone, `Beleza, direcionada para: ${dados.entidades_nomes.join(', ')}.\n\nAgora me conta: qual o endereço do local? Pode digitar ou, se preferir, é só compartilhar sua localização aqui pelo WhatsApp.`)])
     return NextResponse.json({ ok: true })
   }
 
@@ -297,8 +290,7 @@ export async function POST(req: NextRequest) {
       dados.lat = location.degreesLatitude
       dados.lng = location.degreesLongitude
       dados.endereco_label = 'Localização compartilhada pelo WhatsApp'
-      await salvarHistorico(conversa.id, historico, 'perguntar_foto', dados)
-      await enviarWhatsapp(telefone, 'Localização recebida! Se puder, envie uma foto do local — ajuda bastante a autoridade a entender o problema. Se não tiver, é só responder "sem foto".')
+      await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_foto', dados), enviarWhatsapp(telefone, 'Localização recebida! Se puder, envie uma foto do local — ajuda bastante a autoridade a entender o problema. Se não tiver, é só responder "sem foto".')])
       return NextResponse.json({ ok: true })
     }
     if (!texto) {
@@ -313,8 +305,7 @@ export async function POST(req: NextRequest) {
     dados.lat = geo.lat
     dados.lng = geo.lng
     dados.endereco_label = geo.label
-    await salvarHistorico(conversa.id, historico, 'perguntar_foto', dados)
-    await enviarWhatsapp(telefone, `Endereço confirmado: ${geo.label}\n\nSe puder, envie uma foto do local — ajuda bastante a autoridade a entender o problema. Se não tiver, é só responder "sem foto".`)
+    await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_foto', dados), enviarWhatsapp(telefone, `Endereço confirmado: ${geo.label}\n\nSe puder, envie uma foto do local — ajuda bastante a autoridade a entender o problema. Se não tiver, é só responder "sem foto".`)])
     return NextResponse.json({ ok: true })
   }
 
@@ -348,17 +339,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    await salvarHistorico(conversa.id, historico, 'resumo', dados)
     const resumo = `Prontinho! Dá uma conferida antes de eu registrar:\n\nEndereço: ${dados.endereco_label}\nCategoria: ${dados.categoria_nome}\nDirecionada para: ${dados.entidades_nomes?.join(', ')}\nDescrição: ${dados.descricao}\n${dados.foto_url ? 'Com foto anexada\n' : ''}\nPosso registrar? (confirmar ou cancelar)`
-    await enviarWhatsapp(telefone, resumo)
+    await Promise.all([salvarHistorico(conversa.id, historico, 'resumo', dados), enviarWhatsapp(telefone, resumo)])
     return NextResponse.json({ ok: true })
   }
 
   // ── Etapa: resumo / confirmação final ──
   if (etapa === 'resumo') {
     if (/^cancelar/i.test(texto)) {
-      await salvarHistorico(conversa.id, historico, 'nenhuma', null)
-      await enviarWhatsapp(telefone, 'Beleza, cancelei o registro. Posso ajudar com mais alguma coisa?')
+      await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, 'Beleza, cancelei o registro. Posso ajudar com mais alguma coisa?')])
       return NextResponse.json({ ok: true })
     }
     if (!/^confirmar/i.test(texto)) {
@@ -366,15 +355,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
     if (!perfilLigado || !dados.lat || !dados.lng || !dados.categoria_id || !dados.entidades_ids?.length) {
-      await salvarHistorico(conversa.id, historico, 'nenhuma', null)
-      await enviarWhatsapp(telefone, 'Ih, algo deu errado com os dados aqui. Vamos começar de novo — me conta qual é o problema?')
+      await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, 'Ih, algo deu errado com os dados aqui. Vamos começar de novo — me conta qual é o problema?')])
       return NextResponse.json({ ok: true })
     }
 
     const { data: perfilCompleto } = await supabaseServer.from('perfis').select('nome, cpf').eq('id', perfilLigado.id).single()
     if (!perfilCompleto?.cpf) {
-      await salvarHistorico(conversa.id, historico, 'nenhuma', null)
-      await enviarWhatsapp(telefone, `Antes de registrar, preciso que você complete seu CPF no cadastro — é obrigatório. Entra no site aqui: ${process.env.NEXT_PUBLIC_SITE_URL}/perfil`)
+      await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, `Antes de registrar, preciso que você complete seu CPF no cadastro — é obrigatório. Entra no site aqui: ${process.env.NEXT_PUBLIC_SITE_URL}/perfil`)])
       return NextResponse.json({ ok: true })
     }
 
@@ -393,8 +380,7 @@ export async function POST(req: NextRequest) {
     }).select().single()
 
     if (error || !demanda) {
-      await salvarHistorico(conversa.id, historico, 'nenhuma', null)
-      await enviarWhatsapp(telefone, 'Poxa, deu um erro ao registrar sua demanda. Tenta de novo daqui a pouco?')
+      await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, 'Poxa, deu um erro ao registrar sua demanda. Tenta de novo daqui a pouco?')])
       return NextResponse.json({ ok: true })
     }
 
@@ -411,8 +397,7 @@ export async function POST(req: NextRequest) {
       // não bloqueia — demanda já foi criada
     }
 
-    await salvarHistorico(conversa.id, historico, 'nenhuma', null)
-    await enviarWhatsapp(telefone, 'Prontinho, sua demanda foi registrada! Ela vai passar por uma análise com o nosso Agente de IA, e se aprovada, aparece no mapa e a(as) autoridades são notificadas. Posso ajudar com mais alguma coisa?')
+    await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, 'Prontinho, sua demanda foi registrada! Ela vai passar por uma análise com o nosso Agente de IA, e se aprovada, aparece no mapa e a(as) autoridades são notificadas. Posso ajudar com mais alguma coisa?')])
     return NextResponse.json({ ok: true })
   }
 
