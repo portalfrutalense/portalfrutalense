@@ -44,15 +44,16 @@ const FUNCIONALIDADES_ATALHO = [
   { label: 'Classificados', href: '/mapa', cor: '#059669' },
 ]
 
+const COR_MARCA = '#4256c8'
+
 const ATALHOS = [
   {
     href: '/assistenteia',
     titulo: 'Falar com o Lucas',
     desc: 'O assistente te ajuda a registrar tudo',
-    cor: '#0891b2',
     icone: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+        <path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/>
       </svg>
     ),
   },
@@ -60,10 +61,9 @@ const ATALHOS = [
     href: '/perfil',
     titulo: 'Minhas atividades',
     desc: 'Acompanhe suas demandas e respostas',
-    cor: '#059669',
     icone: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
       </svg>
     ),
   },
@@ -313,9 +313,9 @@ function Atalhos() {
         )}
       </div>
 
-      {ATALHOS.map(({ href, titulo, desc, cor, icone }) => (
+      {ATALHOS.map(({ href, titulo, desc, icone }) => (
         <Link key={href} href={href} className="atalho">
-          <span className="atalho-icone" style={{ color: cor, background: `${cor}1a`, borderColor: `${cor}33` }}>
+          <span className="atalho-icone" style={{ color: COR_MARCA, background: 'rgba(66,86,200,0.08)', borderColor: 'rgba(66,86,200,0.18)' }}>
             {icone}
           </span>
           <span className="atalho-texto">
