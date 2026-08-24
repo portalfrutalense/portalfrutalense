@@ -425,7 +425,7 @@ export default function LandingPage() {
           position: relative; z-index: 2;
           flex: 1; min-height: 0;
           width: 100%; max-width: 1240px; margin: 0 auto;
-          padding: clamp(20px, 4vh, 48px) clamp(20px, 5vw, 56px) clamp(12px, 2.5vh, 28px);
+          padding: clamp(10px, 2vh, 24px) clamp(20px, 5vw, 56px) clamp(8px, 1.5vh, 18px);
           display: grid;
           grid-template-columns: minmax(0, 1.08fr) minmax(0, 372px);
           align-items: center;
@@ -433,7 +433,7 @@ export default function LandingPage() {
           box-sizing: border-box;
         }
         /* a navbar ocupa o topo sempre — o palco cede o espaço */
-        .grade { padding-top: calc(56px + clamp(16px, 3vh, 36px)); }
+        .grade { padding-top: calc(56px + clamp(8px, 1.5vh, 20px)); }
 
         .coluna-conteudo { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
 
@@ -651,7 +651,7 @@ export default function LandingPage() {
             grid-template-columns: 1fr;
             align-content: center;
             gap: clamp(14px, 2.2vh, 22px);
-            padding: calc(56px + clamp(10px, 1.8vh, 18px)) clamp(20px, 6vw, 32px) clamp(10px, 1.8vh, 16px);
+            padding: calc(56px + clamp(6px, 1.2vh, 12px)) clamp(20px, 6vw, 32px) clamp(8px, 1.4vh, 14px);
           }
           .coluna-conteudo { align-items: center; text-align: center; }
           .subtitulo { text-align: center; max-width: 100%; }
