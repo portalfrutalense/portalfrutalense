@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
           categoria_id: payload.categoria_id || '',
           categoria_nome: payload.categoria_nome || 'Outros',
         }
-        const msg = 'Detectei um possível problema pra registrar! Podemos abrir uma demanda sobre isso. Quer registrar? (responda sim ou não)'
+        const msg = 'Parece que você quer relatar um problema! Posso registrar essa demanda pra você — ela fica visível no mapa e a autoridade responsável é notificada. Quer que eu registre? (sim ou não)'
         historico.push({ role: 'assistant', content: msg })
 
         if (!perfilLigado) {
@@ -191,7 +191,7 @@ export async function POST(req: NextRequest) {
   if (etapa === 'aguardando_vinculo') {
     if (perfilLigado) {
       await salvarHistorico(conversa.id, historico, 'perguntar_registrar', dados)
-      await enviarWhatsapp(telefone, `Conta vinculada! Confirma que quer registrar: "${dados.descricao}"? (responda sim ou não)`)
+      await enviarWhatsapp(telefone, `Prontinho, sua conta foi vinculada! Vamos continuar: confirma que quer registrar "${dados.descricao}"? (sim ou não)`)
     } else {
       const linkVinculo = `${process.env.NEXT_PUBLIC_SITE_URL}/vincular-whatsapp?tel=${telefone}`
       await enviarWhatsapp(telefone, `Ainda não identifiquei sua conta vinculada. Termina o cadastro nesse link:\n${linkVinculo}`)
@@ -227,12 +227,12 @@ export async function POST(req: NextRequest) {
       dados.entidades_ids = [opcoes[0].id]
       dados.entidades_nomes = [opcoes[0].nome]
       await salvarHistorico(conversa.id, historico, 'perguntar_endereco', dados)
-      await enviarWhatsapp(telefone, `Será direcionada para ${opcoes[0].nome} (${opcoes[0].cargo}).\n\nAgora me diga o endereço do local (ou envie sua localização pelo WhatsApp).`)
+      await enviarWhatsapp(telefone, `Beleza, sua demanda vai ser direcionada para ${opcoes[0].nome} (${opcoes[0].cargo}).\n\nAgora me conta: qual o endereço do local? Pode digitar ou, se preferir, é só compartilhar sua localização aqui pelo WhatsApp.`)
     } else {
       dados.opcoes_autoridade = opcoes
       const lista = opcoes.map((o, i) => `${i + 1}. ${o.nome} — ${o.cargo}`).join('\n')
       await salvarHistorico(conversa.id, historico, 'escolher_autoridade', dados)
-      await enviarWhatsapp(telefone, `Escolha até 3 autoridades pra direcionar (responda com os números, separados por vírgula):\n\n${lista}`)
+      await enviarWhatsapp(telefone, `Pra quem você quer direcionar essa demanda? Pode escolher até 3 (responde com os números, separados por vírgula):\n\n${lista}`)
     }
     return NextResponse.json({ ok: true })
   }
@@ -249,7 +249,7 @@ export async function POST(req: NextRequest) {
     dados.entidades_ids = escolhidas.map((e) => e.id)
     dados.entidades_nomes = escolhidas.map((e) => e.nome)
     await salvarHistorico(conversa.id, historico, 'perguntar_endereco', dados)
-    await enviarWhatsapp(telefone, `Direcionada para: ${dados.entidades_nomes.join(', ')}.\n\nAgora me diga o endereço do local (ou envie sua localização pelo WhatsApp).`)
+    await enviarWhatsapp(telefone, `Beleza, direcionada para: ${dados.entidades_nomes.join(', ')}.\n\nAgora me conta: qual o endereço do local? Pode digitar ou, se preferir, é só compartilhar sua localização aqui pelo WhatsApp.`)
     return NextResponse.json({ ok: true })
   }
 
@@ -260,7 +260,7 @@ export async function POST(req: NextRequest) {
       dados.lng = location.degreesLongitude
       dados.endereco_label = 'Localização compartilhada pelo WhatsApp'
       await salvarHistorico(conversa.id, historico, 'perguntar_foto', dados)
-      await enviarWhatsapp(telefone, 'Localização recebida! Agora envie uma foto do local (ou responda "sem foto" pra pular).')
+      await enviarWhatsapp(telefone, 'Localização recebida! Se puder, envie uma foto do local — ajuda bastante a autoridade a entender o problema. Se não tiver, é só responder "sem foto".')
       return NextResponse.json({ ok: true })
     }
     if (!texto) {
@@ -276,7 +276,7 @@ export async function POST(req: NextRequest) {
     dados.lng = geo.lng
     dados.endereco_label = geo.label
     await salvarHistorico(conversa.id, historico, 'perguntar_foto', dados)
-    await enviarWhatsapp(telefone, `Endereço confirmado: ${geo.label}\n\nAgora envie uma foto do local (ou responda "sem foto" pra pular).`)
+    await enviarWhatsapp(telefone, `Endereço confirmado: ${geo.label}\n\nSe puder, envie uma foto do local — ajuda bastante a autoridade a entender o problema. Se não tiver, é só responder "sem foto".`)
     return NextResponse.json({ ok: true })
   }
 
@@ -311,7 +311,7 @@ export async function POST(req: NextRequest) {
     }
 
     await salvarHistorico(conversa.id, historico, 'resumo', dados)
-    const resumo = `Tudo pronto! Confira antes de registrar:\n\n📍 ${dados.endereco_label}\n📁 ${dados.categoria_nome}\n👤 Direcionada para: ${dados.entidades_nomes?.join(', ')}\n📝 ${dados.descricao}\n${dados.foto_url ? '📷 Com foto' : ''}\n\nConfirma o registro? (responda confirmar ou cancelar)`
+    const resumo = `Prontinho! Dá uma conferida antes de eu registrar:\n\nEndereço: ${dados.endereco_label}\nCategoria: ${dados.categoria_nome}\nDirecionada para: ${dados.entidades_nomes?.join(', ')}\nDescrição: ${dados.descricao}\n${dados.foto_url ? 'Com foto anexada\n' : ''}\nPosso registrar? (confirmar ou cancelar)`
     await enviarWhatsapp(telefone, resumo)
     return NextResponse.json({ ok: true })
   }
@@ -374,7 +374,7 @@ export async function POST(req: NextRequest) {
     }
 
     await salvarHistorico(conversa.id, historico, 'nenhuma', null)
-    await enviarWhatsapp(telefone, 'Demanda registrada com sucesso! Ela vai aparecer no mapa após análise. Posso ajudar com mais alguma coisa?')
+    await enviarWhatsapp(telefone, 'Prontinho, sua demanda foi registrada! Ela vai passar por uma análise com o nosso Agente de IA, e se aprovada, aparece no mapa e a(as) autoridades são notificadas. Posso ajudar com mais alguma coisa?')
     return NextResponse.json({ ok: true })
   }
 
