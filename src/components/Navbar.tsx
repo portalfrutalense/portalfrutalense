@@ -12,11 +12,15 @@ const FUNCIONALIDADES = [
   { label: 'Classificados', href: '/mapa' },
 ]
 
-export default function Navbar({ overlay = false }: { overlay?: boolean }) {
+export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolean; onEntrar?: () => void }) {
   const [modalAuth, setModalAuth] = useState(false)
   const [dropdown, setDropdown] = useState(false)
   const [menuMobile, setMenuMobile] = useState(false)
   const { user, perfil, sair } = useAuth()
+
+  function handleEntrar() {
+    if (onEntrar) { onEntrar() } else { setModalAuth(true) }
+  }
 
   const nomeExibido = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || 'Usuário'
 
@@ -81,7 +85,7 @@ export default function Navbar({ overlay = false }: { overlay?: boolean }) {
               </button>
             </>
           ) : (
-            <button onClick={() => setModalAuth(true)} style={{ fontSize: '13px', color: 'white', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
+            <button onClick={handleEntrar} style={{ fontSize: '13px', color: 'white', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
               Entrar
             </button>
           )}
@@ -110,7 +114,7 @@ export default function Navbar({ overlay = false }: { overlay?: boolean }) {
               </button>
             </>
           ) : (
-            <button onClick={() => setModalAuth(true)} style={{ fontSize: '13px', color: 'white', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
+            <button onClick={handleEntrar} style={{ fontSize: '13px', color: 'white', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
               Entrar
             </button>
           )}
