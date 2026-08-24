@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import sharp from 'sharp'
 import { supabaseServer } from '@/lib/supabase-server'
 import { enviarWhatsapp, baixarMidiaWhatsapp } from '@/lib/whatsapp'
 
@@ -279,12 +280,21 @@ export async function POST(req: NextRequest) {
     if (temImagem && key?.id) {
       const midia = await baixarMidiaWhatsapp(key)
       if (midia) {
-        const buffer = Buffer.from(midia.base64, 'base64')
-        const ext = midia.mimetype.includes('png') ? 'png' : 'jpg'
-        const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-        const { error: uploadError } = await supabaseServer.storage.from('demandas-fotos').upload(path, buffer, { contentType: midia.mimetype })
-        if (!uploadError) {
-          dados.foto_url = supabaseServer.storage.from('demandas-fotos').getPublicUrl(path).data.publicUrl
+        try {
+          const bufferOriginal = Buffer.from(midia.base64, 'base64')
+          // Comprime antes de subir pro Supabase — mesmo espírito da compressão
+          // que o site já faz no navegador (máx. 600px, qualidade baixa)
+          const bufferComprimido = await sharp(bufferOriginal)
+            .resize(600, 600, { fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 50 })
+            .toBuffer()
+          const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
+          const { error: uploadError } = await supabaseServer.storage.from('demandas-fotos').upload(path, bufferComprimido, { contentType: 'image/jpeg' })
+          if (!uploadError) {
+            dados.foto_url = supabaseServer.storage.from('demandas-fotos').getPublicUrl(path).data.publicUrl
+          }
+        } catch {
+          // Falha ao comprimir/subir — segue sem foto, avisado abaixo
         }
       }
       if (!dados.foto_url) await enviarWhatsapp(telefone, 'Não consegui processar a foto, mas vou continuar sem ela.')
