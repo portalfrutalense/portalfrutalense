@@ -4,14 +4,16 @@ import { useEffect, useRef } from 'react'
 
 /**
  * Fundo animado da página inicial: desenha o traçado urbano de uma cidade em
- * grade (como Frutal), com avenidas percorridas por pulsos de luz e pins de
- * categoria emitindo ondas concêntricas — o próprio produto como pano de fundo.
+ * grade (como Frutal) sobre papel claro, no registro de planta técnica — ruas
+ * em traço fino, avenidas percorridas por pulsos de luz e pins de categoria
+ * emitindo ondas concêntricas.
  *
  * A malha de ruas é estática (renderizada uma única vez num canvas offscreen);
  * só os pulsos e os pins animam, então o custo por frame é baixo.
  */
 
-const CORES_PIN = ['#f5a524', '#22d3ee', '#f472b6', '#34d399']
+// Tons fechados o bastante para se sustentarem sobre papel claro
+const CORES_PIN = ['#d97706', '#0891b2', '#db2777', '#059669']
 const ANGULO = -0.24 // radianos — a grade "torta", como traçado urbano real
 const ESPACO_QUARTEIRAO = 66
 
@@ -69,7 +71,7 @@ export default function MapaVivo() {
         for (let j = -passos; j < passos; j++) {
           const r = rand()
           if (r > 0.82) {
-            c.fillStyle = `rgba(66, 86, 200, ${0.05 + r * 0.05})`
+            c.fillStyle = `rgba(66, 86, 200, ${0.03 + r * 0.04})`
             c.fillRect(
               i * ESPACO_QUARTEIRAO + 3,
               j * ESPACO_QUARTEIRAO + 3,
@@ -82,7 +84,7 @@ export default function MapaVivo() {
 
       // ruas comuns
       c.lineWidth = 1
-      c.strokeStyle = 'rgba(140, 165, 255, 0.10)'
+      c.strokeStyle = 'rgba(66, 86, 200, 0.15)'
       c.beginPath()
       for (let i = -passos; i <= passos; i++) {
         const p = i * ESPACO_QUARTEIRAO
@@ -91,9 +93,9 @@ export default function MapaVivo() {
       }
       c.stroke()
 
-      // avenidas: a cada 4 quarteirões, mais largas e mais claras
+      // avenidas: a cada 4 quarteirões, mais largas e mais firmes
       c.lineWidth = 2.5
-      c.strokeStyle = 'rgba(140, 165, 255, 0.20)'
+      c.strokeStyle = 'rgba(66, 86, 200, 0.26)'
       c.beginPath()
       for (let i = -passos; i <= passos; i += 4) {
         const p = i * ESPACO_QUARTEIRAO
@@ -105,8 +107,8 @@ export default function MapaVivo() {
       c.restore()
 
       // o córrego: curva orgânica cortando a grade
-      c.lineWidth = 9
-      c.strokeStyle = 'rgba(34, 211, 238, 0.07)'
+      c.lineWidth = 10
+      c.strokeStyle = 'rgba(8, 145, 178, 0.13)'
       c.beginPath()
       c.moveTo(-40, alt * 0.72)
       c.bezierCurveTo(larg * 0.28, alt * 0.5, larg * 0.5, alt * 0.95, larg + 40, alt * 0.58)
@@ -151,25 +153,31 @@ export default function MapaVivo() {
             ctx!.beginPath()
             ctx!.arc(pin.x, pin.y, p * 54, 0, Math.PI * 2)
             ctx!.strokeStyle = pin.cor
-            ctx!.globalAlpha = (1 - p) * 0.32
-            ctx!.lineWidth = 1.4
+            ctx!.globalAlpha = (1 - p) * 0.4
+            ctx!.lineWidth = 1.5
             ctx!.stroke()
           }
         }
 
-        // brilho + núcleo
+        // halo + núcleo
         ctx!.globalAlpha = 1
-        const brilho = ctx!.createRadialGradient(pin.x, pin.y, 0, pin.x, pin.y, 16)
-        brilho.addColorStop(0, `${pin.cor}55`)
+        const brilho = ctx!.createRadialGradient(pin.x, pin.y, 0, pin.x, pin.y, 15)
+        brilho.addColorStop(0, `${pin.cor}3d`)
         brilho.addColorStop(1, `${pin.cor}00`)
         ctx!.fillStyle = brilho
         ctx!.beginPath()
-        ctx!.arc(pin.x, pin.y, 16, 0, Math.PI * 2)
+        ctx!.arc(pin.x, pin.y, 15, 0, Math.PI * 2)
+        ctx!.fill()
+
+        // anel branco fino separa o pin do traçado, como num mapa impresso
+        ctx!.fillStyle = '#ffffff'
+        ctx!.beginPath()
+        ctx!.arc(pin.x, pin.y, 4.4, 0, Math.PI * 2)
         ctx!.fill()
 
         ctx!.fillStyle = pin.cor
         ctx!.beginPath()
-        ctx!.arc(pin.x, pin.y, 2.6, 0, Math.PI * 2)
+        ctx!.arc(pin.x, pin.y, 3, 0, Math.PI * 2)
         ctx!.fill()
       }
       ctx!.globalAlpha = 1
@@ -193,9 +201,9 @@ export default function MapaVivo() {
         const y1 = pulso.eixo === 'v' ? d + 96 : pulso.pos
 
         const grad = ctx!.createLinearGradient(x0, y0, x1, y1)
-        grad.addColorStop(0, 'rgba(142, 162, 245, 0)')
-        grad.addColorStop(0.5, 'rgba(160, 180, 255, 0.5)')
-        grad.addColorStop(1, 'rgba(142, 162, 245, 0)')
+        grad.addColorStop(0, 'rgba(66, 86, 200, 0)')
+        grad.addColorStop(0.5, 'rgba(66, 86, 200, 0.55)')
+        grad.addColorStop(1, 'rgba(66, 86, 200, 0)')
         ctx!.strokeStyle = grad
         ctx!.lineWidth = 2.5
         ctx!.beginPath()
