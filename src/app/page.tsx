@@ -651,7 +651,7 @@ export default function LandingPage() {
             grid-template-columns: 1fr;
             align-content: center;
             gap: clamp(14px, 2.2vh, 22px);
-            padding: calc(56px + clamp(6px, 1.2vh, 12px)) clamp(20px, 6vw, 32px) clamp(8px, 1.4vh, 14px);
+            padding: calc(56px + 4px) clamp(20px, 6vw, 32px) clamp(8px, 1.4vh, 14px);
           }
           .coluna-conteudo { align-items: center; text-align: center; }
           .subtitulo { text-align: center; max-width: 100%; }
