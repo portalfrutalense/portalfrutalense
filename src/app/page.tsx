@@ -37,18 +37,14 @@ function IconeSeta() {
   )
 }
 
+const FUNCIONALIDADES_ATALHO = [
+  { label: 'Demandas municipais', href: '/mapa', cor: '#d97706' },
+  { label: 'Empregos', href: '/mapa', cor: '#0891b2' },
+  { label: 'Achei/Perdi um pet', href: '/mapa', cor: '#db2777' },
+  { label: 'Classificados', href: '/mapa', cor: '#059669' },
+]
+
 const ATALHOS = [
-  {
-    href: '/mapa',
-    titulo: 'Abrir o mapa',
-    desc: 'Veja o que está acontecendo perto de você',
-    cor: '#d97706',
-    icone: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M9 3 3 6v15l6-3 6 3 6-3V3l-6 3-6-3zM9 3v15M15 6v15"/>
-      </svg>
-    ),
-  },
   {
     href: '/assistenteia',
     titulo: 'Falar com o Lucas',
@@ -283,8 +279,40 @@ function CardAcesso() {
 /* -------------------------------------------------------- atalhos logado -- */
 
 function Atalhos() {
+  const [funcAberto, setFuncAberto] = useState(false)
+
   return (
     <div className="atalhos">
+      {/* Card expansível de funcionalidades */}
+      <div className="atalho-func">
+        <button className="atalho atalho-func-btn" onClick={() => setFuncAberto(v => !v)}>
+          <span className="atalho-icone" style={{ color: '#4256c8', background: 'rgba(66,86,200,0.1)', borderColor: 'rgba(66,86,200,0.2)' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+          </span>
+          <span className="atalho-texto">
+            <strong>Funcionalidades</strong>
+            <small>Mapa, empregos, pets e classificados</small>
+          </span>
+          <span className="atalho-chevron" style={{ transform: funcAberto ? 'rotate(90deg)' : 'none' }}>
+            <IconeSeta />
+          </span>
+        </button>
+
+        {funcAberto && (
+          <div className="func-lista">
+            {FUNCIONALIDADES_ATALHO.map(({ label, href, cor }) => (
+              <Link key={label} href={href} className="func-item">
+                <span className="func-ponto" style={{ background: cor }} />
+                {label}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
       {ATALHOS.map(({ href, titulo, desc, cor, icone }) => (
         <Link key={href} href={href} className="atalho">
           <span className="atalho-icone" style={{ color: cor, background: `${cor}1a`, borderColor: `${cor}33` }}>
@@ -608,6 +636,24 @@ export default function LandingPage() {
         .atalho-texto small { font-size: 12px; color: var(--tinta-fraca); }
         .atalho-seta { color: #7d8799; flex-shrink: 0; transition: transform .18s ease, color .18s ease; }
         .atalho:hover .atalho-seta { transform: translateX(3px); color: var(--marca); }
+
+        /* ---- funcionalidades expansível ---- */
+        .atalho-func { width: 100%; border-radius: 14px; border: 1px solid var(--borda); background: var(--cartao); overflow: hidden; box-shadow: 0 1px 2px rgba(13,20,37,0.04), 0 10px 24px -14px rgba(13,20,37,0.22); }
+        .atalho-func-btn { border-radius: 0; border: none; box-shadow: none; background: none; width: 100%; }
+        .atalho-func-btn:hover { transform: none; border-color: transparent; box-shadow: none; background: rgba(66,86,200,0.04); }
+        .atalho-chevron { color: #7d8799; flex-shrink: 0; transition: transform .22s ease, color .18s ease; display: flex; }
+        .atalho-func-btn:hover .atalho-chevron { color: var(--marca); }
+        .func-lista { border-top: 1px solid var(--borda); display: flex; flex-direction: column; }
+        .func-item {
+          display: flex; align-items: center; gap: 10px;
+          padding: 11px 15px 11px 20px;
+          font-size: 13.5px; font-weight: 500; color: var(--tinta-suave);
+          text-decoration: none; border-bottom: 1px solid var(--borda);
+          transition: background .15s ease, color .15s ease;
+        }
+        .func-item:last-child { border-bottom: none; }
+        .func-item:hover { background: rgba(66,86,200,0.04); color: var(--marca-escura); }
+        .func-ponto { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
         /* ---- tremor ao tentar acessar sem login ---- */
         @keyframes tremer {
