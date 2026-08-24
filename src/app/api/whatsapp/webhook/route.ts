@@ -86,8 +86,9 @@ Se nenhuma categoria for adequada, use categoria_nome:"Outros" e categoria_id:""
 Se não for um relato de problema, responda normalmente em texto.
 
 REGRAS:
+- Fale de um jeito natural e caloroso, como numa conversa real de WhatsApp — nada de tom robótico ou de atendimento automático. Pode usar contrações e expressões do dia a dia.
+- Respostas objetivas, sem enrolação, mas sem soar seco ou frio.
 - Nunca use emojis.
-- Respostas curtas e diretas, adequadas pra WhatsApp.
 - Nunca invente informações que não estão na base de conhecimento.
 ${cfg.prompt_extra ? `\nINSTRUÇÕES ADICIONAIS:\n${cfg.prompt_extra}` : ''}`
 }
@@ -178,13 +179,13 @@ export async function POST(req: NextRequest) {
     } else if (temAudio && key?.id) {
       const midia = await baixarMidiaWhatsapp(key)
       if (!midia) {
-        await enviarWhatsapp(telefone, 'Não consegui processar esse áudio. Pode tentar de novo ou escrever em texto?')
+        await enviarWhatsapp(telefone, 'Ih, não consegui entender esse áudio direito. Pode tentar mandar de novo, ou se preferir, escreve mesmo.')
         return NextResponse.json({ ok: true })
       }
       audioParaGemini = midia
       historico.push({ role: 'user', content: '[Áudio]' })
     } else {
-      await enviarWhatsapp(telefone, 'Recebi seu envio, mas por enquanto só consigo processar texto e áudio nessa etapa.')
+      await enviarWhatsapp(telefone, 'Recebi o que você mandou, mas por enquanto só consigo entender texto ou áudio por aqui.')
       return NextResponse.json({ ok: true })
     }
 
@@ -231,7 +232,7 @@ export async function POST(req: NextRequest) {
       await enviarWhatsapp(telefone, `Prontinho, sua conta foi vinculada! Vamos continuar: confirma que quer registrar "${dados.descricao}"? (sim ou não)`)
     } else {
       const linkVinculo = `${process.env.NEXT_PUBLIC_SITE_URL}/vincular-whatsapp?tel=${telefone}`
-      await enviarWhatsapp(telefone, `Ainda não identifiquei sua conta vinculada. Termina o cadastro nesse link:\n${linkVinculo}`)
+      await enviarWhatsapp(telefone, `Ainda não vi sua conta vinculada por aqui. Termina o cadastro nesse link e volta que a gente continua:\n${linkVinculo}`)
     }
     return NextResponse.json({ ok: true })
   }
@@ -246,7 +247,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
     if (!positivo) {
-      await enviarWhatsapp(telefone, 'Não entendi — responde só "sim" ou "não".')
+      await enviarWhatsapp(telefone, 'Não entendi direito — pode responder só com "sim" ou "não"?')
       return NextResponse.json({ ok: true })
     }
 
@@ -254,7 +255,7 @@ export async function POST(req: NextRequest) {
     const ids = (catEnt || []).map((c) => c.entidade_id)
     if (ids.length === 0) {
       await salvarHistorico(conversa.id, historico, 'nenhuma', null)
-      await enviarWhatsapp(telefone, 'Não há autoridade vinculada a essa categoria no momento. Não é possível registrar agora.')
+      await enviarWhatsapp(telefone, 'Poxa, não tem nenhuma autoridade vinculada a essa categoria ainda, então não dá pra registrar por enquanto.')
       return NextResponse.json({ ok: true })
     }
     const { data: entidades } = await supabaseServer.from('entidades').select('id, nome, cargo').in('id', ids)
@@ -279,7 +280,7 @@ export async function POST(req: NextRequest) {
     const opcoes = dados.opcoes_autoridade || []
     const indices = texto.split(/[,e]/i).map((s) => parseInt(s.trim(), 10)).filter((n) => !isNaN(n) && n >= 1 && n <= opcoes.length).slice(0, 3)
     if (indices.length === 0) {
-      await enviarWhatsapp(telefone, 'Não entendi a escolha. Responde com o número da lista (ex: 1 ou 1,2).')
+      await enviarWhatsapp(telefone, 'Não entendi qual você escolheu — responde com o número da lista, tipo 1 ou 1,2.')
       return NextResponse.json({ ok: true })
     }
     const escolhidas = [...new Set(indices)].map((i) => opcoes[i - 1])
@@ -301,12 +302,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
     if (!texto) {
-      await enviarWhatsapp(telefone, 'Envie o endereço em texto, ou compartilhe sua localização pelo WhatsApp.')
+      await enviarWhatsapp(telefone, 'Pode me mandar o endereço em texto, ou compartilhar sua localização mesmo pelo WhatsApp.')
       return NextResponse.json({ ok: true })
     }
     const geo = await geocodificar(texto)
     if (!geo) {
-      await enviarWhatsapp(telefone, 'Não encontrei esse endereço perto de Frutal. Tente descrever melhor, ou envie sua localização pelo WhatsApp.')
+      await enviarWhatsapp(telefone, 'Não consegui encontrar esse endereço perto de Frutal. Tenta descrever de outro jeito, ou manda sua localização direto pelo WhatsApp.')
       return NextResponse.json({ ok: true })
     }
     dados.lat = geo.lat
@@ -339,11 +340,11 @@ export async function POST(req: NextRequest) {
           // Falha ao comprimir/subir — segue sem foto, avisado abaixo
         }
       }
-      if (!dados.foto_url) await enviarWhatsapp(telefone, 'Não consegui processar a foto, mas vou continuar sem ela.')
+      if (!dados.foto_url) await enviarWhatsapp(telefone, 'Não consegui processar essa foto, mas sem problema, vou seguir sem ela.')
     } else if (/^(sem foto|pular|n[aã]o)/i.test(texto)) {
       dados.foto_url = null
     } else {
-      await enviarWhatsapp(telefone, 'Envie uma foto, ou responda "sem foto" pra continuar sem ela.')
+      await enviarWhatsapp(telefone, 'Pode mandar uma foto, ou só responder "sem foto" se preferir seguir sem ela.')
       return NextResponse.json({ ok: true })
     }
 
@@ -357,23 +358,23 @@ export async function POST(req: NextRequest) {
   if (etapa === 'resumo') {
     if (/^cancelar/i.test(texto)) {
       await salvarHistorico(conversa.id, historico, 'nenhuma', null)
-      await enviarWhatsapp(telefone, 'Registro cancelado. Posso ajudar com mais alguma coisa?')
+      await enviarWhatsapp(telefone, 'Beleza, cancelei o registro. Posso ajudar com mais alguma coisa?')
       return NextResponse.json({ ok: true })
     }
     if (!/^confirmar/i.test(texto)) {
-      await enviarWhatsapp(telefone, 'Responde "confirmar" ou "cancelar".')
+      await enviarWhatsapp(telefone, 'Só responde "confirmar" ou "cancelar" que eu sigo daqui.')
       return NextResponse.json({ ok: true })
     }
     if (!perfilLigado || !dados.lat || !dados.lng || !dados.categoria_id || !dados.entidades_ids?.length) {
       await salvarHistorico(conversa.id, historico, 'nenhuma', null)
-      await enviarWhatsapp(telefone, 'Algo deu errado com os dados da demanda. Vamos começar de novo — descreva o problema.')
+      await enviarWhatsapp(telefone, 'Ih, algo deu errado com os dados aqui. Vamos começar de novo — me conta qual é o problema?')
       return NextResponse.json({ ok: true })
     }
 
     const { data: perfilCompleto } = await supabaseServer.from('perfis').select('nome, cpf').eq('id', perfilLigado.id).single()
     if (!perfilCompleto?.cpf) {
       await salvarHistorico(conversa.id, historico, 'nenhuma', null)
-      await enviarWhatsapp(telefone, `Sua conta ainda não tem CPF cadastrado (obrigatório pra registrar demanda). Complete seu cadastro no site: ${process.env.NEXT_PUBLIC_SITE_URL}/perfil`)
+      await enviarWhatsapp(telefone, `Antes de registrar, preciso que você complete seu CPF no cadastro — é obrigatório. Entra no site aqui: ${process.env.NEXT_PUBLIC_SITE_URL}/perfil`)
       return NextResponse.json({ ok: true })
     }
 
@@ -393,7 +394,7 @@ export async function POST(req: NextRequest) {
 
     if (error || !demanda) {
       await salvarHistorico(conversa.id, historico, 'nenhuma', null)
-      await enviarWhatsapp(telefone, 'Erro ao registrar a demanda. Tente novamente mais tarde.')
+      await enviarWhatsapp(telefone, 'Poxa, deu um erro ao registrar sua demanda. Tenta de novo daqui a pouco?')
       return NextResponse.json({ ok: true })
     }
 
