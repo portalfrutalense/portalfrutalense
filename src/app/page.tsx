@@ -340,12 +340,7 @@ export default function LandingPage() {
 
       <main className="grade">
         <section className="coluna-conteudo">
-          <div className="etiqueta surge" style={{ animationDelay: '40ms' }}>
-            <span className="ponto-vivo" aria-hidden="true" />
-            Frutal · Minas Gerais
-          </div>
-
-          <h1 className="titulo surge" style={{ animationDelay: '120ms' }}>
+          <h1 className="titulo surge" style={{ animationDelay: '80ms' }}>
             Tudo o que acontece em Frutal,
             <br />
             <span className="titulo-realce">no mesmo mapa.</span>
@@ -357,16 +352,7 @@ export default function LandingPage() {
             te guia em cada passo.
           </p>
 
-          <ul className="categorias surge" style={{ animationDelay: '270ms' }}>
-            {CATEGORIAS.map(({ rotulo, cor }) => (
-              <li key={rotulo}>
-                <span className="categoria-ponto" style={{ background: cor, boxShadow: `0 0 10px ${cor}99` }} aria-hidden="true" />
-                {rotulo}
-              </li>
-            ))}
-          </ul>
-
-          <div className="surge" style={{ animationDelay: '330ms' }}>
+          <div className="surge" style={{ animationDelay: '270ms' }}>
             <ProvaSocial />
           </div>
         </section>
