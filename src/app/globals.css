@@ -19,6 +19,7 @@ html, body {
 /* Evita salto lateral ao navegar entre páginas com e sem scroll */
 html {
   overflow-y: scroll;
+  scrollbar-gutter: stable;
 }
 
 /* Sistema sempre no tema claro, independente do tema do dispositivo/navegador */

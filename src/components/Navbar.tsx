@@ -22,22 +22,20 @@ export default function Navbar({ overlay = false }: { overlay?: boolean }) {
 
   const containerStyle: React.CSSProperties = overlay
     ? { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, background: '#4256c8', height: '56px', display: 'flex', alignItems: 'center', padding: '0 clamp(16px, 4vw, 48px)', boxSizing: 'border-box' }
-    : { position: 'relative', background: '#4256c8', color: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', height: '60px', display: 'flex', alignItems: 'center', padding: '0 clamp(16px, 4vw, 48px)', boxSizing: 'border-box' }
+    : { position: 'relative', background: '#4256c8', color: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', height: '56px', display: 'flex', alignItems: 'center', padding: '0 clamp(16px, 4vw, 48px)', boxSizing: 'border-box' }
 
   return (
     <>
       <nav style={containerStyle}>
-        {/* Logo — só na barra normal (não overlay), a landing já tem sua própria imagem grande */}
-        {!overlay && (
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', flexShrink: 0, marginRight: 'auto' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: '38px', width: 'auto', display: 'block' }} />
-          </Link>
-        )}
+        {/* Logo — sempre presente, mesmo layout em todas as páginas */}
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', flexShrink: 0, marginRight: 'auto' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: '38px', width: 'auto', display: 'block' }} />
+        </Link>
 
-        {/* Nav links — desktop, só quando logado */}
+        {/* Nav links — desktop, só quando logado, sempre centralizado igual em todas as páginas */}
         {user && (
-          <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '4px', position: overlay ? 'absolute' : 'static', left: overlay ? '50%' : undefined, transform: overlay ? 'translateX(-50%)' : undefined, marginLeft: overlay ? undefined : '24px' }}>
+          <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '4px', position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
             <Link href="/" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', fontWeight: 500, textDecoration: 'none', padding: '6px 14px', borderRadius: '6px' }}>
               Início
             </Link>
@@ -120,7 +118,7 @@ export default function Navbar({ overlay = false }: { overlay?: boolean }) {
 
         {/* Menu mobile expandido */}
         {user && menuMobile && (
-          <div style={{ position: 'absolute', top: overlay ? '56px' : '60px', left: 0, right: 0, background: '#3347b0', zIndex: 30, display: 'flex', flexDirection: 'column', padding: '8px 0' }}>
+          <div style={{ position: 'absolute', top: '56px', left: 0, right: 0, background: '#3347b0', zIndex: 30, display: 'flex', flexDirection: 'column', padding: '8px 0' }}>
             <Link href="/" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Início</Link>
             <div style={{ padding: '12px 20px', color: 'rgba(255,255,255,0.7)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Funcionalidades</div>
             {FUNCIONALIDADES.map(({ label, href }) => (
