@@ -634,7 +634,13 @@ export default function MapaDemandas() {
                     <button
                       onClick={async () => {
                         if (!confirm('Excluir esta demanda? Esta ação não pode ser desfeita.')) return
-                        await supabase.from('demandas').delete().eq('id', demandaSelecionada.id)
+                        const { data: { session } } = await supabase.auth.getSession()
+                        const res = await fetch('/api/demandas/excluir', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+                          body: JSON.stringify({ demanda_id: demandaSelecionada.id }),
+                        })
+                        if (!res.ok) return
                         setDemandas(prev => prev.filter(d => d.id !== demandaSelecionada.id))
                         setDemandaSelecionada(null)
                       }}

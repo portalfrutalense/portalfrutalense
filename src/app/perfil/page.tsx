@@ -65,8 +65,13 @@ export default function PerfilPage() {
 
   async function excluirDemanda(id: string) {
     if (!confirm('Excluir esta demanda? Esta ação não pode ser desfeita.')) return
-    await supabase.from('demandas').delete().eq('id', id)
-    setDemandas(prev => prev.filter(d => d.id !== id))
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/demandas/excluir', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ demanda_id: id }),
+    })
+    if (res.ok) setDemandas(prev => prev.filter(d => d.id !== id))
   }
 
   if (carregando || !user) return null

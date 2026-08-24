@@ -47,6 +47,17 @@ export async function DELETE(req: NextRequest) {
   const { demanda_id } = await req.json()
   if (!demanda_id) return NextResponse.json({ error: 'demanda_id obrigatório.' }, { status: 400 })
 
+  const { data: demanda } = await supabaseServer.from('demandas').select('foto_url').eq('id', demanda_id).single()
+  if (demanda?.foto_url) {
+    try {
+      const url = new URL(demanda.foto_url)
+      const caminho = url.pathname.split('/demandas-fotos/')[1]
+      if (caminho) await supabaseServer.storage.from('demandas-fotos').remove([caminho])
+    } catch {
+      // URL inválida — segue com a exclusão da demanda mesmo assim
+    }
+  }
+
   const { error } = await supabaseServer.from('demandas').delete().eq('id', demanda_id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
