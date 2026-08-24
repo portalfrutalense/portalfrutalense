@@ -487,7 +487,7 @@ export default function LandingPage() {
           font-family: var(--font-display), 'Plus Jakarta Sans', Inter, sans-serif;
           font-size: clamp(28px, 4.4vw, 58px);
           font-weight: 800; line-height: 1.04; letter-spacing: -0.035em;
-          margin: clamp(14px, 2.4vh, 26px) 0 clamp(10px, 1.8vh, 20px); text-wrap: balance;
+          margin: clamp(14px, 2.4vh, 26px) 0 clamp(18px, 3vh, 32px); text-wrap: balance;
           color: var(--tinta);
         }
         .titulo-realce { color: var(--marca); }
