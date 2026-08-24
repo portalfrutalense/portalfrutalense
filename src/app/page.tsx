@@ -638,12 +638,19 @@ export default function LandingPage() {
         .atalho:hover .atalho-seta { transform: translateX(3px); color: var(--marca); }
 
         /* ---- funcionalidades expansível ---- */
-        .atalho-func { width: 100%; border-radius: 14px; border: 1px solid var(--borda); background: var(--cartao); overflow: hidden; box-shadow: 0 1px 2px rgba(13,20,37,0.04), 0 10px 24px -14px rgba(13,20,37,0.22); }
-        .atalho-func-btn { border-radius: 0; border: none; box-shadow: none; background: none; width: 100%; }
-        .atalho-func-btn:hover { transform: none; border-color: transparent; box-shadow: none; background: rgba(66,86,200,0.04); }
+        .atalho-func { width: 100%; position: relative; }
+        .atalho-func-btn { border-radius: 14px; border: 1px solid var(--borda); background: var(--cartao); box-shadow: 0 1px 2px rgba(13,20,37,0.04), 0 10px 24px -14px rgba(13,20,37,0.22); width: 100%; }
+        .atalho-func-btn:hover { transform: none; border-color: var(--borda-forte); box-shadow: 0 2px 4px rgba(13,20,37,0.06), 0 14px 28px -12px rgba(13,20,37,0.26); background: var(--cartao); }
         .atalho-chevron { color: #7d8799; flex-shrink: 0; transition: transform .22s ease, color .18s ease; display: flex; }
         .atalho-func-btn:hover .atalho-chevron { color: var(--marca); }
-        .func-lista { border-top: 1px solid var(--borda); display: flex; flex-direction: column; }
+        .func-lista {
+          position: absolute; bottom: calc(100% + 6px); left: 0; right: 0;
+          background: var(--cartao); border: 1px solid var(--borda);
+          border-radius: 14px; overflow: hidden;
+          box-shadow: 0 -4px 24px -6px rgba(13,20,37,0.18), 0 2px 8px rgba(13,20,37,0.06);
+          display: flex; flex-direction: column;
+          z-index: 10;
+        }
         .func-item {
           display: flex; align-items: center; gap: 10px;
           padding: 11px 15px 11px 20px;
