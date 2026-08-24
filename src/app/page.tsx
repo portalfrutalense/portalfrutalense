@@ -644,10 +644,10 @@ export default function LandingPage() {
         .atalho-chevron { color: #7d8799; flex-shrink: 0; transition: transform .22s ease, color .18s ease; display: flex; }
         .atalho-func-btn:hover .atalho-chevron { color: var(--marca); }
         .func-lista {
-          position: absolute; bottom: calc(100% + 6px); left: 0; right: 0;
+          position: absolute; top: calc(100% + 6px); left: 0; right: 0;
           background: var(--cartao); border: 1px solid var(--borda);
           border-radius: 14px; overflow: hidden;
-          box-shadow: 0 -4px 24px -6px rgba(13,20,37,0.18), 0 2px 8px rgba(13,20,37,0.06);
+          box-shadow: 0 8px 24px -6px rgba(13,20,37,0.18), 0 2px 8px rgba(13,20,37,0.06);
           display: flex; flex-direction: column;
           z-index: 10;
         }
