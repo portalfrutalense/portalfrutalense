@@ -105,13 +105,13 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
 
         {/* MENU — mobile, só quando logado */}
         {user && (
-          <div ref={menuRef} style={{ position: 'relative', flexShrink: 0 }}>
+          <div ref={menuRef} style={{ position: 'relative', flexShrink: 0, marginLeft: 'auto' }}>
             <button
               className="nav-hamburger"
               onClick={() => setMenuMobile(!menuMobile)}
               style={{ display: 'none', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', cursor: 'pointer', color: 'white', fontSize: '12px', fontWeight: 700, letterSpacing: '0.06em', padding: '5px 10px' }}
             >
-              {menuMobile ? '✕ FECHAR' : 'MENU'}
+              MENU
             </button>
 
         {/* Auth mobile — só Entrar quando deslogado */}
