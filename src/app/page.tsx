@@ -462,10 +462,7 @@ export default function LandingPage() {
           margin: clamp(14px, 2.4vh, 26px) 0 clamp(10px, 1.8vh, 20px); text-wrap: balance;
           color: var(--tinta);
         }
-        .titulo-realce {
-          background: linear-gradient(96deg, var(--marca) 0%, #5b6fd8 48%, var(--marca-clara) 100%);
-          -webkit-background-clip: text; background-clip: text; color: transparent;
-        }
+        .titulo-realce { color: var(--marca); }
 
         .subtitulo {
           font-size: clamp(13px, 1.65vh, 16.5px); line-height: 1.62;
@@ -511,7 +508,7 @@ export default function LandingPage() {
         .cartao-topo {
           display: flex; align-items: center; justify-content: center; gap: 9px;
           padding: 14px 20px;
-          background: linear-gradient(180deg, var(--marca), var(--marca-escura));
+          background: var(--marca);
         }
         .cartao-topo p { margin: 0; font-size: 13px; font-weight: 600; color: #ffffff; }
         .cartao-topo .ponto-vivo { background: #6ee7b7; box-shadow: 0 0 0 0 rgba(110,231,183,0.7); }
@@ -547,7 +544,7 @@ export default function LandingPage() {
 
         .btn-enviar {
           padding: 12px; border: none; margin-top: 2px;
-          background: linear-gradient(180deg, var(--marca-clara), var(--marca)); color: #fff;
+          background: var(--marca); color: #fff;
           box-shadow: 0 8px 20px -6px rgba(66,86,200,0.55);
         }
         .btn-enviar:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 12px 24px -6px rgba(66,86,200,0.6); }
