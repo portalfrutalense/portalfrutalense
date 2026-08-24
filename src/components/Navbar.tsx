@@ -133,7 +133,7 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
                 <div style={{ color: 'white', fontSize: '15px', fontWeight: 500, padding: '12px 20px 4px' }}>Funcionalidades</div>
                 {FUNCIONALIDADES.map(({ label, href }) => (
                   <Link key={label} href={href} onClick={() => setMenuMobile(false)} style={{ color: 'rgba(255,255,255,0.85)', fontSize: '15px', fontWeight: 400, textDecoration: 'none', padding: '8px 20px 8px 28px' }}>
-                    — {label}
+                    · {label}
                   </Link>
                 ))}
                 <Link href="/assistenteia" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Assistente de IA</Link>
