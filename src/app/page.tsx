@@ -114,7 +114,7 @@ function Contador({ valor }: { valor: number }) {
 /* ---------------------------------------------------------- prova social -- */
 
 /** Abaixo disso o contador não aparece — ver comentário no corpo do componente. */
-const MINIMO_PARA_EXIBIR = 12
+const MINIMO_PARA_EXIBIR = 0
 
 function ProvaSocial() {
   const [stats, setStats] = useState<{ total: number; resolvidas: number } | null>(null)
