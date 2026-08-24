@@ -16,6 +16,7 @@ interface EvolutionWebhookBody {
       extendedTextMessage?: { text?: string }
       locationMessage?: { degreesLatitude?: number; degreesLongitude?: number }
       imageMessage?: unknown
+      audioMessage?: unknown
     }
     messageType?: string
   }
@@ -91,8 +92,29 @@ REGRAS:
 ${cfg.prompt_extra ? `\nINSTRUÇÕES ADICIONAIS:\n${cfg.prompt_extra}` : ''}`
 }
 
-async function chamarGemini(systemPrompt: string, historico: { role: string; content: string }[]) {
-  const contents = historico.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }))
+type ParteGemini = { text: string } | { inline_data: { mime_type: string; data: string } }
+
+async function chamarGemini(
+  systemPrompt: string,
+  historico: { role: string; content: string }[],
+  audio?: { base64: string; mimetype: string }
+) {
+  const contents: { role: string; parts: ParteGemini[] }[] = historico.map((m) => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }],
+  }))
+
+  // A última entrada do histórico é a mensagem atual do usuário. Se veio áudio,
+  // troca a parte de texto pela parte de áudio (o Gemini entende o conteúdo falado
+  // diretamente, sem precisar de transcrição separada).
+  if (audio && contents.length > 0) {
+    const mimetypeLimpo = audio.mimetype.split(';')[0].trim()
+    contents[contents.length - 1] = {
+      role: 'user',
+      parts: [{ inline_data: { mime_type: mimetypeLimpo, data: audio.base64 } }],
+    }
+  }
+
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
     {
@@ -123,8 +145,9 @@ export async function POST(req: NextRequest) {
   const texto = (body.data?.message?.conversation || body.data?.message?.extendedTextMessage?.text || '').trim()
   const location = body.data?.message?.locationMessage
   const temImagem = body.data?.messageType === 'imageMessage'
+  const temAudio = body.data?.messageType === 'audioMessage'
 
-  if (!texto && !location && !temImagem) return NextResponse.json({ ok: true })
+  if (!texto && !location && !temImagem && !temAudio) return NextResponse.json({ ok: true })
 
   // Busca ou cria a conversa
   let { data: conversa } = await supabaseServer.from('whatsapp_conversas').select('*').eq('telefone', telefone).single()
@@ -148,18 +171,32 @@ export async function POST(req: NextRequest) {
 
   // ── Etapa: nenhuma (conversa livre + detecção) ──
   if (etapa === 'nenhuma') {
-    if (!texto) { await enviarWhatsapp(telefone, 'Recebi seu envio, mas por enquanto só consigo processar texto nessa etapa.'); return NextResponse.json({ ok: true }) }
+    let audioParaGemini: { base64: string; mimetype: string } | undefined
 
-    historico.push({ role: 'user', content: texto })
+    if (texto) {
+      historico.push({ role: 'user', content: texto })
+    } else if (temAudio && key?.id) {
+      const midia = await baixarMidiaWhatsapp(key)
+      if (!midia) {
+        await enviarWhatsapp(telefone, 'Não consegui processar esse áudio. Pode tentar de novo ou escrever em texto?')
+        return NextResponse.json({ ok: true })
+      }
+      audioParaGemini = midia
+      historico.push({ role: 'user', content: '[Áudio]' })
+    } else {
+      await enviarWhatsapp(telefone, 'Recebi seu envio, mas por enquanto só consigo processar texto e áudio nessa etapa.')
+      return NextResponse.json({ ok: true })
+    }
+
     const systemPrompt = await montarSystemPrompt(nomeUsuario)
-    const resposta = await chamarGemini(systemPrompt, historico)
+    const resposta = await chamarGemini(systemPrompt, historico, audioParaGemini)
 
     const jsonMatch = resposta.match(/\{"action":"detectar_demanda"[^}]+\}/)
     if (jsonMatch) {
       try {
         const payload = JSON.parse(jsonMatch[0])
         const novosDados: DadosPendentes = {
-          descricao: payload.descricao || texto,
+          descricao: payload.descricao || texto || 'Problema relatado por áudio',
           categoria_id: payload.categoria_id || '',
           categoria_nome: payload.categoria_nome || 'Outros',
         }
