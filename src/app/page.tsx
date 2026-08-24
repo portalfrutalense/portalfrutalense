@@ -303,9 +303,9 @@ function Atalhos() {
 
         {funcAberto && (
           <div className="func-lista">
-            {FUNCIONALIDADES_ATALHO.map(({ label, href, cor }) => (
+            {FUNCIONALIDADES_ATALHO.map(({ label, href }) => (
               <Link key={label} href={href} className="func-item">
-                <span className="func-ponto" style={{ background: cor }} />
+                <span className="func-ponto" style={{ background: '#4256c8' }} />
                 {label}
               </Link>
             ))}
