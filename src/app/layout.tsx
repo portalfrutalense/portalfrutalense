@@ -1,5 +1,5 @@
 ﻿import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
 import PublicShell from '@/components/PublicShell'
 import AuthProvider from '@/components/AuthProvider'
@@ -7,9 +7,16 @@ import GlobalModals from '@/components/GlobalModals'
 
 const inter = Inter({ subsets: ['latin'] })
 
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['600', '700', '800'],
+  variable: '--font-display',
+  display: 'swap',
+})
+
 export const metadata: Metadata = {
   title: 'CidadanIA Frutal',
-  description: 'Plataforma de cidadania, transparência e gestão de demandas públicas em Frutal-MG',
+  description: 'Cobre melhorias públicas, encontre empregos e reencontre pets perdidos em Frutal-MG. Cada pino no mapa é uma demanda real da cidade.',
   verification: {
     google: 'lPI_-xfdqfhBGjByM6htLkimhgUlfUZsy8pIVK99K_0',
   },
@@ -29,7 +36,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body className={`${inter.className} bg-[#f9fafb] min-h-screen`}>
+      <body className={`${inter.className} ${jakarta.variable} bg-[#f9fafb] min-h-screen`}>
         <AuthProvider>
           <GlobalModals />
           <PublicShell>
