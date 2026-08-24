@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from './AuthProvider'
 import ModalAuth from './ModalAuth'
 
@@ -17,10 +17,22 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
   const [dropdown, setDropdown] = useState(false)
   const [menuMobile, setMenuMobile] = useState(false)
   const { user, perfil, sair } = useAuth()
+  const menuRef = useRef<HTMLDivElement>(null)
 
   function handleEntrar() {
     if (onEntrar) { onEntrar() } else { setModalAuth(true) }
   }
+
+  useEffect(() => {
+    if (!menuMobile) return
+    function fecharFora(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuMobile(false)
+      }
+    }
+    document.addEventListener('mousedown', fecharFora)
+    return () => document.removeEventListener('mousedown', fecharFora)
+  }, [menuMobile])
 
   const nomeExibido = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || 'Usuário'
 
@@ -93,14 +105,14 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
 
         {/* MENU — mobile, só quando logado */}
         {user && (
-          <button
-            className="nav-hamburger"
-            onClick={() => setMenuMobile(!menuMobile)}
-            style={{ display: 'none', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', cursor: 'pointer', color: 'white', fontSize: '12px', fontWeight: 700, letterSpacing: '0.06em', padding: '5px 10px', flexShrink: 0 }}
-          >
-            {menuMobile ? '✕ FECHAR' : 'MENU'}
-          </button>
-        )}
+          <div ref={menuRef} style={{ position: 'relative', flexShrink: 0 }}>
+            <button
+              className="nav-hamburger"
+              onClick={() => setMenuMobile(!menuMobile)}
+              style={{ display: 'none', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', cursor: 'pointer', color: 'white', fontSize: '12px', fontWeight: 700, letterSpacing: '0.06em', padding: '5px 10px' }}
+            >
+              {menuMobile ? '✕ FECHAR' : 'MENU'}
+            </button>
 
         {/* Auth mobile — só Entrar quando deslogado */}
         <div className="nav-auth-mobile" style={{ display: 'none', alignItems: 'center', marginLeft: 'auto' }}>
@@ -111,26 +123,27 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
           )}
         </div>
 
-        {/* Menu mobile expandido */}
-        {user && menuMobile && (
-          <div style={{ position: 'absolute', top: '56px', right: 'clamp(12px, 4vw, 24px)', minWidth: '220px', background: '#3347b0', zIndex: 5001, display: 'flex', flexDirection: 'column', padding: '8px 0', borderRadius: '14px', boxShadow: '0 8px 32px rgba(0,0,0,0.22)' }}>
-            <div style={{ padding: '12px 20px 10px', borderBottom: '1px solid rgba(255,255,255,0.15)', marginBottom: '4px' }}>
-              <p style={{ margin: 0, color: 'rgba(255,255,255,0.6)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600 }}>Logado como</p>
-              <p style={{ margin: '2px 0 0', color: '#fff', fontSize: '15px', fontWeight: 700 }}>{nomeExibido}</p>
-            </div>
-            <Link href="/" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Início</Link>
-            <div style={{ padding: '12px 20px', color: 'rgba(255,255,255,0.7)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Funcionalidades</div>
-            {FUNCIONALIDADES.map(({ label, href }) => (
-              <Link key={label} href={href} onClick={() => setMenuMobile(false)} style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', textDecoration: 'none', padding: '10px 20px 10px 32px' }}>
-                {label}
-              </Link>
-            ))}
-            <Link href="/assistenteia" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Assistente de IA</Link>
-            <Link href="/perfil" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Minhas atividades</Link>
-            <div style={{ height: '1px', background: 'rgba(255,255,255,0.15)', margin: '8px 20px' }} />
-            <button onClick={() => { setMenuMobile(false); sair() }} style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-              Sair da conta
-            </button>
+            {menuMobile && (
+              <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, minWidth: '220px', background: '#3347b0', zIndex: 5001, display: 'flex', flexDirection: 'column', padding: '8px 0', borderRadius: '14px', boxShadow: '0 8px 32px rgba(0,0,0,0.22)' }}>
+                <div style={{ padding: '12px 20px 10px', borderBottom: '1px solid rgba(255,255,255,0.15)', marginBottom: '4px' }}>
+                  <p style={{ margin: 0, color: 'rgba(255,255,255,0.6)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600 }}>Logado como</p>
+                  <p style={{ margin: '2px 0 0', color: '#fff', fontSize: '15px', fontWeight: 700 }}>{nomeExibido}</p>
+                </div>
+                <Link href="/" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Início</Link>
+                <div style={{ padding: '12px 20px', color: 'rgba(255,255,255,0.7)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Funcionalidades</div>
+                {FUNCIONALIDADES.map(({ label, href }) => (
+                  <Link key={label} href={href} onClick={() => setMenuMobile(false)} style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', textDecoration: 'none', padding: '10px 20px 10px 32px' }}>
+                    {label}
+                  </Link>
+                ))}
+                <Link href="/assistenteia" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Assistente de IA</Link>
+                <Link href="/perfil" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Minhas atividades</Link>
+                <div style={{ height: '1px', background: 'rgba(255,255,255,0.15)', margin: '8px 20px' }} />
+                <button onClick={() => { setMenuMobile(false); sair() }} style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px', padding: '12px 20px', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                  Sair da conta
+                </button>
+              </div>
+            )}
           </div>
         )}
       </nav>
