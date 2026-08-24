@@ -650,13 +650,14 @@ export default function LandingPage() {
           .grade {
             grid-template-columns: 1fr;
             align-content: center;
-            gap: clamp(10px, 1.8vh, 16px);
-            padding: clamp(12px, 2.4vh, 22px) 20px clamp(8px, 1.6vh, 14px);
+            gap: clamp(14px, 2.2vh, 22px);
+            padding: calc(56px + clamp(10px, 1.8vh, 18px)) clamp(20px, 6vw, 32px) clamp(10px, 1.8vh, 16px);
           }
-          .coluna-acao { justify-content: flex-start; }
+          .coluna-conteudo { align-items: center; text-align: center; }
+          .subtitulo { text-align: center; max-width: 100%; }
+          .coluna-acao { justify-content: center; }
           .cartao, .atalhos { max-width: 100%; }
           .halo { left: -30%; top: 8%; width: 110vw; height: 110vw; }
-          .subtitulo { max-width: 100%; }
         }
 
         /* telas curtas: enxuga o que é secundário para nada vazar da tela */
