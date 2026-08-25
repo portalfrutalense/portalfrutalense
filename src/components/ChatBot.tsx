@@ -1,396 +1,30 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { createClient } from '@/lib/supabase-browser'
-import { useAuth } from './AuthProvider'
+import { useChatBot } from '@/hooks/useChatBot'
 import Turnstile from './Turnstile'
 import MiniMapaConfirmar from './MiniMapaConfirmar'
 
-interface Mensagem {
-  role: 'user' | 'assistant'
-  content: string
-}
-
-interface Entidade {
-  id: string
-  nome: string
-  cargo: string
-}
-
-type EtapaDemanda = 'nenhuma' | 'perguntar_registrar' | 'escolher_autoridade' | 'perguntar_endereco' | 'perguntar_foto' | 'resumo'
-
-// Localiza e extrai um objeto {"action":...} completo usando contagem de chaves,
-// igual ao extrairAcao do webhook — regex simples quebra se o valor tiver "}" dentro.
-function extrairAcao(texto: string): Record<string, unknown> | null {
-  const inicio = texto.search(/\{\s*"action"\s*:/)
-  if (inicio === -1) return null
-  let profundidade = 0, emString = false, escapado = false
-  for (let i = inicio; i < texto.length; i++) {
-    const c = texto[i]
-    if (escapado) { escapado = false; continue }
-    if (c === '\\') { escapado = true; continue }
-    if (c === '"') { emString = !emString; continue }
-    if (emString) continue
-    if (c === '{') profundidade++
-    else if (c === '}' && --profundidade === 0) {
-      try { return JSON.parse(texto.slice(inicio, i + 1)) } catch { return null }
-    }
-  }
-  return null
-}
-
-// O Google as vezes manda o nome todo em minusculo -- garante a primeira letra maiuscula
-function capitalizar(nome: string) {
-  return nome ? nome.charAt(0).toUpperCase() + nome.slice(1) : nome
-}
-
-async function comprimirFoto(file: File): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      const MAX = 600
-      const ratio = Math.min(MAX / img.width, MAX / img.height, 1)
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.round(img.width * ratio)
-      canvas.height = Math.round(img.height * ratio)
-      const ctx = canvas.getContext('2d')!
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-      URL.revokeObjectURL(url)
-      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Falha')), 'image/jpeg', 0.25)
-    }
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Inválida')) }
-    img.src = url
-  })
-}
-
 export default function ChatBot() {
-  const supabase = createClient()
-  const { user, perfil } = useAuth()
-  const nomeUsuario = capitalizar(perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || 'Cidadão')
+  const bot = useChatBot()
   const [aberto, setAberto] = useState(false)
-  const [mensagens, setMensagens] = useState<Mensagem[]>([])
-  const [input, setInput] = useState('')
-  const [enviando, setEnviando] = useState(false)
-  const [criando, setCriando] = useState(false)
-  const [notif, setNotif] = useState('')
   const [painelVisivel, setPainelVisivel] = useState(false)
-  const [fotoFile, setFotoFile] = useState<File | null>(null)
-  const [fotoPreview, setFotoPreview] = useState<string | null>(null)
-  const [turnstileToken, setTurnstileToken] = useState('')
-  const [captchaVisivel, setCaptchaVisivel] = useState(false)
-  const [gravando, setGravando] = useState(false)
-  const [micDisponivel, setMicDisponivel] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition) // eslint-disable-line @typescript-eslint/no-explicit-any
-  })
-
-  // Fluxo de registro de demanda (etapas conduzidas por código, não pela IA)
-  const [etapaDemanda, setEtapaDemanda] = useState<EtapaDemanda>('nenhuma')
-  const [descricaoDemanda, setDescricaoDemanda] = useState('')
-  const [categoriaIdDemanda, setCategoriaIdDemanda] = useState('')
-  const [categoriaNomeDemanda, setCategoriaNomeDemanda] = useState('')
-  const [entidadesIdsDemanda, setEntidadesIdsDemanda] = useState<string[]>([])
-  const [entidadesNomesDemanda, setEntidadesNomesDemanda] = useState<string[]>([])
-  const [dropdownAutoridade, setDropdownAutoridade] = useState(false)
-  const [coordDemanda, setCoordDemanda] = useState<{ lat: number; lng: number; label: string } | null>(null)
-  const [opcoesAutoridade, setOpcoesAutoridade] = useState<Entidade[]>([])
-  const [entidades, setEntidades] = useState<Entidade[]>([])
-  const [catEntidades, setCatEntidades] = useState<Record<string, string[]>>({})
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const botaoRef = useRef<HTMLButtonElement>(null)
-  const fotoInputRef = useRef<HTMLInputElement>(null)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef = useRef<any>(null)
-
-  // Carrega autoridades e vínculos com categorias (usado para escolher autoridade sem precisar da IA)
-  useEffect(() => {
-    supabase.from('entidades').select('id, nome, cargo').eq('ativo', true).then(({ data }) => setEntidades((data as Entidade[]) || []))
-    supabase.from('categoria_entidades').select('categoria_id, entidade_id').then(({ data }) => {
-      const mapa: Record<string, string[]> = {}
-      for (const row of (data || [])) {
-        if (!mapa[row.categoria_id]) mapa[row.categoria_id] = []
-        mapa[row.categoria_id].push(row.entidade_id)
-      }
-      setCatEntidades(mapa)
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // Simula "digitando..." antes de respostas prontas (não vindas da IA), pra parecer natural
-  function comDigitando(fn: () => void, delay = 650) {
-    setEnviando(true)
-    setTimeout(() => {
-      fn()
-      setEnviando(false)
-    }, delay)
-  }
-
-  function selecionarFoto(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setFotoFile(file)
-    setFotoPreview(URL.createObjectURL(file))
-    e.target.value = ''
-    setMensagens(prev => [...prev, { role: 'user', content: 'Foto anexada.' }])
-    comDigitando(irParaResumo)
-  }
-
-  function removerFoto() {
-    if (fotoPreview) URL.revokeObjectURL(fotoPreview)
-    setFotoFile(null)
-    setFotoPreview(null)
-  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [mensagens, etapaDemanda])
+  }, [bot.mensagens, bot.etapaDemanda])
 
   function abrirChat() {
     setPainelVisivel(false)
     setAberto(true)
     requestAnimationFrame(() => requestAnimationFrame(() => setPainelVisivel(true)))
-    if (mensagens.length === 0) enviarSaudacaoInicial()
+    if (bot.mensagens.length === 0) bot.enviarSaudacaoInicial()
   }
 
-  async function enviarSaudacaoInicial() {
-    setEnviando(true)
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ mensagens: [{ role: 'user', content: 'Oi' }], nomeUsuario }),
-      })
-      const data = await res.json()
-      const resposta: string = data.resposta || `Olá, ${nomeUsuario}! Como posso ajudar?`
-      setMensagens([{ role: 'assistant', content: resposta }])
-    } catch {
-      setMensagens([{ role: 'assistant', content: `Olá, ${nomeUsuario}! Como posso ajudar?` }])
-    } finally {
-      setEnviando(false)
-    }
-  }
-
-  if (!user) return null
-
-  function resetFluxoDemanda() {
-    setEtapaDemanda('nenhuma')
-    setDescricaoDemanda(''); setCategoriaIdDemanda(''); setCategoriaNomeDemanda('')
-    setEntidadesIdsDemanda([]); setEntidadesNomesDemanda([])
-    setDropdownAutoridade(false)
-    setCoordDemanda(null); setOpcoesAutoridade([])
-    removerFoto(); setTurnstileToken(''); setCaptchaVisivel(false)
-  }
-
-  function alternarGravacao() {
-    if (gravando) {
-      recognitionRef.current?.stop()
-      return
-    }
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition // eslint-disable-line @typescript-eslint/no-explicit-any
-    if (!SpeechRecognition) { setMicDisponivel(false); return }
-
-    const recognition = new SpeechRecognition()
-    recognition.lang = 'pt-BR'
-    recognition.continuous = false
-    recognition.interimResults = false
-
-    recognition.onresult = (event: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-      const texto = event.results[0][0].transcript
-      setInput(prev => (prev ? `${prev} ${texto}` : texto))
-    }
-    recognition.onerror = () => setGravando(false)
-    recognition.onend = () => setGravando(false)
-
-    recognitionRef.current = recognition
-    recognition.start()
-    setGravando(true)
-  }
-
-  async function enviar() {
-    if (!input.trim() || enviando) return
-    const texto = input.trim()
-    setMensagens(prev => [...prev, { role: 'user', content: texto }])
-    setInput('')
-
-    const historico = [...mensagens, { role: 'user' as const, content: texto }]
-    setEnviando(true)
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ mensagens: historico, nomeUsuario }),
-      })
-      const data = await res.json()
-      const resposta: string = data.resposta || 'Erro ao processar mensagem.'
-
-      const acao = extrairAcao(resposta)
-      if (acao?.action === 'detectar_demanda') {
-        setDescricaoDemanda((acao.descricao as string) || texto)
-        setCategoriaIdDemanda((acao.categoria_id as string) || '')
-        setCategoriaNomeDemanda((acao.categoria_nome as string) || 'Outros')
-        setMensagens(prev => [...prev, { role: 'assistant', content: 'O CidadanIA Frutal pode tentar dar voz à sua reclamação! Podemos registrar uma demanda sobre isso, e ela ficará visível para todos. Seus dados são preservados, apenas o seu nome é publicado. Você escolhe uma autoridade para que seja enviada automaticamente, e tentaremos obter uma resposta sobre. Quer registrar?' }])
-        setEtapaDemanda('perguntar_registrar')
-      } else {
-        setMensagens(prev => [...prev, { role: 'assistant', content: resposta }])
-      }
-    } catch {
-      setMensagens(prev => [...prev, { role: 'assistant', content: 'Erro de conexão. Tente novamente.' }])
-    } finally {
-      setEnviando(false)
-    }
-  }
-
-  function aoConfirmarQuerRegistrar() {
-    setMensagens(prev => [...prev, { role: 'user', content: 'Sim, registrar' }])
-    const vinculadas = catEntidades[categoriaIdDemanda] || []
-    const opcoes = entidades.filter(en => vinculadas.includes(en.id))
-
-    comDigitando(() => {
-      if (opcoes.length === 0) {
-        setMensagens(prev => [...prev, { role: 'assistant', content: 'Não há autoridade vinculada a essa categoria no momento. Não é possível registrar a demanda agora.' }])
-        resetFluxoDemanda()
-        return
-      }
-
-      setOpcoesAutoridade(opcoes)
-      if (opcoes.length === 1) {
-        // Pré-seleciona a única opção
-        setEntidadesIdsDemanda([opcoes[0].id])
-        setEntidadesNomesDemanda([opcoes[0].nome])
-        setMensagens(prev => [...prev, { role: 'assistant', content: `Esse tipo de problema será direcionado para ${opcoes[0].nome} (${opcoes[0].cargo}). Confirma?` }])
-      } else {
-        setMensagens(prev => [...prev, { role: 'assistant', content: `Selecione até 3 autoridades para direcionar esta demanda:` }])
-      }
-      setEtapaDemanda('escolher_autoridade')
-    })
-  }
-
-  function aoRecusarRegistrar() {
-    setMensagens(prev => [...prev, { role: 'user', content: 'Não' }])
-    comDigitando(() => {
-      setMensagens(prev => [...prev, { role: 'assistant', content: 'Sem problemas! Posso ajudar com mais alguma coisa?' }])
-      resetFluxoDemanda()
-    })
-  }
-
-  function toggleAutoridade(ent: Entidade) {
-    setEntidadesIdsDemanda(prev => {
-      if (prev.includes(ent.id)) {
-        setEntidadesNomesDemanda(n => n.filter(nm => nm !== ent.nome))
-        return prev.filter(id => id !== ent.id)
-      }
-      if (prev.length >= 3) return prev
-      setEntidadesNomesDemanda(n => [...n, ent.nome])
-      return [...prev, ent.id]
-    })
-  }
-
-  function aoConfirmarAutoridades() {
-    if (entidadesIdsDemanda.length === 0) return
-    setDropdownAutoridade(false)
-    const nomes = entidadesNomesDemanda.join(', ')
-    setMensagens(prev => [...prev, { role: 'user', content: `Selecionado: ${nomes}` }])
-    comDigitando(() => {
-      setMensagens(prev => [...prev, { role: 'assistant', content: 'Onde fica esse local? Digite o endereço ou aponte no mapa abaixo.' }])
-      setEtapaDemanda('perguntar_endereco')
-    })
-  }
-
-  function aoConfirmarEnderecoMapa(endereco: string, lat: number, lng: number) {
-    setCoordDemanda({ lat, lng, label: endereco })
-    setMensagens(prev => [...prev, { role: 'user', content: `Localização confirmada: ${endereco}` }])
-    comDigitando(() => {
-      setMensagens(prev => [...prev, { role: 'assistant', content: 'Localização salva! Envie uma foto do local para ajudar a identificar melhor o problema.' }])
-      setEtapaDemanda('perguntar_foto')
-    })
-  }
-
-  function aoClicarSemFoto() {
-    setMensagens(prev => [...prev, { role: 'user', content: 'Sem foto' }])
-    comDigitando(irParaResumo)
-  }
-
-  function irParaResumo() {
-    setMensagens(prev => [...prev, {
-      role: 'assistant',
-      content: `Tudo pronto! Dá uma olhadinha no resumo antes de registrarmos:\n\nEndereço: ${coordDemanda?.label}\nCategoria: ${categoriaNomeDemanda}\nDirecionada para: ${entidadesNomesDemanda.join(', ')}\nDescrição: ${descricaoDemanda}\n\nConfirma o registro?`
-    }])
-    setEtapaDemanda('resumo')
-  }
-
-  function aoClicarConfirmar() {
-    setMensagens(prev => [...prev, { role: 'user', content: 'Confirmo o registro.' }])
-    setCaptchaVisivel(true)
-  }
-
-  function aoVerificarCaptcha(token: string) {
-    setTurnstileToken(token)
-    confirmarDemanda(token)
-  }
-
-  async function confirmarDemanda(token: string) {
-    if (etapaDemanda !== 'resumo' || criando || !coordDemanda) return
-    setCriando(true)
-
-    try {
-      let foto_url: string | null = null
-      if (fotoFile) {
-        try {
-          const blob = await comprimirFoto(fotoFile)
-          const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
-          const { error: uploadError } = await supabase.storage.from('demandas-fotos').upload(path, blob, { contentType: 'image/jpeg' })
-          if (uploadError) throw uploadError
-          foto_url = supabase.storage.from('demandas-fotos').getPublicUrl(path).data.publicUrl
-        } catch {
-          setMensagens(prev => [...prev, { role: 'assistant', content: 'Não consegui enviar a foto, mas vou registrar a demanda sem ela.' }])
-        }
-      }
-
-      const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch('/api/demandas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
-        body: JSON.stringify({
-          descricao: descricaoDemanda,
-          endereco_label: coordDemanda.label,
-          lat: coordDemanda.lat,
-          lng: coordDemanda.lng,
-          categoria_id: categoriaIdDemanda,
-          entidade_ids: entidadesIdsDemanda,
-          morador_nome: perfil?.nome || nomeUsuario,
-          foto_url,
-          via_chatbot: true,
-          turnstile_token: token,
-        }),
-      })
-
-      if (res.ok) {
-        resetFluxoDemanda()
-        setMensagens(prev => [...prev, { role: 'assistant', content: 'Demanda registrada com sucesso! Ela aparecerá no mapa após análise. Posso ajudar com mais alguma coisa?' }])
-        setNotif('Demanda registrada!')
-        setTimeout(() => setNotif(''), 4000)
-      } else {
-        const err = await res.json()
-        setMensagens(prev => [...prev, { role: 'assistant', content: `Erro ao registrar: ${err.error || 'tente novamente.'}` }])
-      }
-    } catch {
-      setMensagens(prev => [...prev, { role: 'assistant', content: 'Erro ao registrar a demanda. Tente novamente.' }])
-    } finally {
-      setCriando(false)
-    }
-  }
-
-  function cancelarDemanda() {
-    resetFluxoDemanda()
-    setMensagens(prev => [...prev, { role: 'assistant', content: 'Ok, cancelei o registro. Posso ajudar com mais alguma coisa?' }])
-  }
-
-  const inputDesabilitado = enviando || etapaDemanda !== 'nenhuma'
+  if (!bot.user) return null
 
   return (
     <>
@@ -457,7 +91,7 @@ export default function ChatBot() {
 
           {/* Mensagens */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {mensagens.map((m, i) => (
+            {bot.mensagens.map((m, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
                 <div style={{
                   maxWidth: '85%',
@@ -475,13 +109,13 @@ export default function ChatBot() {
             ))}
 
             {/* Etapa: perguntar se quer registrar */}
-            {etapaDemanda === 'perguntar_registrar' && (
+            {bot.etapaDemanda === 'perguntar_registrar' && (
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start' }}>
-                <button onClick={aoConfirmarQuerRegistrar}
+                <button onClick={bot.aoConfirmarQuerRegistrar}
                   style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
                   Sim, registrar
                 </button>
-                <button onClick={aoRecusarRegistrar}
+                <button onClick={bot.aoRecusarRegistrar}
                   style={{ background: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
                   Não
                 </button>
@@ -489,25 +123,25 @@ export default function ChatBot() {
             )}
 
             {/* Etapa: escolher autoridades — dropdown com checkboxes */}
-            {etapaDemanda === 'escolher_autoridade' && (
+            {bot.etapaDemanda === 'escolher_autoridade' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
                 <div style={{ position: 'relative' }}>
                   <button
-                    onClick={() => setDropdownAutoridade(!dropdownAutoridade)}
+                    onClick={() => bot.setDropdownAutoridade(!bot.dropdownAutoridade)}
                     style={{ width: '100%', background: 'white', border: '1px solid #d1d5db', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#111827' }}
                   >
-                    <span>{entidadesIdsDemanda.length === 0 ? 'Selecione as autoridades' : `${entidadesIdsDemanda.length} selecionada${entidadesIdsDemanda.length > 1 ? 's' : ''}`}</span>
-                    <span style={{ fontSize: '10px', color: '#6b7280' }}>{dropdownAutoridade ? '▲' : '▼'}</span>
+                    <span>{bot.entidadesIdsDemanda.length === 0 ? 'Selecione as autoridades' : `${bot.entidadesIdsDemanda.length} selecionada${bot.entidadesIdsDemanda.length > 1 ? 's' : ''}`}</span>
+                    <span style={{ fontSize: '10px', color: '#6b7280' }}>{bot.dropdownAutoridade ? '▲' : '▼'}</span>
                   </button>
-                  {dropdownAutoridade && (
+                  {bot.dropdownAutoridade && (
                     <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: '4px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', zIndex: 50, overflow: 'hidden' }}>
                       <p style={{ margin: 0, padding: '8px 12px', fontSize: '11px', color: '#6b7280', borderBottom: '1px solid #f3f4f6' }}>Máximo 3 autoridades</p>
-                      {opcoesAutoridade.map(ent => {
-                        const selecionado = entidadesIdsDemanda.includes(ent.id)
-                        const desabilitado = !selecionado && entidadesIdsDemanda.length >= 3
+                      {bot.opcoesAutoridade.map(ent => {
+                        const selecionado = bot.entidadesIdsDemanda.includes(ent.id)
+                        const desabilitado = !selecionado && bot.entidadesIdsDemanda.length >= 3
                         return (
                           <label key={ent.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', cursor: desabilitado ? 'not-allowed' : 'pointer', borderBottom: '1px solid #f9fafb', opacity: desabilitado ? 0.4 : 1, background: selecionado ? '#eff6ff' : 'white' }}>
-                            <input type="checkbox" checked={selecionado} disabled={desabilitado} onChange={() => toggleAutoridade(ent)} style={{ accentColor: '#4256c8', width: '15px', height: '15px', flexShrink: 0 }} />
+                            <input type="checkbox" checked={selecionado} disabled={desabilitado} onChange={() => bot.toggleAutoridade(ent)} style={{ accentColor: '#4256c8', width: '15px', height: '15px', flexShrink: 0 }} />
                             <div>
                               <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#111827' }}>{ent.nome}</p>
                               <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>{ent.cargo}</p>
@@ -519,50 +153,50 @@ export default function ChatBot() {
                   )}
                 </div>
                 <button
-                  onClick={aoConfirmarAutoridades}
-                  disabled={entidadesIdsDemanda.length === 0}
-                  style={{ background: entidadesIdsDemanda.length > 0 ? '#4256c8' : '#e5e7eb', color: entidadesIdsDemanda.length > 0 ? 'white' : '#9ca3af', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: entidadesIdsDemanda.length > 0 ? 'pointer' : 'not-allowed' }}
+                  onClick={bot.aoConfirmarAutoridades}
+                  disabled={bot.entidadesIdsDemanda.length === 0}
+                  style={{ background: bot.entidadesIdsDemanda.length > 0 ? '#4256c8' : '#e5e7eb', color: bot.entidadesIdsDemanda.length > 0 ? 'white' : '#9ca3af', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: bot.entidadesIdsDemanda.length > 0 ? 'pointer' : 'not-allowed' }}
                 >
                   Confirmar seleção
                 </button>
               </div>
             )}
 
-            {/* Etapa: endereço + mini-mapa numa tela só */}
-            {etapaDemanda === 'perguntar_endereco' && (
-              <MiniMapaConfirmar onConfirmar={aoConfirmarEnderecoMapa} />
+            {/* Etapa: endereço + mini-mapa */}
+            {bot.etapaDemanda === 'perguntar_endereco' && (
+              <MiniMapaConfirmar onConfirmar={bot.aoConfirmarEnderecoMapa} />
             )}
 
             {/* Etapa: perguntar sobre foto */}
-            {etapaDemanda === 'perguntar_foto' && (
+            {bot.etapaDemanda === 'perguntar_foto' && (
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start' }}>
-                <button onClick={() => fotoInputRef.current?.click()}
+                <button onClick={() => bot.fotoInputRef.current?.click()}
                   style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
                   Anexar foto
                 </button>
-                <button onClick={aoClicarSemFoto}
+                <button onClick={bot.aoClicarSemFoto}
                   style={{ background: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
                   Sem foto
                 </button>
-                <input ref={fotoInputRef} type="file" accept="image/*" onChange={selecionarFoto} style={{ display: 'none' }} />
+                <input ref={bot.fotoInputRef} type="file" accept="image/*" onChange={bot.selecionarFoto} style={{ display: 'none' }} />
               </div>
             )}
 
             {/* Etapa: resumo final + captcha + confirmar */}
-            {etapaDemanda === 'resumo' && (
+            {bot.etapaDemanda === 'resumo' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {fotoPreview && (
-                  <img src={fotoPreview} alt="Foto anexada" style={{ width: '72px', height: '72px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
+                {bot.fotoPreview && (
+                  <img src={bot.fotoPreview} alt="Foto anexada" style={{ width: '72px', height: '72px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
                 )}
-                {captchaVisivel && (
-                  <Turnstile size="flexible" onVerify={aoVerificarCaptcha} onExpire={() => setTurnstileToken('')} />
+                {bot.captchaVisivel && (
+                  <Turnstile size="flexible" onVerify={bot.aoVerificarCaptcha} onExpire={() => {/* token expira, usuário recarrega */}} />
                 )}
                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start' }}>
-                  <button onClick={aoClicarConfirmar} disabled={criando || captchaVisivel}
-                    style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: (criando || captchaVisivel) ? 'wait' : 'pointer' }}>
-                    {criando ? 'Registrando...' : captchaVisivel ? 'Verificando...' : 'Confirmar'}
+                  <button onClick={bot.aoClicarConfirmar} disabled={bot.criando || bot.captchaVisivel}
+                    style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: (bot.criando || bot.captchaVisivel) ? 'wait' : 'pointer' }}>
+                    {bot.criando ? 'Registrando...' : bot.captchaVisivel ? 'Verificando...' : 'Confirmar'}
                   </button>
-                  <button onClick={cancelarDemanda} disabled={criando}
+                  <button onClick={bot.cancelarDemanda} disabled={bot.criando}
                     style={{ background: 'white', color: '#dc2626', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
                     Cancelar
                   </button>
@@ -570,7 +204,7 @@ export default function ChatBot() {
               </div>
             )}
 
-            {enviando && (
+            {bot.enviando && (
               <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
                 <div style={{ background: '#f9fafb', borderRadius: '12px 12px 12px 2px', padding: '9px 13px', fontSize: '13px', color: '#6b7280' }}>
                   Digitando...
@@ -584,17 +218,17 @@ export default function ChatBot() {
           {/* Input */}
           <div style={{ padding: '10px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '8px', borderRadius: '0 0 16px 16px', background: 'white' }}>
             <input
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), enviar())}
+              value={bot.input}
+              onChange={e => bot.setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), bot.enviar())}
               placeholder="Digite sua mensagem..."
-              disabled={inputDesabilitado}
+              disabled={bot.inputDesabilitado}
               style={{ flex: 1, border: '1px solid #e5e7eb', borderRadius: '8px', padding: '9px 12px', fontSize: '13px', outline: 'none', resize: 'none' }}
             />
-            {micDisponivel && (
-              <button onClick={alternarGravacao} disabled={inputDesabilitado}
-                title={gravando ? 'Parar gravação' : 'Falar em vez de digitar'}
-                style={{ background: gravando ? '#dc2626' : '#f9fafb', color: gravando ? 'white' : '#6b7280', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '9px 10px', cursor: inputDesabilitado ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', animation: gravando ? 'chatbot-mic-pulse 1.2s infinite' : 'none' }}>
+            {bot.micDisponivel && (
+              <button onClick={bot.alternarGravacao} disabled={bot.inputDesabilitado}
+                title={bot.gravando ? 'Parar gravação' : 'Falar em vez de digitar'}
+                style={{ background: bot.gravando ? '#dc2626' : '#f9fafb', color: bot.gravando ? 'white' : '#6b7280', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '9px 10px', cursor: bot.inputDesabilitado ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', animation: bot.gravando ? 'chatbot-mic-pulse 1.2s infinite' : 'none' }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="9" y="2" width="6" height="12" rx="3" />
                   <path d="M5 10a7 7 0 0 0 14 0" />
@@ -602,8 +236,8 @@ export default function ChatBot() {
                 </svg>
               </button>
             )}
-            <button onClick={enviar} disabled={inputDesabilitado || !input.trim()}
-              style={{ background: inputDesabilitado || !input.trim() ? '#6b7280' : '#4256c8', color: 'white', border: 'none', borderRadius: '8px', padding: '9px 14px', cursor: inputDesabilitado || !input.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}>
+            <button onClick={bot.enviar} disabled={bot.inputDesabilitado || !bot.input.trim()}
+              style={{ background: bot.inputDesabilitado || !bot.input.trim() ? '#6b7280' : '#4256c8', color: 'white', border: 'none', borderRadius: '8px', padding: '9px 14px', cursor: bot.inputDesabilitado || !bot.input.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12" />
                 <polyline points="13 6 19 12 13 18" />
@@ -613,9 +247,9 @@ export default function ChatBot() {
         </div>
       )}
 
-      {notif && (
+      {bot.notif && (
         <div style={{ position: 'fixed', bottom: '100px', right: '24px', zIndex: 1001, background: '#166534', color: 'white', borderRadius: '8px', padding: '10px 16px', fontSize: '13px', fontWeight: 600, boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
-          {notif}
+          {bot.notif}
         </div>
       )}
 
