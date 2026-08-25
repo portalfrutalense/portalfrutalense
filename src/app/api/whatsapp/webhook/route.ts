@@ -148,7 +148,7 @@ O cidadão quer registrar: "${contexto.dados?.descricao}" (categoria: ${contexto
 Autoridades disponíveis:
 ${lista}
 
-Apresente as opções de forma natural e pergunte qual(is) o cidadão quer acionar (até 3).
+Apresente as opções de forma natural e deixe claro ao cidadão que ele pode escolher até 3 autoridades ao mesmo tempo.
 Quando ele responder, identifique a(s) escolha(s) pelo nome ou cargo mencionado e responda EXATAMENTE com este JSON (nada mais, sem texto antes ou depois):
 {"action":"autoridade_escolhida","entidade_ids":["id_aqui"],"entidade_nomes":["Nome Aqui"]}
 Use APENAS os ids da lista acima. Se mencionar mais de uma, inclua todas nos arrays.
