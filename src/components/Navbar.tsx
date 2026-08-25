@@ -43,15 +43,17 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
   return (
     <>
       <nav style={containerStyle}>
-        {/* Logo — sempre presente, mesmo layout em todas as páginas */}
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', flexShrink: 0, marginRight: 'auto' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: '38px', width: 'auto', display: 'block' }} />
-        </Link>
+        {/* Coluna esquerda — logo */}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: '38px', width: 'auto', display: 'block' }} />
+          </Link>
+        </div>
 
-        {/* Nav links — desktop, só quando logado, sempre centralizado igual em todas as páginas */}
+        {/* Coluna central — links (desktop, só logado) */}
         {user && (
-          <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '2px', position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+          <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
             <Link href="/" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '13.5px', fontWeight: 500, textDecoration: 'none', padding: '6px 10px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
               Início
             </Link>
@@ -75,7 +77,6 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
                 </div>
               )}
             </div>
-
             <Link href="/assistenteia" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '13.5px', fontWeight: 500, textDecoration: 'none', padding: '6px 10px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
               Assistente de IA
             </Link>
@@ -85,8 +86,8 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
           </div>
         )}
 
-        {/* Auth — desktop */}
-        <div className="nav-auth" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0, marginLeft: 'auto' }}>
+        {/* Coluna direita — auth */}
+        <div className="nav-auth" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px' }}>
           {user ? (
             <>
               <Link href="/perfil" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.9)', textDecoration: 'none', whiteSpace: 'nowrap', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
