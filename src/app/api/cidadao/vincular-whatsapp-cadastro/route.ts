@@ -15,7 +15,11 @@ export async function POST(req: NextRequest) {
   const { telefone } = await req.json()
   if (!telefone) return NextResponse.json({ error: 'Telefone obrigatório.' }, { status: 400 })
 
-  await supabaseServer.from('whatsapp_conversas').update({ user_id: user.id }).eq('telefone', telefone)
+  const { data } = await supabaseServer
+    .from('whatsapp_conversas')
+    .update({ user_id: user.id })
+    .eq('telefone', telefone)
+    .select('id')
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, conversaVinculada: (data?.length ?? 0) > 0 })
 }

@@ -89,17 +89,20 @@ export default function ModalCPF() {
       if (error) throw error
 
       // Vincula conversa WhatsApp pendente via API (usa service role, bypass RLS)
-      await fetch('/api/cidadao/vincular-whatsapp-cadastro', {
+      const { data: { session } } = await supabase.auth.getSession()
+      const resVinculo = await fetch('/api/cidadao/vincular-whatsapp-cadastro', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
         body: JSON.stringify({ telefone: whatsappParaSalvar(whatsapp) }),
       })
+      const vinculo = await resVinculo.json()
 
       setPerfil({ id: user.id, nome: nome.trim(), cpf: cpfLimpo, email: user.email || undefined, role: perfilExistente?.role })
 
-      // Se preencheu WhatsApp, mostra botão de retorno — pode ter vindo do bot
-      setVoltarWhatsapp(true)
-      return
+      if (vinculo.conversaVinculada) {
+        setVoltarWhatsapp(true)
+        return
+      }
     } catch (e) {
       const err = e as { message?: string; code?: string; details?: string; hint?: string }
       console.error('[ModalCPF] falha ao salvar perfil:', {
