@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import sharp from 'sharp'
 import { supabaseServer } from '@/lib/supabase-server'
 import { enviarWhatsapp, enviarImagemWhatsapp, baixarMidiaWhatsapp } from '@/lib/whatsapp'
@@ -194,14 +194,11 @@ async function salvarHistorico(id: string, historico: unknown, etapa: string, da
   await supabaseServer.from('whatsapp_conversas').update({ historico, etapa, dados_pendentes: dados }).eq('id', id)
 }
 
-export async function POST(req: NextRequest) {
-  const body = (await req.json().catch(() => null)) as EvolutionWebhookBody | null
-  if (!body || body.event !== 'messages.upsert') return NextResponse.json({ ok: true })
-
+async function processarMensagem(body: EvolutionWebhookBody) {
   const key = body.data?.key
   const remoteJid = key?.remoteJid || ''
-  if (key?.fromMe) return NextResponse.json({ ok: true })
-  if (!remoteJid.endsWith('@s.whatsapp.net')) return NextResponse.json({ ok: true })
+  if (key?.fromMe) return
+  if (!remoteJid.endsWith('@s.whatsapp.net')) return
 
   const telefone = remoteJid.replace('@s.whatsapp.net', '')
   const texto = (body.data?.message?.conversation || body.data?.message?.extendedTextMessage?.text || '').trim()
@@ -209,7 +206,7 @@ export async function POST(req: NextRequest) {
   const temImagem = body.data?.messageType === 'imageMessage'
   const temAudio = body.data?.messageType === 'audioMessage'
 
-  if (!texto && !location && !temImagem && !temAudio) return NextResponse.json({ ok: true })
+  if (!texto && !location && !temImagem && !temAudio) return
 
   // Busca ou cria a conversa
   let { data: conversa } = await supabaseServer.from('whatsapp_conversas').select('*').eq('telefone', telefone).single()
@@ -217,11 +214,11 @@ export async function POST(req: NextRequest) {
     const { data: nova } = await supabaseServer.from('whatsapp_conversas').insert({ telefone }).select().single()
     conversa = nova
   }
-  if (!conversa) return NextResponse.json({ ok: true })
+  if (!conversa) return
 
   // Evita reprocessar a mesma mensagem duas vezes (webhook duplicado)
   const messageId = key?.id
-  if (messageId && conversa.ultimo_message_id === messageId) return NextResponse.json({ ok: true })
+  if (messageId && conversa.ultimo_message_id === messageId) return
   if (messageId) await supabaseServer.from('whatsapp_conversas').update({ ultimo_message_id: messageId }).eq('id', conversa.id)
 
   const historico: { role: string; content: string }[] = conversa.historico || []
@@ -241,13 +238,13 @@ export async function POST(req: NextRequest) {
       const midia = await baixarMidiaWhatsapp(key)
       if (!midia) {
         await enviarWhatsapp(telefone, 'Ih, não consegui entender esse áudio direito. Pode tentar mandar de novo, ou se preferir, escreve mesmo.')
-        return NextResponse.json({ ok: true })
+        return
       }
       audioParaGemini = midia
       historico.push({ role: 'user', content: '[Áudio]' })
     } else {
       await enviarWhatsapp(telefone, 'Recebi o que você mandou, mas por enquanto só consigo entender texto ou áudio por aqui.')
-      return NextResponse.json({ ok: true })
+      return
     }
 
     const systemPrompt = await montarSystemPrompt(nomeUsuario)
@@ -280,7 +277,7 @@ export async function POST(req: NextRequest) {
       historico.push({ role: 'assistant', content: resposta })
       await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, resposta)])
     }
-    return NextResponse.json({ ok: true })
+    return
   }
 
   // ── Etapa: aguardando vínculo de conta ──
@@ -294,7 +291,7 @@ export async function POST(req: NextRequest) {
       const linkVinculo = `${process.env.NEXT_PUBLIC_SITE_URL}/vincular-whatsapp?tel=${telefone}`
       await enviarWhatsapp(telefone, `Ainda não vi sua conta vinculada por aqui. Termina o cadastro nesse link e volta que a gente continua:\n${linkVinculo}`)
     }
-    return NextResponse.json({ ok: true })
+    return
   }
 
   // ── Etapa: perguntar se quer registrar ──
@@ -303,18 +300,18 @@ export async function POST(req: NextRequest) {
     const negativo = /^(n[aã]o|n)/i.test(texto)
     if (negativo) {
       await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, 'Sem problemas! Posso ajudar com mais alguma coisa?')])
-      return NextResponse.json({ ok: true })
+      return
     }
     if (!positivo) {
       await enviarWhatsapp(telefone, 'Não entendi direito — pode responder só com "sim" ou "não"?')
-      return NextResponse.json({ ok: true })
+      return
     }
 
     const { data: catEnt } = await supabaseServer.from('categoria_entidades').select('entidade_id').eq('categoria_id', dados.categoria_id || '')
     const ids = (catEnt || []).map((c) => c.entidade_id)
     if (ids.length === 0) {
       await Promise.all([salvarHistorico(conversa.id, historico, 'sem_autoridade', null), enviarWhatsapp(telefone, `Poxa, ainda não tem nenhuma autoridade cadastrada pra essa categoria (${dados.categoria_nome}). Assim que tiver, você pode tentar registrar de novo. Posso te ajudar com mais alguma coisa?`)])
-      return NextResponse.json({ ok: true })
+      return
     }
     const { data: entidades } = await supabaseServer.from('entidades').select('id, nome, cargo').in('id', ids)
     const opcoes = entidades || []
@@ -338,7 +335,7 @@ export async function POST(req: NextRequest) {
       historico.push({ role: 'assistant', content: resposta })
       await Promise.all([salvarHistorico(conversa.id, historico, 'escolher_autoridade', dados), enviarWhatsapp(telefone, resposta)])
     }
-    return NextResponse.json({ ok: true })
+    return
   }
 
   // ── Etapa: sem autoridade (encerra o fluxo, próxima msg volta ao normal) ──
@@ -349,7 +346,7 @@ export async function POST(req: NextRequest) {
     const resposta = await chamarGemini(systemPrompt, historico)
     historico.push({ role: 'assistant', content: resposta })
     await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, resposta)])
-    return NextResponse.json({ ok: true })
+    return
   }
 
   // ── Etapa: escolher autoridade — IA conduz, identifica escolha via JSON ──
@@ -379,7 +376,7 @@ export async function POST(req: NextRequest) {
       historico.push({ role: 'assistant', content: resposta })
       await Promise.all([salvarHistorico(conversa.id, historico, 'escolher_autoridade', dados), enviarWhatsapp(telefone, resposta)])
     }
-    return NextResponse.json({ ok: true })
+    return
   }
 
   // ── Etapa: endereço (texto ou localização compartilhada) ──
@@ -396,14 +393,14 @@ export async function POST(req: NextRequest) {
       const geo = await geocodificar(texto)
       if (!geo) {
         await enviarWhatsapp(telefone, 'Não consegui encontrar esse endereço perto de Frutal. Tenta descrever de outro jeito, ou manda sua localização direto pelo WhatsApp.')
-        return NextResponse.json({ ok: true })
+        return
       }
       lat = geo.lat
       lng = geo.lng
       label = geo.label
     } else {
       await enviarWhatsapp(telefone, 'Pode me mandar o endereço em texto, ou compartilhar sua localização aqui pelo WhatsApp.')
-      return NextResponse.json({ ok: true })
+      return
     }
 
     dados.lat = lat
@@ -422,7 +419,7 @@ export async function POST(req: NextRequest) {
       enviarImagemWhatsapp(telefone, urlSatelite, label ?? undefined),
     ])
     await enviarWhatsapp(telefone, msgConfirm)
-    return NextResponse.json({ ok: true })
+    return
   }
 
   // ── Etapa: confirmar endereço (após ver a imagem de satélite) ──
@@ -438,12 +435,12 @@ export async function POST(req: NextRequest) {
       dados.lng = undefined
       dados.endereco_label = undefined
       await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_endereco', dados), enviarWhatsapp(telefone, msg)])
-      return NextResponse.json({ ok: true })
+      return
     }
 
     if (!positivo) {
       await enviarWhatsapp(telefone, 'Esse é o local certo? Responde com "sim" ou "não".')
-      return NextResponse.json({ ok: true })
+      return
     }
 
     // Endereço confirmado — IA pergunta sobre foto
@@ -452,7 +449,7 @@ export async function POST(req: NextRequest) {
     const msgFoto = await chamarGemini(systemPrompt, historico)
     historico.push({ role: 'assistant', content: msgFoto })
     await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_foto', dados), enviarWhatsapp(telefone, msgFoto)])
-    return NextResponse.json({ ok: true })
+    return
   }
 
   // ── Etapa: foto ──
@@ -480,7 +477,7 @@ export async function POST(req: NextRequest) {
       dados.foto_url = null
     } else {
       await enviarWhatsapp(telefone, 'Pode mandar uma foto, ou só responder "sem foto" se preferir seguir sem ela.')
-      return NextResponse.json({ ok: true })
+      return
     }
 
     // IA gera o resumo
@@ -489,28 +486,28 @@ export async function POST(req: NextRequest) {
     const resumo = await chamarGemini(systemPrompt, historico)
     historico.push({ role: 'assistant', content: resumo })
     await Promise.all([salvarHistorico(conversa.id, historico, 'resumo', dados), enviarWhatsapp(telefone, resumo)])
-    return NextResponse.json({ ok: true })
+    return
   }
 
   // ── Etapa: resumo / confirmação final ──
   if (etapa === 'resumo') {
     if (/^cancelar/i.test(texto)) {
       await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, 'Beleza, cancelei o registro. Posso ajudar com mais alguma coisa?')])
-      return NextResponse.json({ ok: true })
+      return
     }
     if (!/^(confirmar|confirmo|sim|pode|ok|vai|registra|registrar)/i.test(texto)) {
       await enviarWhatsapp(telefone, 'Responde "confirmar" pra eu registrar, ou "cancelar" se quiser desistir.')
-      return NextResponse.json({ ok: true })
+      return
     }
     if (!perfilLigado || !dados.lat || !dados.lng || !dados.categoria_id || !dados.entidades_ids?.length) {
       await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, 'Ih, algo deu errado com os dados aqui. Vamos começar de novo — me conta qual é o problema?')])
-      return NextResponse.json({ ok: true })
+      return
     }
 
     const { data: perfilCompleto } = await supabaseServer.from('perfis').select('nome, cpf').eq('id', perfilLigado.id).single()
     if (!perfilCompleto?.cpf) {
       await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, `Antes de registrar, preciso que você complete seu CPF no cadastro — é obrigatório. Entra no site aqui: ${process.env.NEXT_PUBLIC_SITE_URL}/perfil`)])
-      return NextResponse.json({ ok: true })
+      return
     }
 
     const { data: demanda, error } = await supabaseServer.from('demandas').insert({
@@ -529,7 +526,7 @@ export async function POST(req: NextRequest) {
 
     if (error || !demanda) {
       await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, 'Poxa, deu um erro ao registrar sua demanda. Tenta de novo daqui a pouco?')])
-      return NextResponse.json({ ok: true })
+      return
     }
 
     const vinculos = dados.entidades_ids.map((eid) => ({ demanda_id: demanda.id, entidade_id: eid, status: 'aguardando_resposta' }))
@@ -546,8 +543,16 @@ export async function POST(req: NextRequest) {
     }
 
     await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, 'Prontinho, sua demanda foi registrada! Ela vai passar por uma análise com o nosso Agente de IA, e se aprovada, aparece no mapa e a(as) autoridades são notificadas. Posso ajudar com mais alguma coisa?')])
-    return NextResponse.json({ ok: true })
   }
+}
+
+export async function POST(req: NextRequest) {
+  const body = (await req.json().catch(() => null)) as EvolutionWebhookBody | null
+  if (!body || body.event !== 'messages.upsert') return NextResponse.json({ ok: true })
+
+  // Responde imediatamente para não dar timeout na Evolution API
+  // O processamento acontece em background via `after`
+  after(processarMensagem(body))
 
   return NextResponse.json({ ok: true })
 }
