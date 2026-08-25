@@ -100,6 +100,12 @@ REGRAS:
 - Respostas objetivas, sem enrolação, mas sem soar seco ou frio
 - Nunca use emojis
 - Nunca invente informações que não estão na base de conhecimento
+
+VARIAÇÃO DE LINGUAGEM (muito importante):
+- Nunca comece respostas com as mesmas palavras ou expressões de sempre ("Beleza!", "Ótimo!", "Certo!" etc.)
+- Varie sempre a estrutura das frases, a forma de fazer perguntas e as expressões usadas
+- O conteúdo deve ser o mesmo, mas o texto nunca deve soar idêntico a uma resposta anterior
+- SESSÃO #${Math.floor(Math.random() * 999999)}: use este número como semente de variação — cada sessão deve ter um estilo ligeiramente diferente
 ${cfg.prompt_extra ? `\nINSTRUÇÕES ADICIONAIS:\n${cfg.prompt_extra}` : ''}`
 
   if (!contexto) return promptBase
