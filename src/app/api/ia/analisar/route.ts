@@ -3,6 +3,10 @@ import { supabaseServer } from '@/lib/supabase-server'
 import { gerarToken } from '@/lib/token'
 import { Resend } from 'resend'
 
+// Gemini pode demorar até ~25s; sem maxDuration a função era cortada pelo
+// Vercel no padrão da plataforma (~10s) antes de terminar a análise.
+export const maxDuration = 60
+
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 const RIGOR_INSTRUCAO: Record<string, string> = {
@@ -64,6 +68,7 @@ Não inclua nada além do JSON.`
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: { temperature: 0.1, maxOutputTokens: 200 },
         }),
+        signal: AbortSignal.timeout(30000),
       }
     )
 
