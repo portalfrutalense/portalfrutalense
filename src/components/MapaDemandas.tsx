@@ -144,7 +144,7 @@ export default function MapaDemandas() {
       const zoom = window.innerWidth <= 600 ? 13 : 14
       const mapa = L.map(mapRef.current!, {
         zoomControl: false,
-        maxBounds: [[-20.18, -49.07], [-19.87, -48.75]],
+        maxBounds: [[-20.24, -49.13], [-19.81, -48.69]],
         maxBoundsViscosity: 1.0,
         minZoom: 12,
       }).setView([FRUTAL_LAT, FRUTAL_LNG], zoom)
