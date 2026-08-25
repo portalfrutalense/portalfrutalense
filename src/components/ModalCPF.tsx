@@ -10,8 +10,21 @@ function capitalizarNome(str: string) {
 }
 
 function formatarWhatsapp(valor: string) {
-  // Mantém só dígitos, máximo 13 (55 + DDD + 9 dígitos)
   return valor.replace(/\D/g, '').slice(0, 13)
+}
+
+function mascaraData(valor: string) {
+  const d = valor.replace(/\D/g, '').slice(0, 8)
+  if (d.length <= 2) return d
+  if (d.length <= 4) return d.slice(0, 2) + '/' + d.slice(2)
+  return d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4)
+}
+
+// Converte dd/mm/aaaa → aaaa-mm-dd para salvar no banco
+function dataParaISO(valor: string) {
+  const partes = valor.split('/')
+  if (partes.length !== 3 || partes[2].length !== 4) return null
+  return `${partes[2]}-${partes[1]}-${partes[0]}`
 }
 
 export default function ModalCPF() {
@@ -22,7 +35,7 @@ export default function ModalCPF() {
     capitalizarNome(user?.user_metadata?.full_name || user?.user_metadata?.name || '')
   )
   const [whatsapp, setWhatsapp] = useState('')
-  const [dataNascimento, setDataNascimento] = useState('')
+  const [dataNascimento, setDataNascimento] = useState('')  // dd/mm/aaaa
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
 
@@ -36,6 +49,9 @@ export default function ModalCPF() {
     setErro('')
     if (!nome.trim()) { setErro('Informe seu nome completo.'); return }
     if (!validarCPF(cpf)) { setErro('CPF inválido. Verifique e tente novamente.'); return }
+    const dataISO = dataParaISO(dataNascimento)
+    if (!dataISO) { setErro('Data de nascimento inválida. Use o formato dd/mm/aaaa.'); return }
+    if (!whatsapp || whatsapp.length < 12) { setErro('Informe o WhatsApp com código do país e DDD.'); return }
     if (!user) return
     setEnviando(true)
     try {
@@ -49,9 +65,9 @@ export default function ModalCPF() {
       const campos: Record<string, unknown> = {
         nome: nome.trim(),
         cpf: cpfLimpo,
+        whatsapp,
+        data_nascimento: dataISO,
       }
-      if (whatsapp) campos.whatsapp = whatsapp
-      if (dataNascimento) campos.data_nascimento = dataNascimento
 
       let error
       if (perfilExistente) {
@@ -61,10 +77,8 @@ export default function ModalCPF() {
       }
       if (error) throw error
 
-      // Se informou WhatsApp, vincula conversa pendente (se houver)
-      if (whatsapp) {
-        await supabase.from('whatsapp_conversas').update({ user_id: user.id }).eq('telefone', whatsapp)
-      }
+      // Vincula conversa WhatsApp pendente (se houver)
+      await supabase.from('whatsapp_conversas').update({ user_id: user.id }).eq('telefone', whatsapp)
 
       setPerfil({ id: user.id, nome: nome.trim(), cpf: cpfLimpo, email: user.email || undefined, role: perfilExistente?.role })
     } catch (e) {
@@ -82,14 +96,7 @@ export default function ModalCPF() {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
       <div style={{ background: 'white', borderRadius: '12px', width: '100%', maxWidth: '380px', overflow: 'hidden' }}>
-        {/* Header */}
-        <div style={{ background: '#4256c8', padding: '24px', textAlign: 'center' }}>
-          <div style={{ fontWeight: 800, fontSize: '18px', color: 'white' }}>Quase lá!</div>
-          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', marginTop: '4px' }}>Complete seu cadastro</div>
-        </div>
-
-        {/* Body */}
-        <form onSubmit={handleEnviar} style={{ padding: '28px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <form onSubmit={handleEnviar} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div>
             <p style={{ fontSize: '14px', color: '#111827', margin: '0 0 4px', lineHeight: 1.5 }}>
               Para continuar, precisamos de mais algumas informações.
@@ -124,22 +131,26 @@ export default function ModalCPF() {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#111827', marginBottom: '6px' }}>Data de nascimento</label>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#111827', marginBottom: '6px' }}>Data de nascimento *</label>
             <input
-              type="date"
+              type="text"
               value={dataNascimento}
-              onChange={(e) => setDataNascimento(e.target.value)}
-              style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+              onChange={(e) => setDataNascimento(mascaraData(e.target.value))}
+              placeholder="dd/mm/aaaa"
+              maxLength={10}
+              required
+              style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box', letterSpacing: '0.05em' }}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#111827', marginBottom: '6px' }}>WhatsApp</label>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#111827', marginBottom: '6px' }}>WhatsApp *</label>
             <input
               type="tel"
               value={whatsapp}
               onChange={(e) => setWhatsapp(formatarWhatsapp(e.target.value))}
               placeholder="5534999999999"
+              required
               style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box', letterSpacing: '0.03em' }}
             />
             <p style={{ fontSize: '11px', color: '#6b7280', margin: '4px 0 0' }}>Com código do país e DDD. Ex: 5534999999999</p>
