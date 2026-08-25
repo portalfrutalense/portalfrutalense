@@ -10,6 +10,14 @@ export async function enviarWhatsapp(telefone: string, texto: string) {
   })
 }
 
+export async function enviarImagemWhatsapp(telefone: string, urlImagem: string, legenda?: string) {
+  await fetch(`${EVOLUTION_API_URL}/message/sendMedia/${EVOLUTION_INSTANCE}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_API_KEY! },
+    body: JSON.stringify({ number: telefone, mediatype: 'image', media: urlImagem, caption: legenda || '' }),
+  })
+}
+
 // Baixa e descriptografa a mídia de uma mensagem (foto), retorna base64 + mimetype
 export async function baixarMidiaWhatsapp(messageKey: unknown): Promise<{ base64: string; mimetype: string } | null> {
   try {

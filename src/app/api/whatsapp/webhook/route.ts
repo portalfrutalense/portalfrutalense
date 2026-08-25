@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import sharp from 'sharp'
 import { supabaseServer } from '@/lib/supabase-server'
-import { enviarWhatsapp, baixarMidiaWhatsapp } from '@/lib/whatsapp'
+import { enviarWhatsapp, enviarImagemWhatsapp, baixarMidiaWhatsapp } from '@/lib/whatsapp'
 
 const FRUTAL_LAT = -20.02752
 const FRUTAL_LNG = -48.92702
@@ -57,7 +57,17 @@ async function geocodificar(endereco: string): Promise<{ lat: number; lng: numbe
   }
 }
 
-async function montarSystemPrompt(nomeUsuario: string) {
+// Gera URL da imagem de satélite com pin via Mapbox Static API
+function urlMapaSatelite(lat: number, lng: number): string {
+  const pin = `pin-s+e53935(${lng},${lat})`
+  return `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${pin}/${lng},${lat},17,0/600x400@2x?access_token=${MAPBOX_TOKEN}`
+}
+
+async function montarSystemPrompt(nomeUsuario: string, contexto?: {
+  etapa: string
+  opcoes_autoridade?: { id: string; nome: string; cargo: string }[]
+  dados?: DadosPendentes
+}) {
   const [{ data: base }, { data: categorias }, { data: chatConfig }] = await Promise.all([
     supabaseServer.from('chatbot_base').select('titulo, conteudo').eq('ativo', true),
     supabaseServer.from('categorias_mapa').select('id, nome').eq('ativo', true),
@@ -67,7 +77,7 @@ async function montarSystemPrompt(nomeUsuario: string) {
   const categoriasTexto = (categorias || []).map((c) => `- ${c.nome} (id: ${c.id})`).join('\n')
   const cfg = chatConfig || ({} as Record<string, string>)
 
-  return `Você é um assistente virtual do CidadanIA Frutal, conversando por WhatsApp com ${nomeUsuario}.
+  const promptBase = `Você é um assistente virtual do CidadanIA Frutal, conversando por WhatsApp com ${nomeUsuario}.
 ${cfg.nome_bot ? `\nSeu nome é ${cfg.nome_bot}.` : ''}
 ${cfg.descricao_bot ? `\n${cfg.descricao_bot}` : ''}
 ${cfg.tom_voz ? `\nTOM DE VOZ:\n${cfg.tom_voz}` : ''}
@@ -86,11 +96,52 @@ Se nenhuma categoria for adequada, use categoria_nome:"Outros" e categoria_id:""
 Se não for um relato de problema, responda normalmente em texto.
 
 REGRAS:
-- Fale de um jeito natural e caloroso, como numa conversa real de WhatsApp — nada de tom robótico ou de atendimento automático. Pode usar contrações e expressões do dia a dia.
-- Respostas objetivas, sem enrolação, mas sem soar seco ou frio.
-- Nunca use emojis.
-- Nunca invente informações que não estão na base de conhecimento.
+- Fale de um jeito natural e caloroso, como numa conversa real de WhatsApp
+- Respostas objetivas, sem enrolação, mas sem soar seco ou frio
+- Nunca use emojis
+- Nunca invente informações que não estão na base de conhecimento
 ${cfg.prompt_extra ? `\nINSTRUÇÕES ADICIONAIS:\n${cfg.prompt_extra}` : ''}`
+
+  if (!contexto) return promptBase
+
+  // Blocos extras por etapa
+  if (contexto.etapa === 'escolher_autoridade') {
+    const lista = (contexto.opcoes_autoridade || []).map(a => `  - ${a.nome} (${a.cargo}) [id: ${a.id}]`).join('\n')
+    return promptBase + `\n\nFLUXO DE REGISTRO — ETAPA: ESCOLHER AUTORIDADE
+O cidadão quer registrar: "${contexto.dados?.descricao}" (categoria: ${contexto.dados?.categoria_nome}).
+Autoridades disponíveis:
+${lista}
+
+Apresente as opções de forma natural e pergunte qual(is) o cidadão quer acionar (até 3).
+Quando ele responder, identifique a(s) escolha(s) pelo nome ou cargo mencionado e responda EXATAMENTE com este JSON (nada mais, sem texto antes ou depois):
+{"action":"autoridade_escolhida","entidade_ids":["id_aqui"],"entidade_nomes":["Nome Aqui"]}
+Use APENAS os ids da lista acima. Se mencionar mais de uma, inclua todas nos arrays.
+Se a resposta for vaga ou não identificar nenhuma autoridade, peça que repita de forma mais clara — não retorne JSON nesse caso.`
+  }
+
+  if (contexto.etapa === 'perguntar_foto') {
+    return promptBase + `\n\nFLUXO DE REGISTRO — ETAPA: FOTO
+O endereço do local foi confirmado. Pergunte de forma natural e curta se o cidadão tem alguma foto do local para anexar. Apenas texto, sem JSON.`
+  }
+
+  if (contexto.etapa === 'resumo') {
+    const d = contexto.dados || {}
+    return promptBase + `\n\nFLUXO DE REGISTRO — ETAPA: RESUMO
+Apresente um resumo amigável e curto da demanda e peça confirmação ao cidadão:
+• Problema: ${d.descricao}
+• Categoria: ${d.categoria_nome}
+• Direcionada para: ${(d.entidades_nomes || []).join(', ')}
+• Endereço: ${d.endereco_label}
+• Foto: ${d.foto_url ? 'enviada' : 'não enviada'}
+Conclua pedindo ao cidadão que confirme ou cancele de forma natural. Apenas texto, sem JSON.`
+  }
+
+  if (contexto.etapa === 'confirmar_endereco') {
+    return promptBase + `\n\nFLUXO DE REGISTRO — ETAPA: CONFIRMAR ENDEREÇO
+Foi enviada uma imagem de satélite do local que o cidadão informou. Pergunte de forma natural e curta se aquele é o local correto. Apenas texto, sem JSON.`
+  }
+
+  return promptBase
 }
 
 type ParteGemini = { text: string } | { inline_data: { mime_type: string; data: string } }
@@ -105,9 +156,6 @@ async function chamarGemini(
     parts: [{ text: m.content }],
   }))
 
-  // A última entrada do histórico é a mensagem atual do usuário. Se veio áudio,
-  // troca a parte de texto pela parte de áudio (o Gemini entende o conteúdo falado
-  // diretamente, sem precisar de transcrição separada).
   if (audio && contents.length > 0) {
     const mimetypeLimpo = audio.mimetype.split(';')[0].trim()
     contents[contents.length - 1] = {
@@ -258,13 +306,23 @@ export async function POST(req: NextRequest) {
     const opcoes = entidades || []
 
     if (opcoes.length === 1) {
+      // Só uma autoridade — pula a etapa de escolha, vai direto pro endereço
       dados.entidades_ids = [opcoes[0].id]
       dados.entidades_nomes = [opcoes[0].nome]
-      await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_endereco', dados), enviarWhatsapp(telefone, `Beleza, sua demanda vai ser direcionada para ${opcoes[0].nome} (${opcoes[0].cargo}).\n\nAgora me conta: qual o endereço do local? Pode digitar ou, se preferir, é só compartilhar sua localização aqui pelo WhatsApp.`)])
+      historico.push({ role: 'user', content: 'sim' })
+      const systemPrompt = await montarSystemPrompt(nomeUsuario, { etapa: 'perguntar_endereco_direto', dados })
+      const msg = `Beleza! Sua demanda vai ser direcionada para ${opcoes[0].nome} (${opcoes[0].cargo}). Agora me conta: qual o endereço do local? Pode digitar ou compartilhar sua localização aqui no WhatsApp.`
+      historico.push({ role: 'assistant', content: msg })
+      void systemPrompt // montarSystemPrompt foi chamado só pra manter padrão — mensagem é fixa aqui
+      await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_endereco', dados), enviarWhatsapp(telefone, msg)])
     } else {
+      // Múltiplas autoridades — IA apresenta e pergunta
       dados.opcoes_autoridade = opcoes
-      const lista = opcoes.map((o, i) => `${i + 1}. ${o.nome} — ${o.cargo}`).join('\n')
-      await Promise.all([salvarHistorico(conversa.id, historico, 'escolher_autoridade', dados), enviarWhatsapp(telefone, `Pra quem você quer direcionar essa demanda? Pode escolher até 3 (responde com os números, separados por vírgula):\n\n${lista}`)])
+      historico.push({ role: 'user', content: 'sim' })
+      const systemPrompt = await montarSystemPrompt(nomeUsuario, { etapa: 'escolher_autoridade', opcoes_autoridade: opcoes, dados })
+      const resposta = await chamarGemini(systemPrompt, historico)
+      historico.push({ role: 'assistant', content: resposta })
+      await Promise.all([salvarHistorico(conversa.id, historico, 'escolher_autoridade', dados), enviarWhatsapp(telefone, resposta)])
     }
     return NextResponse.json({ ok: true })
   }
@@ -272,7 +330,6 @@ export async function POST(req: NextRequest) {
   // ── Etapa: sem autoridade (encerra o fluxo, próxima msg volta ao normal) ──
   if (etapa === 'sem_autoridade') {
     await salvarHistorico(conversa.id, historico, 'nenhuma', null)
-    // cai no bloco 'nenhuma' na próxima mensagem — essa apenas limpa a etapa
     const systemPrompt = await montarSystemPrompt(nomeUsuario)
     historico.push({ role: 'user', content: texto || '...' })
     const resposta = await chamarGemini(systemPrompt, historico)
@@ -281,43 +338,106 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  // ── Etapa: escolher autoridade(s) ──
+  // ── Etapa: escolher autoridade — IA conduz, identifica escolha via JSON ──
   if (etapa === 'escolher_autoridade') {
     const opcoes = dados.opcoes_autoridade || []
-    const indices = texto.split(/[,e]/i).map((s) => parseInt(s.trim(), 10)).filter((n) => !isNaN(n) && n >= 1 && n <= opcoes.length).slice(0, 3)
-    if (indices.length === 0) {
-      await enviarWhatsapp(telefone, 'Não entendi qual você escolheu — responde com o número da lista, tipo 1 ou 1,2.')
-      return NextResponse.json({ ok: true })
+    historico.push({ role: 'user', content: texto })
+    const systemPrompt = await montarSystemPrompt(nomeUsuario, { etapa: 'escolher_autoridade', opcoes_autoridade: opcoes, dados })
+    const resposta = await chamarGemini(systemPrompt, historico)
+
+    // Tenta parsear como JSON de ação pura
+    let jsonAction: Record<string, unknown> | null = null
+    try {
+      const trimmed = resposta.trim()
+      if (trimmed.startsWith('{')) jsonAction = JSON.parse(trimmed)
+    } catch { /* não é JSON */ }
+
+    if (jsonAction?.action === 'autoridade_escolhida') {
+      const escolhidosIds = (jsonAction.entidade_ids as string[]) || []
+      const escolhidosNomes = (jsonAction.entidade_nomes as string[]) || []
+      dados.entidades_ids = escolhidosIds
+      dados.entidades_nomes = escolhidosNomes
+      const msgConfirm = `Ótimo! Direcionada para: ${escolhidosNomes.join(', ')}. Agora me conta onde fica o local — pode digitar o endereço ou compartilhar sua localização aqui no WhatsApp.`
+      historico.push({ role: 'assistant', content: msgConfirm })
+      await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_endereco', dados), enviarWhatsapp(telefone, msgConfirm)])
+    } else {
+      // IA ainda está pedindo mais clareza ou apresentando opções
+      historico.push({ role: 'assistant', content: resposta })
+      await Promise.all([salvarHistorico(conversa.id, historico, 'escolher_autoridade', dados), enviarWhatsapp(telefone, resposta)])
     }
-    const escolhidas = [...new Set(indices)].map((i) => opcoes[i - 1])
-    dados.entidades_ids = escolhidas.map((e) => e.id)
-    dados.entidades_nomes = escolhidas.map((e) => e.nome)
-    await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_endereco', dados), enviarWhatsapp(telefone, `Beleza, direcionada para: ${dados.entidades_nomes.join(', ')}.\n\nAgora me conta: qual o endereço do local? Pode digitar ou, se preferir, é só compartilhar sua localização aqui pelo WhatsApp.`)])
     return NextResponse.json({ ok: true })
   }
 
-  // ── Etapa: endereço (texto ou localização) ──
+  // ── Etapa: endereço (texto ou localização compartilhada) ──
   if (etapa === 'perguntar_endereco') {
+    let lat: number | null = null
+    let lng: number | null = null
+    let label: string | null = null
+
     if (location?.degreesLatitude && location?.degreesLongitude) {
-      dados.lat = location.degreesLatitude
-      dados.lng = location.degreesLongitude
-      dados.endereco_label = 'Localização compartilhada pelo WhatsApp'
-      await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_foto', dados), enviarWhatsapp(telefone, 'Localização recebida! Se puder, envie uma foto do local — ajuda bastante a autoridade a entender o problema. Se não tiver, é só responder "sem foto".')])
+      lat = location.degreesLatitude
+      lng = location.degreesLongitude
+      label = 'Localização compartilhada pelo WhatsApp'
+    } else if (texto) {
+      const geo = await geocodificar(texto)
+      if (!geo) {
+        await enviarWhatsapp(telefone, 'Não consegui encontrar esse endereço perto de Frutal. Tenta descrever de outro jeito, ou manda sua localização direto pelo WhatsApp.')
+        return NextResponse.json({ ok: true })
+      }
+      lat = geo.lat
+      lng = geo.lng
+      label = geo.label
+    } else {
+      await enviarWhatsapp(telefone, 'Pode me mandar o endereço em texto, ou compartilhar sua localização aqui pelo WhatsApp.')
       return NextResponse.json({ ok: true })
     }
-    if (!texto) {
-      await enviarWhatsapp(telefone, 'Pode me mandar o endereço em texto, ou compartilhar sua localização mesmo pelo WhatsApp.')
+
+    dados.lat = lat
+    dados.lng = lng
+    dados.endereco_label = label
+
+    // Envia imagem de satélite para confirmar o local
+    const urlSatelite = urlMapaSatelite(lat, lng)
+    historico.push({ role: 'user', content: `Endereço informado: ${label}` })
+    const systemPrompt = await montarSystemPrompt(nomeUsuario, { etapa: 'confirmar_endereco', dados })
+    const msgConfirm = await chamarGemini(systemPrompt, historico)
+    historico.push({ role: 'assistant', content: msgConfirm })
+
+    await Promise.all([
+      salvarHistorico(conversa.id, historico, 'confirmar_endereco', dados),
+      enviarImagemWhatsapp(telefone, urlSatelite, label ?? undefined),
+    ])
+    await enviarWhatsapp(telefone, msgConfirm)
+    return NextResponse.json({ ok: true })
+  }
+
+  // ── Etapa: confirmar endereço (após ver a imagem de satélite) ──
+  if (etapa === 'confirmar_endereco') {
+    const positivo = /^(sim|s|é|isso|correto|certo|ok|esse mesmo|exato|confirmo)/i.test(texto)
+    const negativo = /^(n[aã]o|errado|incorreto|outro|diferente)/i.test(texto)
+
+    if (negativo) {
+      historico.push({ role: 'user', content: texto })
+      const msg = 'Tudo bem! Me manda o endereço correto então — pode digitar ou compartilhar sua localização pelo WhatsApp.'
+      historico.push({ role: 'assistant', content: msg })
+      dados.lat = undefined
+      dados.lng = undefined
+      dados.endereco_label = undefined
+      await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_endereco', dados), enviarWhatsapp(telefone, msg)])
       return NextResponse.json({ ok: true })
     }
-    const geo = await geocodificar(texto)
-    if (!geo) {
-      await enviarWhatsapp(telefone, 'Não consegui encontrar esse endereço perto de Frutal. Tenta descrever de outro jeito, ou manda sua localização direto pelo WhatsApp.')
+
+    if (!positivo) {
+      await enviarWhatsapp(telefone, 'Esse é o local certo? Responde com "sim" ou "não".')
       return NextResponse.json({ ok: true })
     }
-    dados.lat = geo.lat
-    dados.lng = geo.lng
-    dados.endereco_label = geo.label
-    await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_foto', dados), enviarWhatsapp(telefone, `Endereço confirmado: ${geo.label}\n\nSe puder, envie uma foto do local — ajuda bastante a autoridade a entender o problema. Se não tiver, é só responder "sem foto".`)])
+
+    // Endereço confirmado — IA pergunta sobre foto
+    historico.push({ role: 'user', content: texto })
+    const systemPrompt = await montarSystemPrompt(nomeUsuario, { etapa: 'perguntar_foto', dados })
+    const msgFoto = await chamarGemini(systemPrompt, historico)
+    historico.push({ role: 'assistant', content: msgFoto })
+    await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_foto', dados), enviarWhatsapp(telefone, msgFoto)])
     return NextResponse.json({ ok: true })
   }
 
@@ -328,8 +448,6 @@ export async function POST(req: NextRequest) {
       if (midia) {
         try {
           const bufferOriginal = Buffer.from(midia.base64, 'base64')
-          // Comprime antes de subir pro Supabase — mesmo espírito da compressão
-          // que o site já faz no navegador (máx. 600px, qualidade baixa)
           const bufferComprimido = await sharp(bufferOriginal)
             .resize(600, 600, { fit: 'inside', withoutEnlargement: true })
             .jpeg({ quality: 50 })
@@ -340,7 +458,7 @@ export async function POST(req: NextRequest) {
             dados.foto_url = supabaseServer.storage.from('demandas-fotos').getPublicUrl(path).data.publicUrl
           }
         } catch {
-          // Falha ao comprimir/subir — segue sem foto, avisado abaixo
+          // Falha ao comprimir/subir — segue sem foto
         }
       }
       if (!dados.foto_url) await enviarWhatsapp(telefone, 'Não consegui processar essa foto, mas sem problema, vou seguir sem ela.')
@@ -351,7 +469,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    const resumo = `Prontinho! Dá uma conferida antes de eu registrar:\n\nEndereço: ${dados.endereco_label}\nCategoria: ${dados.categoria_nome}\nDirecionada para: ${dados.entidades_nomes?.join(', ')}\nDescrição: ${dados.descricao}\n${dados.foto_url ? 'Com foto anexada\n' : ''}\nPosso registrar? (confirmar ou cancelar)`
+    // IA gera o resumo
+    historico.push({ role: 'user', content: dados.foto_url ? '[Foto enviada]' : 'Sem foto' })
+    const systemPrompt = await montarSystemPrompt(nomeUsuario, { etapa: 'resumo', dados })
+    const resumo = await chamarGemini(systemPrompt, historico)
+    historico.push({ role: 'assistant', content: resumo })
     await Promise.all([salvarHistorico(conversa.id, historico, 'resumo', dados), enviarWhatsapp(telefone, resumo)])
     return NextResponse.json({ ok: true })
   }
@@ -362,8 +484,8 @@ export async function POST(req: NextRequest) {
       await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, 'Beleza, cancelei o registro. Posso ajudar com mais alguma coisa?')])
       return NextResponse.json({ ok: true })
     }
-    if (!/^confirmar/i.test(texto)) {
-      await enviarWhatsapp(telefone, 'Só responde "confirmar" ou "cancelar" que eu sigo daqui.')
+    if (!/^(confirmar|confirmo|sim|pode|ok|vai|registra|registrar)/i.test(texto)) {
+      await enviarWhatsapp(telefone, 'Responde "confirmar" pra eu registrar, ou "cancelar" se quiser desistir.')
       return NextResponse.json({ ok: true })
     }
     if (!perfilLigado || !dados.lat || !dados.lng || !dados.categoria_id || !dados.entidades_ids?.length) {
