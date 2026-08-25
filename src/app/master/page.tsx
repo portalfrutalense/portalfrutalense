@@ -808,7 +808,7 @@ function MasterDemandas({ token }: { token: string | null }) {
                   <div key={v.id} style={{ fontSize: '12px', color: '#166534', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 10px', lineHeight: 1.5 }}>
                     <strong>{v.entidade?.nome || 'Autoridade'}:</strong> {v.resposta}
                     <div style={{ marginTop: '4px', fontSize: '11px', color: '#9ca3af', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                      {v.respondido_em && <span>🕐 {new Date(v.respondido_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>}
+                      {v.respondida_em && <span>🕐 {new Date(v.respondida_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>}
                       {v.resposta_ip && <span>🌐 {v.resposta_ip}</span>}
                     </div>
                   </div>
