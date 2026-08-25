@@ -29,15 +29,20 @@ export default function ModalCPF() {
     if (!nome.trim()) { setErro('Informe seu nome completo.'); setEnviando(false); return }
     try {
       const cpfLimpo = cpf.replace(/\D/g, '')
-      const { error } = await supabase.from('perfis').upsert({
-        id: user.id,
-        nome: nome.trim(),
-        cpf: cpfLimpo,
-        email: user.email || null,
-        role: 'cidadao',
-      })
+
+      // Verifica se o perfil já existe (ex: usuário master que ainda não preencheu CPF)
+      const { data: perfilExistente } = await supabase.from('perfis').select('id, role').eq('id', user.id).maybeSingle()
+
+      let error
+      if (perfilExistente) {
+        // Já existe — atualiza só nome e CPF, sem alterar o role
+        ;({ error } = await supabase.from('perfis').update({ nome: nome.trim(), cpf: cpfLimpo }).eq('id', user.id))
+      } else {
+        // Novo usuário — insere com role cidadao
+        ;({ error } = await supabase.from('perfis').insert({ id: user.id, nome: nome.trim(), cpf: cpfLimpo, email: user.email || null, role: 'cidadao' }))
+      }
       if (error) throw error
-      setPerfil({ id: user.id, nome: nome.trim(), cpf: cpfLimpo, email: user.email || undefined })
+      setPerfil({ id: user.id, nome: nome.trim(), cpf: cpfLimpo, email: user.email || undefined, role: perfilExistente?.role })
     } catch {
       setErro('Erro ao salvar. Tente novamente.')
     } finally {
