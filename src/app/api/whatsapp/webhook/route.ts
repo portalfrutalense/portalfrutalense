@@ -425,8 +425,7 @@ async function processarMensagem(body: EvolutionWebhookBody) {
       historico.push({ role: 'assistant', content: msg })
 
       if (!perfilLigado) {
-        const linkVinculo = `${process.env.NEXT_PUBLIC_SITE_URL}/vincular-whatsapp?tel=${telefone}`
-        const msgVinculo = `Antes de registrar, preciso confirmar sua identidade. Entre nesse link pra vincular sua conta:\n${linkVinculo}\n\nDepois de vincular, volta aqui que a gente continua.`
+        const msgVinculo = `Pra registrar sua demanda, você precisa ter uma conta no Portal Frutalense. Cria a sua aqui — é rápido:\n${process.env.NEXT_PUBLIC_SITE_URL}\n\nAo se cadastrar, coloca seu número de WhatsApp e depois volta aqui que a gente continua.`
         await Promise.all([salvarHistorico(conversa.id, historico, 'aguardando_vinculo', novosDados), enviarWhatsapp(telefone, msgVinculo)])
       } else {
         await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_registrar', novosDados), enviarWhatsapp(telefone, msg)])
@@ -447,8 +446,7 @@ async function processarMensagem(body: EvolutionWebhookBody) {
         enviarWhatsapp(telefone, `Prontinho, sua conta foi vinculada! Vamos continuar: confirma que quer registrar "${dados.descricao}"? (sim ou não)`),
       ])
     } else {
-      const linkVinculo = `${process.env.NEXT_PUBLIC_SITE_URL}/vincular-whatsapp?tel=${telefone}`
-      await enviarWhatsapp(telefone, `Ainda não vi sua conta vinculada por aqui. Termina o cadastro nesse link e volta que a gente continua:\n${linkVinculo}`)
+      await enviarWhatsapp(telefone, `Ainda não encontrei sua conta por aqui. Termina o cadastro no site — não esquece de colocar seu número de WhatsApp — e volta que a gente continua:\n${process.env.NEXT_PUBLIC_SITE_URL}`)
     }
     return
   }

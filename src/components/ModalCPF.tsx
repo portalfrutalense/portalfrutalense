@@ -5,13 +5,24 @@ import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from './AuthProvider'
 import { validarCPF, formatarCPF } from '@/lib/cpf'
 
+function capitalizarNome(str: string) {
+  return str.toLowerCase().replace(/(?:^|\s)\S/g, (c) => c.toUpperCase())
+}
+
+function formatarWhatsapp(valor: string) {
+  // Mantém só dígitos, máximo 13 (55 + DDD + 9 dígitos)
+  return valor.replace(/\D/g, '').slice(0, 13)
+}
+
 export default function ModalCPF() {
   const { user, setPerfil, sair } = useAuth()
   const supabase = createClient()
   const [cpf, setCpf] = useState('')
   const [nome, setNome] = useState(
-    user?.user_metadata?.full_name || user?.user_metadata?.name || ''
+    capitalizarNome(user?.user_metadata?.full_name || user?.user_metadata?.name || '')
   )
+  const [whatsapp, setWhatsapp] = useState('')
+  const [dataNascimento, setDataNascimento] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
 
@@ -23,10 +34,10 @@ export default function ModalCPF() {
   async function handleEnviar(e: React.FormEvent) {
     e.preventDefault()
     setErro('')
+    if (!nome.trim()) { setErro('Informe seu nome completo.'); return }
     if (!validarCPF(cpf)) { setErro('CPF inválido. Verifique e tente novamente.'); return }
     if (!user) return
     setEnviando(true)
-    if (!nome.trim()) { setErro('Informe seu nome completo.'); setEnviando(false); return }
     try {
       const cpfLimpo = cpf.replace(/\D/g, '')
 
@@ -35,26 +46,31 @@ export default function ModalCPF() {
         .from('perfis').select('id, role').eq('id', user.id).maybeSingle()
       if (erroLeitura) throw erroLeitura
 
+      const campos: Record<string, unknown> = {
+        nome: nome.trim(),
+        cpf: cpfLimpo,
+      }
+      if (whatsapp) campos.whatsapp = whatsapp
+      if (dataNascimento) campos.data_nascimento = dataNascimento
+
       let error
       if (perfilExistente) {
-        // Já existe — atualiza só nome e CPF, sem alterar o role (o gatilho
-        // bloquear_autopromocao_perfil rejeita qualquer mudança de role vinda
-        // do cliente, então nem enviamos o campo)
-        ;({ error } = await supabase.from('perfis').update({ nome: nome.trim(), cpf: cpfLimpo }).eq('id', user.id))
+        ;({ error } = await supabase.from('perfis').update(campos).eq('id', user.id))
       } else {
-        // Novo usuário — insere com role cidadao
-        ;({ error } = await supabase.from('perfis').insert({ id: user.id, nome: nome.trim(), cpf: cpfLimpo, email: user.email || null, role: 'cidadao' }))
+        ;({ error } = await supabase.from('perfis').insert({ id: user.id, email: user.email || null, role: 'cidadao', ...campos }))
       }
       if (error) throw error
+
+      // Se informou WhatsApp, vincula conversa pendente (se houver)
+      if (whatsapp) {
+        await supabase.from('whatsapp_conversas').update({ user_id: user.id }).eq('telefone', whatsapp)
+      }
+
       setPerfil({ id: user.id, nome: nome.trim(), cpf: cpfLimpo, email: user.email || undefined, role: perfilExistente?.role })
     } catch (e) {
-      // Mensagem genérica escondia a causa e tornava o problema indiagnosticável.
-      // O erro é sobre o próprio registro de quem está preenchendo, então
-      // mostrar o detalhe aqui não expõe dado de terceiro.
       const err = e as { message?: string; code?: string; details?: string; hint?: string }
       console.error('[ModalCPF] falha ao salvar perfil:', {
         code: err.code, message: err.message, details: err.details, hint: err.hint,
-        caminho: 'perfil existente? ver acima',
       })
       const detalhe = [err.code, err.message].filter(Boolean).join(' — ')
       setErro(detalhe ? `Erro ao salvar: ${detalhe}` : 'Erro ao salvar. Tente novamente.')
@@ -78,7 +94,7 @@ export default function ModalCPF() {
             <p style={{ fontSize: '14px', color: '#111827', margin: '0 0 4px', lineHeight: 1.5 }}>
               Para continuar, precisamos de mais algumas informações.
             </p>
-            <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>Seu CPF nunca será exibido publicamente.</p>
+            <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>Seus dados nunca serão exibidos publicamente.</p>
           </div>
 
           <div>
@@ -94,12 +110,6 @@ export default function ModalCPF() {
             {nome && <p style={{ fontSize: '11px', color: '#6b7280', margin: '4px 0 0' }}>Pré-preenchido com sua conta Google. Corrija se necessário.</p>}
           </div>
 
-          {erro && (
-            <div style={{ color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>
-              {erro}
-            </div>
-          )}
-
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#111827', marginBottom: '6px' }}>CPF *</label>
             <input
@@ -112,6 +122,34 @@ export default function ModalCPF() {
               style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '11px 14px', fontSize: '15px', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box', letterSpacing: '0.05em' }}
             />
           </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#111827', marginBottom: '6px' }}>Data de nascimento</label>
+            <input
+              type="date"
+              value={dataNascimento}
+              onChange={(e) => setDataNascimento(e.target.value)}
+              style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#111827', marginBottom: '6px' }}>WhatsApp</label>
+            <input
+              type="tel"
+              value={whatsapp}
+              onChange={(e) => setWhatsapp(formatarWhatsapp(e.target.value))}
+              placeholder="5534999999999"
+              style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box', letterSpacing: '0.03em' }}
+            />
+            <p style={{ fontSize: '11px', color: '#6b7280', margin: '4px 0 0' }}>Com código do país e DDD. Ex: 5534999999999</p>
+          </div>
+
+          {erro && (
+            <div style={{ color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>
+              {erro}
+            </div>
+          )}
 
           <button
             type="submit"

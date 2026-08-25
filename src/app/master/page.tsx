@@ -849,6 +849,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
   const [editCpf, setEditCpf] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editWhatsapp, setEditWhatsapp] = useState('')
+  const [editDataNascimento, setEditDataNascimento] = useState('')
   const [editCargo, setEditCargo] = useState('')
   const [editCats, setEditCats] = useState<string[]>([])
   const [notif, setNotif] = useState('')
@@ -922,7 +923,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
   async function salvarEdicao(id: string) {
     const t = await getToken()
     const perfil = perfis.find(p => p.id === id)
-    const body: any = { id, nome: editNome, cpf: editCpf, email: editEmail, whatsapp: editWhatsapp || null }
+    const body: any = { id, nome: editNome, cpf: editCpf, email: editEmail, whatsapp: editWhatsapp || null, data_nascimento: editDataNascimento || null }
     if (perfil?.role === 'autoridade') {
       body.cargo = editCargo
       body.categorias = editCats
@@ -1092,7 +1093,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
                     <>
                       <div onClick={() => setMenuAbertoId(null)} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
                       <div style={{ position: 'absolute', top: '28px', right: 0, background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', minWidth: '160px', zIndex: 20, padding: '4px 0' }}>
-                        <button onClick={() => { setEditandoId(p.id); setEditNome(p.nome || ''); setEditCpf(p.cpf || ''); setEditEmail(p.email || ''); setEditWhatsapp(p.whatsapp || ''); setEditCargo(p.cargo || ''); setEditCats(catEntidades[p.id] || []); setMenuAbertoId(null) }}
+                        <button onClick={() => { setEditandoId(p.id); setEditNome(p.nome || ''); setEditCpf(p.cpf || ''); setEditEmail(p.email || ''); setEditWhatsapp(p.whatsapp || ''); setEditDataNascimento(p.data_nascimento || ''); setEditCargo(p.cargo || ''); setEditCats(catEntidades[p.id] || []); setMenuAbertoId(null) }}
                           style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#111827', background: 'none', border: 'none', cursor: 'pointer' }}>
                           Editar
                         </button>
@@ -1124,6 +1125,8 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
                     <input value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="E-mail"
                       style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
                     <input value={editWhatsapp} onChange={e => setEditWhatsapp(e.target.value)} placeholder="WhatsApp (ex: 5534999999999)"
+                      style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
+                    <input type="date" value={editDataNascimento} onChange={e => setEditDataNascimento(e.target.value)} placeholder="Data de nascimento"
                       style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
                     {p.role === 'autoridade' && (
                       <>
@@ -1170,6 +1173,9 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
                     )}
                     {p.whatsapp && (
                       <span style={{ fontSize: '12px', color: '#6b7280' }}>WhatsApp: {p.whatsapp}</span>
+                    )}
+                    {p.data_nascimento && (
+                      <span style={{ fontSize: '12px', color: '#6b7280' }}>Nascimento: {new Date(p.data_nascimento + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
                     )}
                     {p.role === 'autoridade' && catEntidades[p.id]?.length > 0 && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '2px' }}>
