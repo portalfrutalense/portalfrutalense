@@ -9,8 +9,17 @@ function capitalizarNome(str: string) {
   return str.toLowerCase().replace(/(?:^|\s)\S/g, (c) => c.toUpperCase())
 }
 
-function formatarWhatsapp(valor: string) {
-  return valor.replace(/\D/g, '').slice(0, 13)
+function mascaraWhatsapp(valor: string) {
+  // Aceita só dígitos, máximo 11 (DDD + 9 dígitos)
+  const d = valor.replace(/\D/g, '').slice(0, 11)
+  if (d.length <= 2) return d
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+}
+
+function whatsappParaSalvar(valor: string) {
+  // Remove máscara e adiciona 55 na frente
+  return '55' + valor.replace(/\D/g, '')
 }
 
 function mascaraData(valor: string) {
@@ -51,7 +60,8 @@ export default function ModalCPF() {
     if (!validarCPF(cpf)) { setErro('CPF inválido. Verifique e tente novamente.'); return }
     const dataISO = dataParaISO(dataNascimento)
     if (!dataISO) { setErro('Data de nascimento inválida. Use o formato dd/mm/aaaa.'); return }
-    if (!whatsapp || whatsapp.length < 12) { setErro('Informe o WhatsApp com código do país e DDD.'); return }
+    const whatsappLimpo = whatsapp.replace(/\D/g, '')
+    if (whatsappLimpo.length < 11) { setErro('Informe o WhatsApp com DDD e os 9 dígitos.'); return }
     if (!user) return
     setEnviando(true)
     try {
@@ -65,7 +75,7 @@ export default function ModalCPF() {
       const campos: Record<string, unknown> = {
         nome: nome.trim(),
         cpf: cpfLimpo,
-        whatsapp,
+        whatsapp: whatsappParaSalvar(whatsapp),
         data_nascimento: dataISO,
       }
 
@@ -78,7 +88,7 @@ export default function ModalCPF() {
       if (error) throw error
 
       // Vincula conversa WhatsApp pendente (se houver)
-      await supabase.from('whatsapp_conversas').update({ user_id: user.id }).eq('telefone', whatsapp)
+      await supabase.from('whatsapp_conversas').update({ user_id: user.id }).eq('telefone', whatsappParaSalvar(whatsapp))
 
       setPerfil({ id: user.id, nome: nome.trim(), cpf: cpfLimpo, email: user.email || undefined, role: perfilExistente?.role })
     } catch (e) {
@@ -148,12 +158,12 @@ export default function ModalCPF() {
             <input
               type="tel"
               value={whatsapp}
-              onChange={(e) => setWhatsapp(formatarWhatsapp(e.target.value))}
-              placeholder="5534999999999"
+              onChange={(e) => setWhatsapp(mascaraWhatsapp(e.target.value))}
+              placeholder="(34) 99999-9999"
               required
               style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box', letterSpacing: '0.03em' }}
             />
-            <p style={{ fontSize: '11px', color: '#6b7280', margin: '4px 0 0' }}>Com código do país e DDD. Ex: 5534999999999</p>
+            <p style={{ fontSize: '11px', color: '#6b7280', margin: '4px 0 0' }}>DDD + número. Ex: (34) 99999-9999</p>
           </div>
 
           {erro && (
