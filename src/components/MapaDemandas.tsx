@@ -11,7 +11,7 @@ import { Demanda, CategoriaMapa, Entidade, DemandaEntidade } from '@/types'
 const FRUTAL_LAT = -20.02752
 const FRUTAL_LNG = -48.92702
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-const TILE_SATELITE = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
+const TILE_SATELITE = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
 const TILE_RUA = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
 
 function titleCase(str?: string) {
@@ -147,7 +147,7 @@ export default function MapaDemandas() {
         maxBounds: [[-20.1529, -49.30], [-19.8869, -48.73]],
         maxBoundsViscosity: 1.0,
         minZoom: 12,
-        maxZoom: 22,
+        maxZoom: 19,
       }).setView([FRUTAL_LAT, FRUTAL_LNG], zoom)
       const tile = L.tileLayer(TILE_SATELITE, { attribution: '© Mapbox', maxZoom: 22 })
       tile.addTo(mapa)

@@ -649,7 +649,7 @@ function MasterDemandas({ token }: { token: string | null }) {
                 {titleCase(d.morador_nome)} · {d.categoria?.nome ? titleCase(d.categoria.nome) : '—'}
               </span>
               <span style={{ fontSize: '11px', color: '#6b7280', flexShrink: 0 }}>
-                {new Date(d.created_at).toLocaleDateString('pt-BR')}
+                {new Date(d.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
               </span>
             </div>
 
@@ -807,6 +807,10 @@ function MasterDemandas({ token }: { token: string | null }) {
                 d.vinculos.filter((v: any) => v.resposta).map((v: any) => (
                   <div key={v.id} style={{ fontSize: '12px', color: '#166534', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 10px', lineHeight: 1.5 }}>
                     <strong>{v.entidade?.nome || 'Autoridade'}:</strong> {v.resposta}
+                    <div style={{ marginTop: '4px', fontSize: '11px', color: '#9ca3af', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                      {v.respondido_em && <span>🕐 {new Date(v.respondido_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>}
+                      {v.resposta_ip && <span>🌐 {v.resposta_ip}</span>}
+                    </div>
                   </div>
                 ))
               ) : d.resposta ? (

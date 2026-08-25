@@ -63,8 +63,8 @@ async function geocodificar(endereco: string): Promise<{ lat: number; lng: numbe
 
 // Gera URL da imagem de satélite com pin via Mapbox Static API
 function urlMapaSatelite(lat: number, lng: number): string {
-  const pin = `pin-s+e53935(${lng},${lat})`
-  return `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${pin}/${lng},${lat},17,0/600x400@2x?access_token=${MAPBOX_TOKEN}`
+  const pin = `pin-l+4256c8(${lng},${lat})`
+  return `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${pin}/${lng},${lat},19,0/600x400@2x?access_token=${MAPBOX_TOKEN}`
 }
 
 // Cache em memória para dados estáticos do Supabase (TTL: 5 minutos)
