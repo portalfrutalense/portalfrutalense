@@ -379,7 +379,15 @@ async function processarMensagem(body: EvolutionWebhookBody) {
   const dados: DadosPendentes = conversa.dados_pendentes || {}
   const etapa: string = conversa.etapa || 'nenhuma'
 
-  const { data: perfilLigado } = await supabaseServer.from('perfis').select('id, nome').eq('whatsapp', telefone).maybeSingle()
+  // Tenta os dois formatos de telefone (com e sem o 9º dígito) pois a Evolution
+  // às vezes omite o 9 em celulares BR (553491500046 vs 5534991500046)
+  const telefoneAlt = telefone.length === 13
+    ? telefone.slice(0, 4) + telefone.slice(5)
+    : telefone.slice(0, 4) + '9' + telefone.slice(4)
+  const { data: perfilLigado } = await supabaseServer
+    .from('perfis').select('id, nome, cpf')
+    .or(`whatsapp.eq.${telefone},whatsapp.eq.${telefoneAlt}`)
+    .maybeSingle()
   const nomeUsuario = perfilLigado?.nome?.split(' ')[0] || 'Cidadão'
 
   // ── Etapa: nenhuma (conversa livre + detecção) ──
