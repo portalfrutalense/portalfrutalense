@@ -425,15 +425,15 @@ async function processarMensagem(body: EvolutionWebhookBody) {
 
       // Mensagem fixa para perguntar sobre registro — evita segunda chamada ao Gemini
       const variacoes = [
-        `Entendido! Quer que eu registre essa demanda no sistema? Ela ficará visível no mapa e a autoridade responsável será notificada. (sim ou não)`,
-        `Recebi! Posso registrar essa demanda pra você? Ela vai aparecer no mapa público e a autoridade responsável será acionada. (sim ou não)`,
-        `Anotei o problema. Quer registrar essa demanda oficialmente? Ela ficará no mapa e a autoridade competente será notificada. (sim ou não)`,
+        `Entendido! Quer que eu registre essa demanda no sistema? Ela ficará visível para todos no mapa e a autoridade responsável será notificada.`,
+        `Recebi! Posso registrar essa demanda pra você? Ela vai aparecer para todos no mapa público e a autoridade responsável será acionada.`,
+        `Anotei o problema. Quer registrar essa demanda oficialmente? Ela ficará visível para todos no mapa e a autoridade competente será notificada.`,
       ]
       const msg = variacoes[Math.floor(Math.random() * variacoes.length)]
       historico.push({ role: 'assistant', content: msg })
 
       if (!perfilLigado) {
-        const msgVinculo = `${msg}\n\nPra isso, você precisa ter uma conta no Portal Frutalense. Cria a sua aqui — é rápido:\n${process.env.NEXT_PUBLIC_SITE_URL}\n\nAo se cadastrar, coloca seu número de WhatsApp e depois volta aqui que a gente continua.`
+        const msgVinculo = `${msg}\n\nPra isso, você precisa ter uma conta no Portal Frutalense. Faça o login aqui:\n${process.env.NEXT_PUBLIC_SITE_URL}\n\nDepois volta aqui que a gente continua...`
         await Promise.all([salvarHistorico(conversa.id, historico, 'aguardando_vinculo', novosDados), enviarWhatsapp(telefone, msgVinculo)])
       } else {
         await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_registrar', novosDados), enviarWhatsapp(telefone, msg)])
