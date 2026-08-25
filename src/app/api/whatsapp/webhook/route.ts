@@ -194,11 +194,16 @@ const MODELO_GEMINI = 'gemini-3.5-flash-lite'
 const TIMEOUT_GEMINI_MS = 25000
 const TENTATIVAS_GEMINI = 2
 
+// Retorna null quando todas as tentativas falham. Devolver uma string de erro
+// aqui fazia o texto "Desculpe, tive um problema" ser tratado como resposta
+// legítima e substituir o fallback determinístico da etapa — o cidadão recebia
+// o erro em vez da lista de autoridades, que nem precisava de IA pra ser
+// montada. Com null, cada chamador cai no seu próprio fallback.
 async function chamarGemini(
   systemPrompt: string,
   historico: { role: string; content: string }[],
   audio?: { base64: string; mimetype: string }
-) {
+): Promise<string | null> {
   const recente = historico.slice(-MAX_HISTORICO_GEMINI)
   const contents: { role: string; parts: ParteGemini[] }[] = recente.map((m) => ({
     role: m.role === 'assistant' ? 'model' : 'user',
@@ -231,7 +236,7 @@ async function chamarGemini(
       if (!res.ok) {
         const detalhe = await res.text()
         console.error(`[gemini] tentativa ${tentativa} ${ms}ms status=${res.status}: ${detalhe.slice(0, 300)}`)
-        if (res.status < 500) return 'Desculpe, tive um problema pra processar sua mensagem. Tente novamente.'
+        if (res.status < 500) return null
         continue
       }
 
@@ -248,7 +253,7 @@ async function chamarGemini(
     }
   }
 
-  return 'Desculpe, tive um problema pra processar sua mensagem. Pode mandar de novo?'
+  return null
 }
 
 // Localiza um objeto {"action":...} completo, contando chaves e ignorando as
@@ -274,7 +279,8 @@ function acharBlocoAcao(texto: string): { inicio: number; fim: number } | null {
   return null // objeto truncado
 }
 
-function extrairAcao(texto: string): Record<string, unknown> | null {
+function extrairAcao(texto: string | null): Record<string, unknown> | null {
+  if (!texto) return null
   const bloco = acharBlocoAcao(texto)
   if (!bloco) return null
   try {
@@ -286,7 +292,8 @@ function extrairAcao(texto: string): Record<string, unknown> | null {
 
 // Rede de segurança: o modelo às vezes devolve um JSON de ação numa etapa que
 // não esperava por ele. Sem isso o cidadão recebe o JSON cru no WhatsApp.
-function limparJsonDaResposta(texto: string, fallback: string): string {
+function limparJsonDaResposta(texto: string | null, fallback: string): string {
+  if (!texto) return fallback
   let limpo = texto
   for (let i = 0; i < 5; i++) {
     const bloco = acharBlocoAcao(limpo)
@@ -301,9 +308,9 @@ function limparJsonDaResposta(texto: string, fallback: string): string {
   return limpo.length >= 10 ? limpo : fallback
 }
 
-async function enviarTextoSeguro(telefone: string, texto: string, fallback: string) {
+async function enviarTextoSeguro(telefone: string, texto: string | null, fallback: string) {
   const limpo = limparJsonDaResposta(texto, fallback)
-  if (limpo !== texto.trim()) console.warn('[sanitize] JSON removido da resposta ao cidadao')
+  if (texto && limpo !== texto.trim()) console.warn('[sanitize] JSON removido da resposta ao cidadao')
   await enviarWhatsapp(telefone, limpo)
   return limpo
 }
@@ -396,38 +403,32 @@ async function processarMensagem(body: EvolutionWebhookBody) {
     const systemPrompt = await montarSystemPrompt(nomeUsuario)
     const resposta = await chamarGemini(systemPrompt, historico, audioParaGemini)
 
-    const jsonMatch = resposta.match(/\{"action":"detectar_demanda"[^}]+\}/)
-    if (jsonMatch) {
-      try {
-        const payload = JSON.parse(jsonMatch[0])
-        const novosDados: DadosPendentes = {
-          descricao: payload.descricao || texto || 'Problema relatado por áudio',
-          categoria_id: payload.categoria_id || '',
-          categoria_nome: payload.categoria_nome || 'Outros',
-        }
+    // Usa brace-counting (extrairAcao) em vez de regex simples: [^}]+ quebraria
+    // se a descrição do problema contiver "}" (ex: "buraco {perto do banco}"),
+    // e também perderia o JSON se o modelo adicionar texto antes dele.
+    const acaoDetectada = extrairAcao(resposta)
+    if (acaoDetectada?.action === 'detectar_demanda') {
+      const novosDados: DadosPendentes = {
+        descricao: (acaoDetectada.descricao as string) || texto || 'Problema relatado por áudio',
+        categoria_id: (acaoDetectada.categoria_id as string) || '',
+        categoria_nome: (acaoDetectada.categoria_nome as string) || 'Outros',
+      }
 
-        // Mensagem fixa para perguntar sobre registro — evita segunda chamada ao Gemini
-        const variacoes = [
-          `Entendido! Quer que eu registre essa demanda no sistema? Ela ficará visível no mapa e a autoridade responsável será notificada. (sim ou não)`,
-          `Recebi! Posso registrar essa demanda pra você? Ela vai aparecer no mapa público e a autoridade responsável será acionada. (sim ou não)`,
-          `Anotei o problema. Quer registrar essa demanda oficialmente? Ela ficará no mapa e a autoridade competente será notificada. (sim ou não)`,
-        ]
-        const msg = variacoes[Math.floor(Math.random() * variacoes.length)]
-        historico.push({ role: 'assistant', content: msg })
+      // Mensagem fixa para perguntar sobre registro — evita segunda chamada ao Gemini
+      const variacoes = [
+        `Entendido! Quer que eu registre essa demanda no sistema? Ela ficará visível no mapa e a autoridade responsável será notificada. (sim ou não)`,
+        `Recebi! Posso registrar essa demanda pra você? Ela vai aparecer no mapa público e a autoridade responsável será acionada. (sim ou não)`,
+        `Anotei o problema. Quer registrar essa demanda oficialmente? Ela ficará no mapa e a autoridade competente será notificada. (sim ou não)`,
+      ]
+      const msg = variacoes[Math.floor(Math.random() * variacoes.length)]
+      historico.push({ role: 'assistant', content: msg })
 
-        if (!perfilLigado) {
-          const linkVinculo = `${process.env.NEXT_PUBLIC_SITE_URL}/vincular-whatsapp?tel=${telefone}`
-          const msgVinculo = `Antes de registrar, preciso confirmar sua identidade. Entre nesse link pra vincular sua conta:\n${linkVinculo}\n\nDepois de vincular, volta aqui que a gente continua.`
-          await Promise.all([salvarHistorico(conversa.id, historico, 'aguardando_vinculo', novosDados), enviarWhatsapp(telefone, msgVinculo)])
-        } else {
-          await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_registrar', novosDados), enviarWhatsapp(telefone, msg)])
-        }
-      } catch (e) {
-        // O JSON veio malformado — nunca mandar ele cru pro cidadão.
-        console.error('[detectar_demanda] JSON invalido:', e)
-        const enviado = await enviarTextoSeguro(telefone, resposta, 'Entendi o que você relatou. Pode me contar um pouco mais sobre o problema?')
-        historico.push({ role: 'assistant', content: enviado })
-        await salvarHistorico(conversa.id, historico, 'nenhuma', null)
+      if (!perfilLigado) {
+        const linkVinculo = `${process.env.NEXT_PUBLIC_SITE_URL}/vincular-whatsapp?tel=${telefone}`
+        const msgVinculo = `Antes de registrar, preciso confirmar sua identidade. Entre nesse link pra vincular sua conta:\n${linkVinculo}\n\nDepois de vincular, volta aqui que a gente continua.`
+        await Promise.all([salvarHistorico(conversa.id, historico, 'aguardando_vinculo', novosDados), enviarWhatsapp(telefone, msgVinculo)])
+      } else {
+        await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_registrar', novosDados), enviarWhatsapp(telefone, msg)])
       }
     } else {
       const enviado = await enviarTextoSeguro(telefone, resposta, 'Pode me contar um pouco mais sobre isso?')
