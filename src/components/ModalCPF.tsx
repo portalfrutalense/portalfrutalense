@@ -47,6 +47,7 @@ export default function ModalCPF() {
   const [dataNascimento, setDataNascimento] = useState('')  // dd/mm/aaaa
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
+  const [voltarWhatsapp, setVoltarWhatsapp] = useState(false)
 
   function handleCPF(valor: string) {
     const limpo = valor.replace(/\D/g, '').slice(0, 11)
@@ -87,10 +88,21 @@ export default function ModalCPF() {
       }
       if (error) throw error
 
-      // Vincula conversa WhatsApp pendente (se houver)
-      await supabase.from('whatsapp_conversas').update({ user_id: user.id }).eq('telefone', whatsappParaSalvar(whatsapp))
+      // Vincula conversa WhatsApp pendente (se houver) e detecta se havia uma
+      const { data: conversasVinculadas } = await supabase
+        .from('whatsapp_conversas')
+        .update({ user_id: user.id })
+        .eq('telefone', whatsappParaSalvar(whatsapp))
+        .select('id')
+
+      const temConversaPendente = (conversasVinculadas?.length ?? 0) > 0
 
       setPerfil({ id: user.id, nome: nome.trim(), cpf: cpfLimpo, email: user.email || undefined, role: perfilExistente?.role })
+
+      if (temConversaPendente) {
+        setVoltarWhatsapp(true)
+        return // não fecha o modal ainda — mostra o botão de retorno
+      }
     } catch (e) {
       const err = e as { message?: string; code?: string; details?: string; hint?: string }
       console.error('[ModalCPF] falha ao salvar perfil:', {
@@ -101,6 +113,26 @@ export default function ModalCPF() {
     } finally {
       setEnviando(false)
     }
+  }
+
+  if (voltarWhatsapp) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+        <div style={{ background: 'white', borderRadius: '12px', width: '100%', maxWidth: '380px', padding: '32px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
+          <p style={{ fontSize: '32px', margin: 0 }}>✅</p>
+          <p style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>Cadastro concluído!</p>
+          <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>Volte para o WhatsApp e continue de onde parou.</p>
+          <a
+            href="https://wa.me/5534992115756?text=Pronto%2C+j%C3%A1+fiz+o+login"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ backgroundColor: '#25d366', color: 'white', fontWeight: 700, padding: '13px 24px', borderRadius: '8px', textDecoration: 'none', fontSize: '15px', width: '100%', boxSizing: 'border-box' }}
+          >
+            Retornar ao WhatsApp
+          </a>
+        </div>
+      </div>
+    )
   }
 
   return (
