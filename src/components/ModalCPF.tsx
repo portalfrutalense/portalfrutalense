@@ -191,7 +191,8 @@ export default function ModalCPF() {
                   headers: { Authorization: `Bearer ${session.access_token}` },
                 })
               }
-              await sair()
+              await supabase.auth.signOut()
+              window.location.href = '/'
             }}
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: '#6b7280', padding: '4px', textDecoration: 'underline' }}
           >
