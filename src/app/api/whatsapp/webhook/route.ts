@@ -479,7 +479,7 @@ async function processarMensagem(body: EvolutionWebhookBody) {
       dados.entidades_ids = [opcoes[0].id]
       dados.entidades_nomes = [opcoes[0].nome]
       historico.push({ role: 'user', content: 'sim' })
-      const msg = `Beleza! Sua demanda vai ser direcionada para ${opcoes[0].nome} (${opcoes[0].cargo}). Agora me conta: qual o endereço do local? Pode digitar ou compartilhar sua localização aqui no WhatsApp.`
+      const msg = `Beleza! Sua demanda vai ser direcionada para ${opcoes[0].nome} (${opcoes[0].cargo}). Agora me conta o endereço do local: rua e número, ou compartilhe sua localização aqui no WhatsApp.`
       historico.push({ role: 'assistant', content: msg })
       await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_endereco', dados), enviarWhatsapp(telefone, msg)])
     } else {
@@ -529,7 +529,7 @@ async function processarMensagem(body: EvolutionWebhookBody) {
       if (validos.length > 0) {
         dados.entidades_ids = validos
         dados.entidades_nomes = validos.map((id) => opcoes.find((o) => o.id === id)!.nome)
-        const msgConfirm = `Ótimo! Direcionada para: ${dados.entidades_nomes.join(', ')}. Agora me conta onde fica o local — pode digitar o endereço ou compartilhar sua localização aqui no WhatsApp.`
+        const msgConfirm = `Direcionada para: ${dados.entidades_nomes.join(', ')}. Me manda o endereço do local: rua e número, ou compartilhe sua localização aqui no WhatsApp.`
         historico.push({ role: 'assistant', content: msgConfirm })
         await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_endereco', dados), enviarWhatsapp(telefone, msgConfirm)])
         return
@@ -598,7 +598,7 @@ async function processarMensagem(body: EvolutionWebhookBody) {
 
     if (negativo) {
       historico.push({ role: 'user', content: texto })
-      const msg = 'Tudo bem! Me manda o endereço correto então — pode digitar ou compartilhar sua localização pelo WhatsApp.'
+      const msg = 'Tudo bem! Me manda o endereço correto: rua e número, ou compartilhe sua localização aqui no WhatsApp.'
       historico.push({ role: 'assistant', content: msg })
       dados.lat = undefined
       dados.lng = undefined
