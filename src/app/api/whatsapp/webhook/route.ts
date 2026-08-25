@@ -63,19 +63,33 @@ function urlMapaSatelite(lat: number, lng: number): string {
   return `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${pin}/${lng},${lat},17,0/600x400@2x?access_token=${MAPBOX_TOKEN}`
 }
 
-async function montarSystemPrompt(nomeUsuario: string, contexto?: {
-  etapa: string
-  opcoes_autoridade?: { id: string; nome: string; cargo: string }[]
-  dados?: DadosPendentes
-}) {
+// Cache em memória para dados estáticos do Supabase (TTL: 5 minutos)
+let _cacheConfigs: { base: string; categorias: string; cfg: Record<string, string>; ts: number } | null = null
+
+async function carregarConfigs() {
+  const agora = Date.now()
+  if (_cacheConfigs && agora - _cacheConfigs.ts < 5 * 60 * 1000) return _cacheConfigs
+
   const [{ data: base }, { data: categorias }, { data: chatConfig }] = await Promise.all([
     supabaseServer.from('chatbot_base').select('titulo, conteudo').eq('ativo', true),
     supabaseServer.from('categorias_mapa').select('id, nome').eq('ativo', true),
     supabaseServer.from('chatbot_config').select('nome_bot, descricao_bot, tom_voz, responsabilidades, prompt_extra').eq('id', 1).maybeSingle(),
   ])
-  const baseTexto = (base || []).map((e) => `### ${e.titulo}\n${e.conteudo}`).join('\n\n')
-  const categoriasTexto = (categorias || []).map((c) => `- ${c.nome} (id: ${c.id})`).join('\n')
-  const cfg = chatConfig || ({} as Record<string, string>)
+  _cacheConfigs = {
+    base: (base || []).map((e) => `### ${e.titulo}\n${e.conteudo}`).join('\n\n'),
+    categorias: (categorias || []).map((c) => `- ${c.nome} (id: ${c.id})`).join('\n'),
+    cfg: (chatConfig || {}) as Record<string, string>,
+    ts: agora,
+  }
+  return _cacheConfigs
+}
+
+async function montarSystemPrompt(nomeUsuario: string, contexto?: {
+  etapa: string
+  opcoes_autoridade?: { id: string; nome: string; cargo: string }[]
+  dados?: DadosPendentes
+}) {
+  const { base: baseTexto, categorias: categoriasTexto, cfg } = await carregarConfigs()
 
   const promptBase = `Você é um assistente virtual do CidadanIA Frutal, conversando por WhatsApp com ${nomeUsuario}.
 ${cfg.nome_bot ? `\nSeu nome é ${cfg.nome_bot}.` : ''}
@@ -259,8 +273,14 @@ async function processarMensagem(body: EvolutionWebhookBody) {
           categoria_id: payload.categoria_id || '',
           categoria_nome: payload.categoria_nome || 'Outros',
         }
-        const promptRegistrar = await montarSystemPrompt(nomeUsuario, { etapa: 'perguntar_registrar', dados: novosDados })
-        const msg = await chamarGemini(promptRegistrar, historico)
+
+        // Mensagem fixa para perguntar sobre registro — evita segunda chamada ao Gemini
+        const variacoes = [
+          `Entendido! Quer que eu registre essa demanda no sistema? Ela ficará visível no mapa e a autoridade responsável será notificada. (sim ou não)`,
+          `Recebi! Posso registrar essa demanda pra você? Ela vai aparecer no mapa público e a autoridade responsável será acionada. (sim ou não)`,
+          `Anotei o problema. Quer registrar essa demanda oficialmente? Ela ficará no mapa e a autoridade competente será notificada. (sim ou não)`,
+        ]
+        const msg = variacoes[Math.floor(Math.random() * variacoes.length)]
         historico.push({ role: 'assistant', content: msg })
 
         if (!perfilLigado) {
