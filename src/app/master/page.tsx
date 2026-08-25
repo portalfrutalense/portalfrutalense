@@ -732,6 +732,11 @@ function MasterDemandas({ token }: { token: string | null }) {
 
               {/* Caixa principal */}
               <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {d.protocolo && (
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+                    Protocolo: <strong style={{ color: '#111827', fontFamily: 'monospace' }}>{d.protocolo}</strong>
+                  </p>
+                )}
                 <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
                   Nome: <strong style={{ color: '#111827' }}>{titleCase(d.morador_nome)}</strong>
                   <span style={{ color: '#6b7280' }}> · {d.morador_cpf || '—'} · {d.morador_email || '—'}</span>

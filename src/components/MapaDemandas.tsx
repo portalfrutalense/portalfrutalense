@@ -11,8 +11,10 @@ import { Demanda, CategoriaMapa, Entidade, DemandaEntidade } from '@/types'
 const FRUTAL_LAT = -20.02752
 const FRUTAL_LNG = -48.92702
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-const TILE_SATELITE = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
+const TILE_SATELITE = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
+const TILE_SATELITE_RUAS = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
 const TILE_RUA = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
+const ZOOM_SATELITE_RUAS = 16 // exibe nomes de ruas no satélite apenas a partir deste zoom
 
 function titleCase(str?: string) {
   if (!str) return ''
@@ -61,6 +63,7 @@ export default function MapaDemandas() {
   const [voo, setVoo] = useState<{ fromX: number; fromY: number; fromW: number; fromH: number; toX: number; toY: number; toW: number; toH: number; animando: boolean } | null>(null)
   const [mapaCarregado, setMapaCarregado] = useState(false)
   const [satelite, setSatelite] = useState(true)
+  const sateliteRef = useRef(true)
   const [demandas, setDemandas] = useState<Demanda[]>([])
   const [categorias, setCategorias] = useState<CategoriaMapa[]>([])
   const [entidades, setEntidades] = useState<Entidade[]>([])
@@ -108,7 +111,7 @@ export default function MapaDemandas() {
   useEffect(() => {
     Promise.all([
       supabase.from('demandas')
-        .select('id, user_id, morador_nome, categoria_id, entidade_id, descricao, lat, lng, endereco_label, foto_url, status, resposta, oculto, created_at, categoria:categorias_mapa(*), entidade:entidades(nome, cargo)')
+        .select('id, user_id, morador_nome, categoria_id, entidade_id, descricao, lat, lng, endereco_label, foto_url, status, resposta, oculto, created_at, protocolo, categoria:categorias_mapa(*), entidade:entidades(nome, cargo)')
         .in('status', ['aguardando_resposta', 'respondida', 'nao_resolvida', 'resolvida']).eq('oculto', false),
       supabase.from('categorias_mapa').select('*').eq('ativo', true).order('nome'),
       supabase.from('entidades').select('id, nome, cargo').eq('ativo', true).order('nome'),
@@ -149,12 +152,32 @@ export default function MapaDemandas() {
         minZoom: 12,
         maxZoom: 19,
       }).setView([FRUTAL_LAT, FRUTAL_LNG], zoom)
-      const tile = L.tileLayer(TILE_SATELITE, { attribution: '© Mapbox', maxZoom: 22 })
+      const tile = L.tileLayer(TILE_SATELITE, { attribution: '© Mapbox', maxZoom: 19 })
       tile.addTo(mapa)
       tileAtual.current = tile
       mapaObj.current = mapa
       leafletObj.current = L
       setMapaCarregado(true)
+
+      // Troca entre satélite puro e satélite+ruas conforme o zoom (só quando em modo satélite)
+      mapa.on('zoomend', () => {
+        if (!sateliteRef.current) return
+        const z = mapa.getZoom()
+        const urlAtual = (tileAtual.current as any)?._url as string | undefined
+        const precisaRuas = z >= ZOOM_SATELITE_RUAS
+        const temRuas = urlAtual?.includes('satellite-streets')
+        if (precisaRuas && !temRuas) {
+          tileAtual.current?.remove()
+          const novoTile = L.tileLayer(TILE_SATELITE_RUAS, { attribution: '© Mapbox', maxZoom: 19 })
+          novoTile.addTo(mapa)
+          tileAtual.current = novoTile
+        } else if (!precisaRuas && temRuas) {
+          tileAtual.current?.remove()
+          const novoTile = L.tileLayer(TILE_SATELITE, { attribution: '© Mapbox', maxZoom: 19 })
+          novoTile.addTo(mapa)
+          tileAtual.current = novoTile
+        }
+      })
 
       // Corrige o mapa esticando quando o tamanho do container muda (zoom do navegador, resize de janela)
       const resizeObserver = new ResizeObserver(() => {
@@ -355,9 +378,15 @@ export default function MapaDemandas() {
     const L = leafletObj.current
     if (tileAtual.current) tileAtual.current.remove()
     const novoSatelite = !satelite
-    const tile = novoSatelite
-      ? L.tileLayer(TILE_SATELITE, { attribution: '© Mapbox', maxZoom: 22 })
-      : L.tileLayer(TILE_RUA, { attribution: '© Mapbox © OpenStreetMap', maxZoom: 22 })
+    sateliteRef.current = novoSatelite
+    let tile
+    if (novoSatelite) {
+      const z = mapaObj.current.getZoom()
+      const url = z >= ZOOM_SATELITE_RUAS ? TILE_SATELITE_RUAS : TILE_SATELITE
+      tile = L.tileLayer(url, { attribution: '© Mapbox', maxZoom: 19 })
+    } else {
+      tile = L.tileLayer(TILE_RUA, { attribution: '© Mapbox © OpenStreetMap', maxZoom: 19 })
+    }
     tile.addTo(mapaObj.current)
     tileAtual.current = tile
     setSatelite(novoSatelite)
@@ -531,8 +560,8 @@ export default function MapaDemandas() {
               {/* Conteúdo */}
               <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
-                {/* Badge de status */}
-                <div>
+                {/* Badge de status + protocolo */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
                   <span style={{
                     fontSize: '11px', fontWeight: 600, borderRadius: '20px', padding: '3px 10px',
                     background: statusCor[demandaSelecionada.status]?.bg || '#f9fafb',
@@ -540,6 +569,11 @@ export default function MapaDemandas() {
                   }}>
                     {statusLabel[demandaSelecionada.status] || demandaSelecionada.status}
                   </span>
+                  {demandaSelecionada.protocolo && (
+                    <span style={{ fontSize: '11px', color: '#6b7280', fontFamily: 'monospace' }}>
+                      Protocolo: <strong style={{ color: '#111827' }}>{demandaSelecionada.protocolo}</strong>
+                    </span>
+                  )}
                 </div>
 
                 {/* Caixa principal — pares label/valor empilhados */}

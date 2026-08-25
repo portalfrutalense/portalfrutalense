@@ -757,7 +757,10 @@ async function processarMensagem(body: EvolutionWebhookBody) {
       console.error('[ia/analisar] falhou:', e)
     }
 
-    await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, 'Prontinho, sua demanda foi registrada! Ela vai passar por uma análise com o nosso Agente de IA, e se aprovada, aparece no mapa e a(as) autoridades são notificadas. Posso ajudar com mais alguma coisa?')])
+    const msgConfirmacao = demanda.protocolo
+      ? `Prontinho, sua demanda foi registrada! 🎉\n\nProtocolo: *${demanda.protocolo}*\n\nEla vai passar por uma análise com o nosso Agente de IA, e se aprovada, aparece no mapa e a(as) autoridades são notificadas. Posso ajudar com mais alguma coisa?`
+      : 'Prontinho, sua demanda foi registrada! Ela vai passar por uma análise com o nosso Agente de IA, e se aprovada, aparece no mapa e a(as) autoridades são notificadas. Posso ajudar com mais alguma coisa?'
+    await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, msgConfirmacao)])
   }
 }
 

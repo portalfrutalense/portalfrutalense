@@ -48,7 +48,7 @@ export default function PerfilPage() {
       setCarregandoDemandas(true)
       const { data } = await supabase
         .from('demandas')
-        .select('id, user_id, morador_nome, lat, lng, categoria_id, entidade_id, descricao, endereco_label, status, resposta, ia_motivo, created_at, categoria:categorias_mapa(*), entidade:entidades(nome, cargo), vinculos:demanda_entidades(id, status, resposta, respondida_em, entidade:entidades(nome, cargo))')
+        .select('id, user_id, morador_nome, lat, lng, categoria_id, entidade_id, descricao, endereco_label, status, resposta, ia_motivo, created_at, protocolo, categoria:categorias_mapa(*), entidade:entidades(nome, cargo), vinculos:demanda_entidades(id, status, resposta, respondida_em, entidade:entidades(nome, cargo))')
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false })
       setDemandas((data || []) as unknown as Demanda[])
@@ -214,6 +214,7 @@ export default function PerfilPage() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                     <span style={{ fontSize: '11px', color: '#6b7280' }}>
                       {new Date(d.created_at).toLocaleDateString('pt-BR')}
+                      {d.protocolo && <span style={{ marginLeft: '8px', fontFamily: 'monospace', color: '#9ca3af' }}>#{d.protocolo}</span>}
                     </span>
                     <div style={{ display: 'flex', gap: '6px' }}>
                       {['aguardando_resposta', 'respondida', 'nao_resolvida'].includes(d.status) && (

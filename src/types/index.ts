@@ -33,6 +33,7 @@ export interface Demanda {
   link_enviado?: boolean
   oculto?: boolean
   created_at: string
+  protocolo?: string
 }
 
 export interface Entidade {
