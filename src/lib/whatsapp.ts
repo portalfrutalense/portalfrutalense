@@ -11,7 +11,7 @@ export async function enviarWhatsapp(telefone: string, texto: string) {
     const res = await fetch(`${EVOLUTION_API_URL}/message/sendText/${EVOLUTION_INSTANCE}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_API_KEY! },
-      body: JSON.stringify({ number: telefone, text: texto }),
+      body: JSON.stringify({ number: telefone, text: texto, options: { linkPreview: false } }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     })
     console.log(`[evolution:sendText] ${Date.now() - inicio}ms status=${res.status}`)

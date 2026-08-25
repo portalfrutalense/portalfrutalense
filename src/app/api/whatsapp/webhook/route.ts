@@ -433,7 +433,7 @@ async function processarMensagem(body: EvolutionWebhookBody) {
       historico.push({ role: 'assistant', content: msg })
 
       if (!perfilLigado) {
-        const msgVinculo = `Pra registrar sua demanda, você precisa ter uma conta no Portal Frutalense. Cria a sua aqui — é rápido:\n${process.env.NEXT_PUBLIC_SITE_URL}\n\nAo se cadastrar, coloca seu número de WhatsApp e depois volta aqui que a gente continua.`
+        const msgVinculo = `${msg}\n\nPra isso, você precisa ter uma conta no Portal Frutalense. Cria a sua aqui — é rápido:\n${process.env.NEXT_PUBLIC_SITE_URL}\n\nAo se cadastrar, coloca seu número de WhatsApp e depois volta aqui que a gente continua.`
         await Promise.all([salvarHistorico(conversa.id, historico, 'aguardando_vinculo', novosDados), enviarWhatsapp(telefone, msgVinculo)])
       } else {
         await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_registrar', novosDados), enviarWhatsapp(telefone, msg)])
