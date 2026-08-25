@@ -259,7 +259,7 @@ export default function PerfilPage() {
                   method: 'DELETE',
                   headers: { 'Authorization': `Bearer ${session?.access_token}` },
                 })
-                if (res.ok) window.location.href = '/'
+                if (res.ok) { await supabase.auth.signOut(); window.location.href = '/' }
               }}
               style={{ fontSize: '13px', color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontWeight: 500 }}>
               Excluir conta

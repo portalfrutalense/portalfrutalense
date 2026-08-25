@@ -172,10 +172,20 @@ export default function ModalCPF() {
 
           <button
             type="button"
-            onClick={sair}
+            onClick={async () => {
+              if (!confirm('Tem certeza? Seu acesso será removido e você precisará entrar novamente para completar o cadastro.')) return
+              const { data: { session } } = await supabase.auth.getSession()
+              if (session?.access_token) {
+                await fetch('/api/cidadao/cancelar-cadastro', {
+                  method: 'DELETE',
+                  headers: { Authorization: `Bearer ${session.access_token}` },
+                })
+              }
+              await sair()
+            }}
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: '#6b7280', padding: '4px', textDecoration: 'underline' }}
           >
-            Sair da conta
+            Fechar
           </button>
         </form>
       </div>
