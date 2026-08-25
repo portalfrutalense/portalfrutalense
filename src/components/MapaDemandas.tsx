@@ -142,7 +142,12 @@ export default function MapaDemandas() {
         shadowUrl: '',
       })
       const zoom = window.innerWidth <= 600 ? 13 : 14
-      const mapa = L.map(mapRef.current!, { zoomControl: false }).setView([FRUTAL_LAT, FRUTAL_LNG], zoom)
+      const mapa = L.map(mapRef.current!, {
+        zoomControl: false,
+        maxBounds: [[-20.18, -49.07], [-19.87, -48.75]],
+        maxBoundsViscosity: 1.0,
+        minZoom: 12,
+      }).setView([FRUTAL_LAT, FRUTAL_LNG], zoom)
       const tile = L.tileLayer(TILE_SATELITE, { attribution: '© Mapbox' })
       tile.addTo(mapa)
       tileAtual.current = tile
