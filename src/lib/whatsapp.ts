@@ -2,20 +2,36 @@ const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL
 const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY
 const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE
 
+const TIMEOUT_MS = 15000
+
 export async function enviarWhatsapp(telefone: string, texto: string) {
-  await fetch(`${EVOLUTION_API_URL}/message/sendText/${EVOLUTION_INSTANCE}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_API_KEY! },
-    body: JSON.stringify({ number: telefone, text: texto }),
-  })
+  const inicio = Date.now()
+  try {
+    const res = await fetch(`${EVOLUTION_API_URL}/message/sendText/${EVOLUTION_INSTANCE}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_API_KEY! },
+      body: JSON.stringify({ number: telefone, text: texto }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    })
+    console.log(`[evolution:sendText] ${Date.now() - inicio}ms status=${res.status}`)
+  } catch (e) {
+    console.error(`[evolution:sendText] falhou apos ${Date.now() - inicio}ms:`, e)
+  }
 }
 
 export async function enviarImagemWhatsapp(telefone: string, urlImagem: string, legenda?: string) {
-  await fetch(`${EVOLUTION_API_URL}/message/sendMedia/${EVOLUTION_INSTANCE}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_API_KEY! },
-    body: JSON.stringify({ number: telefone, mediatype: 'image', media: urlImagem, caption: legenda || '' }),
-  })
+  const inicio = Date.now()
+  try {
+    const res = await fetch(`${EVOLUTION_API_URL}/message/sendMedia/${EVOLUTION_INSTANCE}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_API_KEY! },
+      body: JSON.stringify({ number: telefone, mediatype: 'image', media: urlImagem, caption: legenda || '' }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    })
+    console.log(`[evolution:sendMedia] ${Date.now() - inicio}ms status=${res.status}`)
+  } catch (e) {
+    console.error(`[evolution:sendMedia] falhou apos ${Date.now() - inicio}ms:`, e)
+  }
 }
 
 // Baixa e descriptografa a mídia de uma mensagem (foto), retorna base64 + mimetype

@@ -173,12 +173,18 @@ Foi enviada uma imagem de satélite do local que o cidadão informou. Pergunte d
 
 type ParteGemini = { text: string } | { inline_data: { mime_type: string; data: string } }
 
+// Só as últimas N mensagens vão pro Gemini — histórico completo faz cada
+// mensagem ficar mais lenta que a anterior, sem ganho de contexto real.
+const MAX_HISTORICO_GEMINI = 10
+const TIMEOUT_GEMINI_MS = 20000
+
 async function chamarGemini(
   systemPrompt: string,
   historico: { role: string; content: string }[],
   audio?: { base64: string; mimetype: string }
 ) {
-  const contents: { role: string; parts: ParteGemini[] }[] = historico.map((m) => ({
+  const recente = historico.slice(-MAX_HISTORICO_GEMINI)
+  const contents: { role: string; parts: ParteGemini[] }[] = recente.map((m) => ({
     role: m.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: m.content }],
   }))
@@ -191,17 +197,28 @@ async function chamarGemini(
     }
   }
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ system_instruction: { parts: [{ text: systemPrompt }] }, contents }),
+  const inicio = Date.now()
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ system_instruction: { parts: [{ text: systemPrompt }] }, contents }),
+        signal: AbortSignal.timeout(TIMEOUT_GEMINI_MS),
+      }
+    )
+    console.log(`[gemini] ${Date.now() - inicio}ms status=${res.status} msgs=${contents.length}`)
+    if (!res.ok) {
+      console.error('[gemini] erro:', await res.text())
+      return 'Desculpe, tive um problema pra processar sua mensagem. Tente novamente.'
     }
-  )
-  if (!res.ok) return 'Desculpe, tive um problema pra processar sua mensagem. Tente novamente.'
-  const data = await res.json()
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || 'Desculpe, não consegui processar sua mensagem.'
+    const data = await res.json()
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || 'Desculpe, não consegui processar sua mensagem.'
+  } catch (e) {
+    console.error(`[gemini] falhou apos ${Date.now() - inicio}ms:`, e)
+    return 'Desculpe, demorei demais pra responder. Pode mandar de novo?'
+  }
 }
 
 async function salvarHistorico(id: string, historico: unknown, etapa: string, dados: DadosPendentes | null) {
@@ -572,7 +589,12 @@ export async function POST(req: NextRequest) {
 
   // Responde imediatamente para não dar timeout na Evolution API
   // O processamento acontece em background via `after`
-  after(processarMensagem(body))
+  const inicio = Date.now()
+  after(
+    processarMensagem(body)
+      .then(() => console.log(`[webhook] processamento concluido em ${Date.now() - inicio}ms`))
+      .catch((e) => console.error(`[webhook] falhou apos ${Date.now() - inicio}ms:`, e))
+  )
 
   return NextResponse.json({ ok: true })
 }
