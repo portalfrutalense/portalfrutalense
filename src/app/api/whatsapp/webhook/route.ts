@@ -91,6 +91,17 @@ async function montarSystemPrompt(nomeUsuario: string, contexto?: {
 }) {
   const { base: baseTexto, categorias: categoriasTexto, cfg } = await carregarConfigs()
 
+  // As instruções de detecção só valem na conversa livre. Dentro do fluxo de
+  // registro elas confundem o modelo, que volta a emitir detectar_demanda no
+  // meio de outra etapa — e esse JSON acaba indo cru pro cidadão.
+  const blocoDeteccao = contexto ? '' : `
+DETECÇÃO DE DEMANDA:
+Se o cidadão relatar um problema urbano, responda EXATAMENTE com este JSON (nada mais):
+{"action":"detectar_demanda","descricao":"<resumo objetivo>","categoria_id":"<id da categoria>","categoria_nome":"<nome da categoria>"}
+Se nenhuma categoria for adequada, use categoria_nome:"Outros" e categoria_id:"".
+Se não for um relato de problema, responda normalmente em texto.
+`
+
   const promptBase = `Você é um assistente virtual do CidadanIA Frutal, conversando por WhatsApp com ${nomeUsuario}.
 ${cfg.nome_bot ? `\nSeu nome é ${cfg.nome_bot}.` : ''}
 ${cfg.descricao_bot ? `\n${cfg.descricao_bot}` : ''}
@@ -102,13 +113,7 @@ ${baseTexto || '(nenhuma informação cadastrada ainda)'}
 
 CATEGORIAS DE DEMANDAS DISPONÍVEIS:
 ${categoriasTexto || '(nenhuma categoria)'}
-
-DETECÇÃO DE DEMANDA:
-Se o cidadão relatar um problema urbano, responda EXATAMENTE com este JSON (nada mais):
-{"action":"detectar_demanda","descricao":"<resumo objetivo>","categoria_id":"<id da categoria>","categoria_nome":"<nome da categoria>"}
-Se nenhuma categoria for adequada, use categoria_nome:"Outros" e categoria_id:"".
-Se não for um relato de problema, responda normalmente em texto.
-
+${blocoDeteccao}
 REGRAS:
 - Fale de um jeito natural e caloroso, como numa conversa real de WhatsApp
 - Respostas objetivas, sem enrolação, mas sem soar seco ou frio
@@ -221,6 +226,20 @@ async function chamarGemini(
   }
 }
 
+// Rede de segurança: o modelo às vezes devolve um JSON de ação numa etapa que
+// não esperava por ele. Sem isso o cidadão recebe o JSON cru no WhatsApp.
+function limparJsonDaResposta(texto: string, fallback: string): string {
+  const limpo = texto.replace(/\{\s*"action"\s*:[\s\S]*?\}/g, '').trim()
+  return limpo.length >= 10 ? limpo : fallback
+}
+
+async function enviarTextoSeguro(telefone: string, texto: string, fallback: string) {
+  const limpo = limparJsonDaResposta(texto, fallback)
+  if (limpo !== texto.trim()) console.warn('[sanitize] JSON removido da resposta ao cidadao')
+  await enviarWhatsapp(telefone, limpo)
+  return limpo
+}
+
 async function salvarHistorico(id: string, historico: unknown, etapa: string, dados: DadosPendentes | null) {
   await supabaseServer.from('whatsapp_conversas').update({ historico, etapa, dados_pendentes: dados }).eq('id', id)
 }
@@ -307,12 +326,17 @@ async function processarMensagem(body: EvolutionWebhookBody) {
         } else {
           await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_registrar', novosDados), enviarWhatsapp(telefone, msg)])
         }
-      } catch {
-        await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, resposta)])
+      } catch (e) {
+        // O JSON veio malformado — nunca mandar ele cru pro cidadão.
+        console.error('[detectar_demanda] JSON invalido:', e)
+        const enviado = await enviarTextoSeguro(telefone, resposta, 'Entendi o que você relatou. Pode me contar um pouco mais sobre o problema?')
+        historico.push({ role: 'assistant', content: enviado })
+        await salvarHistorico(conversa.id, historico, 'nenhuma', null)
       }
     } else {
-      historico.push({ role: 'assistant', content: resposta })
-      await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, resposta)])
+      const enviado = await enviarTextoSeguro(telefone, resposta, 'Pode me contar um pouco mais sobre isso?')
+      historico.push({ role: 'assistant', content: enviado })
+      await salvarHistorico(conversa.id, historico, 'nenhuma', null)
     }
     return
   }
@@ -369,8 +393,10 @@ async function processarMensagem(body: EvolutionWebhookBody) {
       historico.push({ role: 'user', content: 'sim' })
       const systemPrompt = await montarSystemPrompt(nomeUsuario, { etapa: 'escolher_autoridade', opcoes_autoridade: opcoes, dados })
       const resposta = await chamarGemini(systemPrompt, historico)
-      historico.push({ role: 'assistant', content: resposta })
-      await Promise.all([salvarHistorico(conversa.id, historico, 'escolher_autoridade', dados), enviarWhatsapp(telefone, resposta)])
+      const fallback = `Essa demanda pode ser direcionada para: ${opcoes.map(o => `${o.nome} (${o.cargo})`).join(', ')}. Qual delas você quer acionar?`
+      const enviado = await enviarTextoSeguro(telefone, resposta, fallback)
+      historico.push({ role: 'assistant', content: enviado })
+      await salvarHistorico(conversa.id, historico, 'escolher_autoridade', dados)
     }
     return
   }
@@ -381,8 +407,9 @@ async function processarMensagem(body: EvolutionWebhookBody) {
     const systemPrompt = await montarSystemPrompt(nomeUsuario)
     historico.push({ role: 'user', content: texto || '...' })
     const resposta = await chamarGemini(systemPrompt, historico)
-    historico.push({ role: 'assistant', content: resposta })
-    await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, resposta)])
+    const enviado = await enviarTextoSeguro(telefone, resposta, 'Posso te ajudar com mais alguma coisa?')
+    historico.push({ role: 'assistant', content: enviado })
+    await salvarHistorico(conversa.id, historico, 'nenhuma', null)
     return
   }
 
@@ -393,26 +420,42 @@ async function processarMensagem(body: EvolutionWebhookBody) {
     const systemPrompt = await montarSystemPrompt(nomeUsuario, { etapa: 'escolher_autoridade', opcoes_autoridade: opcoes, dados })
     const resposta = await chamarGemini(systemPrompt, historico)
 
-    // Tenta parsear como JSON de ação pura
+    // O modelo às vezes envolve o JSON em texto ou em bloco markdown, então
+    // procura o objeto em qualquer posição da resposta.
     let jsonAction: Record<string, unknown> | null = null
-    try {
-      const trimmed = resposta.trim()
-      if (trimmed.startsWith('{')) jsonAction = JSON.parse(trimmed)
-    } catch { /* não é JSON */ }
+    const bloco = resposta.match(/\{\s*"action"\s*:[\s\S]*?\}/)
+    if (bloco) {
+      try { jsonAction = JSON.parse(bloco[0]) } catch { /* JSON malformado */ }
+    }
 
     if (jsonAction?.action === 'autoridade_escolhida') {
       const escolhidosIds = (jsonAction.entidade_ids as string[]) || []
       const escolhidosNomes = (jsonAction.entidade_nomes as string[]) || []
-      dados.entidades_ids = escolhidosIds
-      dados.entidades_nomes = escolhidosNomes
-      const msgConfirm = `Ótimo! Direcionada para: ${escolhidosNomes.join(', ')}. Agora me conta onde fica o local — pode digitar o endereço ou compartilhar sua localização aqui no WhatsApp.`
-      historico.push({ role: 'assistant', content: msgConfirm })
-      await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_endereco', dados), enviarWhatsapp(telefone, msgConfirm)])
-    } else {
-      // IA ainda está pedindo mais clareza ou apresentando opções
-      historico.push({ role: 'assistant', content: resposta })
-      await Promise.all([salvarHistorico(conversa.id, historico, 'escolher_autoridade', dados), enviarWhatsapp(telefone, resposta)])
+      // Só aceita ids que realmente estão na lista oferecida — o modelo às
+      // vezes inventa um id ou repete um de outra categoria.
+      const validos = escolhidosIds.filter((id) => opcoes.some((o) => o.id === id))
+
+      if (validos.length > 0) {
+        dados.entidades_ids = validos
+        dados.entidades_nomes = validos.map((id) => opcoes.find((o) => o.id === id)!.nome)
+        const msgConfirm = `Ótimo! Direcionada para: ${dados.entidades_nomes.join(', ')}. Agora me conta onde fica o local — pode digitar o endereço ou compartilhar sua localização aqui no WhatsApp.`
+        historico.push({ role: 'assistant', content: msgConfirm })
+        await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_endereco', dados), enviarWhatsapp(telefone, msgConfirm)])
+        return
+      }
+
+      console.warn('[escolher_autoridade] ids invalidos do modelo:', escolhidosIds, 'validos:', opcoes.map(o => o.id))
+      const msgRepetir = `Não consegui identificar qual você quer. As opções são: ${opcoes.map(o => `${o.nome} (${o.cargo})`).join(', ')}. Qual delas?`
+      historico.push({ role: 'assistant', content: msgRepetir })
+      await Promise.all([salvarHistorico(conversa.id, historico, 'escolher_autoridade', dados), enviarWhatsapp(telefone, msgRepetir)])
+      return
     }
+
+    // IA ainda está pedindo mais clareza ou apresentando opções
+    const fallback = `As opções são: ${opcoes.map(o => `${o.nome} (${o.cargo})`).join(', ')}. Qual delas você quer acionar?`
+    const enviado = await enviarTextoSeguro(telefone, resposta, fallback)
+    historico.push({ role: 'assistant', content: enviado })
+    await salvarHistorico(conversa.id, historico, 'escolher_autoridade', dados)
     return
   }
 
@@ -449,13 +492,11 @@ async function processarMensagem(body: EvolutionWebhookBody) {
     historico.push({ role: 'user', content: `Endereço informado: ${label}` })
     const systemPrompt = await montarSystemPrompt(nomeUsuario, { etapa: 'confirmar_endereco', dados })
     const msgConfirm = await chamarGemini(systemPrompt, historico)
-    historico.push({ role: 'assistant', content: msgConfirm })
 
-    await Promise.all([
-      salvarHistorico(conversa.id, historico, 'confirmar_endereco', dados),
-      enviarImagemWhatsapp(telefone, urlSatelite, label ?? undefined),
-    ])
-    await enviarWhatsapp(telefone, msgConfirm)
+    await enviarImagemWhatsapp(telefone, urlSatelite, label ?? undefined)
+    const enviado = await enviarTextoSeguro(telefone, msgConfirm, 'Esse é o local certo? Responde "sim" ou "não".')
+    historico.push({ role: 'assistant', content: enviado })
+    await salvarHistorico(conversa.id, historico, 'confirmar_endereco', dados)
     return
   }
 
@@ -484,8 +525,9 @@ async function processarMensagem(body: EvolutionWebhookBody) {
     historico.push({ role: 'user', content: texto })
     const systemPrompt = await montarSystemPrompt(nomeUsuario, { etapa: 'perguntar_foto', dados })
     const msgFoto = await chamarGemini(systemPrompt, historico)
-    historico.push({ role: 'assistant', content: msgFoto })
-    await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_foto', dados), enviarWhatsapp(telefone, msgFoto)])
+    const enviado = await enviarTextoSeguro(telefone, msgFoto, 'Você tem alguma foto do local pra anexar? Se preferir seguir sem, responde "sem foto".')
+    historico.push({ role: 'assistant', content: enviado })
+    await salvarHistorico(conversa.id, historico, 'perguntar_foto', dados)
     return
   }
 
@@ -521,8 +563,19 @@ async function processarMensagem(body: EvolutionWebhookBody) {
     historico.push({ role: 'user', content: dados.foto_url ? '[Foto enviada]' : 'Sem foto' })
     const systemPrompt = await montarSystemPrompt(nomeUsuario, { etapa: 'resumo', dados })
     const resumo = await chamarGemini(systemPrompt, historico)
-    historico.push({ role: 'assistant', content: resumo })
-    await Promise.all([salvarHistorico(conversa.id, historico, 'resumo', dados), enviarWhatsapp(telefone, resumo)])
+    const resumoFallback = [
+      'Confere os dados da sua demanda:',
+      `• Problema: ${dados.descricao}`,
+      `• Categoria: ${dados.categoria_nome}`,
+      `• Direcionada para: ${(dados.entidades_nomes || []).join(', ')}`,
+      `• Endereço: ${dados.endereco_label}`,
+      `• Foto: ${dados.foto_url ? 'enviada' : 'não enviada'}`,
+      '',
+      'Responde "confirmar" pra registrar, ou "cancelar" pra desistir.',
+    ].join('\n')
+    const enviado = await enviarTextoSeguro(telefone, resumo, resumoFallback)
+    historico.push({ role: 'assistant', content: enviado })
+    await salvarHistorico(conversa.id, historico, 'resumo', dados)
     return
   }
 
