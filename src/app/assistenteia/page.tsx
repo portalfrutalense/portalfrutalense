@@ -21,6 +21,24 @@ interface Entidade {
 
 type EtapaDemanda = 'nenhuma' | 'perguntar_registrar' | 'escolher_autoridade' | 'perguntar_endereco' | 'perguntar_foto' | 'resumo'
 
+function extrairAcao(texto: string): Record<string, unknown> | null {
+  const inicio = texto.search(/\{\s*"action"\s*:/)
+  if (inicio === -1) return null
+  let profundidade = 0, emString = false, escapado = false
+  for (let i = inicio; i < texto.length; i++) {
+    const c = texto[i]
+    if (escapado) { escapado = false; continue }
+    if (c === '\\') { escapado = true; continue }
+    if (c === '"') { emString = !emString; continue }
+    if (emString) continue
+    if (c === '{') profundidade++
+    else if (c === '}' && --profundidade === 0) {
+      try { return JSON.parse(texto.slice(inicio, i + 1)) } catch { return null }
+    }
+  }
+  return null
+}
+
 // O Google as vezes manda o nome todo em minusculo -- garante a primeira letra maiuscula
 function capitalizar(nome: string) {
   return nome ? nome.charAt(0).toUpperCase() + nome.slice(1) : nome
@@ -153,19 +171,13 @@ export default function LucasPage() {
       const data = await res.json()
       const resposta: string = data.resposta || 'Erro ao processar mensagem.'
 
-      const jsonMatch = resposta.match(/\{"action":"detectar_demanda"[^}]+\}/)
-      if (jsonMatch) {
-        try {
-          const payload = JSON.parse(jsonMatch[0])
-          setDescricaoDemanda(payload.descricao || texto)
-          setCategoriaIdDemanda(payload.categoria_id || '')
-          const catNome = payload.categoria_nome || 'Outros'
-          setCategoriaNomeDemanda(catNome)
-          setMensagens(prev => [...prev, { role: 'assistant', content: 'O CidadanIA Frutal pode tentar dar voz à sua reclamação! Podemos registrar uma demanda sobre isso, e ela ficará visível para todos. Seus dados são preservados, apenas o seu nome é publicado. Você escolhe uma autoridade para que seja enviada automaticamente, e tentaremos obter uma resposta sobre. Quer registrar?' }])
-          setEtapaDemanda('perguntar_registrar')
-        } catch {
-          setMensagens(prev => [...prev, { role: 'assistant', content: resposta }])
-        }
+      const acao = extrairAcao(resposta)
+      if (acao?.action === 'detectar_demanda') {
+        setDescricaoDemanda((acao.descricao as string) || texto)
+        setCategoriaIdDemanda((acao.categoria_id as string) || '')
+        setCategoriaNomeDemanda((acao.categoria_nome as string) || 'Outros')
+        setMensagens(prev => [...prev, { role: 'assistant', content: 'O CidadanIA Frutal pode tentar dar voz à sua reclamação! Podemos registrar uma demanda sobre isso, e ela ficará visível para todos. Seus dados são preservados, apenas o seu nome é publicado. Você escolhe uma autoridade para que seja enviada automaticamente, e tentaremos obter uma resposta sobre. Quer registrar?' }])
+        setEtapaDemanda('perguntar_registrar')
       } else {
         setMensagens(prev => [...prev, { role: 'assistant', content: resposta }])
       }

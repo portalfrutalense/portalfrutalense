@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+export const maxDuration = 60
+
 async function verificarUsuario(req: NextRequest) {
   const token = req.headers.get('authorization')?.replace('Bearer ', '')
   if (!token) return null
@@ -31,6 +33,7 @@ ${String(texto).trim()}
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }] }),
+      signal: AbortSignal.timeout(30000),
     }
   )
 

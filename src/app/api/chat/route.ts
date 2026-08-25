@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 
+// Gemini pode demorar até ~25s; sem maxDuration a função era cortada pelo
+// Vercel no padrão da plataforma (~10s) e o chatbot ficava sem resposta.
+export const maxDuration = 60
+
 interface BaseConhecimento { titulo: string; conteudo: string }
 interface Categoria { id: string; nome: string }
 interface ChatConfig {
@@ -84,6 +88,7 @@ ${cfg.prompt_extra ? `\nINSTRUÇÕES ADICIONAIS:\n${cfg.prompt_extra}` : ''}`
         system_instruction: { parts: [{ text: systemPrompt }] },
         contents,
       }),
+      signal: AbortSignal.timeout(30000),
     }
   )
 
