@@ -449,10 +449,32 @@ async function processarMensagem(body: EvolutionWebhookBody) {
   // ── Etapa: aguardando vínculo de conta ──
   if (etapa === 'aguardando_vinculo') {
     if (perfilLigado) {
-      await Promise.all([
-        salvarHistorico(conversa.id, historico, 'perguntar_registrar', dados),
-        enviarWhatsapp(telefone, `Prontinho, sua conta foi vinculada! Vamos continuar: confirma que quer registrar "${dados.descricao}"? (sim ou não)`),
-      ])
+      // Conta vinculada — pula confirmação (quem voltou já quer registrar)
+      // e vai direto para seleção de autoridade, igual ao "sim" em perguntar_registrar
+      const { data: catEnt } = await supabaseServer.from('categoria_entidades').select('entidade_id').eq('categoria_id', dados.categoria_id || '')
+      const ids = (catEnt || []).map((c) => c.entidade_id)
+      if (ids.length === 0) {
+        await Promise.all([salvarHistorico(conversa.id, historico, 'sem_autoridade', null), enviarWhatsapp(telefone, `Prontinho, conta vinculada! Mas ainda não tem nenhuma autoridade cadastrada para a categoria (${dados.categoria_nome}). Assim que tiver, pode tentar de novo. Posso ajudar com mais alguma coisa?`)])
+        return
+      }
+      const { data: entidades } = await supabaseServer.from('entidades').select('id, nome, cargo').in('id', ids)
+      const opcoes = entidades || []
+      if (opcoes.length === 1) {
+        dados.entidades_ids = [opcoes[0].id]
+        dados.entidades_nomes = [opcoes[0].nome]
+        const msg = `Prontinho, conta vinculada! Sua demanda vai ser direcionada para ${opcoes[0].nome} (${opcoes[0].cargo}). Agora me conta o endereço do local: rua e número, ou compartilhe sua localização aqui no WhatsApp.`
+        historico.push({ role: 'assistant', content: msg })
+        await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_endereco', dados), enviarWhatsapp(telefone, msg)])
+      } else {
+        dados.opcoes_autoridade = opcoes
+        historico.push({ role: 'user', content: 'sim' })
+        const systemPrompt = await montarSystemPrompt(nomeUsuario, { etapa: 'escolher_autoridade', opcoes_autoridade: opcoes, dados })
+        const resposta = await chamarGemini(systemPrompt, historico)
+        const fallback = `Prontinho, conta vinculada! Essa demanda pode ser direcionada para: ${opcoes.map(o => `${o.nome} (${o.cargo})`).join(', ')}. Qual delas você quer acionar?`
+        const enviado = await enviarTextoSeguro(telefone, resposta, fallback)
+        historico.push({ role: 'assistant', content: enviado })
+        await salvarHistorico(conversa.id, historico, 'escolher_autoridade', dados)
+      }
     } else {
       await enviarWhatsapp(telefone, `Ainda não encontrei sua conta por aqui. Termina o cadastro no site — não esquece de colocar seu número de WhatsApp — e volta que a gente continua:\n${process.env.NEXT_PUBLIC_SITE_URL}`)
     }

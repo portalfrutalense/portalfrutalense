@@ -147,8 +147,9 @@ export default function MapaDemandas() {
         maxBounds: [[-20.1529, -49.30], [-19.8869, -48.73]],
         maxBoundsViscosity: 1.0,
         minZoom: 12,
+        maxZoom: 22,
       }).setView([FRUTAL_LAT, FRUTAL_LNG], zoom)
-      const tile = L.tileLayer(TILE_SATELITE, { attribution: '© Mapbox' })
+      const tile = L.tileLayer(TILE_SATELITE, { attribution: '© Mapbox', maxZoom: 22 })
       tile.addTo(mapa)
       tileAtual.current = tile
       mapaObj.current = mapa
@@ -355,8 +356,8 @@ export default function MapaDemandas() {
     if (tileAtual.current) tileAtual.current.remove()
     const novoSatelite = !satelite
     const tile = novoSatelite
-      ? L.tileLayer(TILE_SATELITE, { attribution: '© Mapbox' })
-      : L.tileLayer(TILE_RUA, { attribution: '© Mapbox © OpenStreetMap' })
+      ? L.tileLayer(TILE_SATELITE, { attribution: '© Mapbox', maxZoom: 22 })
+      : L.tileLayer(TILE_RUA, { attribution: '© Mapbox © OpenStreetMap', maxZoom: 22 })
     tile.addTo(mapaObj.current)
     tileAtual.current = tile
     setSatelite(novoSatelite)
