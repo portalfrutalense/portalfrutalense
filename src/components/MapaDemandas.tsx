@@ -98,7 +98,7 @@ export default function MapaDemandas() {
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState(false)
 
-  // Busca vínculos de autoridade quando uma demanda é selecionada
+  // Busca vínculos de autoridade e protocolo quando uma demanda é selecionada
   useEffect(() => {
     if (!demandaSelecionada) { setVinculosDemanda([]); return }
     supabase
@@ -106,12 +106,21 @@ export default function MapaDemandas() {
       .select('id, demanda_id, entidade_id, status, resposta, respondida_em, entidade:entidades(nome, cargo)')
       .eq('demanda_id', demandaSelecionada.id)
       .then(({ data }) => setVinculosDemanda((data || []) as unknown as DemandaEntidade[]))
+    // Busca protocolo separadamente (campo não incluído no select público por restrições de role)
+    supabase
+      .from('demandas')
+      .select('protocolo')
+      .eq('id', demandaSelecionada.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.protocolo) setDemandaSelecionada(prev => prev ? { ...prev, protocolo: data.protocolo } : prev)
+      })
   }, [demandaSelecionada?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     Promise.all([
       supabase.from('demandas')
-        .select('id, user_id, morador_nome, categoria_id, entidade_id, descricao, lat, lng, endereco_label, foto_url, status, resposta, oculto, created_at, protocolo, categoria:categorias_mapa(*), entidade:entidades(nome, cargo)')
+        .select('id, user_id, morador_nome, categoria_id, entidade_id, descricao, lat, lng, endereco_label, foto_url, status, resposta, oculto, created_at, categoria:categorias_mapa(*), entidade:entidades(nome, cargo)')
         .in('status', ['aguardando_resposta', 'respondida', 'nao_resolvida', 'resolvida']).eq('oculto', false),
       supabase.from('categorias_mapa').select('*').eq('ativo', true).order('nome'),
       supabase.from('entidades').select('id, nome, cargo').eq('ativo', true).order('nome'),
