@@ -181,7 +181,14 @@ type ParteGemini = { text: string } | { inline_data: { mime_type: string; data: 
 // Só as últimas N mensagens vão pro Gemini — histórico completo faz cada
 // mensagem ficar mais lenta que a anterior, sem ganho de contexto real.
 const MAX_HISTORICO_GEMINI = 10
-const TIMEOUT_GEMINI_MS = 20000
+
+// A latência do Gemini é errática — medições do mesmo modelo com o mesmo
+// prompt variaram de 0,8s a 24s. Esperar o pior caso deixa a conversa
+// insuportável; um corte curto com uma segunda tentativa sai na frente,
+// porque a repetição quase sempre cai na faixa rápida.
+const MODELO_GEMINI = 'gemini-3.5-flash-lite'
+const TIMEOUT_GEMINI_MS = 12000
+const TENTATIVAS_GEMINI = 2
 
 async function chamarGemini(
   systemPrompt: string,
@@ -202,28 +209,42 @@ async function chamarGemini(
     }
   }
 
-  const inicio = Date.now()
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
-      {
+  const corpo = JSON.stringify({ system_instruction: { parts: [{ text: systemPrompt }] }, contents })
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODELO_GEMINI}:generateContent?key=${process.env.GEMINI_API_KEY}`
+
+  for (let tentativa = 1; tentativa <= TENTATIVAS_GEMINI; tentativa++) {
+    const inicio = Date.now()
+    try {
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ system_instruction: { parts: [{ text: systemPrompt }] }, contents }),
+        body: corpo,
         signal: AbortSignal.timeout(TIMEOUT_GEMINI_MS),
+      })
+      const ms = Date.now() - inicio
+
+      // 4xx não melhora repetindo — desiste na hora.
+      if (!res.ok) {
+        const detalhe = await res.text()
+        console.error(`[gemini] tentativa ${tentativa} ${ms}ms status=${res.status}: ${detalhe.slice(0, 300)}`)
+        if (res.status < 500) return 'Desculpe, tive um problema pra processar sua mensagem. Tente novamente.'
+        continue
       }
-    )
-    console.log(`[gemini] ${Date.now() - inicio}ms status=${res.status} msgs=${contents.length}`)
-    if (!res.ok) {
-      console.error('[gemini] erro:', await res.text())
-      return 'Desculpe, tive um problema pra processar sua mensagem. Tente novamente.'
+
+      console.log(`[gemini] ok tentativa=${tentativa} ${ms}ms msgs=${contents.length}`)
+      const data = await res.json()
+      const texto = data.candidates?.[0]?.content?.parts?.[0]?.text
+      if (texto) return texto
+      console.warn('[gemini] resposta sem texto:', JSON.stringify(data).slice(0, 300))
+    } catch (e) {
+      // A latência do Gemini tem cauda longa: a mesma chamada varia de
+      // menos de 1s a mais de 20s. Repetir costuma cair na parte rápida,
+      // então uma segunda tentativa vale mais do que esperar mais tempo.
+      console.error(`[gemini] tentativa ${tentativa} falhou apos ${Date.now() - inicio}ms:`, e)
     }
-    const data = await res.json()
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || 'Desculpe, não consegui processar sua mensagem.'
-  } catch (e) {
-    console.error(`[gemini] falhou apos ${Date.now() - inicio}ms:`, e)
-    return 'Desculpe, demorei demais pra responder. Pode mandar de novo?'
   }
+
+  return 'Desculpe, tive um problema pra processar sua mensagem. Pode mandar de novo?'
 }
 
 // Rede de segurança: o modelo às vezes devolve um JSON de ação numa etapa que
