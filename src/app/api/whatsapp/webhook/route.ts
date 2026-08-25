@@ -191,7 +191,7 @@ const MAX_HISTORICO_GEMINI = 10
 // insuportável; um corte curto com uma segunda tentativa sai na frente,
 // porque a repetição quase sempre cai na faixa rápida.
 const MODELO_GEMINI = 'gemini-3.5-flash-lite'
-const TIMEOUT_GEMINI_MS = 12000
+const TIMEOUT_GEMINI_MS = 25000
 const TENTATIVAS_GEMINI = 2
 
 async function chamarGemini(
