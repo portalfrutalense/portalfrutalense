@@ -11,6 +11,8 @@ interface Perfil {
   email?: string
   role?: string
   bloqueado?: boolean
+  whatsapp?: string
+  data_nascimento?: string
 }
 
 interface AuthContextType {

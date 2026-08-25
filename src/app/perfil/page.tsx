@@ -242,7 +242,30 @@ export default function PerfilPage() {
 
       {/* Aba: Minha conta */}
       {abaAtiva === 'conta' && (
-        <MinhaConta user={user} perfil={perfil} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <Campo label="Nome" valor={perfil?.nome || '—'} />
+            <Campo label="CPF" valor={perfil?.cpf ? perfil.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '—'} />
+            <Campo label="Data de nascimento" valor={perfil?.data_nascimento ? new Date((perfil.data_nascimento as string) + 'T12:00:00').toLocaleDateString('pt-BR') : '—'} />
+            <Campo label="WhatsApp" valor={(perfil as any)?.whatsapp || '—'} />
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              onClick={async () => {
+                if (!confirm('Tem certeza que deseja excluir sua conta? Todos os seus dados serão apagados permanentemente.')) return
+                const { data: { session } } = await supabase.auth.getSession()
+                const res = await fetch('/api/cidadao/excluir-conta', {
+                  method: 'DELETE',
+                  headers: { 'Authorization': `Bearer ${session?.access_token}` },
+                })
+                if (res.ok) window.location.href = '/'
+              }}
+              style={{ fontSize: '13px', color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontWeight: 500 }}>
+              Excluir conta
+            </button>
+          </div>
+        </div>
       )}
 
     </div>
@@ -411,116 +434,4 @@ function Campo({ label, valor }: { label: string; valor: string }) {
   )
 }
 
-function formatarWhatsapp(valor: string) {
-  return valor.replace(/\D/g, '').slice(0, 13)
-}
-
-function MinhaConta({ user, perfil }: { user: { id: string; email?: string }; perfil: { nome?: string; cpf?: string; whatsapp?: string; data_nascimento?: string } | null }) {
-  const supabase = createClient()
-  const [nome, setNome] = useState(perfil?.nome || '')
-  const [whatsapp, setWhatsapp] = useState(perfil?.whatsapp || '')
-  const [dataNascimento, setDataNascimento] = useState(perfil?.data_nascimento || '')
-  const [salvando, setSalvando] = useState(false)
-  const [mensagem, setMensagem] = useState('')
-  const [erro, setErro] = useState('')
-
-  async function salvar(e: React.FormEvent) {
-    e.preventDefault()
-    setErro(''); setMensagem('')
-    if (!nome.trim()) { setErro('Informe seu nome completo.'); return }
-    setSalvando(true)
-    try {
-      const campos: Record<string, unknown> = { nome: nome.trim() }
-      campos.whatsapp = whatsapp || null
-      campos.data_nascimento = dataNascimento || null
-
-      const { error } = await supabase.from('perfis').update(campos).eq('id', user.id)
-      if (error) throw error
-
-      // Se informou WhatsApp, vincula conversa pendente (se houver)
-      if (whatsapp) {
-        await supabase.from('whatsapp_conversas').update({ user_id: user.id }).eq('telefone', whatsapp)
-      }
-
-      setMensagem('Dados salvos com sucesso!')
-    } catch (e) {
-      const err = e as { message?: string }
-      setErro(err.message || 'Erro ao salvar.')
-    } finally {
-      setSalvando(false)
-    }
-  }
-
-  async function excluirConta() {
-    if (!confirm('Tem certeza que deseja excluir sua conta? Todos os seus dados serão apagados permanentemente.')) return
-    const { data: { session } } = await supabase.auth.getSession()
-    const res = await fetch('/api/cidadao/excluir-conta', {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${session?.access_token}` },
-    })
-    if (res.ok) window.location.href = '/'
-  }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <form onSubmit={salvar} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-
-        {/* E-mail — só leitura */}
-        <Campo label="E-mail" valor={user.email || '—'} />
-        {/* CPF — só leitura */}
-        <Campo label="CPF" valor={perfil?.cpf ? perfil.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '—'} />
-
-        <div>
-          <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#6b7280', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Nome completo</label>
-          <input
-            type="text"
-            value={nome}
-            onChange={e => setNome(e.target.value)}
-            required
-            style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '10px 12px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#6b7280', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Data de nascimento</label>
-          <input
-            type="date"
-            value={dataNascimento}
-            onChange={e => setDataNascimento(e.target.value)}
-            style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '10px 12px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#6b7280', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>WhatsApp</label>
-          <input
-            type="tel"
-            value={whatsapp}
-            onChange={e => setWhatsapp(formatarWhatsapp(e.target.value))}
-            placeholder="5534999999999"
-            style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '10px 12px', fontSize: '14px', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }}
-          />
-          <p style={{ fontSize: '11px', color: '#6b7280', margin: '4px 0 0' }}>Com código do país e DDD. Ex: 5534999999999</p>
-        </div>
-
-        {erro && <div style={{ color: '#dc2626', fontSize: '13px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px' }}>{erro}</div>}
-        {mensagem && <div style={{ color: '#166534', fontSize: '13px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px' }}>{mensagem}</div>}
-
-        <button
-          type="submit"
-          disabled={salvando}
-          style={{ alignSelf: 'flex-start', backgroundColor: salvando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 700, padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: salvando ? 'not-allowed' : 'pointer', fontSize: '14px' }}
-        >
-          {salvando ? 'Salvando...' : 'Salvar alterações'}
-        </button>
-      </form>
-
-      <button
-        onClick={excluirConta}
-        style={{ alignSelf: 'flex-start', fontSize: '13px', color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontWeight: 500 }}>
-        Excluir conta
-      </button>
-    </div>
-  )
-}
 
