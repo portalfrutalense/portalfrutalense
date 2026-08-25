@@ -31,11 +31,15 @@ export default function ModalCPF() {
       const cpfLimpo = cpf.replace(/\D/g, '')
 
       // Verifica se o perfil já existe (ex: usuário master que ainda não preencheu CPF)
-      const { data: perfilExistente } = await supabase.from('perfis').select('id, role').eq('id', user.id).maybeSingle()
+      const { data: perfilExistente, error: erroLeitura } = await supabase
+        .from('perfis').select('id, role').eq('id', user.id).maybeSingle()
+      if (erroLeitura) throw erroLeitura
 
       let error
       if (perfilExistente) {
-        // Já existe — atualiza só nome e CPF, sem alterar o role
+        // Já existe — atualiza só nome e CPF, sem alterar o role (o gatilho
+        // bloquear_autopromocao_perfil rejeita qualquer mudança de role vinda
+        // do cliente, então nem enviamos o campo)
         ;({ error } = await supabase.from('perfis').update({ nome: nome.trim(), cpf: cpfLimpo }).eq('id', user.id))
       } else {
         // Novo usuário — insere com role cidadao
@@ -43,8 +47,17 @@ export default function ModalCPF() {
       }
       if (error) throw error
       setPerfil({ id: user.id, nome: nome.trim(), cpf: cpfLimpo, email: user.email || undefined, role: perfilExistente?.role })
-    } catch {
-      setErro('Erro ao salvar. Tente novamente.')
+    } catch (e) {
+      // Mensagem genérica escondia a causa e tornava o problema indiagnosticável.
+      // O erro é sobre o próprio registro de quem está preenchendo, então
+      // mostrar o detalhe aqui não expõe dado de terceiro.
+      const err = e as { message?: string; code?: string; details?: string; hint?: string }
+      console.error('[ModalCPF] falha ao salvar perfil:', {
+        code: err.code, message: err.message, details: err.details, hint: err.hint,
+        caminho: 'perfil existente? ver acima',
+      })
+      const detalhe = [err.code, err.message].filter(Boolean).join(' — ')
+      setErro(detalhe ? `Erro ao salvar: ${detalhe}` : 'Erro ao salvar. Tente novamente.')
     } finally {
       setEnviando(false)
     }
