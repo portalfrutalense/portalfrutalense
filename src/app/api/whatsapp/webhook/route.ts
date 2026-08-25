@@ -111,6 +111,13 @@ ${cfg.prompt_extra ? `\nINSTRUÇÕES ADICIONAIS:\n${cfg.prompt_extra}` : ''}`
   if (!contexto) return promptBase
 
   // Blocos extras por etapa
+  if (contexto.etapa === 'perguntar_registrar') {
+    return promptBase + `\n\nFLUXO DE REGISTRO — ETAPA: PERGUNTAR SE QUER REGISTRAR
+O cidadão relatou um problema: "${contexto.dados?.descricao}" (categoria: ${contexto.dados?.categoria_nome}).
+Pergunte de forma natural e curta se ele quer registrar essa demanda — explique brevemente que ela ficará visível no mapa e a autoridade responsável será notificada.
+Varie sempre a forma de perguntar. Apenas texto, sem JSON.`
+  }
+
   if (contexto.etapa === 'escolher_autoridade') {
     const lista = (contexto.opcoes_autoridade || []).map(a => `  - ${a.nome} (${a.cargo}) [id: ${a.id}]`).join('\n')
     return promptBase + `\n\nFLUXO DE REGISTRO — ETAPA: ESCOLHER AUTORIDADE
@@ -255,7 +262,8 @@ export async function POST(req: NextRequest) {
           categoria_id: payload.categoria_id || '',
           categoria_nome: payload.categoria_nome || 'Outros',
         }
-        const msg = 'Parece que você quer relatar um problema! Posso registrar essa demanda pra você — ela fica visível no mapa e a autoridade responsável é notificada. Quer que eu registre? (sim ou não)'
+        const promptRegistrar = await montarSystemPrompt(nomeUsuario, { etapa: 'perguntar_registrar', dados: novosDados })
+        const msg = await chamarGemini(promptRegistrar, historico)
         historico.push({ role: 'assistant', content: msg })
 
         if (!perfilLigado) {
