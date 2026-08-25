@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse, after } from 'next/server'
-import sharp from 'sharp'
 import { supabaseServer } from '@/lib/supabase-server'
 import { enviarWhatsapp, enviarImagemWhatsapp, baixarMidiaWhatsapp } from '@/lib/whatsapp'
+
+// O trabalho pesado roda dentro do `after`, que é limitado pelo maxDuration
+// desta rota (docs do Next: after.md). Sem isso vale o padrão da plataforma,
+// curto demais, e o processamento é cortado no meio — a mensagem some sem erro.
+export const maxDuration = 120
 
 const FRUTAL_LAT = -20.02752
 const FRUTAL_LNG = -48.92702
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+const TIMEOUT_MAPBOX_MS = 8000
 
 interface EvolutionWebhookBody {
   event?: string
@@ -15,8 +20,6 @@ interface EvolutionWebhookBody {
       conversation?: string
       extendedTextMessage?: { text?: string }
       locationMessage?: { degreesLatitude?: number; degreesLongitude?: number }
-      imageMessage?: unknown
-      audioMessage?: unknown
     }
     messageType?: string
   }
@@ -45,14 +48,15 @@ async function geocodificar(endereco: string): Promise<{ lat: number; lng: numbe
   try {
     const q = encodeURIComponent(`${endereco}, Frutal, Minas Gerais`)
     const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${MAPBOX_TOKEN}&country=BR&language=pt&limit=1&proximity=${FRUTAL_LNG},${FRUTAL_LAT}&types=address`
-    const res = await fetch(url)
+    const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MAPBOX_MS) })
     const data = await res.json()
     const feature = data?.features?.[0]
     if (!feature || feature.relevance < 0.85) return null
     const [lng, lat] = feature.center
     if (!dentroFrutal(lat, lng)) return null
     return { lat, lng, label: endereco }
-  } catch {
+  } catch (e) {
+    console.error('[geocodificar] falhou:', e)
     return null
   }
 }
@@ -247,10 +251,53 @@ async function chamarGemini(
   return 'Desculpe, tive um problema pra processar sua mensagem. Pode mandar de novo?'
 }
 
+// Localiza um objeto {"action":...} completo, contando chaves e ignorando as
+// que aparecem dentro de strings. Regex não dá conta: com JSON aninhado, um
+// padrão não-guloso corta no primeiro '}' e deixa sobra no texto.
+function acharBlocoAcao(texto: string): { inicio: number; fim: number } | null {
+  const inicio = texto.search(/\{\s*"action"\s*:/)
+  if (inicio === -1) return null
+
+  let profundidade = 0
+  let emString = false
+  let escapado = false
+
+  for (let i = inicio; i < texto.length; i++) {
+    const c = texto[i]
+    if (escapado) { escapado = false; continue }
+    if (c === '\\') { escapado = true; continue }
+    if (c === '"') { emString = !emString; continue }
+    if (emString) continue
+    if (c === '{') profundidade++
+    else if (c === '}' && --profundidade === 0) return { inicio, fim: i + 1 }
+  }
+  return null // objeto truncado
+}
+
+function extrairAcao(texto: string): Record<string, unknown> | null {
+  const bloco = acharBlocoAcao(texto)
+  if (!bloco) return null
+  try {
+    return JSON.parse(texto.slice(bloco.inicio, bloco.fim))
+  } catch {
+    return null
+  }
+}
+
 // Rede de segurança: o modelo às vezes devolve um JSON de ação numa etapa que
 // não esperava por ele. Sem isso o cidadão recebe o JSON cru no WhatsApp.
 function limparJsonDaResposta(texto: string, fallback: string): string {
-  const limpo = texto.replace(/\{\s*"action"\s*:[\s\S]*?\}/g, '').trim()
+  let limpo = texto
+  for (let i = 0; i < 5; i++) {
+    const bloco = acharBlocoAcao(limpo)
+    if (!bloco) break
+    limpo = limpo.slice(0, bloco.inicio) + limpo.slice(bloco.fim)
+  }
+  // Objeto truncado (sem fechamento) deixa lixo do "{" em diante.
+  const truncado = limpo.search(/\{\s*"action"\s*:/)
+  if (truncado !== -1) limpo = limpo.slice(0, truncado)
+
+  limpo = limpo.replace(/```(?:json)?/gi, '').trim()
   return limpo.length >= 10 ? limpo : fallback
 }
 
@@ -260,6 +307,20 @@ async function enviarTextoSeguro(telefone: string, texto: string, fallback: stri
   await enviarWhatsapp(telefone, limpo)
   return limpo
 }
+
+// Sem fronteira de palavra, as alternativas de uma letra engolem qualquer
+// frase iniciada por ela: "Só que não" batia como positivo, "Nossa" como
+// negativo. E \b não serve aqui — sem a flag u ele só conhece [A-Za-z0-9_],
+// então trata "ó" como fronteira e "Só" volta a casar com "s". A trava
+// abaixo é ciente de acentos.
+const FIM = '(?![\\p{L}\\p{N}])'
+const RE_POSITIVO = new RegExp(`^\\s*(sim|s|isso|claro|quero|pode|ok|certo|exato|confirmo|correto|positivo|beleza|bora|vamos)${FIM}`, 'iu')
+const RE_NEGATIVO = new RegExp(`^\\s*(n[aã]o|n|nop|negativo|errado|incorreto|outro|diferente)${FIM}`, 'iu')
+
+// Negativo vem primeiro: "não" e "nao" são inequívocos, e assim uma frase que
+// comece com algo ambíguo não é lida como consentimento.
+function ehNegativo(texto: string) { return RE_NEGATIVO.test(texto) }
+function ehPositivo(texto: string) { return !ehNegativo(texto) && RE_POSITIVO.test(texto) }
 
 async function salvarHistorico(id: string, historico: unknown, etapa: string, dados: DadosPendentes | null) {
   await supabaseServer.from('whatsapp_conversas').update({ historico, etapa, dados_pendentes: dados }).eq('id', id)
@@ -287,10 +348,24 @@ async function processarMensagem(body: EvolutionWebhookBody) {
   }
   if (!conversa) return
 
-  // Evita reprocessar a mesma mensagem duas vezes (webhook duplicado)
+  // Evita reprocessar a mesma mensagem (a Evolution reenvia o webhook).
+  // Ler-e-depois-gravar deixava dois webhooks simultâneos passarem juntos:
+  // ambos liam o id antigo antes de qualquer um gravar. O update condicional
+  // resolve no banco — só quem muda a linha de fato segue adiante.
   const messageId = key?.id
-  if (messageId && conversa.ultimo_message_id === messageId) return
-  if (messageId) await supabaseServer.from('whatsapp_conversas').update({ ultimo_message_id: messageId }).eq('id', conversa.id)
+  if (messageId) {
+    const { data: reivindicada } = await supabaseServer
+      .from('whatsapp_conversas')
+      .update({ ultimo_message_id: messageId })
+      .eq('id', conversa.id)
+      .or(`ultimo_message_id.is.null,ultimo_message_id.neq.${messageId}`)
+      .select('id')
+
+    if (!reivindicada?.length) {
+      console.log(`[webhook] mensagem ${messageId} ja processada — ignorando`)
+      return
+    }
+  }
 
   const historico: { role: string; content: string }[] = conversa.historico || []
   const dados: DadosPendentes = conversa.dados_pendentes || {}
@@ -378,8 +453,8 @@ async function processarMensagem(body: EvolutionWebhookBody) {
 
   // ── Etapa: perguntar se quer registrar ──
   if (etapa === 'perguntar_registrar') {
-    const positivo = /^(sim|s|quero|pode|claro|ok)/i.test(texto)
-    const negativo = /^(n[aã]o|n)/i.test(texto)
+    const positivo = ehPositivo(texto)
+    const negativo = ehNegativo(texto)
     if (negativo) {
       await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, 'Sem problemas! Posso ajudar com mais alguma coisa?')])
       return
@@ -403,10 +478,8 @@ async function processarMensagem(body: EvolutionWebhookBody) {
       dados.entidades_ids = [opcoes[0].id]
       dados.entidades_nomes = [opcoes[0].nome]
       historico.push({ role: 'user', content: 'sim' })
-      const systemPrompt = await montarSystemPrompt(nomeUsuario, { etapa: 'perguntar_endereco_direto', dados })
       const msg = `Beleza! Sua demanda vai ser direcionada para ${opcoes[0].nome} (${opcoes[0].cargo}). Agora me conta: qual o endereço do local? Pode digitar ou compartilhar sua localização aqui no WhatsApp.`
       historico.push({ role: 'assistant', content: msg })
-      void systemPrompt // montarSystemPrompt foi chamado só pra manter padrão — mensagem é fixa aqui
       await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_endereco', dados), enviarWhatsapp(telefone, msg)])
     } else {
       // Múltiplas autoridades — IA apresenta e pergunta
@@ -443,11 +516,7 @@ async function processarMensagem(body: EvolutionWebhookBody) {
 
     // O modelo às vezes envolve o JSON em texto ou em bloco markdown, então
     // procura o objeto em qualquer posição da resposta.
-    let jsonAction: Record<string, unknown> | null = null
-    const bloco = resposta.match(/\{\s*"action"\s*:[\s\S]*?\}/)
-    if (bloco) {
-      try { jsonAction = JSON.parse(bloco[0]) } catch { /* JSON malformado */ }
-    }
+    const jsonAction = extrairAcao(resposta)
 
     if (jsonAction?.action === 'autoridade_escolhida') {
       const escolhidosIds = (jsonAction.entidade_ids as string[]) || []
@@ -523,8 +592,8 @@ async function processarMensagem(body: EvolutionWebhookBody) {
 
   // ── Etapa: confirmar endereço (após ver a imagem de satélite) ──
   if (etapa === 'confirmar_endereco') {
-    const positivo = /^(sim|s|é|isso|correto|certo|ok|esse mesmo|exato|confirmo)/i.test(texto)
-    const negativo = /^(n[aã]o|errado|incorreto|outro|diferente)/i.test(texto)
+    const positivo = ehPositivo(texto)
+    const negativo = ehNegativo(texto)
 
     if (negativo) {
       historico.push({ role: 'user', content: texto })
@@ -558,6 +627,9 @@ async function processarMensagem(body: EvolutionWebhookBody) {
       const midia = await baixarMidiaWhatsapp(key)
       if (midia) {
         try {
+          // sharp é módulo nativo pesado: importar sob demanda evita carregá-lo
+          // em toda invocação, inclusive nas mensagens que são só texto.
+          const { default: sharp } = await import('sharp')
           const bufferOriginal = Buffer.from(midia.base64, 'base64')
           const bufferComprimido = await sharp(bufferOriginal)
             .resize(600, 600, { fit: 'inside', withoutEnlargement: true })
@@ -568,8 +640,8 @@ async function processarMensagem(body: EvolutionWebhookBody) {
           if (!uploadError) {
             dados.foto_url = supabaseServer.storage.from('demandas-fotos').getPublicUrl(path).data.publicUrl
           }
-        } catch {
-          // Falha ao comprimir/subir — segue sem foto
+        } catch (e) {
+          console.error('[foto] falha ao comprimir/subir:', e)
         }
       }
       if (!dados.foto_url) await enviarWhatsapp(telefone, 'Não consegui processar essa foto, mas sem problema, vou seguir sem ela.')
@@ -648,9 +720,11 @@ async function processarMensagem(body: EvolutionWebhookBody) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-internal-key': process.env.INTERNAL_SECRET! },
         body: JSON.stringify({ demanda_id: demanda.id }),
+        signal: AbortSignal.timeout(20000),
       })
-    } catch {
-      // não bloqueia — demanda já foi criada
+    } catch (e) {
+      // não bloqueia — a demanda já foi criada e a análise pode rodar depois
+      console.error('[ia/analisar] falhou:', e)
     }
 
     await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, 'Prontinho, sua demanda foi registrada! Ela vai passar por uma análise com o nosso Agente de IA, e se aprovada, aparece no mapa e a(as) autoridades são notificadas. Posso ajudar com mais alguma coisa?')])
