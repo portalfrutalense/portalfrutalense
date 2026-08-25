@@ -48,6 +48,7 @@ export default function ModalCPF() {
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
   const [voltarWhatsapp, setVoltarWhatsapp] = useState(false)
+  const [perfilPendente, setPerfilPendente] = useState<Parameters<typeof setPerfil>[0] | null>(null)
 
   function handleCPF(valor: string) {
     const limpo = valor.replace(/\D/g, '').slice(0, 11)
@@ -97,12 +98,18 @@ export default function ModalCPF() {
       })
       const vinculo = await resVinculo.json()
 
-      setPerfil({ id: user.id, nome: nome.trim(), cpf: cpfLimpo, email: user.email || undefined, role: perfilExistente?.role })
+      const dadosPerfil = { id: user.id, nome: nome.trim(), cpf: cpfLimpo, email: user.email || undefined, role: perfilExistente?.role }
 
       if (vinculo.conversaVinculada) {
+        // Guarda os dados do perfil e mostra tela de WhatsApp — NÃO chama setPerfil aqui
+        // (setPerfil fecha o modal, precisamos manter aberto até o usuário clicar)
+        setPerfilPendente(dadosPerfil)
         setVoltarWhatsapp(true)
         return
       }
+
+      // Sem conversa pendente — fecha o modal normalmente
+      setPerfil(dadosPerfil)
     } catch (e) {
       const err = e as { message?: string; code?: string; details?: string; hint?: string }
       console.error('[ModalCPF] falha ao salvar perfil:', {
@@ -126,6 +133,7 @@ export default function ModalCPF() {
             href="https://wa.me/5534992115756?text=Pronto%2C+j%C3%A1+fiz+o+login"
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => { if (perfilPendente) setPerfil(perfilPendente) }}
             style={{ backgroundColor: '#25d366', color: 'white', fontWeight: 700, padding: '13px 24px', borderRadius: '8px', textDecoration: 'none', fontSize: '15px', width: '100%', boxSizing: 'border-box' }}
           >
             Retornar ao WhatsApp
