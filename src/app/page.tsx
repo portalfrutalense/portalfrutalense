@@ -218,13 +218,14 @@ function CardAcesso() {
       </div>
 
       <div className="cartao-corpo">
-        <button onClick={entrarComGoogle} disabled={carregandoGoogle} className="btn-primario">
-          <GoogleIcon />
-          {carregandoGoogle ? 'Redirecionando…' : 'Continuar com Google'}
-        </button>
-        <p className="dica-primaria">O jeito mais rápido — sem criar senha</p>
-
-        <div className="separador"><span>ou</span></div>
+        {fase !== 'confirmar' && (<>
+          <button onClick={entrarComGoogle} disabled={carregandoGoogle} className="btn-primario">
+            <GoogleIcon />
+            {carregandoGoogle ? 'Redirecionando…' : 'Continuar com Google'}
+          </button>
+          <p className="dica-primaria">O jeito mais rápido — sem criar senha</p>
+          <div className="separador"><span>ou</span></div>
+        </>)}
 
         {fase === 'ok' ? (
           <div className="aviso-ok" role="status">
