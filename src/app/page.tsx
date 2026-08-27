@@ -711,7 +711,7 @@ export default function LandingPage() {
           .coluna-conteudo { align-items: center; text-align: center; }
           .subtitulo { text-align: center; max-width: 100%; }
           .coluna-acao { justify-content: center; }
-          .cartao, .atalhos { max-width: 100%; }
+          .cartao, .atalhos { max-width: 340px; width: 100%; }
           .halo { left: -30%; top: 8%; width: 110vw; height: 110vw; }
         }
 
