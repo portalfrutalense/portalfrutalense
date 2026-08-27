@@ -985,16 +985,27 @@ function MasterDemandas({ token }: { token: string | null }) {
                 </div>
               ) : null}
 
-              {/* Status de entrega do email — canto inferior direito */}
-              {d.email_status && (() => {
+              {/* Status de entrega do email — canto inferior direito.
+                  Prioridade: demandas.email_resend_id (reenvio manual)
+                  Fallback: demanda_entidades[].email_status (IA / moderar) */}
+              {(() => {
                 const cfg: Record<string, { texto: string; cor: string; bg: string }> = {
-                  enviado:   { texto: '📧 Email enviado',   cor: '#6b7280', bg: '#f9fafb' },
-                  entregue:  { texto: '✅ Email entregue',  cor: '#15803d', bg: '#f0fdf4' },
-                  atrasado:  { texto: '⏳ Entrega atrasada', cor: '#b45309', bg: '#fffbeb' },
-                  bounce:    { texto: '❌ Email bounced',   cor: '#dc2626', bg: '#fef2f2' },
-                  reclamado: { texto: '⚠️ Marcado como spam', cor: '#dc2626', bg: '#fef2f2' },
+                  enviado:   { texto: '📧 Email enviado',      cor: '#6b7280', bg: '#f9fafb' },
+                  entregue:  { texto: '✅ Email entregue',      cor: '#15803d', bg: '#f0fdf4' },
+                  atrasado:  { texto: '⏳ Entrega atrasada',   cor: '#b45309', bg: '#fffbeb' },
+                  bounce:    { texto: '❌ Email bounced',       cor: '#dc2626', bg: '#fef2f2' },
+                  reclamado: { texto: '⚠️ Marcado como spam',  cor: '#dc2626', bg: '#fef2f2' },
                 }
-                const s = cfg[d.email_status]
+                // Usa status da demanda só se tiver id de rastreio real
+                const statusDemanda = d.email_resend_id ? d.email_status : null
+                // Pega o melhor status dos vínculos (prioriza entregue > atrasado > bounce > reclamado > enviado)
+                const prioridade = ['entregue', 'bounce', 'reclamado', 'atrasado', 'enviado']
+                const statusVinculo = d.vinculos?.length
+                  ? prioridade.find(p => d.vinculos.some((v: any) => v.email_resend_id && v.email_status === p)) ?? null
+                  : null
+                const status = statusDemanda ?? statusVinculo
+                if (!status) return null
+                const s = cfg[status]
                 if (!s) return null
                 return (
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
