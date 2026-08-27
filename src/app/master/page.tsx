@@ -20,6 +20,9 @@ export default function MasterPage() {
   const [subSecaoPerfis, setSubSecaoPerfis] = useState<SubSecaoPerfis | null>(null)
   const [perfisAberto, setPerfisAberto] = useState(false)
   const [configurando, setConfigurando] = useState(false)
+  const [configurandoPets, setConfigurandoPets] = useState(false)
+  const [configurandoClassificados, setConfigurandoClassificados] = useState(false)
+  const [configurandoEmpregos, setConfigurandoEmpregos] = useState(false)
   const [abaConfig, setAbaConfig] = useState<AbaConfig>('categorias')
   const [menuAberto, setMenuAberto] = useState(false)
 
@@ -171,7 +174,7 @@ export default function MasterPage() {
           ].map(item => (
             <button
               key={item.key}
-              onClick={() => { setSecao(item.key); setPerfisAberto(false); setConfigurando(false); setMenuAberto(false) }}
+              onClick={() => { setSecao(item.key); setPerfisAberto(false); setConfigurando(false); setConfigurandoPets(false); setConfigurandoClassificados(false); setConfigurandoEmpregos(false); setMenuAberto(false) }}
               style={{
                 display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 12px',
                 borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 500,
@@ -309,23 +312,54 @@ export default function MasterPage() {
           {/* ── PERFIS ── */}
           {secao === 'perfis' && <MasterPerfis token={tokenSessao} subSecao={subSecaoPerfis} />}
 
-          {/* ── CAMADAS DO MAPA ── */}
+          {/* ── PETS ── */}
           {secao === 'pets' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <MasterPets />
-              <MasterCamadas camada="pets" />
+            <div>
+              <div className="master-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', gap: '12px', flexWrap: 'wrap' }}>
+                <div>
+                  <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>{configurandoPets ? 'Configurações' : 'Achei/Perdi um Pet'}</h1>
+                  <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>{configurandoPets ? 'Cores dos pins por situação.' : 'Registros de pets perdidos e encontrados.'}</p>
+                </div>
+                <button onClick={() => setConfigurandoPets(v => !v)}
+                  style={{ fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer' }}>
+                  {configurandoPets ? 'Voltar' : 'Configurar'}
+                </button>
+              </div>
+              {configurandoPets ? <MasterCamadas camada="pets" /> : <MasterPets />}
             </div>
           )}
+
+          {/* ── CLASSIFICADOS ── */}
           {secao === 'classificados' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <MasterClassificados />
-              <MasterCamadas camada="classificados" />
+            <div>
+              <div className="master-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', gap: '12px', flexWrap: 'wrap' }}>
+                <div>
+                  <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>{configurandoClassificados ? 'Configurações' : 'Classificados'}</h1>
+                  <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>{configurandoClassificados ? 'Cor e ícone dos pins por tipo de veículo.' : 'Anúncios de veículos publicados pelos cidadãos.'}</p>
+                </div>
+                <button onClick={() => setConfigurandoClassificados(v => !v)}
+                  style={{ fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer' }}>
+                  {configurandoClassificados ? 'Voltar' : 'Configurar'}
+                </button>
+              </div>
+              {configurandoClassificados ? <MasterCamadas camada="classificados" /> : <MasterClassificados />}
             </div>
           )}
+
+          {/* ── EMPREGOS ── */}
           {secao === 'empregos' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <MasterEmpregos />
-              <MasterCamadas camada="empregos" />
+            <div>
+              <div className="master-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', gap: '12px', flexWrap: 'wrap' }}>
+                <div>
+                  <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>{configurandoEmpregos ? 'Configurações' : 'Empregos'}</h1>
+                  <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>{configurandoEmpregos ? 'Cor dos pins das vagas.' : 'Vagas publicadas pelas empresas cadastradas.'}</p>
+                </div>
+                <button onClick={() => setConfigurandoEmpregos(v => !v)}
+                  style={{ fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer' }}>
+                  {configurandoEmpregos ? 'Voltar' : 'Configurar'}
+                </button>
+              </div>
+              {configurandoEmpregos ? <MasterCamadas camada="empregos" /> : <MasterEmpregos />}
             </div>
           )}
 
