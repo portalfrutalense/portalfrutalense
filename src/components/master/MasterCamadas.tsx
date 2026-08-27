@@ -10,7 +10,7 @@ const GRUPOS: { camada: string; titulo: string; descricao: string }[] = [
   { camada: 'empregos', titulo: 'Empregos', descricao: 'Cor do pin das vagas. A logo da empresa, quando houver, ocupa o miolo do pin.' },
 ]
 
-export default function MasterCamadas() {
+export default function MasterCamadas({ camada: camadaFiltro }: { camada?: string } = {}) {
   const client = createClient()
   const [itens, setItens] = useState<CamadaConfig[]>([])
   const [salvando, setSalvando] = useState<string | null>(null)
@@ -69,7 +69,7 @@ export default function MasterCamadas() {
         </div>
       )}
 
-      {GRUPOS.map(({ camada, titulo, descricao }) => {
+      {GRUPOS.filter(g => !camadaFiltro || g.camada === camadaFiltro).map(({ camada, titulo, descricao }) => {
         const doGrupo = itens.filter(i => i.camada === camada)
         if (doGrupo.length === 0) return null
 

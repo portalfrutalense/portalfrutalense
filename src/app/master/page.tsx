@@ -310,9 +310,24 @@ export default function MasterPage() {
           {secao === 'perfis' && <MasterPerfis token={tokenSessao} subSecao={subSecaoPerfis} />}
 
           {/* ── CAMADAS DO MAPA ── */}
-          {secao === 'pets' && <MasterPets />}
-          {secao === 'classificados' && <MasterClassificados />}
-          {secao === 'empregos' && <MasterEmpregos />}
+          {secao === 'pets' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <MasterPets />
+              <MasterCamadas camada="pets" />
+            </div>
+          )}
+          {secao === 'classificados' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <MasterClassificados />
+              <MasterCamadas camada="classificados" />
+            </div>
+          )}
+          {secao === 'empregos' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <MasterEmpregos />
+              <MasterCamadas camada="empregos" />
+            </div>
+          )}
 
           {/* ── MAPA DE DEMANDAS ── */}
           {secao === 'demandas' && (
@@ -350,7 +365,7 @@ export default function MasterPage() {
                 <div>
                   {/* Sub-abas */}
                   <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid #e5e7eb', marginBottom: '24px' }}>
-                    {(['categorias', 'camadas', 'ia'] as AbaConfig[]).map((a) => {
+                    {(['categorias', 'ia'] as AbaConfig[]).map((a) => {
                       const labels: Record<AbaConfig, string> = { categorias: 'Categorias', camadas: 'Camadas do mapa', ia: 'IA' }
                       return (
                         <button key={a} onClick={() => setAbaConfig(a)} style={{
@@ -431,7 +446,7 @@ export default function MasterPage() {
                     </div>
                   )}
 
-                  {abaConfig === 'camadas' && <MasterCamadas />}
+                  {abaConfig === 'camadas' && null}
 
                   {abaConfig === 'ia' && <MasterIA />}
                 </div>
