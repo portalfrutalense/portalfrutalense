@@ -19,24 +19,25 @@ function NavCamadas({ user }: { user: unknown }) {
   const camadaAtiva = pathname === '/mapa' ? (searchParams.get('camada') || 'demandas') : null
   if (!user) return null
   return (
-    <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-      {CAMADAS_NAV.map(({ label, camada }) => {
+    <div className="nav-links" style={{ display: 'flex', alignItems: 'center' }}>
+      {CAMADAS_NAV.map(({ label, camada }, i) => {
         const ativo = camadaAtiva === camada
         return (
-          <Link key={camada} href={`/mapa?camada=${camada}`}
-            style={{
-              color: ativo ? 'white' : 'rgba(255,255,255,0.85)',
-              fontSize: '13.5px', fontWeight: 500,
-              textDecoration: 'none', padding: '5px 10px', borderRadius: '6px',
-              whiteSpace: 'nowrap',
-              background: ativo ? 'rgba(255,255,255,0.18)' : 'transparent',
-              border: ativo ? '1px solid rgba(255,255,255,0.5)' : '1px solid rgba(255,255,255,0.2)',
-              transition: 'border-color 0.18s, background 0.18s',
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.6)'; (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.12)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = ativo ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)'; (e.currentTarget as HTMLElement).style.background = ativo ? 'rgba(255,255,255,0.18)' : 'transparent' }}>
-            {label}
-          </Link>
+          <div key={camada} style={{ display: 'flex', alignItems: 'center' }}>
+            {i > 0 && <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '14px', margin: '0 2px', userSelect: 'none' }}>|</span>}
+            <Link href={`/mapa?camada=${camada}`}
+              style={{
+                color: ativo ? 'white' : 'rgba(255,255,255,0.75)',
+                fontSize: '13.5px', fontWeight: ativo ? 600 : 500,
+                textDecoration: 'none', padding: '5px 10px',
+                whiteSpace: 'nowrap',
+                transition: 'color 0.15s',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'white' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = ativo ? 'white' : 'rgba(255,255,255,0.75)' }}>
+              {label}
+            </Link>
+          </div>
         )
       })}
     </div>
