@@ -159,19 +159,18 @@ function ProvaSocial() {
 
 /* ------------------------------------------------------------ card login -- */
 
-type Tela = 'inicial' | 'email'
-type Aba = 'entrar' | 'cadastrar'
+// Fluxo unificado: tenta login → se não existe, pede confirmação de senha e cria conta
+type FaseEmail = 'form' | 'confirmar' | 'ok'
 
 function CardAcesso() {
   const supabase = createClient()
-  const [tela, setTela] = useState<Tela>('inicial')
-  const [aba, setAba] = useState<Aba>('entrar')
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
+  const [senhaConfirm, setSenhaConfirm] = useState('')
+  const [fase, setFase] = useState<FaseEmail>('form')
   const [carregando, setCarregando] = useState(false)
   const [carregandoGoogle, setCarregandoGoogle] = useState(false)
   const [erro, setErro] = useState('')
-  const [sucesso, setSucesso] = useState('')
 
   async function entrarComGoogle() {
     setCarregandoGoogle(true); setErro('')
@@ -182,22 +181,34 @@ function CardAcesso() {
     if (error) { setErro('Não foi possível conectar com o Google. Tente de novo.'); setCarregandoGoogle(false) }
   }
 
-  async function entrarComEmail(e: React.FormEvent) {
+  async function submeter(e: React.FormEvent) {
     e.preventDefault(); setErro(''); setCarregando(true)
-    const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
-    if (error) { setErro('E-mail ou senha incorretos. Confira e tente de novo.'); setCarregando(false) }
-  }
 
-  async function cadastrarComEmail(e: React.FormEvent) {
-    e.preventDefault(); setErro('')
-    if (senha.length < 6) { setErro('A senha precisa ter pelo menos 6 caracteres.'); return }
-    setCarregando(true)
+    if (fase === 'form') {
+      // Tenta login primeiro
+      const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
+      if (!error) return // sucesso — AuthProvider redireciona
+      // Se senha errada para conta existente
+      if (error.message.toLowerCase().includes('invalid')) {
+        setErro('E-mail ou senha incorretos. Confira e tente de novo.')
+        setCarregando(false)
+        return
+      }
+      // Conta não existe — pede confirmação para criar
+      setFase('confirmar')
+      setCarregando(false)
+      return
+    }
+
+    // fase === 'confirmar': criar conta
+    if (senha.length < 6) { setErro('A senha precisa ter pelo menos 6 caracteres.'); setCarregando(false); return }
+    if (senha !== senhaConfirm) { setErro('As senhas não coincidem.'); setCarregando(false); return }
     const { error } = await supabase.auth.signUp({ email, password: senha })
     if (error) {
-      setErro(error.message || 'Não foi possível criar a conta. Verifique o e-mail digitado.')
+      setErro(error.message || 'Não foi possível criar a conta.')
       setCarregando(false)
     } else {
-      setSucesso('Conta criada! Confirme pelo link que enviamos no seu e-mail para poder entrar.')
+      setFase('ok')
       setCarregando(false)
     }
   }
@@ -210,66 +221,56 @@ function CardAcesso() {
       </div>
 
       <div className="cartao-corpo">
-        {tela === 'inicial' ? (
-          <>
-            <button onClick={entrarComGoogle} disabled={carregandoGoogle} className="btn-primario">
-              <GoogleIcon />
-              {carregandoGoogle ? 'Redirecionando…' : 'Continuar com Google'}
-            </button>
-            <p className="dica-primaria">O jeito mais rápido — sem criar senha</p>
+        <button onClick={entrarComGoogle} disabled={carregandoGoogle} className="btn-primario">
+          <GoogleIcon />
+          {carregandoGoogle ? 'Redirecionando…' : 'Continuar com Google'}
+        </button>
+        <p className="dica-primaria">O jeito mais rápido — sem criar senha</p>
 
-            <div className="separador"><span>ou</span></div>
+        <div className="separador"><span>ou</span></div>
 
-            <button onClick={() => setTela('email')} className="btn-secundario">
-              <EmailIcon />
-              Entrar com e-mail
-            </button>
-
-            {erro && <div className="aviso-erro" role="alert">{erro}</div>}
-          </>
+        {fase === 'ok' ? (
+          <div className="aviso-ok" role="status">
+            Conta criada com sucesso! Agora é só entrar.
+          </div>
         ) : (
-          <>
-            <button onClick={() => { setTela('inicial'); setErro(''); setSucesso('') }} className="btn-voltar">
-              ← Voltar
-            </button>
-
-            <div className="abas" role="tablist">
-              {(['entrar', 'cadastrar'] as Aba[]).map((a) => (
-                <button
-                  key={a}
-                  role="tab"
-                  aria-selected={aba === a}
-                  onClick={() => { setAba(a); setErro(''); setSucesso('') }}
-                  className={`aba${aba === a ? ' aba-ativa' : ''}`}
-                >
-                  {a === 'entrar' ? 'Entrar' : 'Criar conta'}
-                </button>
-              ))}
-            </div>
-
-            {erro && <div className="aviso-erro" role="alert">{erro}</div>}
-            {sucesso && <div className="aviso-ok" role="status">{sucesso}</div>}
-
-            {!sucesso && (
-              <form onSubmit={aba === 'entrar' ? entrarComEmail : cadastrarComEmail} className="formulario">
-                <input
-                  type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                  required placeholder="seu@email.com" aria-label="E-mail"
-                  autoComplete="email" className="campo"
-                />
-                <input
-                  type="password" value={senha} onChange={(e) => setSenha(e.target.value)}
-                  required aria-label="Senha"
-                  autoComplete={aba === 'cadastrar' ? 'new-password' : 'current-password'}
-                  placeholder={aba === 'cadastrar' ? 'Crie uma senha (mín. 6 caracteres)' : 'Sua senha'}
-                  className="campo"
-                />
-                <button type="submit" disabled={carregando} className="btn-enviar">
-                  {carregando ? 'Aguarde…' : aba === 'entrar' ? 'Entrar' : 'Criar conta'}
-                </button>
-              </form>
+          <form onSubmit={submeter} className="formulario">
+            {fase === 'confirmar' && (
+              <div className="aviso-info" role="status">
+                Não encontramos essa conta. Digite sua senha novamente para criá-la.
+              </div>
             )}
-          </>
+            {erro && <div className="aviso-erro" role="alert">{erro}</div>}
+            <input
+              type="email" value={email} onChange={(e) => { setEmail(e.target.value); setErro('') }}
+              required placeholder="seu@email.com" aria-label="E-mail"
+              autoComplete="email" className="campo"
+            />
+            <input
+              type="password" value={senha} onChange={(e) => { setSenha(e.target.value); setErro('') }}
+              required aria-label="Senha"
+              autoComplete={fase === 'confirmar' ? 'new-password' : 'current-password'}
+              placeholder={fase === 'confirmar' ? 'Crie uma senha (mín. 6 caracteres)' : 'Sua senha'}
+              className="campo"
+            />
+            {fase === 'confirmar' && (
+              <input
+                type="password" value={senhaConfirm} onChange={(e) => { setSenhaConfirm(e.target.value); setErro('') }}
+                required aria-label="Confirmar senha"
+                autoComplete="new-password"
+                placeholder="Repita a senha"
+                className="campo"
+              />
+            )}
+            <button type="submit" disabled={carregando} className="btn-enviar">
+              {carregando ? 'Aguarde…' : fase === 'confirmar' ? 'Criar conta' : 'Entrar'}
+            </button>
+            {fase === 'confirmar' && (
+              <button type="button" className="btn-voltar" onClick={() => { setFase('form'); setErro(''); setSenhaConfirm('') }}>
+                ← Voltar
+              </button>
+            )}
+          </form>
         )}
       </div>
     </div>
@@ -611,6 +612,10 @@ export default function LandingPage() {
         .aviso-ok {
           padding: 10px 12px; border-radius: 9px; font-size: 12.5px; line-height: 1.5;
           background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d;
+        }
+        .aviso-info {
+          padding: 9px 12px; border-radius: 9px; font-size: 12.5px; line-height: 1.5;
+          background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8;
         }
 
         /* ---- atalhos (logado) ---- */
