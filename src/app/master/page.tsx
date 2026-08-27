@@ -4,11 +4,13 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '@/components/AuthProvider'
+import MasterCamadas from '@/components/master/MasterCamadas'
+import { MasterPets, MasterClassificados, MasterEmpregos } from '@/components/master/MasterMapaCamadas'
 import { CategoriaMapa } from '@/types'
 
-type SecaoMaster = 'dashboard' | 'demandas' | 'chatbot' | 'perfis'
+type SecaoMaster = 'dashboard' | 'demandas' | 'pets' | 'classificados' | 'empregos' | 'chatbot' | 'perfis'
 type SubSecaoPerfis = 'cidadao' | 'autoridade' | 'empresa'
-type AbaConfig = 'categorias' | 'ia'
+type AbaConfig = 'categorias' | 'camadas' | 'ia'
 
 export default function MasterPage() {
   const { user, perfil, carregando: carregandoAuth } = useAuth()
@@ -162,6 +164,9 @@ export default function MasterPage() {
           {[
             { key: 'dashboard' as SecaoMaster, label: 'Dashboard' },
             { key: 'demandas'  as SecaoMaster, label: 'Mapa de Demandas' },
+            { key: 'pets'          as SecaoMaster, label: 'Pets' },
+            { key: 'classificados' as SecaoMaster, label: 'Classificados' },
+            { key: 'empregos'      as SecaoMaster, label: 'Empregos' },
             { key: 'chatbot'   as SecaoMaster, label: 'Chatbot IA' },
           ].map(item => (
             <button
@@ -304,6 +309,11 @@ export default function MasterPage() {
           {/* ── PERFIS ── */}
           {secao === 'perfis' && <MasterPerfis token={tokenSessao} subSecao={subSecaoPerfis} />}
 
+          {/* ── CAMADAS DO MAPA ── */}
+          {secao === 'pets' && <MasterPets />}
+          {secao === 'classificados' && <MasterClassificados />}
+          {secao === 'empregos' && <MasterEmpregos />}
+
           {/* ── MAPA DE DEMANDAS ── */}
           {secao === 'demandas' && (
             <div>
@@ -340,8 +350,8 @@ export default function MasterPage() {
                 <div>
                   {/* Sub-abas */}
                   <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid #e5e7eb', marginBottom: '24px' }}>
-                    {(['categorias', 'ia'] as AbaConfig[]).map((a) => {
-                      const labels: Record<AbaConfig, string> = { categorias: 'Categorias', ia: 'IA' }
+                    {(['categorias', 'camadas', 'ia'] as AbaConfig[]).map((a) => {
+                      const labels: Record<AbaConfig, string> = { categorias: 'Categorias', camadas: 'Camadas do mapa', ia: 'IA' }
                       return (
                         <button key={a} onClick={() => setAbaConfig(a)} style={{
                           padding: '8px 16px', borderRadius: '6px 6px 0 0', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
@@ -420,6 +430,8 @@ export default function MasterPage() {
                       </div>
                     </div>
                   )}
+
+                  {abaConfig === 'camadas' && <MasterCamadas />}
 
                   {abaConfig === 'ia' && <MasterIA />}
                 </div>

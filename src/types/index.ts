@@ -54,3 +54,107 @@ export interface CategoriaMapa {
   icone_url?: string
   ativo: boolean
 }
+
+/* ----------------------------------------------------- camadas do mapa --- */
+
+export type Camada = 'demandas' | 'pets' | 'classificados' | 'empregos'
+
+/** Cores e ícones de cada pin, editáveis no painel master. */
+export interface CamadaConfig {
+  chave: string
+  camada: Camada
+  rotulo: string
+  cor: string
+  icone_url?: string
+  ordem: number
+  ativo: boolean
+}
+
+/* --------------------------------------------------------------- pets --- */
+
+/** 'perdido' e 'achado' são registros independentes — nunca se convertem. */
+export type TipoPet = 'perdido' | 'achado'
+export type EspeciePet = 'cachorro' | 'gato'
+export type PortePet = 'pequeno' | 'medio' | 'grande'
+
+export interface Pet {
+  id: string
+  user_id: string
+  autor_nome: string
+  tipo: TipoPet
+  /** Só 'perdido' pode ser marcado como reencontrado. */
+  reencontrado: boolean
+  reencontrado_em?: string
+  especie: EspeciePet
+  nome_pet?: string
+  raca?: string
+  cor?: string
+  porte?: PortePet
+  descricao: string
+  lat: number
+  lng: number
+  endereco_label?: string
+  foto_url?: string
+  contato: string
+  oculto?: boolean
+  expira_em: string
+  created_at: string
+  updated_at: string
+}
+
+/* ------------------------------------------------------- classificados --- */
+
+export type TipoVeiculo = 'carro' | 'moto' | 'caminhonete' | 'caminhao'
+
+export interface Classificado {
+  id: string
+  user_id: string
+  autor_nome: string
+  tipo_veiculo: TipoVeiculo
+  titulo: string
+  marca?: string
+  modelo?: string
+  ano?: number
+  km?: number
+  cor?: string
+  preco?: number
+  aceita_troca: boolean
+  descricao: string
+  /** Coordenada já aproximada — o endereço exato nunca chega ao cliente. */
+  lat: number
+  lng: number
+  bairro_label?: string
+  fotos: string[]
+  contato: string
+  vendido: boolean
+  oculto?: boolean
+  created_at: string
+  updated_at: string
+}
+
+/* ----------------------------------------------------------- empregos --- */
+
+export type TipoContrato = 'clt' | 'pj' | 'temporario' | 'estagio' | 'freelance'
+
+export interface Emprego {
+  id: string
+  user_id: string
+  empresa_nome: string
+  cargo: string
+  area?: string
+  contrato: TipoContrato
+  salario?: number
+  salario_a_combinar: boolean
+  vagas: number
+  descricao: string
+  requisitos?: string
+  lat: number
+  lng: number
+  endereco_label?: string
+  logo_url?: string
+  contato: string
+  encerrada: boolean
+  oculto?: boolean
+  created_at: string
+  updated_at: string
+}

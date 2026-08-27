@@ -6,15 +6,18 @@ import { useAuth } from './AuthProvider'
 import ModalAuth from './ModalAuth'
 import Turnstile from './Turnstile'
 import MiniMapaConfirmar from './MiniMapaConfirmar'
-import { Demanda, CategoriaMapa, Entidade, DemandaEntidade } from '@/types'
+import { useMapaBase } from './mapa/useMapaBase'
+import { usePets, useMarkersPets, SidebarPets, FormularioPet } from './mapa/CamadaPets'
+import { useClassificados, useMarkersClassificados, SidebarClassificados, FormularioClassificado } from './mapa/CamadaClassificados'
+import { useEmpregos, useMarkersEmpregos, SidebarEmpregos, FormularioEmprego } from './mapa/CamadaEmpregos'
+import { Demanda, CategoriaMapa, Entidade, DemandaEntidade, Camada, Pet, Classificado, Emprego } from '@/types'
 
-const FRUTAL_LAT = -20.02752
-const FRUTAL_LNG = -48.92702
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-const TILE_SATELITE = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
-const TILE_SATELITE_RUAS = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
-const TILE_RUA = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
-const ZOOM_SATELITE_RUAS = 16 // exibe nomes de ruas no satélite apenas a partir deste zoom
+const CAMADAS: { id: Camada; rotulo: string }[] = [
+  { id: 'demandas', rotulo: 'Demandas' },
+  { id: 'pets', rotulo: 'Pets' },
+  { id: 'classificados', rotulo: 'Classificados' },
+  { id: 'empregos', rotulo: 'Empregos' },
+]
 
 function titleCase(str?: string) {
   if (!str) return ''
@@ -52,18 +55,33 @@ export default function MapaDemandas() {
   const [modalAuth, setModalAuth] = useState(false)
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
 
-  const mapRef = useRef<HTMLDivElement>(null)
-  const mapaIniciado = useRef(false)
-  const mapaObj = useRef<any>(null)
-  const leafletObj = useRef<any>(null)
-  const tileAtual = useRef<any>(null)
+  // Mapa base compartilhado por todas as camadas — criado uma única vez
+  const { mapRef, mapaObj, leafletObj, mapaCarregado, satelite, alternarCamadaTile } = useMapaBase()
+
   const markersRef = useRef<any[]>([])
-  const resizeObserverRef = useRef<ResizeObserver | null>(null)
   const sidebarRef = useRef<HTMLDivElement>(null)
+
+  // Camada ativa
+  const [camada, setCamada] = useState<Camada>('demandas')
+
+  // Estado da camada de pets
+  const { pets, cores: coresPets, recarregar: recarregarPets } = usePets()
+  const [filtroPet, setFiltroPet] = useState('')
+  const [petSelecionado, setPetSelecionado] = useState<Pet | null>(null)
+  const [formPet, setFormPet] = useState<{ aberto: boolean; editando: Pet | null }>({ aberto: false, editando: null })
+
+  // Estado da camada de classificados
+  const { classificados, config: configClassificados, recarregar: recarregarClassificados } = useClassificados()
+  const [filtroClassificado, setFiltroClassificado] = useState('')
+  const [classificadoSelecionado, setClassificadoSelecionado] = useState<Classificado | null>(null)
+  const [formClassificado, setFormClassificado] = useState<{ aberto: boolean; editando: Classificado | null }>({ aberto: false, editando: null })
+
+  // Estado da camada de empregos
+  const { empregos, config: configEmpregos, recarregar: recarregarEmpregos } = useEmpregos()
+  const [filtroEmprego, setFiltroEmprego] = useState('')
+  const [empregoSelecionado, setEmpregoSelecionado] = useState<Emprego | null>(null)
+  const [formEmprego, setFormEmprego] = useState<{ aberto: boolean; editando: Emprego | null }>({ aberto: false, editando: null })
   const [voo, setVoo] = useState<{ fromX: number; fromY: number; fromW: number; fromH: number; toX: number; toY: number; toW: number; toH: number; animando: boolean } | null>(null)
-  const [mapaCarregado, setMapaCarregado] = useState(false)
-  const [satelite, setSatelite] = useState(true)
-  const sateliteRef = useRef(true)
   const [demandas, setDemandas] = useState<Demanda[]>([])
   const [categorias, setCategorias] = useState<CategoriaMapa[]>([])
   const [entidades, setEntidades] = useState<Entidade[]>([])
@@ -138,70 +156,7 @@ export default function MapaDemandas() {
     })
   }, [])
 
-  useEffect(() => {
-    if (!mapRef.current || mapaIniciado.current) return
-    mapaIniciado.current = true
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-    document.head.appendChild(link)
-
-    import('leaflet').then((L) => {
-      delete (L.Icon.Default.prototype as any)._getIconUrl
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        shadowUrl: '',
-      })
-      const zoom = window.innerWidth <= 600 ? 13 : 14
-      const mapa = L.map(mapRef.current!, {
-        zoomControl: false,
-        maxBounds: [[-20.1529, -49.30], [-19.8869, -48.73]],
-        maxBoundsViscosity: 1.0,
-        minZoom: 12,
-        maxZoom: 19,
-      }).setView([FRUTAL_LAT, FRUTAL_LNG], zoom)
-      const tile = L.tileLayer(TILE_SATELITE, { attribution: '© Mapbox', maxZoom: 19 })
-      tile.addTo(mapa)
-      tileAtual.current = tile
-      mapaObj.current = mapa
-      leafletObj.current = L
-      setMapaCarregado(true)
-
-      // Troca entre satélite puro e satélite+ruas conforme o zoom (só quando em modo satélite)
-      mapa.on('zoomend', () => {
-        if (!sateliteRef.current) return
-        const z = mapa.getZoom()
-        const urlAtual = (tileAtual.current as any)?._url as string | undefined
-        const precisaRuas = z >= ZOOM_SATELITE_RUAS
-        const temRuas = urlAtual?.includes('satellite-streets')
-        if (precisaRuas && !temRuas) {
-          tileAtual.current?.remove()
-          const novoTile = L.tileLayer(TILE_SATELITE_RUAS, { attribution: '© Mapbox', maxZoom: 19 })
-          novoTile.addTo(mapa)
-          tileAtual.current = novoTile
-        } else if (!precisaRuas && temRuas) {
-          tileAtual.current?.remove()
-          const novoTile = L.tileLayer(TILE_SATELITE, { attribution: '© Mapbox', maxZoom: 19 })
-          novoTile.addTo(mapa)
-          tileAtual.current = novoTile
-        }
-      })
-
-      // Corrige o mapa esticando quando o tamanho do container muda (zoom do navegador, resize de janela)
-      const resizeObserver = new ResizeObserver(() => {
-        mapa.invalidateSize()
-      })
-      resizeObserver.observe(mapRef.current!)
-      resizeObserverRef.current = resizeObserver
-    })
-
-    return () => {
-      resizeObserverRef.current?.disconnect()
-    }
-  }, [])
-
-  // Renderiza markers conforme filtros
+  // Markers de demandas — inalterados; só não são desenhados quando outra camada está ativa
   useEffect(() => {
     if (!mapaCarregado || !mapaObj.current || !leafletObj.current) return
     const L = leafletObj.current
@@ -210,6 +165,7 @@ export default function MapaDemandas() {
     // Limpa markers anteriores
     markersRef.current.forEach(m => m.remove())
     markersRef.current = []
+    if (camada !== 'demandas') return
 
     const filtradas = demandas.filter(d => {
       if (filtroStatus && d.status !== filtroStatus) return false
@@ -320,7 +276,88 @@ export default function MapaDemandas() {
     return () => {
       container.removeEventListener('click', aoClicarNoContainer)
     }
-  }, [demandas, user, mapaCarregado, filtroStatus, filtroCategoria])
+  }, [demandas, user, mapaCarregado, filtroStatus, filtroCategoria, camada])
+
+  // Markers da camada de pets — desenhados só quando ela está ativa
+  useMarkersPets({
+    ativo: camada === 'pets',
+    pets, cores: coresPets, filtro: filtroPet,
+    mapaObj, leafletObj, mapaCarregado,
+    aoSelecionar: (p) => { setPetSelecionado(p); setSheetState('full') },
+  })
+
+  useMarkersClassificados({
+    ativo: camada === 'classificados',
+    classificados, config: configClassificados, filtro: filtroClassificado,
+    mapaObj, leafletObj, mapaCarregado,
+    aoSelecionar: (c) => { setClassificadoSelecionado(c); setSheetState('full') },
+  })
+
+  useMarkersEmpregos({
+    ativo: camada === 'empregos',
+    empregos, config: configEmpregos, filtro: filtroEmprego,
+    mapaObj, leafletObj, mapaCarregado,
+    aoSelecionar: (e) => { setEmpregoSelecionado(e); setSheetState('full') },
+  })
+
+  // Trocar de camada limpa a seleção da anterior — o mapa em si é preservado
+  function trocarCamada(nova: Camada) {
+    if (nova === camada) return
+    setCamada(nova)
+    setDemandaSelecionada(null)
+    setPetSelecionado(null)
+    setClassificadoSelecionado(null)
+    setEmpregoSelecionado(null)
+    setSheetState('peek')
+  }
+
+  async function excluirPet(p: Pet) {
+    if (!confirm('Excluir este registro? Essa ação não pode ser desfeita.')) return
+    const { error } = await supabase.from('pets').delete().eq('id', p.id)
+    if (error) return
+    setPetSelecionado(null)
+    recarregarPets()
+  }
+
+  async function marcarPetReencontrado(p: Pet) {
+    const { error } = await supabase
+      .from('pets')
+      .update({ reencontrado: true, reencontrado_em: new Date().toISOString() })
+      .eq('id', p.id)
+    if (error) return
+    setPetSelecionado(null)
+    recarregarPets()
+  }
+
+  async function excluirClassificado(c: Classificado) {
+    if (!confirm('Excluir este anúncio? Essa ação não pode ser desfeita.')) return
+    const { error } = await supabase.from('classificados').delete().eq('id', c.id)
+    if (error) return
+    setClassificadoSelecionado(null)
+    recarregarClassificados()
+  }
+
+  async function marcarClassificadoVendido(c: Classificado) {
+    const { error } = await supabase.from('classificados').update({ vendido: true }).eq('id', c.id)
+    if (error) return
+    setClassificadoSelecionado(null)
+    recarregarClassificados()
+  }
+
+  async function excluirEmprego(e: Emprego) {
+    if (!confirm('Excluir esta vaga? Essa ação não pode ser desfeita.')) return
+    const { error } = await supabase.from('empregos').delete().eq('id', e.id)
+    if (error) return
+    setEmpregoSelecionado(null)
+    recarregarEmpregos()
+  }
+
+  async function encerrarEmprego(e: Emprego) {
+    const { error } = await supabase.from('empregos').update({ encerrada: true }).eq('id', e.id)
+    if (error) return
+    setEmpregoSelecionado(null)
+    recarregarEmpregos()
+  }
 
   useEffect(() => {
     if (etapa !== 'formulario' || !coordenadas) {
@@ -345,7 +382,7 @@ export default function MapaDemandas() {
   function cicloSheet() {
     setSheetState(prev => {
       if (prev === 'peek') return 'half'
-      if (prev === 'half') return demandaSelecionada ? 'full' : 'peek'
+      if (prev === 'half') return (demandaSelecionada || petSelecionado || classificadoSelecionado || empregoSelecionado) ? 'full' : 'peek'
       return 'peek'
     })
   }
@@ -369,7 +406,7 @@ export default function MapaDemandas() {
     arrasteRef.current = null
     let melhor: 'peek' | 'half' | 'full' = 'peek'
     let menorDist = Infinity
-    const candidatos = demandaSelecionada ? (['peek', 'half', 'full'] as const) : (['peek', 'half'] as const)
+    const candidatos = (demandaSelecionada || petSelecionado || classificadoSelecionado || empregoSelecionado) ? (['peek', 'half', 'full'] as const) : (['peek', 'half'] as const)
     candidatos.forEach((s) => {
       const d = Math.abs(SNAP[s] - alturaAtual)
       if (d < menorDist) { menorDist = d; melhor = s }
@@ -380,25 +417,6 @@ export default function MapaDemandas() {
     sidebarRef.current.style.transition = 'height 0.25s ease'
     sidebarRef.current.style.height = `${SNAP[melhor] * 100}vh`
     setSheetState(melhor)
-  }
-
-  function alternarCamada() {
-    if (!mapaObj.current || !leafletObj.current) return
-    const L = leafletObj.current
-    if (tileAtual.current) tileAtual.current.remove()
-    const novoSatelite = !satelite
-    sateliteRef.current = novoSatelite
-    let tile
-    if (novoSatelite) {
-      const z = mapaObj.current.getZoom()
-      const url = z >= ZOOM_SATELITE_RUAS ? TILE_SATELITE_RUAS : TILE_SATELITE
-      tile = L.tileLayer(url, { attribution: '© Mapbox', maxZoom: 19 })
-    } else {
-      tile = L.tileLayer(TILE_RUA, { attribution: '© Mapbox © OpenStreetMap', maxZoom: 19 })
-    }
-    tile.addTo(mapaObj.current)
-    tileAtual.current = tile
-    setSatelite(novoSatelite)
   }
 
   function aoConfirmarEndereco(endereco: string, lat: number, lng: number) {
@@ -554,7 +572,50 @@ export default function MapaDemandas() {
             onTouchEnd={isMobile ? aoSoltarArraste : undefined}
           >
 
-          {demandaSelecionada ? (
+          {camada === 'pets' ? (
+            /* ── CAMADA: PETS ── */
+            <SidebarPets
+              pets={pets}
+              cores={coresPets}
+              filtro={filtroPet}
+              setFiltro={setFiltroPet}
+              selecionado={petSelecionado}
+              setSelecionado={(p) => { setPetSelecionado(p); if (!p) setSheetState('peek') }}
+              onRegistrar={() => user ? setFormPet({ aberto: true, editando: null }) : setModalAuth(true)}
+              onEditar={(p) => setFormPet({ aberto: true, editando: p })}
+              onExcluir={excluirPet}
+              onMarcarReencontrado={marcarPetReencontrado}
+              onFoto={setFotoAmpliada}
+            />
+          ) : camada === 'classificados' ? (
+            /* ── CAMADA: CLASSIFICADOS ── */
+            <SidebarClassificados
+              classificados={classificados}
+              config={configClassificados}
+              filtro={filtroClassificado}
+              setFiltro={setFiltroClassificado}
+              selecionado={classificadoSelecionado}
+              setSelecionado={(c) => { setClassificadoSelecionado(c); if (!c) setSheetState('peek') }}
+              onRegistrar={() => user ? setFormClassificado({ aberto: true, editando: null }) : setModalAuth(true)}
+              onEditar={(c) => setFormClassificado({ aberto: true, editando: c })}
+              onExcluir={excluirClassificado}
+              onMarcarVendido={marcarClassificadoVendido}
+              onFoto={setFotoAmpliada}
+            />
+          ) : camada === 'empregos' ? (
+            /* ── CAMADA: EMPREGOS ── */
+            <SidebarEmpregos
+              empregos={empregos}
+              filtro={filtroEmprego}
+              setFiltro={setFiltroEmprego}
+              selecionado={empregoSelecionado}
+              setSelecionado={(e) => { setEmpregoSelecionado(e); if (!e) setSheetState('peek') }}
+              onPublicar={() => user ? setFormEmprego({ aberto: true, editando: null }) : setModalAuth(true)}
+              onEditar={(e) => setFormEmprego({ aberto: true, editando: e })}
+              onExcluir={excluirEmprego}
+              onEncerrar={encerrarEmprego}
+            />
+          ) : demandaSelecionada ? (
             /* ── DETALHE DA DEMANDA ── */
             <div key={demandaSelecionada.id} className="demanda-detalhe-anim" style={{ display: 'flex', flexDirection: 'column' }}>
               {/* Voltar */}
@@ -782,9 +843,24 @@ export default function MapaDemandas() {
         <div style={isMobile ? { position: 'absolute', inset: 0 } : { flex: 1, position: 'relative', minWidth: 0 }}>
           <div ref={mapRef} className="mapa-map-div" style={{ width: '100%', height: '100%', minHeight: 'clamp(300px, 55vw, 500px)' }} />
 
+          {/* Seletor de camada */}
+          <div style={{ position: 'absolute', top: '12px', left: '12px', display: 'flex', gap: '4px', zIndex: 1000, background: 'white', borderRadius: '20px', padding: '3px', boxShadow: '0 1px 4px rgba(0,0,0,0.18)' }}>
+            {CAMADAS.map(({ id, rotulo }) => (
+              <button key={id} onClick={() => trocarCamada(id)} style={{
+                border: 'none', borderRadius: '16px', padding: '5px 13px', cursor: 'pointer',
+                fontSize: '11.5px', fontWeight: camada === id ? 700 : 500,
+                background: camada === id ? '#4256c8' : 'transparent',
+                color: camada === id ? 'white' : '#6b7280',
+                transition: 'background 0.18s ease, color 0.18s ease',
+              }}>
+                {rotulo}
+              </button>
+            ))}
+          </div>
+
           {/* Controles sobrepostos */}
           <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', zIndex: 1000 }}>
-            <button onClick={alternarCamada} style={{
+            <button onClick={alternarCamadaTile} style={{
               position: 'relative', display: 'flex', width: '150px', height: '28px',
               background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '20px', padding: '3px',
               cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
@@ -805,7 +881,14 @@ export default function MapaDemandas() {
           {/* Banner de login */}
           {!user && (
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(15,36,64,0.92), transparent)', padding: '40px 24px 20px', zIndex: 1000, textAlign: 'center' }}>
-              <p style={{ color: 'white', fontWeight: 600, fontSize: '14px', margin: '0 0 10px' }}>Faça login para ver as demandas completas</p>
+              <p style={{ color: 'white', fontWeight: 600, fontSize: '14px', margin: '0 0 10px' }}>
+                {{
+                  demandas: 'Faça login para ver as demandas completas',
+                  pets: 'Faça login para ver os registros completos',
+                  classificados: 'Faça login para ver os anúncios completos',
+                  empregos: 'Faça login para ver as vagas completas',
+                }[camada]}
+              </p>
               <button onClick={() => setModalAuth(true)} style={{ background: '#4256c8', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
                 Entrar com Google
               </button>
@@ -816,6 +899,33 @@ export default function MapaDemandas() {
 
       {/* Modal de auth */}
       {modalAuth && <ModalAuth onFechar={() => setModalAuth(false)} />}
+
+      {/* Formulário de pet (criar / editar) */}
+      {formPet.aberto && (
+        <FormularioPet
+          editando={formPet.editando}
+          aoFechar={() => setFormPet({ aberto: false, editando: null })}
+          aoSalvar={() => { recarregarPets(); setPetSelecionado(null) }}
+        />
+      )}
+
+      {/* Formulário de classificado (criar / editar) */}
+      {formClassificado.aberto && (
+        <FormularioClassificado
+          editando={formClassificado.editando}
+          aoFechar={() => setFormClassificado({ aberto: false, editando: null })}
+          aoSalvar={() => { recarregarClassificados(); setClassificadoSelecionado(null) }}
+        />
+      )}
+
+      {/* Formulário de vaga (criar / editar) */}
+      {formEmprego.aberto && (
+        <FormularioEmprego
+          editando={formEmprego.editando}
+          aoFechar={() => setFormEmprego({ aberto: false, editando: null })}
+          aoSalvar={() => { recarregarEmpregos(); setEmpregoSelecionado(null) }}
+        />
+      )}
 
       {/* Lightbox: foto da demanda ampliada, sem sair da pagina */}
       {fotoAmpliada && (
