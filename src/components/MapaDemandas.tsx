@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from './AuthProvider'
 import ModalAuth from './ModalAuth'
@@ -61,8 +62,15 @@ export default function MapaDemandas() {
   const markersRef = useRef<any[]>([])
   const sidebarRef = useRef<HTMLDivElement>(null)
 
-  // Camada ativa
-  const [camada, setCamada] = useState<Camada>('demandas')
+  // Camada ativa — sincroniza com ?camada= da URL
+  const searchParams = useSearchParams()
+  const camadaParam = (searchParams.get('camada') as Camada) || 'demandas'
+  const [camada, setCamada] = useState<Camada>(camadaParam)
+  useEffect(() => {
+    const c = (searchParams.get('camada') as Camada) || 'demandas'
+    if (c !== camada) trocarCamada(c)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   // Estado da camada de pets
   const { pets, cores: coresPets, recarregar: recarregarPets } = usePets()
@@ -842,21 +850,6 @@ export default function MapaDemandas() {
         {/* MAPA */}
         <div style={isMobile ? { position: 'absolute', inset: 0 } : { flex: 1, position: 'relative', minWidth: 0 }}>
           <div ref={mapRef} className="mapa-map-div" style={{ width: '100%', height: '100%', minHeight: 'clamp(300px, 55vw, 500px)' }} />
-
-          {/* Seletor de camada */}
-          <div style={{ position: 'absolute', top: '12px', left: '12px', display: 'flex', gap: '4px', zIndex: 1000, background: 'white', borderRadius: '20px', padding: '3px', boxShadow: '0 1px 4px rgba(0,0,0,0.18)' }}>
-            {CAMADAS.map(({ id, rotulo }) => (
-              <button key={id} onClick={() => trocarCamada(id)} style={{
-                border: 'none', borderRadius: '16px', padding: '5px 13px', cursor: 'pointer',
-                fontSize: '11.5px', fontWeight: camada === id ? 700 : 500,
-                background: camada === id ? '#4256c8' : 'transparent',
-                color: camada === id ? 'white' : '#6b7280',
-                transition: 'background 0.18s ease, color 0.18s ease',
-              }}>
-                {rotulo}
-              </button>
-            ))}
-          </div>
 
           {/* Banner de login */}
           {!user && (

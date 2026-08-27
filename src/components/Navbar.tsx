@@ -4,12 +4,13 @@ import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from './AuthProvider'
 import ModalAuth from './ModalAuth'
+import { usePathname, useSearchParams } from 'next/navigation'
 
-const FUNCIONALIDADES = [
-  { label: 'Demandas Municipais', href: '/mapa' },
-  { label: 'Empregos', href: '/mapa' },
-  { label: 'Achei/Perdi um Pet', href: '/mapa' },
-  { label: 'Classificados', href: '/mapa' },
+const CAMADAS_NAV = [
+  { label: 'Demandas municipais', camada: 'demandas' },
+  { label: 'Empregos', camada: 'empregos' },
+  { label: 'Classificados', camada: 'classificados' },
+  { label: 'Achei/perdi um pet', camada: 'pets' },
 ]
 
 export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolean; onEntrar?: () => void }) {
@@ -46,6 +47,9 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
     return () => document.removeEventListener('mousedown', fecharFora)
   }, [dropdown])
 
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const camadaAtiva = pathname === '/mapa' ? (searchParams.get('camada') || 'demandas') : null
   const nomeExibido = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || 'Usuário'
 
   const containerStyle: React.CSSProperties = overlay
@@ -63,38 +67,24 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
           </Link>
         </div>
 
-        {/* Coluna central — links (desktop, só logado) */}
+        {/* Coluna central — camadas (desktop, só logado) */}
         {user && (
           <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-            <Link href="/" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '13.5px', fontWeight: 500, textDecoration: 'none', padding: '6px 10px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
-              Início
-            </Link>
-            {/* Funcionalidades com dropdown */}
-            <div ref={dropdownRef} style={{ position: 'relative' }}>
-              <button
-                onClick={() => setDropdown(!dropdown)}
-                style={{ color: 'rgba(255,255,255,0.9)', fontSize: '13.5px', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
-              >
-                Funcionalidades
-                <span style={{ fontSize: '10px', opacity: 0.8 }}>{dropdown ? '▲' : '▼'}</span>
-              </button>
-              {dropdown && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '4px', background: 'white', borderRadius: '10px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', overflow: 'hidden', minWidth: '200px', zIndex: 5001 }}>
-                  {FUNCIONALIDADES.map(({ label, href }) => (
-                    <Link key={label} href={href} onClick={() => setDropdown(false)}
-                      style={{ display: 'block', padding: '12px 16px', fontSize: '14px', color: '#111827', textDecoration: 'none', fontWeight: 500, borderBottom: '1px solid #f3f4f6' }}>
-                      {label}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-            <Link href="/assistenteia" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '13.5px', fontWeight: 500, textDecoration: 'none', padding: '6px 10px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
-              Assistente de IA
-            </Link>
-            <Link href="/perfil" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '13.5px', fontWeight: 500, textDecoration: 'none', padding: '6px 10px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
-              Minhas atividades
-            </Link>
+            {CAMADAS_NAV.map(({ label, camada }) => {
+              const ativo = camadaAtiva === camada
+              return (
+                <Link key={camada} href={`/mapa?camada=${camada}`}
+                  style={{
+                    color: ativo ? 'white' : 'rgba(255,255,255,0.75)',
+                    fontSize: '13.5px', fontWeight: ativo ? 700 : 500,
+                    textDecoration: 'none', padding: '6px 10px', borderRadius: '6px',
+                    whiteSpace: 'nowrap',
+                    background: ativo ? 'rgba(255,255,255,0.18)' : 'none',
+                  }}>
+                  {label}
+                </Link>
+              )
+            })}
           </div>
         )}
 
@@ -142,15 +132,12 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
                   <p style={{ margin: 0, color: 'rgba(255,255,255,0.6)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600 }}>Logado como</p>
                   <p style={{ margin: '2px 0 0', color: '#fff', fontSize: '15px', fontWeight: 700 }}>{nomeExibido}</p>
                 </div>
-                <Link href="/" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Início</Link>
-                <div style={{ color: 'white', fontSize: '15px', fontWeight: 500, padding: '12px 20px 4px' }}>Funcionalidades</div>
-                {FUNCIONALIDADES.map(({ label, href }) => (
-                  <Link key={label} href={href} onClick={() => setMenuMobile(false)} style={{ color: 'rgba(255,255,255,0.85)', fontSize: '15px', fontWeight: 400, textDecoration: 'none', padding: '8px 20px 8px 28px' }}>
-                    · {label}
+                {CAMADAS_NAV.map(({ label, camada }) => (
+                  <Link key={camada} href={`/mapa?camada=${camada}`} onClick={() => setMenuMobile(false)}
+                    style={{ color: camadaAtiva === camada ? 'white' : 'rgba(255,255,255,0.85)', fontSize: '15px', fontWeight: camadaAtiva === camada ? 700 : 400, textDecoration: 'none', padding: '12px 20px' }}>
+                    {label}
                   </Link>
                 ))}
-                <Link href="/assistenteia" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Assistente de IA</Link>
-                <Link href="/perfil" onClick={() => setMenuMobile(false)} style={{ color: 'white', fontSize: '15px', textDecoration: 'none', padding: '12px 20px', fontWeight: 500 }}>Minhas atividades</Link>
                 <div style={{ height: '1px', background: 'rgba(255,255,255,0.15)', margin: '8px 20px' }} />
                 <button onClick={() => { setMenuMobile(false); sair() }} style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px', padding: '12px 20px', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
                   Sair da conta
