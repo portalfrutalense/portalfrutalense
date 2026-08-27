@@ -742,8 +742,7 @@ export default function LandingPage() {
         @media (max-width: 860px) and (max-height: 780px) {
           .palco:has(.formulario) .categorias,
           .palco:has(.formulario) .prova,
-          .palco:has(.formulario) .etiqueta,
-          .palco:has(.formulario) .subtitulo { display: none; }
+          .palco:has(.formulario) .etiqueta { display: none; }
           .palco:has(.formulario) .titulo { font-size: clamp(22px, 5.4vw, 30px); margin-top: 4px; }
         }
 
