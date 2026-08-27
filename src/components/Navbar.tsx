@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useAuth } from './AuthProvider'
 import ModalAuth from './ModalAuth'
 import { usePathname, useSearchParams } from 'next/navigation'
@@ -12,6 +12,36 @@ const CAMADAS_NAV = [
   { label: 'Classificados', camada: 'classificados' },
   { label: 'Achei/perdi um pet', camada: 'pets' },
 ]
+
+function NavCamadas({ user }: { user: unknown }) {
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const camadaAtiva = pathname === '/mapa' ? (searchParams.get('camada') || 'demandas') : null
+  if (!user) return null
+  return (
+    <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+      {CAMADAS_NAV.map(({ label, camada }) => {
+        const ativo = camadaAtiva === camada
+        return (
+          <Link key={camada} href={`/mapa?camada=${camada}`}
+            style={{
+              color: ativo ? 'white' : 'rgba(255,255,255,0.85)',
+              fontSize: '13.5px', fontWeight: 500,
+              textDecoration: 'none', padding: '5px 10px', borderRadius: '6px',
+              whiteSpace: 'nowrap',
+              background: ativo ? 'rgba(255,255,255,0.18)' : 'transparent',
+              border: ativo ? '1px solid rgba(255,255,255,0.5)' : '1px solid rgba(255,255,255,0.2)',
+              transition: 'border-color 0.18s, background 0.18s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.6)'; (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.12)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = ativo ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)'; (e.currentTarget as HTMLElement).style.background = ativo ? 'rgba(255,255,255,0.18)' : 'transparent' }}>
+            {label}
+          </Link>
+        )
+      })}
+    </div>
+  )
+}
 
 export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolean; onEntrar?: () => void }) {
   const [modalAuth, setModalAuth] = useState(false)
@@ -47,9 +77,6 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
     return () => document.removeEventListener('mousedown', fecharFora)
   }, [dropdown])
 
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
-  const camadaAtiva = pathname === '/mapa' ? (searchParams.get('camada') || 'demandas') : null
   const nomeExibido = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || 'Usuário'
 
   const containerStyle: React.CSSProperties = overlay
@@ -68,29 +95,9 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
         </div>
 
         {/* Coluna central — camadas (desktop, só logado) */}
-        {user && (
-          <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-            {CAMADAS_NAV.map(({ label, camada }) => {
-              const ativo = camadaAtiva === camada
-              return (
-                <Link key={camada} href={`/mapa?camada=${camada}`}
-                  style={{
-                    color: ativo ? 'white' : 'rgba(255,255,255,0.85)',
-                    fontSize: '13.5px', fontWeight: 500,
-                    textDecoration: 'none', padding: '5px 10px', borderRadius: '6px',
-                    whiteSpace: 'nowrap',
-                    background: ativo ? 'rgba(255,255,255,0.18)' : 'transparent',
-                    border: ativo ? '1px solid rgba(255,255,255,0.5)' : '1px solid rgba(255,255,255,0.2)',
-                    transition: 'border-color 0.18s, background 0.18s',
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.6)'; (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.12)' }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = ativo ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)'; (e.currentTarget as HTMLElement).style.background = ativo ? 'rgba(255,255,255,0.18)' : 'transparent' }}>
-                  {label}
-                </Link>
-              )
-            })}
-          </div>
-        )}
+        <Suspense fallback={null}>
+          <NavCamadas user={user} />
+        </Suspense>
 
         {/* Coluna direita — auth */}
         <div className="nav-auth" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px' }}>
@@ -138,7 +145,7 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
                 </div>
                 {CAMADAS_NAV.map(({ label, camada }) => (
                   <Link key={camada} href={`/mapa?camada=${camada}`} onClick={() => setMenuMobile(false)}
-                    style={{ color: camadaAtiva === camada ? 'white' : 'rgba(255,255,255,0.85)', fontSize: '15px', fontWeight: 500, textDecoration: 'none', padding: '12px 20px' }}>
+                    style={{ color: 'rgba(255,255,255,0.85)', fontSize: '15px', fontWeight: 500, textDecoration: 'none', padding: '12px 20px' }}>
                     {label}
                   </Link>
                 ))}
