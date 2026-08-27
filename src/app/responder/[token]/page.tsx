@@ -72,7 +72,7 @@ export default function PageResponder() {
         <div style={{ maxWidth: '480px', width: '100%', textAlign: 'center' }}>
           <p style={{ fontSize: '22px', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>Resposta Registrada</p>
           <p style={{ fontSize: '14px', color: '#6b7280' }}>
-            Sua resposta oficial foi publicada no Portal Frutalense. Este link não pode mais ser utilizado.
+            Sua resposta oficial foi publicada no CidadanIA Frutal. Este link não pode mais ser utilizado.
           </p>
         </div>
       </div>
@@ -94,7 +94,7 @@ export default function PageResponder() {
     <div style={{ minHeight: '100vh', background: '#f9fafb', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 'clamp(24px,5vw,48px) 16px' }}>
       <div style={{ maxWidth: '560px', width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div style={{ textAlign: 'center' }}>
-          <p style={{ fontWeight: 700, color: '#4256c8', fontSize: '16px', margin: 0 }}>Portal Frutalense</p>
+          <p style={{ fontWeight: 700, color: '#4256c8', fontSize: '16px', margin: 0 }}>CidadanIA Frutal</p>
           <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '4px 0' }}>
             Resposta Oficial{dados?.entidade ? ` de ${dados.entidade.nome}` : ''}
           </h1>
@@ -121,9 +121,7 @@ export default function PageResponder() {
           <textarea value={resposta} onChange={(e) => setResposta(e.target.value)} rows={7}
             placeholder="Digite aqui seu posicionamento oficial sobre a demanda acima..."
             style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '10px 12px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box', lineHeight: 1.6 }} />
-          <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
-            Sua resposta será publicada publicamente no portal com seu nome e cargo.
-          </p>
+
 
           <button onClick={handleEnviar} disabled={enviando}
             style={{ backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '12px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
