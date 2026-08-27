@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react'
 
 const ITENS = [
-  { emoji: '📋', label: 'Demandas municipais', desc: 'Registre problemas da cidade e acompanhe respostas da prefeitura.' },
-  { emoji: '💼', label: 'Empregos', desc: 'Veja vagas disponíveis em Frutal e região.' },
-  { emoji: '🛍️', label: 'Classificados', desc: 'Compre, venda ou anuncie serviços locais.' },
-  { emoji: '🐾', label: 'Achei/perdi um pet', desc: 'Ajude a reunir pets perdidos com seus donos.' },
+  { label: 'Demandas municipais', desc: 'Registre problemas da cidade e acompanhe respostas da prefeitura.' },
+  { label: 'Empregos', desc: 'Veja vagas disponíveis em Frutal e região.' },
+  { label: 'Classificados', desc: 'Compre, venda ou anuncie serviços locais.' },
+  { label: 'Achei/perdi um pet', desc: 'Ajude a reunir pets perdidos com seus donos.' },
 ]
 
 export default function TourBoasVindas() {
@@ -44,16 +44,12 @@ export default function TourBoasVindas() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '22px' }}>
-          {ITENS.map(({ emoji, label, desc }) => (
+          {ITENS.map(({ label, desc }) => (
             <div key={label} style={{
-              display: 'flex', alignItems: 'flex-start', gap: '12px',
               background: '#f9fafb', borderRadius: '10px', padding: '12px',
             }}>
-              <span style={{ fontSize: '20px', lineHeight: 1, flexShrink: 0, marginTop: '1px' }}>{emoji}</span>
-              <div>
-                <p style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 600, color: '#0d1425' }}>{label}</p>
-                <p style={{ margin: 0, fontSize: '12.5px', color: '#6b7280', lineHeight: 1.45 }}>{desc}</p>
-              </div>
+              <p style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 600, color: '#0d1425' }}>{label}</p>
+              <p style={{ margin: 0, fontSize: '12.5px', color: '#6b7280', lineHeight: 1.45 }}>{desc}</p>
             </div>
           ))}
         </div>
