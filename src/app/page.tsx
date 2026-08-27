@@ -194,7 +194,7 @@ function CardAcesso() {
     setCarregando(true)
     const { error } = await supabase.auth.signUp({ email, password: senha })
     if (error) {
-      setErro('Não foi possível criar a conta. Verifique o e-mail digitado.')
+      setErro(error.message || 'Não foi possível criar a conta. Verifique o e-mail digitado.')
       setCarregando(false)
     } else {
       setSucesso('Conta criada! Confirme pelo link que enviamos no seu e-mail para poder entrar.')
