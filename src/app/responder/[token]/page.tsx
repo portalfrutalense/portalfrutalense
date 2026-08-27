@@ -7,6 +7,8 @@ interface DadosDenuncia {
   id: string
   mensagem: string
   morador_nome: string
+  endereco_label?: string
+  foto_url?: string
   entidade: { nome: string; cargo: string }
 }
 
@@ -112,6 +114,19 @@ export default function PageResponder() {
           <p style={{ color: '#111827', fontSize: '14px', lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}>
             {dados?.mensagem}
           </p>
+          {dados?.endereco_label && (
+            <p style={{ fontSize: '12px', color: '#6b7280', margin: '10px 0 0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              📍 {dados.endereco_label}
+            </p>
+          )}
+          {dados?.foto_url && (
+            <p style={{ margin: '10px 0 0' }}>
+              <a href={dados.foto_url} target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: '13px', color: '#4256c8', fontWeight: 600, textDecoration: 'none' }}>
+                🖼️ Ver foto da demanda →
+              </a>
+            </p>
+          )}
         </div>
 
         <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>

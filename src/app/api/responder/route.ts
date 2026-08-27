@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   // Tenta primeiro na tabela nova (demanda_entidades)
   const { data: vinculo } = await supabaseServer
     .from('demanda_entidades')
-    .select('id, status, magic_token_expira_em, entidade:entidades(nome, cargo), demanda:demandas(id, descricao, morador_nome)')
+    .select('id, status, magic_token_expira_em, entidade:entidades(nome, cargo), demanda:demandas(id, descricao, morador_nome, endereco_label, foto_url)')
     .eq('magic_token', token)
     .single()
 
@@ -28,6 +28,8 @@ export async function GET(req: NextRequest) {
       id: demanda?.id,
       mensagem: demanda?.descricao,
       morador_nome: demanda?.morador_nome,
+      endereco_label: demanda?.endereco_label,
+      foto_url: demanda?.foto_url,
       entidade,
     })
   }
@@ -35,7 +37,7 @@ export async function GET(req: NextRequest) {
   // Fallback: tabela legada (demandas com magic_token direto)
   const { data, error } = await supabaseServer
     .from('demandas')
-    .select('id, descricao, morador_nome, entidade:entidades(nome, cargo), status, magic_token_expira_em')
+    .select('id, descricao, morador_nome, endereco_label, foto_url, entidade:entidades(nome, cargo), status, magic_token_expira_em')
     .eq('magic_token', token)
     .single()
 
