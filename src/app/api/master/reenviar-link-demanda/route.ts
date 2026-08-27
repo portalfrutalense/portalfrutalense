@@ -42,10 +42,10 @@ export async function POST(req: NextRequest) {
       status: 'aguardando_resposta',
     }).eq('id', demanda_id)
 
-    const linkResposta = `${process.env.NEXT_PUBLIC_SITE_URL}/responder/${novoToken}`
+    const linkResposta = `${process.env.SITE_URL}/responder/${novoToken}`
 
     await resend.emails.send({
-      from: 'CidadanIA Frutal <onboarding@resend.dev>',
+      from: 'CidadanIA Frutal <noreply@cidadaniafrutal.com.br>',
       to: emailAutoridade,
       subject: `[REENVIO] Demanda aguardando sua resposta — CidadanIA Frutal`,
       html: `

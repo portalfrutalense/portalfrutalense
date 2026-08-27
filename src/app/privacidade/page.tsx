@@ -1,4 +1,4 @@
-﻿export const metadata = { title: 'Política de Privacidade — CidadanIA Frutal' }
+export const metadata = { title: 'Política de Privacidade — CidadanIA Frutal' }
 
 export default function PoliticaPrivacidade() {
   return (
@@ -12,56 +12,81 @@ export default function PoliticaPrivacidade() {
       <section style={{ marginBottom: '32px' }}>
         <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#4256c8', marginBottom: '8px' }}>1. Sobre o CidadanIA Frutal</h2>
         <p style={{ margin: 0, fontSize: '15px', color: '#111827' }}>
-          O CidadanIA Frutal é uma plataforma de transparência cívica do município de Frutal — MG. Seu objetivo é facilitar a comunicação entre cidadãos e autoridades públicas, permitindo o registro de denúncias e ocorrências de interesse público.
+          O CidadanIA Frutal é uma plataforma digital de transparência cívica, zeladoria urbana e de utilidade pública voltada para o município de Frutal/MG. A ferramenta permite que cidadãos registrem ocorrências públicas, geolocalizem problemas em mapa interativo e acompanhem as respostas das autoridades competentes.
         </p>
       </section>
 
       <section style={{ marginBottom: '32px' }}>
-        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#4256c8', marginBottom: '8px' }}>2. Dados coletados</h2>
+        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#4256c8', marginBottom: '8px' }}>2. Dados Coletados e Finalidade</h2>
         <p style={{ margin: '0 0 12px', fontSize: '15px', color: '#111827' }}>
-          Ao registrar uma denúncia ou ocorrência, coletamos:
+          Para garantir a autenticidade das solicitações, prevenir fraudes e evitar spams, coletamos os seguintes dados:
         </p>
-        <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '15px', color: '#111827', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <li><strong>Nome completo</strong> — exibido publicamente junto à denúncia ou ocorrência.</li>
-          <li><strong>CPF</strong> (quando informado) — utilizado apenas para verificação de identidade, nunca exibido publicamente.</li>
-          <li><strong>Conta Google</strong> (quando utilizada) — coletamos somente o nome da conta para identificação. Não acessamos e-mail, contatos, arquivos ou qualquer outro dado.</li>
-          <li><strong>Descrição e localização</strong> da ocorrência ou denúncia — conteúdo público após aprovação.</li>
-          <li><strong>Fotos</strong> (opcionais) — enviadas pelo cidadão e exibidas publicamente junto à ocorrência.</li>
+        <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '15px', color: '#111827', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <li><strong>Nome completo</strong> — obtido via Google OAuth ou informado manualmente. Exibido publicamente junto à demanda no mapa.</li>
+          <li><strong>Endereço de e-mail</strong> — obtido via Google OAuth. Utilizado para identificação da conta e comunicações operacionais. Nunca exibido publicamente.</li>
+          <li><strong>CPF</strong> — coletado obrigatoriamente no cadastro para validação de identidade e prevenção de perfis falsos. Nunca exibido publicamente.</li>
+          <li><strong>Data de nascimento</strong> — coletada obrigatoriamente no cadastro como dado complementar de identificação. Nunca exibida publicamente.</li>
+          <li><strong>Número de WhatsApp</strong> — coletado obrigatoriamente no cadastro para vinculação ao assistente virtual da plataforma. Nunca exibido publicamente.</li>
+          <li><strong>Dados de ocorrências</strong> — endereço, coordenadas geográficas, descrição e fotos anexadas voluntariamente. Tornam-se públicos após aprovação da demanda.</li>
+          <li><strong>Histórico de conversa com o bot</strong> — mensagens trocadas com o assistente virtual via WhatsApp, armazenadas para viabilizar o fluxo de registro de demandas.</li>
+          <li><strong>Dados técnicos de segurança</strong> — endereço IP coletado no momento do envio de demandas e nas respostas de autoridades, além de registros de verificação anti-bot (Cloudflare Turnstile), para proteção contra acessos automatizados.</li>
         </ul>
       </section>
 
       <section style={{ marginBottom: '32px' }}>
-        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#4256c8', marginBottom: '8px' }}>3. Finalidade do uso dos dados</h2>
+        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#4256c8', marginBottom: '8px' }}>3. Visibilidade dos Dados (Transparência vs. Privacidade)</h2>
+        <p style={{ margin: '0 0 12px', fontSize: '15px', color: '#111827' }}>Em conformidade com a Lei Geral de Proteção de Dados (LGPD):</p>
+        <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '15px', color: '#111827', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <li><strong>Dados visíveis publicamente:</strong> Apenas o nome do cidadão autor da solicitação, a descrição da demanda, as fotos enviadas e a localização no mapa ficam públicos após a aprovação.</li>
+          <li><strong>Dados confidenciais:</strong> CPF, data de nascimento, e-mail, número de WhatsApp e histórico de conversas JAMAIS são exibidos publicamente nem compartilhados com outros usuários ou com as autoridades notificadas. Permanecem armazenados em ambiente seguro apenas para fins de gestão, auditoria e segurança.</li>
+        </ul>
+      </section>
+
+      <section style={{ marginBottom: '32px' }}>
+        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#4256c8', marginBottom: '8px' }}>4. Processamento por Inteligência Artificial</h2>
         <p style={{ margin: 0, fontSize: '15px', color: '#111827' }}>
-          Os dados coletados são utilizados exclusivamente para identificar o autor de uma denúncia ou ocorrência e garantir que se trata de uma pessoa real. Não utilizamos os dados para fins comerciais, publicidade ou compartilhamento com terceiros.
+          O texto das demandas, incluindo a descrição e o nome do cidadão autor, pode ser processado pela Google Gemini API para fins de moderação automatizada e para o recurso de &ldquo;Melhorar Texto&rdquo;. Esses dados são utilizados exclusivamente para as finalidades descritas e não são retidos pelos serviços de IA para treinamento de modelos.
         </p>
       </section>
 
       <section style={{ marginBottom: '32px' }}>
-        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#4256c8', marginBottom: '8px' }}>4. Armazenamento e segurança</h2>
+        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#4256c8', marginBottom: '8px' }}>5. Compartilhamento de Dados com Terceiros</h2>
+        <p style={{ margin: '0 0 12px', fontSize: '15px', color: '#111827' }}>
+          Para a prestação do serviço e garantia da segurança da plataforma, dados estritamente necessários são processados por provedores de infraestrutura parceiros:
+        </p>
+        <ul style={{ margin: '0 0 12px', paddingLeft: '20px', fontSize: '15px', color: '#111827', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <li><strong>Google OAuth e Google Gemini API</strong> — autenticação segura do usuário e moderação automatizada de textos.</li>
+          <li><strong>Supabase</strong> — armazenamento seguro de banco de dados e gestão de sessões.</li>
+          <li><strong>Resend</strong> — envio de notificações operacionais por e-mail para as autoridades públicas.</li>
+          <li><strong>Mapbox e Leaflet</strong> — renderização de mapas e geocodificação de endereços.</li>
+          <li><strong>Cloudflare Turnstile</strong> — proteção anti-spam e validação de requisições humanas.</li>
+        </ul>
         <p style={{ margin: 0, fontSize: '15px', color: '#111827' }}>
-          Os dados são armazenados de forma segura na plataforma Supabase, com criptografia em repouso e em trânsito. O acesso ao painel administrativo é restrito a usuários autorizados pelo CidadanIA Frutal.
+          Nenhum dado pessoal é vendido, alugado ou comercializado com terceiros para fins publicitários.
         </p>
       </section>
 
       <section style={{ marginBottom: '32px' }}>
-        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#4256c8', marginBottom: '8px' }}>5. Dados públicos</h2>
+        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#4256c8', marginBottom: '8px' }}>6. Armazenamento e Segurança</h2>
         <p style={{ margin: 0, fontSize: '15px', color: '#111827' }}>
-          Após aprovação pela equipe do Portal, denúncias e ocorrências — incluindo nome do autor, descrição e fotos — tornam-se visíveis publicamente no site. O CPF nunca é exibido publicamente.
+          Todos os dados são transmitidos e armazenados utilizando protocolos de criptografia de alto padrão (SSL/TLS em trânsito e criptografia em repouso via Supabase). O acesso administrativo aos dados é restrito a operadores devidamente autorizados.
         </p>
       </section>
 
       <section style={{ marginBottom: '32px' }}>
-        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#4256c8', marginBottom: '8px' }}>6. Seus direitos</h2>
-        <p style={{ margin: '0 0 8px', fontSize: '15px', color: '#111827' }}>
-          Você pode solicitar a exclusão dos seus dados ou de uma denúncia/ocorrência publicada entrando em contato pelo e-mail abaixo. Atenderemos no prazo de até 15 dias úteis.
-        </p>
+        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#4256c8', marginBottom: '8px' }}>7. Seus Direitos e Exclusão de Dados (LGPD)</h2>
+        <p style={{ margin: '0 0 12px', fontSize: '15px', color: '#111827' }}>Você possui total controle sobre suas informações:</p>
+        <ul style={{ margin: '0 0 12px', paddingLeft: '20px', fontSize: '15px', color: '#111827', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <li><strong>Exclusão Automatizada:</strong> A qualquer momento, você pode acessar a seção &ldquo;Minha Conta&rdquo; (<a href="/perfil" style={{ color: '#4256c8' }}>/perfil</a>) e utilizar o botão &ldquo;Excluir Minha Conta&rdquo; para apagar permanentemente seu perfil e dados dos nossos servidores.</li>
+          <li><strong>Solicitações Diretas:</strong> Para exercer seus direitos de acesso, correção ou eliminação de dados, entre em contato pelo e-mail abaixo. Atenderemos no prazo de até 15 dias úteis.</li>
+        </ul>
       </section>
 
       <section style={{ marginBottom: '32px' }}>
-        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#4256c8', marginBottom: '8px' }}>7. Contato</h2>
+        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#4256c8', marginBottom: '8px' }}>8. Contato</h2>
         <p style={{ margin: 0, fontSize: '15px', color: '#111827' }}>
-          Para dúvidas, solicitações de exclusão ou qualquer questão relacionada à privacidade, entre em contato pelo e-mail: <a href="mailto:portalfrutalense@gmail.com" style={{ color: '#4256c8' }}>portalfrutalense@gmail.com</a>
+          Para dúvidas, solicitações de exclusão ou qualquer questão relacionada à privacidade, entre em contato pelo e-mail:{' '}
+          <a href="mailto:portalfrutalense@gmail.com" style={{ color: '#4256c8' }}>portalfrutalense@gmail.com</a>
         </p>
       </section>
 
@@ -71,4 +96,3 @@ export default function PoliticaPrivacidade() {
     </div>
   )
 }
-

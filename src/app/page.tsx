@@ -369,13 +369,13 @@ export default function LandingPage() {
       <main className="grade">
         <section className="coluna-conteudo">
           <h1 className="titulo surge" style={{ animationDelay: '80ms' }}>
-            Navegue por Frutal
+            Conectando Moradores,
             <br />
-            <span className="titulo-realce">Explore tudo ao seu redor</span>
+            <span className="titulo-realce">Melhorando Frutal</span>
           </h1>
 
           <p className="subtitulo surge" style={{ animationDelay: '210ms' }}>
-            Cada pino é alguém da cidade pedindo ou oferecendo algo. Escolha um mapa para cobrar melhorias públicas, achar empregos, localizar pets, entre outras. O Lucas (nosso assistente IA) te guia em cada passo.
+            Explore os mapas interativos da cidade para cobrar serviços públicos, encontrar oportunidades, empregos, ajudar a encontrar pets e apoiar causas locais. Conte com o suporte do nosso assistente IA para guiar sua navegação.
           </p>
 
           <div className="surge" style={{ animationDelay: '270ms' }}>

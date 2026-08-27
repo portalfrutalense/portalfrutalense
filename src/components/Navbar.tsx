@@ -18,6 +18,7 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
   const [menuMobile, setMenuMobile] = useState(false)
   const { user, perfil, sair } = useAuth()
   const menuRef = useRef<HTMLDivElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   function handleEntrar() {
     if (onEntrar) { onEntrar() } else { setModalAuth(true) }
@@ -33,6 +34,17 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
     document.addEventListener('mousedown', fecharFora)
     return () => document.removeEventListener('mousedown', fecharFora)
   }, [menuMobile])
+
+  useEffect(() => {
+    if (!dropdown) return
+    function fecharFora(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', fecharFora)
+    return () => document.removeEventListener('mousedown', fecharFora)
+  }, [dropdown])
 
   const nomeExibido = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || 'Usuário'
 
@@ -58,7 +70,7 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
               Início
             </Link>
             {/* Funcionalidades com dropdown */}
-            <div style={{ position: 'relative' }}>
+            <div ref={dropdownRef} style={{ position: 'relative' }}>
               <button
                 onClick={() => setDropdown(!dropdown)}
                 style={{ color: 'rgba(255,255,255,0.9)', fontSize: '13.5px', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}

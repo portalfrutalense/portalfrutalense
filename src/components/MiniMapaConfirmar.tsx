@@ -99,7 +99,18 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
       zoomAnterior.current = mapa.getZoom()
 
       // Garante que o Leaflet recalcule o tamanho após a montagem no DOM
-      setTimeout(() => mapa?.invalidateSize(), 100)
+      // Múltiplos timeouts para cobrir animações do container pai (chatbot)
+      setTimeout(() => mapa?.invalidateSize(), 50)
+      setTimeout(() => mapa?.invalidateSize(), 200)
+      setTimeout(() => mapa?.invalidateSize(), 500)
+
+      // ResizeObserver: recalcula quando o container ganha dimensão real
+      if (mapRef.current && typeof ResizeObserver !== 'undefined') {
+        const ro = new ResizeObserver(() => mapa?.invalidateSize())
+        ro.observe(mapRef.current)
+        // Limpar no cleanup via variável local
+        ;(mapa as any)._ro = ro
+      }
 
       mapa.on('zoomend', () => {
         const novoZoom = mapa!.getZoom()
@@ -118,6 +129,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
 
     return () => {
       if (mapa) {
+        ;(mapa as any)._ro?.disconnect()
         mapa.remove()
         mapa = null
         mapaObj.current = null

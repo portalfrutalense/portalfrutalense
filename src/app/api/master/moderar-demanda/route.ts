@@ -102,9 +102,9 @@ export async function POST(req: NextRequest) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const ent = vinculo.entidade as any
         if (ent?.email) {
-          const linkResposta = `${process.env.NEXT_PUBLIC_SITE_URL}/responder/${token}`
+          const linkResposta = `${process.env.SITE_URL}/responder/${token}`
           await resend.emails.send({
-            from: 'CidadanIA Frutal <onboarding@resend.dev>',
+            from: 'CidadanIA Frutal <noreply@cidadaniafrutal.com.br>',
             to: ent.email,
             subject: `Nova demanda para ${ent.nome} — CidadanIA Frutal`,
             html: `
@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
           magic_token: token,
           magic_token_expira_em: expiracao,
         }).eq('id', demanda_id)
-        const linkResposta = `${process.env.NEXT_PUBLIC_SITE_URL}/responder/${token}`
+        const linkResposta = `${process.env.SITE_URL}/responder/${token}`
         await resend.emails.send({
           from: 'CidadanIA Frutal <onboarding@resend.dev>',
           to: demanda.entidade.email,

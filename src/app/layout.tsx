@@ -16,7 +16,7 @@ const jakarta = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: 'CidadanIA Frutal',
-  description: 'Cobre melhorias públicas, encontre empregos e reencontre pets perdidos em Frutal-MG. Cada pino no mapa é uma demanda real da cidade.',
+  description: 'Explore os mapas interativos da cidade para cobrar serviços públicos, encontrar oportunidades, empregos, ajudar a encontrar pets e apoiar causas locais.',
   verification: {
     google: 'lPI_-xfdqfhBGjByM6htLkimhgUlfUZsy8pIVK99K_0',
   },

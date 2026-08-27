@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     const resposta = NextResponse.json({ ok: true, id: demanda.id }, { status: 201 })
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/ia/analisar`, {
+      await fetch(`${process.env.SITE_URL}/api/ia/analisar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-internal-key': process.env.INTERNAL_SECRET! },
         body: JSON.stringify({ demanda_id: demanda.id }),

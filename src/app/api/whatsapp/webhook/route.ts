@@ -433,7 +433,7 @@ async function processarMensagem(body: EvolutionWebhookBody) {
       historico.push({ role: 'assistant', content: msg })
 
       if (!perfilLigado) {
-        const msgVinculo = `${msg}\n\nPra isso, você precisa ter uma conta no Portal Frutalense. Faça o login aqui:\n${process.env.NEXT_PUBLIC_SITE_URL}\n\nDepois volta aqui que a gente continua...`
+        const msgVinculo = `${msg}\n\nPra isso, você precisa ter uma conta no Portal Frutalense. Faça o login aqui:\n${process.env.SITE_URL}\n\nDepois volta aqui que a gente continua...`
         await Promise.all([salvarHistorico(conversa.id, historico, 'aguardando_vinculo', novosDados), enviarWhatsapp(telefone, msgVinculo)])
       } else {
         await Promise.all([salvarHistorico(conversa.id, historico, 'perguntar_registrar', novosDados), enviarWhatsapp(telefone, msg)])
@@ -476,7 +476,7 @@ async function processarMensagem(body: EvolutionWebhookBody) {
         await salvarHistorico(conversa.id, historico, 'escolher_autoridade', dados)
       }
     } else {
-      await enviarWhatsapp(telefone, `Ainda não encontrei sua conta por aqui. Termina o cadastro no site — não esquece de colocar seu número de WhatsApp — e volta que a gente continua:\n${process.env.NEXT_PUBLIC_SITE_URL}`)
+      await enviarWhatsapp(telefone, `Ainda não encontrei sua conta por aqui. Termina o cadastro no site — não esquece de colocar seu número de WhatsApp — e volta que a gente continua:\n${process.env.SITE_URL}`)
     }
     return
   }
@@ -719,7 +719,7 @@ async function processarMensagem(body: EvolutionWebhookBody) {
 
     const { data: perfilCompleto } = await supabaseServer.from('perfis').select('nome, cpf').eq('id', perfilLigado.id).single()
     if (!perfilCompleto?.cpf) {
-      await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, `Antes de registrar, preciso que você complete seu CPF no cadastro — é obrigatório. Entra no site aqui: ${process.env.NEXT_PUBLIC_SITE_URL}/perfil`)])
+      await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, `Antes de registrar, preciso que você complete seu CPF no cadastro — é obrigatório. Entra no site aqui: ${process.env.SITE_URL}/perfil`)])
       return
     }
 
@@ -746,7 +746,7 @@ async function processarMensagem(body: EvolutionWebhookBody) {
     await supabaseServer.from('demanda_entidades').insert(vinculos)
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/ia/analisar`, {
+      await fetch(`${process.env.SITE_URL}/api/ia/analisar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-internal-key': process.env.INTERNAL_SECRET! },
         body: JSON.stringify({ demanda_id: demanda.id }),
