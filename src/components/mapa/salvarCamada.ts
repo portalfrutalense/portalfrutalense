@@ -10,7 +10,7 @@ export async function salvarCamada({
   dados: Record<string, any>
   turnstileToken: string
   supabase: any
-}): Promise<{ erro?: string }> {
+}): Promise<{ erro?: string; id?: string }> {
   if (editando) {
     const { error } = await supabase.from(camada).update(dados).eq('id', editando.id)
     return error ? { erro: error.message } : {}
@@ -23,5 +23,6 @@ export async function salvarCamada({
     body: JSON.stringify({ camada, dados, turnstile_token: turnstileToken }),
   })
   const json = await res.json().catch(() => ({}))
-  return res.ok ? {} : { erro: json?.error || 'Não foi possível salvar.' }
+  if (!res.ok) return { erro: json?.error || 'Não foi possível salvar.' }
+  return { id: json?.registro?.id }
 }

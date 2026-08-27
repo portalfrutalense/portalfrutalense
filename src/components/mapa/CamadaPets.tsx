@@ -439,11 +439,12 @@ export function FormularioPet({
       contato: contato.trim(),
     }
 
-    const { erro } = await salvarCamada({ camada: 'pets', editando, dados: registro, turnstileToken, supabase })
+    const { erro, id } = await salvarCamada({ camada: 'pets', editando, dados: registro, turnstileToken, supabase })
 
     setEnviando(false)
     if (erro) { setErro(erro); return }
     if (editando) { aoSalvar(); aoFechar(); return }
+
     setSucesso(true)
     aoSalvar()
   }

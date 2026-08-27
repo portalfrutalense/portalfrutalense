@@ -456,11 +456,12 @@ export function FormularioClassificado({
       contato: contato.trim(),
     }
 
-    const { erro } = await salvarCamada({ camada: 'classificados', editando, dados: registro, turnstileToken, supabase })
+    const { erro, id } = await salvarCamada({ camada: 'classificados', editando, dados: registro, turnstileToken, supabase })
 
     setEnviando(false)
     if (erro) { setErro(erro); return }
     if (editando) { aoSalvar(); aoFechar(); return }
+
     setSucesso(true)
     aoSalvar()
   }

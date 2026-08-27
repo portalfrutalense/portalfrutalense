@@ -78,6 +78,19 @@ export async function POST(req: NextRequest) {
       .from(TABELAS[camada]).insert(registro).select().single()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+
+    // Dispara análise de IA em segundo plano para pets e classificados
+    if (data?.id && (camada === 'pets' || camada === 'classificados')) {
+      const rotaIA = camada === 'pets' ? '/api/ia/analisar-pet' : '/api/ia/analisar-classificado'
+      const corpoIA = camada === 'pets' ? { pet_id: data.id } : { classificado_id: data.id }
+      const base = process.env.SITE_URL || 'http://localhost:3000'
+      fetch(`${base}${rotaIA}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-internal-key': process.env.INTERNAL_SECRET || '' },
+        body: JSON.stringify(corpoIA),
+      }).catch(() => { /* silencioso */ })
+    }
+
     return NextResponse.json({ ok: true, registro: data })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Erro ao salvar.' }, { status: 500 })

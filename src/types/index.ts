@@ -97,6 +97,9 @@ export interface Pet {
   foto_url?: string
   contato: string
   oculto?: boolean
+  ia_decisao?: string
+  ia_motivo?: string
+  ia_analisado_em?: string
   expira_em: string
   created_at: string
   updated_at: string
@@ -128,6 +131,9 @@ export interface Classificado {
   contato: string
   vendido: boolean
   oculto?: boolean
+  ia_decisao?: string
+  ia_motivo?: string
+  ia_analisado_em?: string
   created_at: string
   updated_at: string
 }
