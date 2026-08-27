@@ -705,8 +705,8 @@ export default function LandingPage() {
           .grade {
             grid-template-columns: 1fr;
             align-content: start;
-            gap: clamp(14px, 2.2vh, 22px);
-            padding: calc(56px + 12px) clamp(20px, 6vw, 32px) clamp(8px, 1.4vh, 14px);
+            gap: clamp(22px, 4vh, 36px);
+            padding: calc(56px + 16px) clamp(20px, 6vw, 32px) clamp(8px, 1.4vh, 14px);
           }
           .coluna-conteudo { align-items: center; text-align: center; }
           .subtitulo { text-align: center; max-width: 100%; }
@@ -715,17 +715,22 @@ export default function LandingPage() {
           .halo { left: -30%; top: 8%; width: 110vw; height: 110vw; }
         }
 
+        /* card menor no mobile */
+        @media (max-width: 860px) {
+          .cartao-topo { padding: 9px 14px; font-size: 12px; }
+          .cartao-corpo { padding: 12px 14px; gap: 7px; }
+          .btn-primario, .btn-secundario, .btn-enviar { padding: 9px 12px; font-size: 13px; }
+          .campo { padding: 9px 12px; font-size: 13px; }
+          .dica-primaria { font-size: 11px; }
+          .separador span { font-size: 10px; }
+        }
+
         /* telas curtas: enxuga o que é secundário para nada vazar da tela */
         @media (max-width: 860px) and (max-height: 620px) {
           .subtitulo { display: none; }
           .categorias { gap: 6px; }
           .categorias li { font-size: 11.5px; padding: 5px 10px; }
           .prova { margin-top: 12px; }
-          .cartao-topo { padding: 10px 16px; }
-          .cartao-corpo { padding: 14px; gap: 8px; }
-          .separador { margin: 0; }
-          .btn-primario, .btn-secundario, .btn-enviar { padding: 10px 14px; }
-          .campo { padding: 10px 13px; }
           .atalho { padding: 11px 13px; }
         }
         @media (max-width: 860px) and (max-height: 620px) {
