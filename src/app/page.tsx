@@ -185,32 +185,29 @@ function CardAcesso() {
     e.preventDefault(); setErro(''); setCarregando(true)
 
     if (fase === 'form') {
-      // Tenta login primeiro
+      // Tenta login — se falhar por qualquer motivo, pede confirmação de senha
       const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
       if (!error) return // sucesso — AuthProvider redireciona
-      // Se senha errada para conta existente
-      if (error.message.toLowerCase().includes('invalid')) {
-        setErro('E-mail ou senha incorretos. Confira e tente de novo.')
-        setCarregando(false)
-        return
-      }
-      // Conta não existe — pede confirmação para criar
+      // Login falhou: pode ser senha errada OU conta nova. Vai para confirmação.
       setFase('confirmar')
       setCarregando(false)
       return
     }
 
-    // fase === 'confirmar': criar conta
+    // fase === 'confirmar': tenta criar conta
     if (senha.length < 6) { setErro('A senha precisa ter pelo menos 6 caracteres.'); setCarregando(false); return }
     if (senha !== senhaConfirm) { setErro('As senhas não coincidem.'); setCarregando(false); return }
-    const { error } = await supabase.auth.signUp({ email, password: senha })
-    if (error) {
-      setErro(error.message || 'Não foi possível criar a conta.')
-      setCarregando(false)
+    const { error: errSign } = await supabase.auth.signUp({ email, password: senha })
+    if (!errSign) { setFase('ok'); setCarregando(false); return }
+    // Se já existe → era senha errada
+    if (errSign.message?.toLowerCase().includes('already')) {
+      setFase('form')
+      setSenhaConfirm('')
+      setErro('Senha incorreta. Confira e tente de novo.')
     } else {
-      setFase('ok')
-      setCarregando(false)
+      setErro(errSign.message || 'Não foi possível criar a conta.')
     }
+    setCarregando(false)
   }
 
   return (
@@ -528,10 +525,10 @@ export default function LandingPage() {
         .coluna-acao { min-width: 0; display: flex; justify-content: center; }
 
         .cartao {
-          width: 100%; max-width: 372px; border-radius: 18px; overflow: hidden;
+          width: 372px; max-width: 100%; border-radius: 18px; overflow: hidden;
           border: 1px solid var(--borda); background: var(--cartao);
           box-shadow: 0 1px 2px rgba(13,20,37,0.05), 0 18px 45px -12px rgba(13,20,37,0.18);
-          text-align: left;
+          text-align: left; flex-shrink: 0;
         }
         .cartao-topo {
           display: flex; align-items: center; justify-content: center; gap: 9px;
