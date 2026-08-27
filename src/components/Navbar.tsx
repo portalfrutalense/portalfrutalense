@@ -75,12 +75,16 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
               return (
                 <Link key={camada} href={`/mapa?camada=${camada}`}
                   style={{
-                    color: ativo ? 'white' : 'rgba(255,255,255,0.75)',
+                    color: ativo ? 'white' : 'rgba(255,255,255,0.85)',
                     fontSize: '13.5px', fontWeight: 500,
-                    textDecoration: 'none', padding: '6px 10px', borderRadius: '6px',
+                    textDecoration: 'none', padding: '5px 10px', borderRadius: '6px',
                     whiteSpace: 'nowrap',
-                    background: ativo ? 'rgba(255,255,255,0.18)' : 'none',
-                  }}>
+                    background: ativo ? 'rgba(255,255,255,0.18)' : 'transparent',
+                    border: ativo ? '1px solid rgba(255,255,255,0.5)' : '1px solid rgba(255,255,255,0.2)',
+                    transition: 'border-color 0.18s, background 0.18s',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.6)'; (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.12)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = ativo ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)'; (e.currentTarget as HTMLElement).style.background = ativo ? 'rgba(255,255,255,0.18)' : 'transparent' }}>
                   {label}
                 </Link>
               )
