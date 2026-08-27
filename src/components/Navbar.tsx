@@ -27,15 +27,15 @@ function NavCamadas({ user }: { user: unknown }) {
             {i > 0 && <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '14px', margin: '0 2px', userSelect: 'none' }}>|</span>}
             <Link href={`/mapa?camada=${camada}`}
               style={{
-                color: ativo ? 'white' : 'rgba(255,255,255,0.6)',
+                color: 'white',
                 fontSize: '13.5px', fontWeight: 500,
-                textDecoration: 'none', padding: '5px 10px',
+                textDecoration: 'none', padding: '5px 12px', borderRadius: '6px',
                 whiteSpace: 'nowrap',
-                borderBottom: ativo ? '2px solid rgba(255,255,255,0.85)' : '2px solid transparent',
-                transition: 'color 0.15s, border-color 0.15s',
+                background: ativo ? 'rgba(255,255,255,0.22)' : 'transparent',
+                transition: 'background 0.15s',
               }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'white' }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = ativo ? 'white' : 'rgba(255,255,255,0.6)' }}>
+              onMouseEnter={e => { if (!ativo) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.1)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ativo ? 'rgba(255,255,255,0.22)' : 'transparent' }}>
               {label}
             </Link>
           </div>
