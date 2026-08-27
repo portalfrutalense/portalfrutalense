@@ -716,7 +716,7 @@ export default function LandingPage() {
         }
 
         /* telas curtas: enxuga o que é secundário para nada vazar da tela */
-        @media (max-width: 860px) and (max-height: 720px) {
+        @media (max-width: 860px) and (max-height: 620px) {
           .subtitulo { display: none; }
           .categorias { gap: 6px; }
           .categorias li { font-size: 11.5px; padding: 5px 10px; }
