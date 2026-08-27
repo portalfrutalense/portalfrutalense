@@ -33,10 +33,11 @@ export async function POST(req: NextRequest) {
       }
 
       // Verificação manual da assinatura HMAC (sem dependência extra)
+      // O segredo Svix é base64 — precisa decodificar antes de usar como chave
       const body = await req.text()
       const mensagem = `${svixId}.${svixTimestamp}.${body}`
       const encoder = new TextEncoder()
-      const keyData = encoder.encode(secret.replace(/^whsec_/, ''))
+      const keyData = Uint8Array.from(atob(secret.replace(/^whsec_/, '')), c => c.charCodeAt(0))
       const cryptoKey = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
       const assinatura = await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(mensagem))
       const assinaturaB64 = btoa(String.fromCharCode(...new Uint8Array(assinatura)))
