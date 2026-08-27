@@ -33,8 +33,8 @@ function Etiqueta({ texto, cor }: { texto: string; cor: string }) {
 function ListaModeracao({
   titulo, descricao, carregando, itens, vazio, filtros, filtroAtivo, setFiltro, notif,
 }: {
-  titulo: string
-  descricao: string
+  titulo?: string
+  descricao?: string
   carregando: boolean
   itens: ItemLista[]
   vazio: string
@@ -54,10 +54,12 @@ function ListaModeracao({
 
   return (
     <div>
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>{titulo}</h1>
-        <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>{descricao}</p>
-      </div>
+      {(titulo || descricao) && (
+        <div style={{ marginBottom: '24px' }}>
+          {titulo && <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>{titulo}</h1>}
+          {descricao && <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>{descricao}</p>}
+        </div>
+      )}
 
       {notif && (
         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', marginBottom: '16px' }}>
@@ -234,8 +236,6 @@ export function MasterPets() {
 
   return (
     <ListaModeracao
-      titulo="Pets"
-      descricao="Registros de pets perdidos e de animais encontrados nas ruas."
       carregando={carregando}
       itens={itens}
       vazio="Nenhum registro nesse filtro."
@@ -324,8 +324,6 @@ export function MasterClassificados() {
 
   return (
     <ListaModeracao
-      titulo="Classificados"
-      descricao="Anúncios de veículos publicados pelos cidadãos."
       carregando={carregando}
       itens={itens}
       vazio="Nenhum anúncio nesse filtro."
@@ -426,8 +424,6 @@ export function MasterEmpregos() {
 
   return (
     <ListaModeracao
-      titulo="Empregos"
-      descricao="Vagas publicadas pelas empresas cadastradas."
       carregando={carregando}
       itens={itens}
       vazio="Nenhuma vaga nesse filtro."

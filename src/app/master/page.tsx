@@ -278,7 +278,7 @@ export default function MasterPage() {
               </div>
 
               <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '20px', marginBottom: '32px', maxWidth: '280px' }}>
-                <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Mapa de Demandas</h2>
+                <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Demandas Municipais</h2>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {[
                     { label: 'Total de demandas', valor: stats.total },
@@ -406,7 +406,7 @@ export default function MasterPage() {
               <div className="master-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', gap: '12px', flexWrap: 'wrap' }}>
                 <div>
                   <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>
-                    {configurando ? 'Configurações' : 'Mapa de Demandas'}
+                    {configurando ? 'Configurações' : 'Demandas Municipais'}
                   </h1>
                   <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
                     {configurando ? 'Gerencie autoridades, categorias e a inteligência artificial.' : 'Gerencie as demandas enviadas pelos cidadãos.'}
