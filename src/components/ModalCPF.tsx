@@ -68,6 +68,36 @@ export default function ModalCPF() {
     setEnviando(true)
     try {
       const cpfLimpo = cpf.replace(/\D/g, '')
+      const whatsappCompleto = whatsappParaSalvar(whatsapp)
+
+      // Verifica unicidade do email (outro usuário com o mesmo email)
+      if (user.email) {
+        const { data: emailDuplicado } = await supabase
+          .from('perfis').select('id').eq('email', user.email).neq('id', user.id).maybeSingle()
+        if (emailDuplicado) {
+          setErro('Este e-mail já está cadastrado em outra conta.')
+          setEnviando(false)
+          return
+        }
+      }
+
+      // Verifica unicidade do CPF (outro usuário com o mesmo CPF)
+      const { data: cpfDuplicado } = await supabase
+        .from('perfis').select('id').eq('cpf', cpfLimpo).neq('id', user.id).maybeSingle()
+      if (cpfDuplicado) {
+        setErro('Este CPF já está cadastrado em outra conta.')
+        setEnviando(false)
+        return
+      }
+
+      // Verifica unicidade do WhatsApp (outro usuário com o mesmo número)
+      const { data: whatsappDuplicado } = await supabase
+        .from('perfis').select('id').eq('whatsapp', whatsappCompleto).neq('id', user.id).maybeSingle()
+      if (whatsappDuplicado) {
+        setErro('Este número de WhatsApp já está cadastrado em outra conta.')
+        setEnviando(false)
+        return
+      }
 
       // Verifica se o perfil já existe (ex: usuário master que ainda não preencheu CPF)
       const { data: perfilExistente, error: erroLeitura } = await supabase
