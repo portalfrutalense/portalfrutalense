@@ -97,7 +97,7 @@ async function comprimirFoto(file: File): Promise<Blob> {
       const ctx = canvas.getContext('2d')!
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
       URL.revokeObjectURL(url)
-      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Falha')), 'image/jpeg', 0.35)
+      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Falha')), 'image/jpeg', 0.6)
     }
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Inválida')) }
     img.src = url
