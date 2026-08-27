@@ -370,7 +370,7 @@ export function MasterEmpregos() {
     if (filtro === 'todos') return !v.encerrada
     if (filtro === 'ocultos') return v.oculto
     if (filtro === 'encerradas') return v.encerrada
-    return v.contrato === filtro && !v.encerrada
+    return true
   })
 
   const itens: ItemLista[] = filtrados.map(v => ({
@@ -433,11 +433,6 @@ export function MasterEmpregos() {
       vazio="Nenhuma vaga nesse filtro."
       filtros={[
         { chave: 'todos', rotulo: 'Todas' },
-        { chave: 'clt', rotulo: 'CLT' },
-        { chave: 'pj', rotulo: 'PJ' },
-        { chave: 'temporario', rotulo: 'Temporário' },
-        { chave: 'estagio', rotulo: 'Estágio' },
-        { chave: 'freelance', rotulo: 'Freelance' },
         { chave: 'encerradas', rotulo: 'Encerradas' },
         { chave: 'ocultos', rotulo: 'Ocultas' },
       ]}
