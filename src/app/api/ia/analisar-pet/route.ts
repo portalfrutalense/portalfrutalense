@@ -13,26 +13,37 @@ export async function POST(req: NextRequest) {
   try {
     const { pet_id } = await req.json()
 
-    const { data: pet } = await supabaseServer
-      .from('pets')
-      .select('tipo, especie, nome_pet, raca, cor, porte, descricao, contato')
-      .eq('id', pet_id)
-      .single()
+    const [{ data: pet }, { data: config }] = await Promise.all([
+      supabaseServer
+        .from('pets')
+        .select('tipo, especie, nome_pet, raca, cor, porte, descricao, contato')
+        .eq('id', pet_id)
+        .single(),
+      supabaseServer.from('ia_config').select('*').eq('id', 2).maybeSingle(),
+    ])
 
     if (!pet) return NextResponse.json({ error: 'Registro não encontrado.' }, { status: 404 })
 
+    // Se IA desativada, não faz nada
+    if (config && !config.ativo) {
+      return NextResponse.json({ ok: true, decisao: 'ia_desativada' })
+    }
+
+    const RIGOR_INSTRUCAO: Record<string, string> = {
+      permissivo: 'Seja bastante permissivo. Só rejeite conteúdo claramente ofensivo ou spam.',
+      moderado: 'Seja moderado. Rejeite spam, conteúdo ofensivo e registros sem sentido como anúncio de pet.',
+      rigoroso: 'Seja rigoroso. Rejeite qualquer registro vago, sem descrição adequada ou suspeito de uso indevido.',
+    }
+
+    const rigor = config?.rigor || 'moderado'
+    const promptBase = config?.prompt || 'Analise o registro de pet perdido ou encontrado e decida se deve ser aprovado ou rejeitado.'
+    const instrucaoRigor = RIGOR_INSTRUCAO[rigor] || RIGOR_INSTRUCAO.moderado
+
     const tipoRotulo = pet.tipo === 'perdido' ? 'Pet perdido' : 'Pet achado na rua'
 
-    const prompt = `Você é um moderador do sistema "Achei/Perdi um Pet" da cidade de Frutal-MG. Sua função é verificar se o registro é genuíno e adequado para a plataforma.
+    const prompt = `${promptBase}
 
-Analise o registro abaixo e decida se deve ser aprovado ou rejeitado.
-
-Rejeite apenas se:
-- O conteúdo é claramente spam, propaganda ou não tem relação com pets perdidos ou encontrados.
-- O texto é ofensivo, inadequado ou tenta enganar usuários.
-- A descrição não faz sentido algum como anúncio de pet.
-
-Aprove se parece um registro legítimo de alguém que perdeu ou encontrou um animal, mesmo que incompleto.
+${instrucaoRigor}
 
 Registro recebido:
 - Tipo: ${tipoRotulo}

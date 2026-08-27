@@ -24,6 +24,8 @@ export default function MasterPage() {
   const [configurandoClassificados, setConfigurandoClassificados] = useState(false)
   const [configurandoEmpregos, setConfigurandoEmpregos] = useState(false)
   const [abaConfig, setAbaConfig] = useState<AbaConfig>('categorias')
+  const [abaConfigPets, setAbaConfigPets] = useState<'pins' | 'ia'>('pins')
+  const [abaConfigClassificados, setAbaConfigClassificados] = useState<'pins' | 'ia'>('pins')
   const [menuAberto, setMenuAberto] = useState(false)
 
   // Dados config
@@ -318,14 +320,31 @@ export default function MasterPage() {
               <div className="master-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', gap: '12px', flexWrap: 'wrap' }}>
                 <div>
                   <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>{configurandoPets ? 'Configurações' : 'Achei/Perdi um Pet'}</h1>
-                  <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>{configurandoPets ? 'Cores dos pins por situação.' : 'Registros de pets perdidos e encontrados.'}</p>
+                  <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>{configurandoPets ? 'Cores dos pins e análise automática.' : 'Registros de pets perdidos e encontrados.'}</p>
                 </div>
-                <button onClick={() => setConfigurandoPets(v => !v)}
+                <button onClick={() => { setConfigurandoPets(v => !v); setAbaConfigPets('pins') }}
                   style={{ fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer' }}>
                   {configurandoPets ? 'Voltar' : 'Configurar'}
                 </button>
               </div>
-              {configurandoPets ? <MasterCamadas camada="pets" /> : <MasterPets />}
+              {!configurandoPets && <MasterPets />}
+              {configurandoPets && (
+                <div>
+                  <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid #e5e7eb', marginBottom: '24px' }}>
+                    {(['pins', 'ia'] as const).map(a => (
+                      <button key={a} onClick={() => setAbaConfigPets(a)} style={{
+                        padding: '8px 16px', borderRadius: '6px 6px 0 0', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+                        background: abaConfigPets === a ? '#4256c8' : 'transparent',
+                        color: abaConfigPets === a ? 'white' : '#6b7280',
+                      }}>
+                        {a === 'pins' ? 'Pins' : 'IA'}
+                      </button>
+                    ))}
+                  </div>
+                  {abaConfigPets === 'pins' && <MasterCamadas camada="pets" />}
+                  {abaConfigPets === 'ia' && <MasterIAGenerico configId={2} textoAtivo="Quando desativada, os registros são publicados sem moderação automática." promptPadrao="Analise o registro de pet perdido ou encontrado e decida se deve ser aprovado ou rejeitado. Rejeite apenas se for claramente spam, ofensivo ou sem relação com pets." descRigor={{ permissivo: 'Rejeita apenas conteúdo claramente ofensivo ou spam.', moderado: 'Rejeita spam, conteúdo ofensivo e anúncios sem sentido como registro de pet.', rigoroso: 'Rejeita qualquer registro vago, sem descrição adequada ou suspeito de uso indevido.' }} />}
+                </div>
+              )}
             </div>
           )}
 
@@ -335,14 +354,31 @@ export default function MasterPage() {
               <div className="master-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', gap: '12px', flexWrap: 'wrap' }}>
                 <div>
                   <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>{configurandoClassificados ? 'Configurações' : 'Classificados'}</h1>
-                  <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>{configurandoClassificados ? 'Cor e ícone dos pins por tipo de veículo.' : 'Anúncios de veículos publicados pelos cidadãos.'}</p>
+                  <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>{configurandoClassificados ? 'Pins por tipo de veículo e análise automática.' : 'Anúncios de veículos publicados pelos cidadãos.'}</p>
                 </div>
-                <button onClick={() => setConfigurandoClassificados(v => !v)}
+                <button onClick={() => { setConfigurandoClassificados(v => !v); setAbaConfigClassificados('pins') }}
                   style={{ fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer' }}>
                   {configurandoClassificados ? 'Voltar' : 'Configurar'}
                 </button>
               </div>
-              {configurandoClassificados ? <MasterCamadas camada="classificados" /> : <MasterClassificados />}
+              {!configurandoClassificados && <MasterClassificados />}
+              {configurandoClassificados && (
+                <div>
+                  <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid #e5e7eb', marginBottom: '24px' }}>
+                    {(['pins', 'ia'] as const).map(a => (
+                      <button key={a} onClick={() => setAbaConfigClassificados(a)} style={{
+                        padding: '8px 16px', borderRadius: '6px 6px 0 0', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+                        background: abaConfigClassificados === a ? '#4256c8' : 'transparent',
+                        color: abaConfigClassificados === a ? 'white' : '#6b7280',
+                      }}>
+                        {a === 'pins' ? 'Pins' : 'IA'}
+                      </button>
+                    ))}
+                  </div>
+                  {abaConfigClassificados === 'pins' && <MasterCamadas camada="classificados" />}
+                  {abaConfigClassificados === 'ia' && <MasterIAGenerico configId={3} textoAtivo="Quando desativada, os anúncios são publicados sem moderação automática." promptPadrao="Analise o anúncio de veículo e decida se deve ser aprovado ou rejeitado. Rejeite apenas se for claramente spam, ofensivo ou sem relação com venda de veículos." descRigor={{ permissivo: 'Rejeita apenas conteúdo claramente ofensivo ou spam.', moderado: 'Rejeita spam, anúncios sem sentido e conteúdo que não seja de venda de veículo.', rigoroso: 'Rejeita qualquer anúncio vago, sem informações mínimas ou suspeito de fraude.' }} />}
+                </div>
+              )}
             </div>
           )}
 
@@ -891,6 +927,89 @@ function MasterDemandas({ token }: { token: string | null }) {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+// ── Sub-componente: IA genérica (pets=2, classificados=3) ────────────────────────────────────
+function MasterIAGenerico({ configId, textoAtivo, promptPadrao, descRigor }: {
+  configId: number
+  textoAtivo: string
+  promptPadrao: string
+  descRigor: Record<string, string>
+}) {
+  const sbClient = createClient()
+  const [config, setConfig] = useState<any>(null)
+  const [salvando, setSalvando] = useState(false)
+  const [notif, setNotif] = useState('')
+  const [erro, setErro] = useState('')
+
+  useEffect(() => {
+    sbClient.from('ia_config').select('*').eq('id', configId).maybeSingle().then(({ data, error }: any) => {
+      if (error) { setErro('Erro ao carregar configurações da IA.'); return }
+      setConfig(data || { ativo: true, rigor: 'moderado', prompt: promptPadrao })
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configId])
+
+  async function salvar() {
+    if (!config) return
+    setSalvando(true)
+    const { error } = await sbClient.from('ia_config').upsert({ id: configId, ativo: config.ativo, prompt: config.prompt, rigor: config.rigor, updated_at: new Date().toISOString() })
+    setNotif(error ? `Erro ao salvar: ${error.message}` : 'Configurações salvas!')
+    setTimeout(() => setNotif(''), 4000)
+    setSalvando(false)
+  }
+
+  if (erro) return <p style={{ color: '#dc2626', fontSize: '13px' }}>{erro}</p>
+  if (!config) return <p style={{ color: '#6b7280', fontSize: '13px' }}>Carregando...</p>
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {notif && <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#166534' }}>{notif}</div>}
+
+      <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '20px' }}>
+        <h2 style={{ fontWeight: 700, color: '#111827', fontSize: '15px', marginBottom: '20px' }}>Configurações da IA</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#111827', margin: 0 }}>Análise automática ativa</p>
+              <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0' }}>{textoAtivo}</p>
+            </div>
+            <button onClick={() => setConfig({ ...config, ativo: !config.ativo })}
+              style={{ width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: config.ativo ? '#4256c8' : '#e5e7eb', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+              <span style={{ position: 'absolute', top: '2px', left: config.ativo ? '22px' : '2px', width: '20px', height: '20px', borderRadius: '50%', background: 'white', transition: 'left 0.2s', display: 'block' }} />
+            </button>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#111827', marginBottom: '8px' }}>Nível de rigor</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {['permissivo', 'moderado', 'rigoroso'].map(r => (
+                <button key={r} onClick={() => setConfig({ ...config, rigor: r })}
+                  style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1.5px solid', borderColor: config.rigor === r ? '#4256c8' : '#e5e7eb', background: config.rigor === r ? '#f9fafb' : 'white', color: config.rigor === r ? '#4256c8' : '#111827', fontSize: '13px', fontWeight: config.rigor === r ? 600 : 400, cursor: 'pointer', textTransform: 'capitalize' }}>
+                  {r}
+                </button>
+              ))}
+            </div>
+            <p style={{ fontSize: '11px', color: '#6b7280', margin: '6px 0 0' }}>
+              {descRigor[config.rigor] || ''}
+            </p>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#111827', marginBottom: '8px' }}>Prompt de análise</label>
+            <textarea value={config.prompt} onChange={(e) => setConfig({ ...config, prompt: e.target.value })} rows={6}
+              style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', lineHeight: 1.6 }} />
+          </div>
+
+          <button onClick={salvar} disabled={salvando}
+            style={{ backgroundColor: salvando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '8px', border: 'none', cursor: salvando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+            {salvando ? 'Salvando...' : 'Salvar configurações'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

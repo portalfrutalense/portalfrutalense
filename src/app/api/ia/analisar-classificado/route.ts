@@ -13,24 +13,35 @@ export async function POST(req: NextRequest) {
   try {
     const { classificado_id } = await req.json()
 
-    const { data: classificado } = await supabaseServer
-      .from('classificados')
-      .select('tipo_veiculo, titulo, marca, modelo, ano, km, cor, preco, descricao, contato')
-      .eq('id', classificado_id)
-      .single()
+    const [{ data: classificado }, { data: config }] = await Promise.all([
+      supabaseServer
+        .from('classificados')
+        .select('tipo_veiculo, titulo, marca, modelo, ano, km, cor, preco, descricao, contato')
+        .eq('id', classificado_id)
+        .single(),
+      supabaseServer.from('ia_config').select('*').eq('id', 3).maybeSingle(),
+    ])
 
     if (!classificado) return NextResponse.json({ error: 'Registro não encontrado.' }, { status: 404 })
 
-    const prompt = `Você é um moderador do sistema de Classificados de veículos da cidade de Frutal-MG. Sua função é verificar se o anúncio é genuíno e adequado para a plataforma.
+    // Se IA desativada, não faz nada
+    if (config && !config.ativo) {
+      return NextResponse.json({ ok: true, decisao: 'ia_desativada' })
+    }
 
-Analise o anúncio abaixo e decida se deve ser aprovado ou rejeitado.
+    const RIGOR_INSTRUCAO: Record<string, string> = {
+      permissivo: 'Seja bastante permissivo. Só rejeite conteúdo claramente ofensivo ou spam.',
+      moderado: 'Seja moderado. Rejeite spam, anúncios sem sentido e conteúdo que não seja de venda de veículo.',
+      rigoroso: 'Seja rigoroso. Rejeite qualquer anúncio vago, sem informações mínimas ou suspeito de fraude.',
+    }
 
-Rejeite apenas se:
-- O conteúdo é claramente spam, propaganda enganosa ou não tem relação com venda de veículos.
-- O texto é ofensivo, inadequado ou tenta enganar usuários.
-- A descrição não faz sentido como anúncio de veículo (ex.: texto sem sentido, caracteres aleatórios).
+    const rigor = config?.rigor || 'moderado'
+    const promptBase = config?.prompt || 'Analise o anúncio de veículo e decida se deve ser aprovado ou rejeitado.'
+    const instrucaoRigor = RIGOR_INSTRUCAO[rigor] || RIGOR_INSTRUCAO.moderado
 
-Aprove se parece um anúncio legítimo de venda de veículo, mesmo que incompleto.
+    const prompt = `${promptBase}
+
+${instrucaoRigor}
 
 Anúncio recebido:
 - Tipo: ${classificado.tipo_veiculo}
