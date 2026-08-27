@@ -17,6 +17,22 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: 'CidadanIA Frutal',
   description: 'Explore os mapas interativos da cidade para cobrar serviços públicos, encontrar oportunidades, empregos, ajudar a encontrar pets e apoiar causas locais.',
+  alternates: {
+    canonical: 'https://cidadaniafrutal.com.br',
+  },
+  openGraph: {
+    title: 'CidadanIA Frutal',
+    description: 'Explore os mapas interativos da cidade para cobrar serviços públicos, encontrar oportunidades, empregos, ajudar a encontrar pets e apoiar causas locais.',
+    url: 'https://cidadaniafrutal.com.br',
+    siteName: 'CidadanIA Frutal',
+    locale: 'pt_BR',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'CidadanIA Frutal',
+    description: 'Explore os mapas interativos da cidade para cobrar serviços públicos, encontrar oportunidades, empregos, ajudar a encontrar pets e apoiar causas locais.',
+  },
   verification: {
     google: 'lPI_-xfdqfhBGjByM6htLkimhgUlfUZsy8pIVK99K_0',
   },
