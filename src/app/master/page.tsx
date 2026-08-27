@@ -985,6 +985,26 @@ function MasterDemandas({ token }: { token: string | null }) {
                 </div>
               ) : null}
 
+              {/* Status de entrega do email — canto inferior direito */}
+              {d.email_status && (() => {
+                const cfg: Record<string, { texto: string; cor: string; bg: string }> = {
+                  enviado:   { texto: '📧 Email enviado',   cor: '#6b7280', bg: '#f9fafb' },
+                  entregue:  { texto: '✅ Email entregue',  cor: '#15803d', bg: '#f0fdf4' },
+                  atrasado:  { texto: '⏳ Entrega atrasada', cor: '#b45309', bg: '#fffbeb' },
+                  bounce:    { texto: '❌ Email bounced',   cor: '#dc2626', bg: '#fef2f2' },
+                  reclamado: { texto: '⚠️ Marcado como spam', cor: '#dc2626', bg: '#fef2f2' },
+                }
+                const s = cfg[d.email_status]
+                if (!s) return null
+                return (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 500, color: s.cor, background: s.bg, border: `1px solid ${s.cor}22`, borderRadius: '5px', padding: '3px 8px' }}>
+                      {s.texto}
+                    </span>
+                  </div>
+                )
+              })()}
+
             </div>
             )}
           </div>
