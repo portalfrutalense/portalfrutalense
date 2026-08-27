@@ -6,6 +6,7 @@ import { useAuth } from '../AuthProvider'
 import MiniMapaConfirmar from '../MiniMapaConfirmar'
 import Turnstile from '../Turnstile'
 import { Emprego, TipoContrato, CamadaConfig } from '@/types'
+import { salvarCamada } from './salvarCamada'
 
 /* ------------------------------------------------------------- ícones --- */
 
@@ -366,12 +367,10 @@ export function FormularioEmprego({
       contato: contato.trim(),
     }
 
-    const { error } = editando
-      ? await supabase.from('empregos').update(registro).eq('id', editando.id)
-      : await supabase.from('empregos').insert(registro)
+    const { erro } = await salvarCamada({ camada: 'empregos', editando, dados: registro, turnstileToken, supabase })
 
     setEnviando(false)
-    if (error) { setErro(error.message || 'Não foi possível salvar.'); return }
+    if (erro) { setErro(erro); return }
     if (editando) { aoSalvar(); aoFechar(); return }
     setSucesso(true)
     aoSalvar()

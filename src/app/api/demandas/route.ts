@@ -1,36 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
-import { createClient } from '@supabase/supabase-js'
+import { getUser, ipDaRequisicao, verificarTurnstile } from '@/lib/auth-api'
 
-async function getUser(req: NextRequest) {
-  const token = req.headers.get('Authorization')?.replace('Bearer ', '')
-  if (!token) return null
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-  const { data: { user } } = await supabase.auth.getUser(token)
-  return user
-}
 
-async function verificarTurnstile(token: string | undefined, ip: string | null) {
-  if (!token) return false
-  try {
-    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        secret: process.env.TURNSTILE_SECRET_KEY!,
-        response: token,
-        ...(ip ? { remoteip: ip } : {}),
-      }),
-    })
-    const data = await res.json()
-    return !!data.success
-  } catch {
-    return false
-  }
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -47,7 +19,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Máximo de 3 autoridades.' }, { status: 400 })
     }
 
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null
+    const ip = ipDaRequisicao(req)
     const turnstileOk = await verificarTurnstile(turnstile_token, ip)
     if (!turnstileOk) {
       return NextResponse.json({ error: 'Verificação de segurança falhou. Tente novamente.' }, { status: 400 })
@@ -113,14 +85,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const token = req.headers.get('Authorization')?.replace('Bearer ', '')
-  if (!token) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-  const { data: { user } } = await supabase.auth.getUser(token)
+  const user = await getUser(req)
   if (!user) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
 
   const { data } = await supabaseServer

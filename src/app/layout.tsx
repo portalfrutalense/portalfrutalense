@@ -15,6 +15,8 @@ const jakarta = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
+  // Ancora as URLs absolutas (og:image etc.) no domínio canônico, sem www
+  metadataBase: new URL('https://cidadaniafrutal.com.br'),
   title: 'CidadanIA Frutal',
   description: 'Explore os mapas interativos da cidade para cobrar serviços públicos, encontrar oportunidades, empregos, ajudar a encontrar pets e apoiar causas locais.',
   alternates: {

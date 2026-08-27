@@ -6,6 +6,7 @@ import { useAuth } from '../AuthProvider'
 import MiniMapaConfirmar from '../MiniMapaConfirmar'
 import Turnstile from '../Turnstile'
 import { Pet, TipoPet, EspeciePet, PortePet, CamadaConfig } from '@/types'
+import { salvarCamada } from './salvarCamada'
 
 /* ------------------------------------------------------------- ícones --- */
 
@@ -453,12 +454,10 @@ export function FormularioPet({
       contato: contato.trim(),
     }
 
-    const { error } = editando
-      ? await supabase.from('pets').update(registro).eq('id', editando.id)
-      : await supabase.from('pets').insert(registro)
+    const { erro } = await salvarCamada({ camada: 'pets', editando, dados: registro, turnstileToken, supabase })
 
     setEnviando(false)
-    if (error) { setErro(error.message || 'Não foi possível salvar.'); return }
+    if (erro) { setErro(erro); return }
     if (editando) { aoSalvar(); aoFechar(); return }
     setSucesso(true)
     aoSalvar()
