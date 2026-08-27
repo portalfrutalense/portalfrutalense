@@ -163,10 +163,10 @@ export default function MasterPage() {
           {/* Dashboard */}
           {[
             { key: 'dashboard'     as SecaoMaster, label: 'Dashboard' },
-            { key: 'demandas'      as SecaoMaster, label: 'Mapa de Demandas' },
+            { key: 'demandas'      as SecaoMaster, label: 'Demandas Municipais' },
             { key: 'empregos'      as SecaoMaster, label: 'Empregos' },
             { key: 'classificados' as SecaoMaster, label: 'Classificados' },
-            { key: 'pets'          as SecaoMaster, label: 'Pets' },
+            { key: 'pets'          as SecaoMaster, label: 'Achei/Perdi um Pet' },
             { key: 'chatbot'       as SecaoMaster, label: 'Chatbot IA' },
           ].map(item => (
             <button

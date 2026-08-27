@@ -7,10 +7,10 @@ import ModalAuth from './ModalAuth'
 import { usePathname, useSearchParams } from 'next/navigation'
 
 const CAMADAS_NAV = [
-  { label: 'Demandas municipais', camada: 'demandas' },
+  { label: 'Demandas Municipais', camada: 'demandas' },
   { label: 'Empregos', camada: 'empregos' },
   { label: 'Classificados', camada: 'classificados' },
-  { label: 'Achei/perdi um pet', camada: 'pets' },
+  { label: 'Achei/Perdi um Pet', camada: 'pets' },
 ]
 
 function NavCamadas({ user }: { user: unknown }) {
