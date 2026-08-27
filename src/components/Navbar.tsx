@@ -76,7 +76,7 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
                 <Link key={camada} href={`/mapa?camada=${camada}`}
                   style={{
                     color: ativo ? 'white' : 'rgba(255,255,255,0.75)',
-                    fontSize: '13.5px', fontWeight: ativo ? 700 : 500,
+                    fontSize: '13.5px', fontWeight: 500,
                     textDecoration: 'none', padding: '6px 10px', borderRadius: '6px',
                     whiteSpace: 'nowrap',
                     background: ativo ? 'rgba(255,255,255,0.18)' : 'none',
@@ -134,7 +134,7 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
                 </div>
                 {CAMADAS_NAV.map(({ label, camada }) => (
                   <Link key={camada} href={`/mapa?camada=${camada}`} onClick={() => setMenuMobile(false)}
-                    style={{ color: camadaAtiva === camada ? 'white' : 'rgba(255,255,255,0.85)', fontSize: '15px', fontWeight: camadaAtiva === camada ? 700 : 400, textDecoration: 'none', padding: '12px 20px' }}>
+                    style={{ color: camadaAtiva === camada ? 'white' : 'rgba(255,255,255,0.85)', fontSize: '15px', fontWeight: 500, textDecoration: 'none', padding: '12px 20px' }}>
                     {label}
                   </Link>
                 ))}
