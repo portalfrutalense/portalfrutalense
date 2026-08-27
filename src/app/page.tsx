@@ -568,12 +568,12 @@ export default function LandingPage() {
         .btn-secundario:hover { background: #f3f5fb; border-color: var(--borda-forte); color: var(--marca-escura); }
 
         .btn-enviar {
-          padding: 12px; border: none; margin-top: 2px;
-          background: var(--marca); color: #fff;
-          box-shadow: 0 8px 20px -6px rgba(66,86,200,0.55);
+          padding: 11px; border: 1px solid #e6e9f2; margin-top: 2px;
+          background: #fbfcfe; color: var(--tinta-suave); font-weight: 500;
+          box-shadow: none;
         }
-        .btn-enviar:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 12px 24px -6px rgba(66,86,200,0.6); }
-        .btn-enviar:disabled { opacity: .55; cursor: not-allowed; box-shadow: none; }
+        .btn-enviar:hover:not(:disabled) { background: #f3f5fb; border-color: var(--borda-forte); color: var(--marca-escura); }
+        .btn-enviar:disabled { opacity: .55; cursor: not-allowed; }
 
         .btn-voltar {
           align-self: flex-start; background: none; border: none; padding: 0;
