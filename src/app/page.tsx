@@ -29,45 +29,6 @@ function EmailIcon() {
   )
 }
 
-function IconeSeta() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="atalho-seta" aria-hidden="true">
-      <path d="M5 12h14M13 6l6 6-6 6"/>
-    </svg>
-  )
-}
-
-const FUNCIONALIDADES_ATALHO = [
-  { label: 'Demandas municipais', href: '/mapa', cor: '#d97706' },
-  { label: 'Empregos', href: '/mapa', cor: '#0891b2' },
-  { label: 'Achei/Perdi um pet', href: '/mapa', cor: '#db2777' },
-  { label: 'Classificados', href: '/mapa', cor: '#059669' },
-]
-
-const COR_MARCA = '#4256c8'
-
-const ATALHOS = [
-  {
-    href: '/assistenteia',
-    titulo: 'Falar com o Lucas',
-    desc: 'O assistente te ajuda a registrar tudo',
-    icone: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/>
-      </svg>
-    ),
-  },
-  {
-    href: '/perfil',
-    titulo: 'Minhas atividades',
-    desc: 'Suas demandas e respostas',
-    icone: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-      </svg>
-    ),
-  },
-]
 
 const CATEGORIAS = [
   { rotulo: 'Demandas municipais', cor: '#d97706' },
@@ -176,7 +137,7 @@ function CardAcesso() {
     setCarregandoGoogle(true); setErro('')
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=/` },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     })
     if (error) { setErro('Não foi possível conectar com o Google. Tente de novo.'); setCarregandoGoogle(false) }
   }
@@ -275,59 +236,6 @@ function CardAcesso() {
   )
 }
 
-/* -------------------------------------------------------- atalhos logado -- */
-
-function Atalhos() {
-  const [funcAberto, setFuncAberto] = useState(false)
-
-  return (
-    <div className="atalhos">
-      {/* Card expansível de funcionalidades */}
-      <div className="atalho-func">
-        <button className="atalho atalho-func-btn" onClick={() => setFuncAberto(v => !v)}>
-          <span className="atalho-icone" style={{ color: '#4256c8', background: 'rgba(66,86,200,0.1)', borderColor: 'rgba(66,86,200,0.2)' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-              <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-            </svg>
-          </span>
-          <span className="atalho-texto">
-            <strong>Funcionalidades</strong>
-            <small>Mapa, empregos, pets e classificados</small>
-          </span>
-          <span className="atalho-chevron" style={{ transform: funcAberto ? 'rotate(90deg)' : 'none' }}>
-            <IconeSeta />
-          </span>
-        </button>
-
-        {funcAberto && (
-          <div className="func-lista">
-            {FUNCIONALIDADES_ATALHO.map(({ label, href }) => (
-              <Link key={label} href={href} className="func-item">
-                <span className="func-ponto" style={{ background: '#4256c8' }} />
-                {label}
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {ATALHOS.map(({ href, titulo, desc, icone }) => (
-        <Link key={href} href={href} className="atalho">
-          <span className="atalho-icone" style={{ color: COR_MARCA, background: 'rgba(66,86,200,0.08)', borderColor: 'rgba(66,86,200,0.18)' }}>
-            {icone}
-          </span>
-          <span className="atalho-texto">
-            <strong>{titulo}</strong>
-            <small>{desc}</small>
-          </span>
-          <IconeSeta />
-        </Link>
-      ))}
-    </div>
-  )
-}
-
 /* ---------------------------------------------------------------- página -- */
 
 export default function LandingPage() {
@@ -353,8 +261,15 @@ export default function LandingPage() {
     }
   }, [])
 
+  // Já logado — vai direto pro mapa
+  useEffect(() => {
+    if (user) window.location.replace('/mapa')
+  }, [user])
+
+  if (user) return null
+
   return (
-    <div className={`palco${user ? ' palco-logado' : ' palco-deslogado'}`}>
+    <div className="palco">
       {/* fundo: o traçado da cidade, vivo */}
       <div className="fundo" aria-hidden="true">
         <MapaVivo />
@@ -362,8 +277,8 @@ export default function LandingPage() {
         <div className="halo" />
       </div>
 
-      {/* navbar — sempre visível na landing; deslogado: Entrar sacode o card */}
-      <Navbar overlay onEntrar={!user ? sacudir : undefined} />
+      {/* navbar — Entrar sacode o card */}
+      <Navbar overlay onEntrar={sacudir} />
 
       <main className="grade">
         <section className="coluna-conteudo">
@@ -383,13 +298,9 @@ export default function LandingPage() {
         </section>
 
         <section className="coluna-acao surge" style={{ animationDelay: '260ms' }}>
-          {user ? (
-            <Atalhos />
-          ) : (
-            <div ref={cardRef} className={tremendo ? 'tremer' : ''}>
-              <CardAcesso />
-            </div>
-          )}
+          <div ref={cardRef} className={tremendo ? 'tremer' : ''}>
+            <CardAcesso />
+          </div>
         </section>
       </main>
 
