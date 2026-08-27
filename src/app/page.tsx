@@ -703,14 +703,14 @@ export default function LandingPage() {
         /* ---- mobile: uma coluna, tudo dentro da tela, sem scroll ---- */
         @media (max-width: 860px) {
           .grade {
-            grid-template-columns: 1fr;
-            align-content: start;
-            gap: clamp(22px, 4vh, 36px);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
             padding: calc(56px + 16px) clamp(20px, 6vw, 32px) clamp(8px, 1.4vh, 14px);
           }
           .coluna-conteudo { align-items: center; text-align: center; }
           .subtitulo { text-align: center; max-width: 100%; }
-          .coluna-acao { justify-content: center; }
+          .coluna-acao { display: flex; justify-content: center; }
           .cartao, .atalhos { max-width: 340px; width: 100%; }
           .halo { left: -30%; top: 8%; width: 110vw; height: 110vw; }
         }
