@@ -129,11 +129,10 @@ Não inclua nada além do JSON.`
             from: 'CidadanIA Frutal <noreply@cidadaniafrutal.com.br>',
             to: ent.email,
             subject: `Nova demanda para ${ent.nome} — CidadanIA Frutal`,
-            html: `
+            html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>
               <div style="font-family:Inter,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;">
                 <div style="background:#4256c8;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
                   <h1 style="color:white;font-size:18px;margin:0;">CidadanIA Frutal</h1>
-                  <p style="color:rgba(255,255,255,0.6);font-size:13px;margin:4px 0 0;">Frutal-MG · Transparência e Cidadania</p>
                 </div>
                 <div style="background:white;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:24px;">
                   <p style="font-size:15px;color:#111827;">Olá, <strong>${ent.nome}</strong>,</p>
@@ -151,26 +150,11 @@ Não inclua nada além do JSON.`
                   <p style="font-size:12px;color:#6b7280;text-align:center;">Este link expira em 7 dias.</p>
                 </div>
               </div>
-            `,
+            </body></html>`,
           })
         }
       }
 
-      // Se não há vínculos (demanda legada), usa entidade direta da demanda
-      if (!vinculos?.length && demanda.entidade?.email) {
-        const token = gerarToken()
-        await supabaseServer.from('demandas').update({
-          magic_token: token,
-          magic_token_expira_em: expiracao,
-        }).eq('id', demanda_id)
-        const linkResposta = `${process.env.SITE_URL}/responder/${token}`
-        await resend.emails.send({
-          from: 'CidadanIA Frutal <onboarding@resend.dev>',
-          to: demanda.entidade.email,
-          subject: `Nova demanda para ${demanda.entidade.nome} — CidadanIA Frutal`,
-          html: `<a href="${linkResposta}">Responder demanda</a>`,
-        })
-      }
     } else {
       await supabaseServer.from('demandas').update({
         status: 'rejeitada_ia',
