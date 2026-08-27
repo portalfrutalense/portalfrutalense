@@ -40,6 +40,9 @@ export default function MasterPage() {
 
   // Stats dashboard
   const [stats, setStats] = useState({ total: 0, pendente: 0, aguardando: 0, respondida: 0, resolvida: 0, nao_resolvida: 0, denunciada: 0 })
+  const [statsPets, setStatsPets] = useState({ total: 0, perdidos: 0, achados: 0, reencontrados: 0, ocultos: 0, pendente_ia: 0 })
+  const [statsClass, setStatsClass] = useState({ total: 0, ativos: 0, vendidos: 0, ocultos: 0, pendente_ia: 0 })
+  const [statsEmp, setStatsEmp] = useState({ total: 0, ativas: 0, encerradas: 0, ocultas: 0 })
 
   const client = createClient()
 
@@ -68,6 +71,36 @@ export default function MasterPage() {
         resolvida: d.filter((x: any) => x.status === 'resolvida').length,
         nao_resolvida: d.filter((x: any) => x.status === 'nao_resolvida').length,
         denunciada: d.filter((x: any) => x.status === 'denunciada').length,
+      })
+    })
+    client.from('pets').select('tipo, reencontrado, oculto, ia_decisao').then(({ data }) => {
+      const d = data || []
+      setStatsPets({
+        total: d.length,
+        perdidos: d.filter((x: any) => x.tipo === 'perdido' && !x.reencontrado).length,
+        achados: d.filter((x: any) => x.tipo === 'achado').length,
+        reencontrados: d.filter((x: any) => x.reencontrado).length,
+        ocultos: d.filter((x: any) => x.oculto).length,
+        pendente_ia: d.filter((x: any) => x.ia_decisao === 'pendente').length,
+      })
+    })
+    client.from('classificados').select('vendido, oculto, ia_decisao').then(({ data }) => {
+      const d = data || []
+      setStatsClass({
+        total: d.length,
+        ativos: d.filter((x: any) => !x.vendido && !x.oculto).length,
+        vendidos: d.filter((x: any) => x.vendido).length,
+        ocultos: d.filter((x: any) => x.oculto).length,
+        pendente_ia: d.filter((x: any) => x.ia_decisao === 'pendente').length,
+      })
+    })
+    client.from('empregos').select('encerrada, oculto').then(({ data }) => {
+      const d = data || []
+      setStatsEmp({
+        total: d.length,
+        ativas: d.filter((x: any) => !x.encerrada && !x.oculto).length,
+        encerradas: d.filter((x: any) => x.encerrada).length,
+        ocultas: d.filter((x: any) => x.oculto).length,
       })
     })
   }
@@ -277,25 +310,55 @@ export default function MasterPage() {
                 <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>Visão geral do CidadanIA Frutal.</p>
               </div>
 
-              <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '20px', marginBottom: '32px', maxWidth: '280px' }}>
-                <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>Demandas Municipais</h2>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {[
-                    { label: 'Total de demandas', valor: stats.total },
-                    { label: 'Pendentes (IA)', valor: stats.pendente },
-                    { label: 'Aguardando resposta', valor: stats.aguardando },
-                    { label: 'Respondidas', valor: stats.respondida },
-                    { label: 'Resolvidas', valor: stats.resolvida },
-                    { label: 'Não resolvidas', valor: stats.nao_resolvida },
-                    { label: 'Denunciadas', valor: stats.denunciada },
-                  ].map((s, i) => (
-                    <div key={s.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderTop: i === 0 ? 'none' : '1px solid #e5e7eb' }}>
-                      <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, fontWeight: 500 }}>{s.label}</p>
-                      <p style={{ fontSize: '16px', color: '#111827', margin: 0, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{s.valor}</p>
+              {(() => {
+                const CardStats = ({ titulo, linhas }: { titulo: string; linhas: { label: string; valor: number; destaque?: boolean }[] }) => (
+                  <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '20px' }}>
+                    <h2 style={{ fontSize: '14px', fontWeight: 700, color: '#111827', margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '.04em' }}>{titulo}</h2>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      {linhas.map((s, i) => (
+                        <div key={s.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderTop: i === 0 ? 'none' : '1px solid #f3f4f6' }}>
+                          <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>{s.label}</p>
+                          <p style={{ fontSize: '16px', color: s.destaque ? '#dc2626' : '#111827', margin: 0, fontWeight: s.destaque ? 700 : 400, fontVariantNumeric: 'tabular-nums' }}>{s.valor}</p>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
+                )
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '14px', marginBottom: '32px' }}>
+                    <CardStats titulo="Demandas Municipais" linhas={[
+                      { label: 'Total', valor: stats.total },
+                      { label: 'Pendentes (IA)', valor: stats.pendente },
+                      { label: 'Aguardando resposta', valor: stats.aguardando },
+                      { label: 'Respondidas', valor: stats.respondida },
+                      { label: 'Resolvidas', valor: stats.resolvida },
+                      { label: 'Não resolvidas', valor: stats.nao_resolvida },
+                      { label: 'Denunciadas', valor: stats.denunciada, destaque: stats.denunciada > 0 },
+                    ]} />
+                    <CardStats titulo="Achei/Perdi um Pet" linhas={[
+                      { label: 'Total', valor: statsPets.total },
+                      { label: 'Perdidos', valor: statsPets.perdidos },
+                      { label: 'Achados na rua', valor: statsPets.achados },
+                      { label: 'Reencontrados', valor: statsPets.reencontrados },
+                      { label: 'Ocultos', valor: statsPets.ocultos },
+                      { label: 'Pendente IA', valor: statsPets.pendente_ia, destaque: statsPets.pendente_ia > 0 },
+                    ]} />
+                    <CardStats titulo="Classificados" linhas={[
+                      { label: 'Total', valor: statsClass.total },
+                      { label: 'Ativos no mapa', valor: statsClass.ativos },
+                      { label: 'Vendidos', valor: statsClass.vendidos },
+                      { label: 'Ocultos', valor: statsClass.ocultos },
+                      { label: 'Pendente IA', valor: statsClass.pendente_ia, destaque: statsClass.pendente_ia > 0 },
+                    ]} />
+                    <CardStats titulo="Empregos" linhas={[
+                      { label: 'Total', valor: statsEmp.total },
+                      { label: 'Vagas ativas', valor: statsEmp.ativas },
+                      { label: 'Encerradas', valor: statsEmp.encerradas },
+                      { label: 'Ocultas', valor: statsEmp.ocultas },
+                    ]} />
+                  </div>
+                )
+              })()}
 
             </div>
           )}

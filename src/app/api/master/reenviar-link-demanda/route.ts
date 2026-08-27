@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     const linkResposta = `${process.env.SITE_URL}/responder/${novoToken}`
 
-    await resend.emails.send({
+    const { data: emailEnviado } = await resend.emails.send({
       from: 'CidadanIA Frutal <noreply@cidadaniafrutal.com.br>',
       to: emailAutoridade,
       subject: `[REENVIO] Demanda aguardando sua resposta — CidadanIA Frutal`,
@@ -72,6 +72,13 @@ export async function POST(req: NextRequest) {
         </div>
       `,
     })
+
+    if (emailEnviado?.id) {
+      await supabaseServer.from('demandas').update({
+        email_resend_id: emailEnviado.id,
+        email_status: 'enviado',
+      }).eq('id', demanda_id)
+    }
 
     return NextResponse.json({ ok: true })
   } catch (err) {

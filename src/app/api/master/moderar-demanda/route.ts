@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
         const ent = vinculo.entidade as any
         if (ent?.email) {
           const linkResposta = `${process.env.SITE_URL}/responder/${token}`
-          await resend.emails.send({
+          const { data: emailEnviado } = await resend.emails.send({
             from: 'CidadanIA Frutal <noreply@cidadaniafrutal.com.br>',
             to: ent.email,
             subject: `Nova demanda para ${ent.nome} — CidadanIA Frutal`,
@@ -130,6 +130,12 @@ export async function POST(req: NextRequest) {
               </div>
             </body></html>`,
           })
+          if (emailEnviado?.id) {
+            await supabaseServer.from('demanda_entidades').update({
+              email_resend_id: emailEnviado.id,
+              email_status: 'enviado',
+            }).eq('id', vinculo.id)
+          }
         }
       }
 
