@@ -380,8 +380,11 @@ export function FormularioClassificado({
     editando ? { lat: editando.lat, lng: editando.lng, label: editando.bairro_label ?? '' } : null
   )
   const [locConfirmada, setLocConfirmada] = useState(!!editando)
-  const [fotosNovas, setFotosNovas] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>(editando?.fotos ?? [])
+  // Upload antecipado: cada foto sobe imediatamente ao ser selecionada
+  const uploadPromises = useRef<Promise<string | null>[]>([])
+  const [uploadandoFotos, setUploadandoFotos] = useState(0) // quantas ainda estão subindo
+  const [erroFoto, setErroFoto] = useState('')
   const [turnstileToken, setTurnstileToken] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
@@ -392,19 +395,38 @@ export function FormularioClassificado({
     if (!arquivos.length) return
     const espaco = MAX_FOTOS - previews.length
     const aceitos = arquivos.slice(0, Math.max(0, espaco))
-    setFotosNovas(prev => [...prev, ...aceitos])
+    setErroFoto('')
     aceitos.forEach(file => {
+      // Preview imediato
       const reader = new FileReader()
       reader.onload = (ev) => setPreviews(prev => [...prev, ev.target?.result as string])
       reader.readAsDataURL(file)
+      // Upload em background
+      setUploadandoFotos(n => n + 1)
+      const promise = comprimirFoto(file)
+        .then(async (blob) => {
+          const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
+          const { error } = await supabase.storage.from('classificados-fotos').upload(path, blob, { contentType: 'image/jpeg' })
+          if (error) throw error
+          return supabase.storage.from('classificados-fotos').getPublicUrl(path).data.publicUrl
+        })
+        .catch((err: any) => {
+          setErroFoto(`Erro ao enviar foto: ${err?.message || 'falha no upload'}`)
+          return null
+        })
+        .finally(() => setUploadandoFotos(n => n - 1))
+      uploadPromises.current.push(promise)
     })
   }
 
   function removerFoto(i: number) {
     setPreviews(prev => prev.filter((_, idx) => idx !== i))
-    // Só as fotos novas ficam na fila de upload; as já publicadas saem pelo índice
+    // Remove a promise correspondente à foto nova (deslocando pelo nº de fotos já publicadas)
     const jaPublicadas = editando?.fotos?.length ?? 0
-    if (i >= jaPublicadas) setFotosNovas(prev => prev.filter((_, idx) => idx !== i - jaPublicadas))
+    if (i >= jaPublicadas) {
+      const idxNova = i - jaPublicadas
+      uploadPromises.current.splice(idxNova, 1)
+    }
   }
 
   async function enviar(e: React.FormEvent) {
@@ -417,18 +439,14 @@ export function FormularioClassificado({
     if (!editando && !turnstileToken) { setErro('Aguarde a verificação de segurança concluir.'); return }
     setEnviando(true)
 
-    // Fotos já publicadas continuam; as novas sobem agora
+    // Fotos já publicadas (urls reais) + aguarda as novas terminarem o upload
     const urls: string[] = previews.filter(p => !p.startsWith('data:'))
-    try {
-      for (const file of fotosNovas) {
-        const blob = await comprimirFoto(file)
-        const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
-        const { error } = await supabase.storage.from('classificados-fotos').upload(path, blob, { contentType: 'image/jpeg' })
-        if (error) throw error
-        urls.push(supabase.storage.from('classificados-fotos').getPublicUrl(path).data.publicUrl)
+    if (uploadPromises.current.length > 0) {
+      const resultados = await Promise.all(uploadPromises.current)
+      for (const url of resultados) {
+        if (url === null) { setErro(erroFoto || 'Erro ao enviar uma das fotos.'); setEnviando(false); return }
+        urls.push(url)
       }
-    } catch (err: any) {
-      setErro(`Erro ao enviar foto: ${err?.message || 'falha no upload'}`); setEnviando(false); return
     }
 
     // Ao editar, a coordenada aprovada já está aproximada — não desloca de novo
@@ -588,8 +606,13 @@ export function FormularioClassificado({
                         <img src={p} alt={`Foto ${i + 1}`} style={{ width: '100%', height: '80px', objectFit: 'cover', display: 'block' }} />
                         <button type="button" onClick={() => removerFoto(i)}
                           style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: '50%', width: '22px', height: '22px', cursor: 'pointer', fontSize: '12px' }}>×</button>
+                        {/* Indicador de upload em andamento para fotos data: (ainda subindo) */}
+                        {p.startsWith('data:') && uploadandoFotos > 0 && (
+                          <div style={{ position: 'absolute', bottom: '4px', left: '4px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '10px', borderRadius: '3px', padding: '2px 6px' }}>⏫</div>
+                        )}
                       </div>
                     ))}
+                    {erroFoto && <p style={{ fontSize: '11px', color: '#dc2626', margin: '2px 0' }}>{erroFoto}</p>}
                     {previews.length < MAX_FOTOS && (
                       <label style={{ display: 'grid', placeItems: 'center', height: '80px', border: '2px dashed #e5e7eb', borderRadius: '7px', cursor: 'pointer', fontSize: '11.5px', color: '#4256c8', fontWeight: 600, textAlign: 'center', padding: '4px' }}>
                         <input type="file" accept="image/*" multiple onChange={aoEscolherFotos} style={{ display: 'none' }} />
@@ -601,9 +624,9 @@ export function FormularioClassificado({
 
                 {!editando && <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />}
 
-                <button type="submit" disabled={enviando}
-                  style={{ marginTop: 'auto', backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
-                  {enviando ? 'Salvando...' : editando ? 'Salvar alterações' : 'Publicar anúncio'}
+                <button type="submit" disabled={enviando || uploadandoFotos > 0}
+                  style={{ marginTop: 'auto', backgroundColor: (enviando || uploadandoFotos > 0) ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: (enviando || uploadandoFotos > 0) ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+                  {enviando ? 'Salvando...' : uploadandoFotos > 0 ? 'Aguardando fotos...' : editando ? 'Salvar alterações' : 'Publicar anúncio'}
                 </button>
               </div>
             </form>

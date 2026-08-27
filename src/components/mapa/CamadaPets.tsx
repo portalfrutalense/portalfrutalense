@@ -384,8 +384,11 @@ export function FormularioPet({
     editando ? { lat: editando.lat, lng: editando.lng, label: editando.endereco_label ?? '' } : null
   )
   const [locConfirmada, setLocConfirmada] = useState(!!editando)
-  const [fotoFile, setFotoFile] = useState<File | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(editando?.foto_url ?? null)
+  // Upload antecipado: começa quando o usuário escolhe a foto, não ao enviar
+  const uploadFotoPromise = useRef<Promise<string | null> | null>(null)
+  const [uploadandoFoto, setUploadandoFoto] = useState(false)
+  const [erroFoto, setErroFoto] = useState('')
   const [turnstileToken, setTurnstileToken] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
@@ -394,10 +397,25 @@ export function FormularioPet({
   function aoEscolherFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    setFotoFile(file)
+    setErroFoto('')
+    // Mostra preview imediatamente
     const reader = new FileReader()
     reader.onload = (ev) => setFotoPreview(ev.target?.result as string)
     reader.readAsDataURL(file)
+    // Dispara upload em background
+    setUploadandoFoto(true)
+    uploadFotoPromise.current = comprimirFoto(file)
+      .then(async (blob) => {
+        const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
+        const { error } = await supabase.storage.from('pets-fotos').upload(path, blob, { contentType: 'image/jpeg' })
+        if (error) throw error
+        return supabase.storage.from('pets-fotos').getPublicUrl(path).data.publicUrl
+      })
+      .catch((err: any) => {
+        setErroFoto(`Erro ao enviar foto: ${err?.message || 'falha no upload'}`)
+        return null
+      })
+      .finally(() => setUploadandoFoto(false))
   }
 
   async function enviar(e: React.FormEvent) {
@@ -409,17 +427,12 @@ export function FormularioPet({
     if (!editando && !turnstileToken) { setErro('Aguarde a verificação de segurança concluir.'); return }
     setEnviando(true)
 
+    // Se há upload em andamento, aguarda ele terminar; caso contrário usa a url já pronta
     let foto_url: string | null = editando?.foto_url ?? null
-    if (fotoFile) {
-      try {
-        const blob = await comprimirFoto(fotoFile)
-        const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
-        const { error } = await supabase.storage.from('pets-fotos').upload(path, blob, { contentType: 'image/jpeg' })
-        if (error) throw error
-        foto_url = supabase.storage.from('pets-fotos').getPublicUrl(path).data.publicUrl
-      } catch (err: any) {
-        setErro(`Erro ao enviar foto: ${err?.message || 'falha no upload'}`); setEnviando(false); return
-      }
+    if (uploadFotoPromise.current) {
+      const url = await uploadFotoPromise.current
+      if (url === null && erroFoto) { setErro(erroFoto); setEnviando(false); return }
+      foto_url = url
     }
 
     const registro = {
@@ -576,17 +589,23 @@ export function FormularioPet({
                     <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={fotoPreview} alt="Preview" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', display: 'block' }} />
-                      <button type="button" onClick={() => { setFotoFile(null); setFotoPreview(null) }}
+                      <button type="button" onClick={() => { uploadFotoPromise.current = null; setFotoPreview(null); setErroFoto('') }}
                         style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: '50%', width: '28px', height: '28px', cursor: 'pointer', fontSize: '14px' }}>×</button>
+                      {uploadandoFoto && (
+                        <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '11px', borderRadius: '4px', padding: '3px 8px' }}>
+                          ⏫ Enviando foto…
+                        </div>
+                      )}
                     </div>
                   )}
+                  {erroFoto && <p style={{ fontSize: '12px', color: '#dc2626', margin: '4px 0 0' }}>{erroFoto}</p>}
                 </div>
 
                 {!editando && <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />}
 
-                <button type="submit" disabled={enviando}
-                  style={{ marginTop: 'auto', backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
-                  {enviando ? 'Salvando...' : editando ? 'Salvar alterações' : 'Publicar registro'}
+                <button type="submit" disabled={enviando || uploadandoFoto}
+                  style={{ marginTop: 'auto', backgroundColor: (enviando || uploadandoFoto) ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: (enviando || uploadandoFoto) ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+                  {enviando ? 'Salvando...' : uploadandoFoto ? 'Aguardando foto...' : editando ? 'Salvar alterações' : 'Publicar registro'}
                 </button>
               </div>
             </form>
