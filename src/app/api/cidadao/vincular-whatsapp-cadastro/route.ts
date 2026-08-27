@@ -21,9 +21,12 @@ export async function POST(req: NextRequest) {
     ? telefone.slice(0, 4) + telefone.slice(5)   // remove o 9: 5534991500046 → 553491500046
     : telefone.slice(0, 4) + '9' + telefone.slice(4) // adiciona o 9: 553491500046 → 5534991500046
 
+  // Só vincula conversas das últimas 24h — evita mostrar botão "Retornar ao WhatsApp" para conversas antigas
+  const limite24h = new Date(Date.now() - 20 * 60 * 1000).toISOString()
+
   const [r1, r2] = await Promise.all([
-    supabaseServer.from('whatsapp_conversas').update({ user_id: user.id }).eq('telefone', telefone).select('id'),
-    supabaseServer.from('whatsapp_conversas').update({ user_id: user.id }).eq('telefone', alternativo).select('id'),
+    supabaseServer.from('whatsapp_conversas').update({ user_id: user.id }).eq('telefone', telefone).gte('atualizado_em', limite24h).select('id'),
+    supabaseServer.from('whatsapp_conversas').update({ user_id: user.id }).eq('telefone', alternativo).gte('atualizado_em', limite24h).select('id'),
   ])
 
   const conversaVinculada = (r1.data?.length ?? 0) > 0 || (r2.data?.length ?? 0) > 0
