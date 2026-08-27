@@ -8,7 +8,6 @@ export const FRUTAL_LNG = -48.92702
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 const TILE_SATELITE = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
 const TILE_SATELITE_RUAS = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
-const TILE_RUA = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
 
 const ZOOM_SATELITE_RUAS = 16 // exibe nomes de ruas no satélite apenas a partir deste zoom
 const ZOOM_NIVEIS = [13, 14, 15, 16, 18] // níveis permitidos — zoom salta direto entre eles
@@ -21,6 +20,9 @@ function snapZoom(z: number): number {
  * Mapa Leaflet base, compartilhado por todas as camadas (demandas, pets,
  * classificados, empregos). O mapa é criado uma única vez: trocar de camada
  * apenas troca os markers, preservando posição, zoom e os tiles já baixados.
+ *
+ * O mapa é sempre satélite — a partir do zoom 16 entra a variante com nomes
+ * de rua. Não há modo de ruas puro nem alternância.
  */
 export function useMapaBase() {
   const mapRef = useRef<HTMLDivElement>(null)
@@ -29,10 +31,8 @@ export function useMapaBase() {
   const leafletObj = useRef<any>(null)
   const tileAtual = useRef<any>(null)
   const resizeObserverRef = useRef<ResizeObserver | null>(null)
-  const sateliteRef = useRef(true)
 
   const [mapaCarregado, setMapaCarregado] = useState(false)
-  const [satelite, setSatelite] = useState(true)
 
   useEffect(() => {
     if (!mapRef.current || mapaIniciado.current) return
@@ -66,7 +66,7 @@ export function useMapaBase() {
       leafletObj.current = L
       setMapaCarregado(true)
 
-      // Snap para níveis permitidos + troca satélite/ruas conforme zoom
+      // Snap para níveis permitidos + entra/sai a variante com nomes de rua
       mapa.on('zoomend', () => {
         const z = mapa.getZoom()
         const snapped = snapZoom(z)
@@ -74,21 +74,16 @@ export function useMapaBase() {
           mapa.setZoom(snapped, { animate: false })
           return // o próximo zoomend cuida do resto
         }
-        if (!sateliteRef.current) return
         const urlAtual = (tileAtual.current as any)?._url as string | undefined
         const precisaRuas = z >= ZOOM_SATELITE_RUAS
         const temRuas = urlAtual?.includes('satellite-streets')
-        if (precisaRuas && !temRuas) {
-          tileAtual.current?.remove()
-          const novoTile = L.tileLayer(TILE_SATELITE_RUAS, { attribution: '© Mapbox', maxZoom: 18 })
-          novoTile.addTo(mapa)
-          tileAtual.current = novoTile
-        } else if (!precisaRuas && temRuas) {
-          tileAtual.current?.remove()
-          const novoTile = L.tileLayer(TILE_SATELITE, { attribution: '© Mapbox', maxZoom: 18 })
-          novoTile.addTo(mapa)
-          tileAtual.current = novoTile
-        }
+        if (precisaRuas === !!temRuas) return
+        tileAtual.current?.remove()
+        const novoTile = L.tileLayer(precisaRuas ? TILE_SATELITE_RUAS : TILE_SATELITE, {
+          attribution: '© Mapbox', maxZoom: 18,
+        })
+        novoTile.addTo(mapa)
+        tileAtual.current = novoTile
       })
 
       // Corrige o mapa esticando quando o tamanho do container muda
@@ -102,24 +97,5 @@ export function useMapaBase() {
     }
   }, [])
 
-  function alternarCamadaTile() {
-    if (!mapaObj.current || !leafletObj.current) return
-    const L = leafletObj.current
-    if (tileAtual.current) tileAtual.current.remove()
-    const novoSatelite = !satelite
-    sateliteRef.current = novoSatelite
-    let tile
-    if (novoSatelite) {
-      const z = mapaObj.current.getZoom()
-      const url = z >= ZOOM_SATELITE_RUAS ? TILE_SATELITE_RUAS : TILE_SATELITE
-      tile = L.tileLayer(url, { attribution: '© Mapbox', maxZoom: 18 })
-    } else {
-      tile = L.tileLayer(TILE_RUA, { attribution: '© Mapbox © OpenStreetMap', maxZoom: 18 })
-    }
-    tile.addTo(mapaObj.current)
-    tileAtual.current = tile
-    setSatelite(novoSatelite)
-  }
-
-  return { mapRef, mapaObj, leafletObj, mapaCarregado, satelite, alternarCamadaTile }
+  return { mapRef, mapaObj, leafletObj, mapaCarregado }
 }

@@ -56,7 +56,7 @@ export default function MapaDemandas() {
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
 
   // Mapa base compartilhado por todas as camadas — criado uma única vez
-  const { mapRef, mapaObj, leafletObj, mapaCarregado, satelite, alternarCamadaTile } = useMapaBase()
+  const { mapRef, mapaObj, leafletObj, mapaCarregado } = useMapaBase()
 
   const markersRef = useRef<any[]>([])
   const sidebarRef = useRef<HTMLDivElement>(null)
@@ -856,26 +856,6 @@ export default function MapaDemandas() {
                 {rotulo}
               </button>
             ))}
-          </div>
-
-          {/* Controles sobrepostos */}
-          <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', zIndex: 1000 }}>
-            <button onClick={alternarCamadaTile} style={{
-              position: 'relative', display: 'flex', width: '150px', height: '28px',
-              background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '20px', padding: '3px',
-              cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
-            }}>
-              <div style={{
-                position: 'absolute', top: '3px', left: satelite ? '75px' : '3px', width: '72px', height: '22px',
-                background: '#4256c8', borderRadius: '16px', transition: 'left 0.2s ease',
-              }} />
-              <span style={{ position: 'relative', zIndex: 1, flex: 1, textAlign: 'center', fontSize: '11px', fontWeight: 600, lineHeight: '22px', color: satelite ? '#6b7280' : 'white' }}>
-                Padrão
-              </span>
-              <span style={{ position: 'relative', zIndex: 1, flex: 1, textAlign: 'center', fontSize: '11px', fontWeight: 600, lineHeight: '22px', color: satelite ? 'white' : '#6b7280' }}>
-                Satélite
-              </span>
-            </button>
           </div>
 
           {/* Banner de login */}
