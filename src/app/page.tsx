@@ -174,7 +174,6 @@ function CardAcesso() {
   return (
     <div className="cartao">
       <div className="cartao-topo">
-        <span className="ponto-vivo" aria-hidden="true" />
         <p>Entre e comece a usar em segundos</p>
       </div>
 

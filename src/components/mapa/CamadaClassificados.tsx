@@ -330,15 +330,13 @@ export function SidebarClassificados({
         </button>
 
         <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#111827', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Tipo</label>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-          <button onClick={() => setFiltro('')} style={estiloFiltro(filtro === '')}>Todos</button>
+        <select value={filtro} onChange={e => setFiltro(e.target.value)}
+          style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 10px', fontSize: '13px', background: 'white', color: '#111827', outline: 'none', cursor: 'pointer' }}>
+          <option value=''>Todos</option>
           {TIPOS.map(t => (
-            <button key={t} onClick={() => setFiltro(t)} style={estiloFiltro(filtro === t)}>
-              <IconeVeiculo tipo={t} size={16} cor={filtro === t ? '#4256c8' : '#6b7280'} />
-              {ROTULO_VEICULO[t]}
-            </button>
+            <option key={t} value={t}>{ROTULO_VEICULO[t]}</option>
           ))}
-        </div>
+        </select>
       </div>
 
       <div style={{ padding: '10px 14px', borderTop: '1px solid #f9fafb' }}>
@@ -350,16 +348,6 @@ export function SidebarClassificados({
   )
 }
 
-function estiloFiltro(ativo: boolean): React.CSSProperties {
-  return {
-    display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
-    padding: '8px 10px', borderRadius: '7px', cursor: 'pointer', fontSize: '13px',
-    fontWeight: ativo ? 600 : 500, textAlign: 'left',
-    background: ativo ? '#eff6ff' : 'white',
-    border: `1px solid ${ativo ? '#4256c8' : '#e5e7eb'}`,
-    color: '#111827',
-  }
-}
 
 /* ============================================================ formulário = */
 

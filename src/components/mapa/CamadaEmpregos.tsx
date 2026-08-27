@@ -260,26 +260,12 @@ export function SidebarEmpregos({
         </p>
 
         {/* Empresas e master publicam; cidadão apenas consulta */}
-        {podePublicar ? (
+        {podePublicar && (
           <button onClick={onPublicar}
             style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '9px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', marginBottom: '16px' }}>
             Publicar vaga
           </button>
-        ) : (
-          <p style={{ fontSize: '11.5px', color: '#6b7280', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '9px 11px', margin: '0 0 16px', lineHeight: 1.5 }}>
-            Só contas de empresa publicam vagas. Fale com a administração para cadastrar a sua.
-          </p>
         )}
-
-        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#111827', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Contrato</label>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-          <button onClick={() => setFiltro('')} style={estiloFiltro(filtro === '')}>Todos</button>
-          {CONTRATOS.map(c => (
-            <button key={c} onClick={() => setFiltro(c)} style={estiloFiltro(filtro === c)}>
-              {ROTULO_CONTRATO[c]}
-            </button>
-          ))}
-        </div>
       </div>
 
       <div style={{ padding: '10px 14px', borderTop: '1px solid #f9fafb' }}>

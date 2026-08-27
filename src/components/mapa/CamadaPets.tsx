@@ -337,13 +337,13 @@ export function SidebarPets({
         </button>
 
         <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#111827', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Tipo</label>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-          <BotaoFiltro ativo={filtro === ''} cor="#6b7280" rotulo="Todos" onClick={() => setFiltro('')} />
+        <select value={filtro} onChange={e => setFiltro(e.target.value)}
+          style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 10px', fontSize: '13px', background: 'white', color: '#111827', outline: 'none', cursor: 'pointer' }}>
+          <option value=''>Todos</option>
           {(['pet_perdido', 'pet_achado', 'pet_reencontrado'] as const).map(chave => (
-            <BotaoFiltro key={chave} ativo={filtro === chave} cor={cores[chave] || COR_PADRAO[chave]}
-              rotulo={ROTULO_FILTRO[chave]} onClick={() => setFiltro(chave)} />
+            <option key={chave} value={chave}>{ROTULO_FILTRO[chave]}</option>
           ))}
-        </div>
+        </select>
       </div>
 
       <div style={{ padding: '10px 14px', borderTop: '1px solid #f9fafb' }}>
@@ -359,21 +359,6 @@ const rotuloEstilo: React.CSSProperties = { fontSize: '10px', fontWeight: 600, c
 const valorEstilo: React.CSSProperties = { fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.5 }
 const botaoAcao: React.CSSProperties = { fontSize: '12px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px', cursor: 'pointer', fontWeight: 500, width: '100%' }
 
-function BotaoFiltro({ ativo, cor, rotulo, onClick }: { ativo: boolean; cor: string; rotulo: string; onClick: () => void }) {
-  return (
-    <button onClick={onClick} style={{
-      display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
-      padding: '8px 10px', borderRadius: '7px', cursor: 'pointer', fontSize: '13px',
-      fontWeight: ativo ? 600 : 500, textAlign: 'left',
-      background: ativo ? '#eff6ff' : 'white',
-      border: `1px solid ${ativo ? '#4256c8' : '#e5e7eb'}`,
-      color: '#111827',
-    }}>
-      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: cor, flexShrink: 0, border: cor.toLowerCase() === '#ffffff' ? '1px solid #d1d5db' : 'none' }} />
-      {rotulo}
-    </button>
-  )
-}
 
 /* ============================================================ formulário = */
 

@@ -7,6 +7,7 @@ const ITENS = [
   { label: 'Empregos', desc: 'Veja vagas disponíveis em Frutal e região.' },
   { label: 'Classificados', desc: 'Compre, venda ou anuncie serviços locais.' },
   { label: 'Achei/perdi um pet', desc: 'Ajude a reunir pets perdidos com seus donos.' },
+  { label: 'Olá, seu nome (canto superior direito)', desc: 'Acesse suas atividades, demandas registradas e informações da conta.' },
 ]
 
 export default function TourBoasVindas() {
