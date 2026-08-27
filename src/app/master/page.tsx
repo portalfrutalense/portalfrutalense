@@ -162,12 +162,12 @@ export default function MasterPage() {
         <nav style={{ flex: 1, padding: '12px 10px' }}>
           {/* Dashboard */}
           {[
-            { key: 'dashboard' as SecaoMaster, label: 'Dashboard' },
-            { key: 'demandas'  as SecaoMaster, label: 'Mapa de Demandas' },
-            { key: 'pets'          as SecaoMaster, label: 'Pets' },
-            { key: 'classificados' as SecaoMaster, label: 'Classificados' },
+            { key: 'dashboard'     as SecaoMaster, label: 'Dashboard' },
+            { key: 'demandas'      as SecaoMaster, label: 'Mapa de Demandas' },
             { key: 'empregos'      as SecaoMaster, label: 'Empregos' },
-            { key: 'chatbot'   as SecaoMaster, label: 'Chatbot IA' },
+            { key: 'classificados' as SecaoMaster, label: 'Classificados' },
+            { key: 'pets'          as SecaoMaster, label: 'Pets' },
+            { key: 'chatbot'       as SecaoMaster, label: 'Chatbot IA' },
           ].map(item => (
             <button
               key={item.key}
