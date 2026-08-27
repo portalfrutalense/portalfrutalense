@@ -404,19 +404,9 @@ export function FormularioEmprego({
 
                 <div>
                   <label style={rotuloCampo}>Tipo de contrato *</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {CONTRATOS.map(c => (
-                      <button key={c} type="button" onClick={() => setContrato(c)}
-                        style={{
-                          padding: '7px 12px', borderRadius: '7px', cursor: 'pointer', fontSize: '12.5px',
-                          fontWeight: contrato === c ? 600 : 500,
-                          background: contrato === c ? '#eff6ff' : 'white',
-                          border: `1px solid ${contrato === c ? '#4256c8' : '#e5e7eb'}`, color: '#111827',
-                        }}>
-                        {ROTULO_CONTRATO[c]}
-                      </button>
-                    ))}
-                  </div>
+                  <select value={contrato} onChange={e => setContrato(e.target.value as TipoContrato)} style={campoEstilo}>
+                    {CONTRATOS.map(c => <option key={c} value={c}>{ROTULO_CONTRATO[c]}</option>)}
+                  </select>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px', gap: '10px' }}>
