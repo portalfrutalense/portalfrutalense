@@ -74,6 +74,12 @@ export async function POST(req: NextRequest) {
     }
     if (camada !== 'empregos') registro.autor_nome = perfil.nome || 'Anônimo'
 
+    // Pets e classificados nascem com ia_decisao='pendente' — a rota de IA atualiza ao terminar.
+    // Assim registros que nunca foram analisados ficam visíveis no master como pendentes.
+    if (camada === 'pets' || camada === 'classificados') {
+      registro.ia_decisao = 'pendente'
+    }
+
     const { data, error } = await supabaseServer
       .from(TABELAS[camada]).insert(registro).select().single()
 
@@ -88,7 +94,9 @@ export async function POST(req: NextRequest) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-internal-key': process.env.INTERNAL_SECRET || '' },
         body: JSON.stringify(corpoIA),
-      }).catch(() => { /* silencioso */ })
+      }).catch((err) => {
+        console.error(`[IA] Falha ao disparar análise para ${camada} id=${data.id}:`, err?.message)
+      })
     }
 
     return NextResponse.json({ ok: true, registro: data })

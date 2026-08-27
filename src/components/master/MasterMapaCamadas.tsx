@@ -187,6 +187,7 @@ export function MasterPets() {
     if (filtro === 'todos') return true
     if (filtro === 'ocultos') return p.oculto
     if (filtro === 'reencontrado') return p.reencontrado
+    if (filtro === 'pendente_ia') return p.ia_decisao === 'pendente'
     return p.tipo === filtro && !p.reencontrado
   })
 
@@ -202,6 +203,9 @@ export function MasterPets() {
         : p.tipo === 'perdido'
           ? { texto: 'Perdido', cor: '#dc2626' }
           : { texto: 'Achei na rua', cor: '#16a34a' },
+      ...(p.ia_decisao === 'pendente' ? [{ texto: '⏳ IA Pendente', cor: '#b45309' }] : []),
+      ...(p.ia_decisao === 'aprovada' ? [{ texto: '✓ IA', cor: '#15803d' }] : []),
+      ...(p.ia_decisao === 'rejeitada' ? [{ texto: '✕ IA Rejeitada', cor: '#dc2626' }] : []),
       ...(p.oculto ? [{ texto: 'Oculto', cor: '#92400e' }] : []),
     ],
     meta: [
@@ -244,6 +248,7 @@ export function MasterPets() {
         { chave: 'perdido', rotulo: 'Perdidos' },
         { chave: 'achado', rotulo: 'Achei na rua' },
         { chave: 'reencontrado', rotulo: 'Reencontrados' },
+        { chave: 'pendente_ia', rotulo: '⏳ Pendente IA' },
         { chave: 'ocultos', rotulo: 'Ocultos' },
       ]}
       filtroAtivo={filtro}
@@ -278,6 +283,7 @@ export function MasterClassificados() {
     if (filtro === 'todos') return !c.vendido
     if (filtro === 'ocultos') return c.oculto
     if (filtro === 'vendidos') return c.vendido
+    if (filtro === 'pendente_ia') return c.ia_decisao === 'pendente'
     return c.tipo_veiculo === filtro && !c.vendido
   })
 
@@ -289,6 +295,9 @@ export function MasterClassificados() {
     oculto: !!c.oculto,
     etiquetas: [
       { texto: ROTULO_VEICULO[c.tipo_veiculo] || c.tipo_veiculo, cor: '#4256c8' },
+      ...(c.ia_decisao === 'pendente' ? [{ texto: '⏳ IA Pendente', cor: '#b45309' }] : []),
+      ...(c.ia_decisao === 'aprovada' ? [{ texto: '✓ IA', cor: '#15803d' }] : []),
+      ...(c.ia_decisao === 'rejeitada' ? [{ texto: '✕ IA Rejeitada', cor: '#dc2626' }] : []),
       ...(c.vendido ? [{ texto: 'Vendido', cor: '#6b7280' }] : []),
       ...(c.oculto ? [{ texto: 'Oculto', cor: '#92400e' }] : []),
     ],
@@ -333,6 +342,7 @@ export function MasterClassificados() {
         { chave: 'moto', rotulo: 'Motos' },
         { chave: 'caminhonete', rotulo: 'Caminhonetes' },
         { chave: 'caminhao', rotulo: 'Caminhões' },
+        { chave: 'pendente_ia', rotulo: '⏳ Pendente IA' },
         { chave: 'vendidos', rotulo: 'Vendidos' },
         { chave: 'ocultos', rotulo: 'Ocultos' },
       ]}
