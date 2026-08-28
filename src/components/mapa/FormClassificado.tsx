@@ -207,11 +207,15 @@ export function FormClassificado({
         </div>
 
         {sucesso ? (
-          <div style={{ padding: '32px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-            <p style={{ fontWeight: 700, color: '#166534', fontSize: '16px', margin: '0 0 8px' }}>Anúncio enviado!</p>
-            {protocolo && <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827', margin: '0 0 6px' }}>Protocolo: <span style={{ color: '#4256c8' }}>{protocolo}</span></p>}
-            <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px', lineHeight: 1.6 }}>Seu anúncio está em análise. Se aprovado pela IA, aparecerá no mapa em instantes.</p>
-            <button onClick={aoFechar} style={{ fontSize: '13px', color: '#4256c8', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Fechar</button>
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ padding: '8px 20px', borderBottom: '1px solid #e5e7eb', width: '100%', boxSizing: 'border-box' }}>
+              <h2 style={{ fontWeight: 700, color: '#111827', margin: 0, fontSize: '15px' }}>Anúncio enviado!</h2>
+            </div>
+            <div style={{ padding: '24px 24px 28px' }}>
+              {protocolo && <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827', margin: '0 0 10px' }}>Protocolo: <span style={{ color: '#4256c8' }}>{protocolo}</span></p>}
+              <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px', lineHeight: 1.6 }}>Seu anúncio está em análise. Se aprovado pelo nosso Agente IA, aparecerá no mapa em instantes.</p>
+              <button onClick={aoFechar} style={{ fontSize: '13px', color: '#4256c8', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Fechar</button>
+            </div>
           </div>
         ) : (
           <div style={{ padding: '16px 20px 20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
