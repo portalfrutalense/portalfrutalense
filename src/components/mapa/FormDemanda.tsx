@@ -49,6 +49,7 @@ export function FormDemanda({
   const supabase = createClient()
   const { user, perfil } = useAuth()
 
+  const [etapa, setEtapa] = useState<1 | 2>(1)
   const [descricao, setDescricao] = useState('')
   const [melhorandoTexto, setMelhorandoTexto] = useState(false)
   const [categoriaId, setCategoriaId] = useState('')
@@ -64,9 +65,17 @@ export function FormDemanda({
   const [sucesso, setSucesso] = useState(false)
 
   function resetar() {
-    setDescricao(''); setCategoriaId(''); setEntidadeIds([]); setDropdownAutoridade(false)
+    setEtapa(1); setDescricao(''); setCategoriaId(''); setEntidadeIds([]); setDropdownAutoridade(false)
     setCoordenadas(null); setLocConfirmada(false); setFotoFile(null); setFotoPreview(null); setTurnstileToken('')
     setErro(''); setSucesso(false)
+  }
+
+  function avancar() {
+    setErro('')
+    if (!categoriaId) { setErro('Selecione a categoria.'); return }
+    if (entidadeIds.length === 0) { setErro('Selecione ao menos uma autoridade responsável.'); return }
+    if (!coordenadas || !locConfirmada) { setErro('Confirme a localização no mapa.'); return }
+    setEtapa(2)
   }
 
   function fechar() {
@@ -105,10 +114,7 @@ export function FormDemanda({
   async function handleEnviar(e: React.FormEvent) {
     e.preventDefault(); setErro('')
     if (!user || !perfil) return
-    if (!categoriaId) { setErro('Selecione a categoria.'); return }
-    if (entidadeIds.length === 0) { setErro('Selecione ao menos uma autoridade responsável.'); return }
     if (!descricao.trim() || descricao.trim().length < 10) { setErro('Descreva melhor o problema.'); return }
-    if (!coordenadas || !locConfirmada) { setErro('Confirme a localização no mapa.'); return }
     if (!turnstileToken) { setErro('Aguarde a verificação de segurança concluir.'); return }
     setEnviando(true)
 
@@ -161,11 +167,12 @@ export function FormDemanda({
         ) : (
           <>
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 24px' }}>
-              <form id="form-registrar-demanda" onSubmit={handleEnviar} className="registro-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
-                {erro && <div style={{ gridColumn: '1 / -1', color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
 
-                {/* Coluna esquerda */}
+              {/* ---- ETAPA 1: Categoria + Autoridade + Endereço ---- */}
+              {etapa === 1 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {erro && <div style={{ color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
+
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Categoria *</label>
                     <select value={categoriaId} onChange={(e) => { setCategoriaId(e.target.value); setEntidadeIds([]) }}
@@ -231,15 +238,24 @@ export function FormDemanda({
                       onAlterar={() => { setCoordenadas(null); setLocConfirmada(false) }}
                     />
                   </div>
-                </div>
 
-                {/* Coluna direita */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <button type="button" onClick={avancar}
+                    style={{ backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
+                    Continuar →
+                  </button>
+                </div>
+              )}
+
+              {/* ---- ETAPA 2: Descrição + Foto + Turnstile + Enviar ---- */}
+              {etapa === 2 && (
+                <form id="form-registrar-demanda" onSubmit={handleEnviar} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {erro && <div style={{ color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
+
                   <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Descrição *</label>
                     <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
                       <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descreva o problema em detalhes..."
-                        style={{ width: '100%', flex: 1, minHeight: '80px', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', paddingBottom: '32px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
+                        style={{ width: '100%', flex: 1, minHeight: '120px', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', paddingBottom: '32px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
                       <button type="button" onClick={melhorarDescricao} disabled={!descricao.trim() || melhorandoTexto}
                         title="Melhorar texto com IA"
                         style={{ position: 'absolute', right: '8px', bottom: '8px', display: 'flex', alignItems: 'center', gap: '4px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 8px', fontSize: '11px', fontWeight: 600, color: descricao.trim() ? '#4256c8' : '#9ca3af', cursor: !descricao.trim() || melhorandoTexto ? 'default' : 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
@@ -285,12 +301,19 @@ export function FormDemanda({
 
                   <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
 
-                  <button type="submit" disabled={enviando}
-                    style={{ marginTop: 'auto', backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
-                    {enviando ? 'Enviando...' : 'Registrar Demanda'}
-                  </button>
-                </div>
-              </form>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button type="button" onClick={() => { setErro(''); setEtapa(1) }}
+                      style={{ flex: '0 0 auto', background: 'white', color: '#6b7280', fontWeight: 600, padding: '10px 16px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '14px' }}>
+                      ← Voltar
+                    </button>
+                    <button type="submit" disabled={enviando}
+                      style={{ flex: 1, backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+                      {enviando ? 'Enviando...' : 'Registrar Demanda'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
             </div>
           </>
         )}
