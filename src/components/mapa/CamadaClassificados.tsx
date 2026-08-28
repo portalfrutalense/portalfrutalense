@@ -235,11 +235,12 @@ export function SidebarClassificados({
   onMarcarVendido: (c: Classificado) => void
   onFoto: (url: string) => void
 }) {
-  const { user } = useAuth()
+  const { user, perfil } = useAuth()
   const visiveis = classificados.filter(c => !filtro || c.tipo_veiculo === filtro)
 
   if (selecionado) {
     const meu = user?.id === selecionado.user_id
+    const ehMaster = perfil?.role === 'master'
     return (
       <div key={selecionado.id} className="demanda-detalhe-anim" style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '12px 14px', borderBottom: '1px solid #f9fafb', flexShrink: 0 }}>
@@ -305,8 +306,8 @@ export function SidebarClassificados({
               <button onClick={() => onMarcarVendido(selecionado)} style={{ ...botaoAcao, color: '#166534', fontWeight: 600 }}>
                 Marcar como vendido
               </button>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                <button onClick={() => onEditar(selecionado)} style={{ ...botaoAcao, color: '#4256c8' }}>Editar</button>
+              <div style={{ display: 'grid', gridTemplateColumns: ehMaster ? '1fr 1fr' : '1fr', gap: '6px' }}>
+                {ehMaster && <button onClick={() => onEditar(selecionado)} style={{ ...botaoAcao, color: '#4256c8' }}>Editar</button>}
                 <button onClick={() => onExcluir(selecionado)} style={{ ...botaoAcao, color: '#dc2626' }}>Excluir</button>
               </div>
             </div>

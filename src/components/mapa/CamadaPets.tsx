@@ -220,12 +220,13 @@ export function SidebarPets({
   onMarcarReencontrado: (p: Pet) => void
   onFoto: (url: string) => void
 }) {
-  const { user } = useAuth()
+  const { user, perfil } = useAuth()
   const visiveis = pets.filter(p => !filtro || chaveCorPet(p) === filtro)
 
   if (selecionado) {
     const cor = cores[chaveCorPet(selecionado)] || '#4256c8'
     const meu = user?.id === selecionado.user_id
+    const ehMaster = perfil?.role === 'master'
     const titulo = selecionado.reencontrado
       ? 'Reencontrado'
       : selecionado.tipo === 'perdido' ? 'Pet perdido' : 'Pet achado na rua'
@@ -312,8 +313,8 @@ export function SidebarPets({
                   Marcar como reencontrado
                 </button>
               )}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                <button onClick={() => onEditar(selecionado)} style={{ ...botaoAcao, color: '#4256c8' }}>Editar</button>
+              <div style={{ display: 'grid', gridTemplateColumns: ehMaster ? '1fr 1fr' : '1fr', gap: '6px' }}>
+                {ehMaster && <button onClick={() => onEditar(selecionado)} style={{ ...botaoAcao, color: '#4256c8' }}>Editar</button>}
                 <button onClick={() => onExcluir(selecionado)} style={{ ...botaoAcao, color: '#dc2626' }}>Excluir</button>
               </div>
             </div>
