@@ -178,7 +178,7 @@ export function FormDemanda({
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Categoria *</label>
                     <div style={{ position: 'relative' }}>
                       <select value={categoriaId} onChange={(e) => { setCategoriaId(e.target.value); setEntidadeIds([]) }}
-                        style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 36px 8px 12px', fontSize: '14px', fontWeight: 500, background: 'white', outline: 'none', boxSizing: 'border-box', appearance: 'none', WebkitAppearance: 'none', color: categoriaId ? '#111827' : '#6b7280', cursor: 'pointer' }}>
+                        style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 36px 8px 12px', fontSize: '14px', fontWeight: 500, fontFamily: 'inherit', background: 'white', outline: 'none', boxSizing: 'border-box', appearance: 'none', WebkitAppearance: 'none', color: categoriaId ? '#111827' : '#6b7280', cursor: 'pointer' }}>
                         <option value="">Selecione</option>
                         {categorias.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
                       </select>
