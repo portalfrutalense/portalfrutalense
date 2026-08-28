@@ -230,7 +230,6 @@ export function FormClassificado({
                           border: `1px solid ${tipoVeiculo === t ? '#4256c8' : '#e5e7eb'}`,
                           color: '#111827',
                         }}>
-                        <IconeVeiculo tipo={t} size={16} cor={tipoVeiculo === t ? '#4256c8' : '#6b7280'} />
                         {ROTULO_VEICULO[t]}
                       </button>
                     ))}
