@@ -113,6 +113,8 @@ export function FormPet({
   }
 
   function avancar1() {
+    if (!raca.trim()) { mostrarErro('Informe a raça do pet.'); return }
+    if (!cor.trim()) { mostrarErro('Informe a cor do pet.'); return }
     if (!porte) { mostrarErro('Selecione o porte do pet.'); return }
     if (!fotoPreview) { mostrarErro('Adicione ao menos uma foto do pet.'); return }
     setErro('')
@@ -246,11 +248,11 @@ export function FormPet({
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
-                    <label style={rotuloCampo}>Raça</label>
+                    <label style={rotuloCampo}>Raça *</label>
                     <input value={raca} onChange={(e) => setRaca(e.target.value)} placeholder="Vira-lata, SRD..." style={campoEstilo} />
                   </div>
                   <div>
-                    <label style={rotuloCampo}>Cor</label>
+                    <label style={rotuloCampo}>Cor *</label>
                     <input value={cor} onChange={(e) => setCor(e.target.value)} placeholder="Caramelo, preto..." style={campoEstilo} />
                   </div>
                 </div>
