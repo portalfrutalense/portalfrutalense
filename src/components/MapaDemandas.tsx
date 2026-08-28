@@ -83,7 +83,7 @@ export default function MapaDemandas() {
   const [sheetState, setSheetState] = useState<'peek' | 'half' | 'full'>('peek')
   const [dicaArrasteVisivel, setDicaArrasteVisivel] = useState(true)
   const arrasteRef = useRef<{ startY: number; startFrac: number } | null>(null)
-  const SNAP: Record<'peek' | 'half' | 'full', number> = { peek: 0.14, half: 0.47, full: 0.75 }
+  const SNAP: Record<'peek' | 'half' | 'full', number> = { peek: 0.20, half: 0.50, full: 0.75 }
 
   // Filtros
   const [filtroStatus, setFiltroStatus] = useState('')
@@ -430,13 +430,18 @@ export default function MapaDemandas() {
     : { display: 'flex', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', flex: 1 }
 
   const sidebarEstilo: React.CSSProperties = isMobile
-    ? { position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1500, background: 'white', borderTopLeftRadius: '16px', borderTopRightRadius: '16px', boxShadow: '0 -2px 16px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', height: `${SNAP[sheetState] * 100}vh`, transition: 'height 0.25s ease', overflow: 'hidden' }
+    ? { position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1500, background: 'white', borderTopLeftRadius: '16px', borderTopRightRadius: '16px', boxShadow: '0 -1px 8px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', height: `${SNAP[sheetState] * 100}vh`, transition: 'height 0.25s ease', overflow: 'hidden' }
     : { width: '260px', flexShrink: 0, background: 'white', borderRight: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', minHeight: 'clamp(300px, 55vw, 500px)', overflow: 'hidden' }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Layout principal: sidebar + mapa */}
       <div className="mapa-layout" style={layoutEstilo}>
+
+        {/* Overlay escuro no mapa quando sheet está aberto (mobile) */}
+        {isMobile && sheetState === 'full' && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 1400, background: 'rgba(0,0,0,0.25)', pointerEvents: 'none', transition: 'opacity 0.25s ease' }} />
+        )}
 
         {/* SIDEBAR */}
         <div ref={sidebarRef} className="mapa-sidebar" style={sidebarEstilo}>
@@ -446,9 +451,9 @@ export default function MapaDemandas() {
               onTouchStart={aoIniciarArraste}
               onTouchMove={aoArrastar}
               onTouchEnd={aoSoltarArraste}
-              style={{ flexShrink: 0, padding: '10px 0 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'grab', touchAction: 'none' }}
+              style={{ flexShrink: 0, padding: '6px 0 2px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', cursor: 'grab', touchAction: 'none' }}
             >
-              <svg className="sheet-chevron" width="22" height="13" viewBox="0 0 22 13" fill="none" style={{ color: '#9ca3af' }}>
+              <svg className="sheet-chevron" width="26" height="15" viewBox="0 0 22 13" fill="none" style={{ color: '#4256c8', marginTop: '4px' }}>
                 <path d="M1 12l10-10 10 10" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <span style={{
@@ -461,6 +466,10 @@ export default function MapaDemandas() {
                 Arraste para ver mais
               </span>
             </div>
+          )}
+          <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+          {isMobile && (
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '32px', background: 'linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.7))', zIndex: 10, pointerEvents: 'none' }} />
           )}
           <div
             style={{ flex: 1, overflowY: isMobile ? 'hidden' : 'auto', minHeight: 0, touchAction: isMobile ? 'none' : undefined }}
@@ -663,7 +672,7 @@ export default function MapaDemandas() {
             /* ── FILTROS ── */
             <>
               {/* Topo: título + descrição + filtros */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '18px 14px 12px' }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '8px 14px 12px' }}>
                 <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 6px', lineHeight: 1.3 }}>Mapa de Demandas</h2>
                 <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 12px', lineHeight: 1.5 }}>
                   Demandas dos cidadãos de Frutal-MG direcionadas às autoridades públicas.
@@ -734,6 +743,7 @@ export default function MapaDemandas() {
             </>
           )}
           </div>{/* fecha área rolável do sheet */}
+          </div>{/* fecha wrapper com fade */}
         </div>
 
         {/* MAPA */}

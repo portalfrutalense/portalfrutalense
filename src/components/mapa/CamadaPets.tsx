@@ -312,7 +312,7 @@ export function SidebarPets({
 
   return (
     <>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '18px 14px 12px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 14px 12px' }}>
         <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 6px', lineHeight: 1.3 }}>Achei / Perdi um Pet</h2>
         <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 12px', lineHeight: 1.5 }}>
           Pets perdidos pelos donos e animais encontrados abandonados nas ruas.

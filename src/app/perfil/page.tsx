@@ -79,7 +79,7 @@ export default function PerfilPage() {
   const nomeExibido = perfil?.nome || user.user_metadata?.full_name || 'Usuário'
 
   return (
-    <div style={{ padding: '24px 32px' }}>
+    <div style={{ padding: 'clamp(16px, 4vw, 32px)' }}>
 
       {/* Cabeçalho */}
       <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
@@ -128,7 +128,7 @@ export default function PerfilPage() {
               <button
                 onClick={() => setSubModulo('demandas')}
                 style={{
-                  width: '180px', height: '100px', background: 'white',
+                  width: 'clamp(140px, 40vw, 180px)', height: '100px', background: 'white',
                   border: '1px solid #e5e7eb', borderRadius: '10px',
                   cursor: 'pointer', display: 'flex', flexDirection: 'column',
                   alignItems: 'center', justifyContent: 'center',

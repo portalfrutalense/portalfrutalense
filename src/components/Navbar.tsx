@@ -148,7 +148,11 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
               <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, minWidth: '220px', background: '#3347b0', zIndex: 5001, display: 'flex', flexDirection: 'column', padding: '8px 0', borderRadius: '14px', boxShadow: '0 8px 32px rgba(0,0,0,0.22)' }}>
                 <div style={{ padding: '12px 20px 10px', borderBottom: '1px solid rgba(255,255,255,0.15)', marginBottom: '4px' }}>
                   <p style={{ margin: 0, color: 'rgba(255,255,255,0.6)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600 }}>Logado como</p>
-                  <p style={{ margin: '2px 0 0', color: '#fff', fontSize: '15px', fontWeight: 700 }}>{nomeExibido}</p>
+                  <p style={{ margin: '2px 0 6px', color: '#fff', fontSize: '15px', fontWeight: 400 }}>{nomeExibido}</p>
+                  <Link href="/perfil" onClick={() => setMenuMobile(false)}
+                    style={{ color: 'rgba(255,255,255,0.75)', fontSize: '13px', fontWeight: 500, textDecoration: 'none' }}>
+                    Minha conta
+                  </Link>
                 </div>
                 {CAMADAS_NAV.map(({ label, camada }) => (
                   <Link key={camada} href={`/mapa?camada=${camada}`} onClick={() => setMenuMobile(false)}
