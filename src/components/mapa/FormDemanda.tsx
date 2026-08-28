@@ -161,11 +161,109 @@ export function FormDemanda({
     } finally { setEnviando(false) }
   }
 
+  // Mobile: valida campos da etapa 1 antes de enviar
+  async function handleEnviarMobile() {
+    if (!categoriaId) { mostrarErro('Selecione a categoria.'); return }
+    if (entidadeIds.length === 0) { mostrarErro('Selecione ao menos uma autoridade responsável.'); return }
+    await handleEnviar()
+  }
+
   if (!aberto) return null
 
+  /* ---- bloco de autoridade reutilizado ---- */
+  const opcoesAutoridade = categoriaId ? entidades.filter(en => catEntidades[categoriaId]?.includes(en.id)) : entidades
+  const blocoAutoridade = (
+    <div>
+      <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Autoridade responsável * <span style={{ fontWeight: 400 }}>(até 3)</span></label>
+      <div ref={dropdownRef} style={{ position: 'relative' }}>
+        <button type="button" onClick={() => setDropdownAutoridade(!dropdownAutoridade)}
+          style={{ width: '100%', background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', fontWeight: 500, fontFamily: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: entidadeIds.length === 0 ? '#6b7280' : '#111827', boxSizing: 'border-box' }}>
+          <span>{entidadeIds.length === 0 ? 'Selecione a(s) autoridade(s)' : `${entidadeIds.length} selecionada${entidadeIds.length > 1 ? 's' : ''}`}</span>
+          <span style={{ fontSize: '10px', color: '#6b7280' }}>{dropdownAutoridade ? '▲' : '▼'}</span>
+        </button>
+        {dropdownAutoridade && (
+          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', zIndex: 50, overflow: 'hidden', maxHeight: '220px', overflowY: 'auto' }}>
+            {opcoesAutoridade.length === 0 ? (
+              <p style={{ margin: 0, padding: '10px 12px', fontSize: '12px', color: '#6b7280' }}>Nenhuma autoridade disponível.</p>
+            ) : opcoesAutoridade.map(en => {
+              const selecionado = entidadeIds.includes(en.id)
+              const desabilitado = !selecionado && entidadeIds.length >= 3
+              return (
+                <label key={en.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', cursor: desabilitado ? 'not-allowed' : 'pointer', borderBottom: '1px solid #f9fafb', opacity: desabilitado ? 0.4 : 1, background: selecionado ? '#eff6ff' : 'white' }}>
+                  <input type="checkbox" checked={selecionado} disabled={desabilitado}
+                    onChange={() => setEntidadeIds(prev => selecionado ? prev.filter(id => id !== en.id) : prev.length >= 3 ? prev : [...prev, en.id])}
+                    style={{ accentColor: '#4256c8', width: '15px', height: '15px', flexShrink: 0 }} />
+                  <div>
+                    <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#111827' }}>{en.nome}</p>
+                    <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>{en.cargo}</p>
+                  </div>
+                </label>
+              )
+            })}
+          </div>
+        )}
+      </div>
+      {categoriaId && !catEntidades[categoriaId]?.length && (
+        <p style={{ fontSize: '11px', color: '#92400e', margin: '4px 0 0' }}>Nenhuma autoridade vinculada a essa categoria ainda. Contate o administrador.</p>
+      )}
+    </div>
+  )
+
+  const blocoDescricao = (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+      <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Descrição *</label>
+      <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
+        <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descreva o problema em detalhes..."
+          style={{ width: '100%', flex: 1, minHeight: '90px', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', paddingBottom: '32px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
+        <button type="button" onClick={melhorarDescricao} disabled={!descricao.trim() || melhorandoTexto}
+          title="Melhorar texto com IA"
+          style={{ position: 'absolute', right: '8px', bottom: '8px', display: 'flex', alignItems: 'center', gap: '4px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 8px', fontSize: '11px', fontWeight: 600, color: descricao.trim() ? '#4256c8' : '#9ca3af', cursor: !descricao.trim() || melhorandoTexto ? 'default' : 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+          {melhorandoTexto ? (
+            <span>Melhorando...</span>
+          ) : (
+            <>
+              <svg width="16" height="16" viewBox="0 0 24 24">
+                <defs>
+                  <linearGradient id="gradienteMelhorar" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#4285f4" />
+                    <stop offset="50%" stopColor="#9b72cb" />
+                    <stop offset="100%" stopColor="#d96570" />
+                  </linearGradient>
+                </defs>
+                <path d="M11.47 2.365a.5.5 0 01.963 0l1.582 6.135a2 2 0 001.437 1.437l6.135 1.582a.5.5 0 010 .963l-6.135 1.582a2 2 0 00-1.437 1.437l-1.582 6.135a.5.5 0 01-.963 0l-1.582-6.135a2 2 0 00-1.437-1.437L2.316 12.482a.5.5 0 010-.963l6.135-1.582a2 2 0 001.437-1.437z" fill="url(#gradienteMelhorar)" />
+              </svg>
+              <span>Melhorar o texto com IA</span>
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  )
+
+  const blocoFoto = (
+    <div>
+      <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>
+        Foto <span style={{ color: '#6b7280', fontWeight: 400 }}>(opcional)</span>
+      </label>
+      {!fotoPreview ? (
+        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '56px', border: '2px dashed #e5e7eb', borderRadius: '8px', textAlign: 'center', cursor: 'pointer' }}>
+          <input type="file" accept="image/*" onChange={handleFotoChange} style={{ display: 'none' }} />
+          <div style={{ fontSize: '12px', color: '#6b7280' }}><strong style={{ color: '#4256c8' }}>Toque para tirar foto</strong> ou escolher da galeria</div>
+        </label>
+      ) : (
+        <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb', height: '56px' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={fotoPreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          <button type="button" onClick={() => { setFotoFile(null); setFotoPreview(null) }}
+            style={{ position: 'absolute', top: '6px', right: '6px', background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+        </div>
+      )}
+    </div>
+  )
+
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', padding: isMobile ? 0 : '16px' }}>
-      <div style={{ background: 'white', borderRadius: isMobile ? '12px 12px 0 0' : '10px', width: '100%', maxWidth: isMobile ? '100%' : '440px', height: isMobile ? '95dvh' : '580px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+      <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '440px', height: isMobile ? 'auto' : '580px', maxHeight: '90dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: '8px 20px', borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
           <h2 style={{ fontWeight: 700, color: '#111827', margin: 0, fontSize: '15px' }}>Registrar uma nova demanda</h2>
           <button onClick={fechar} style={{ position: 'absolute', right: '20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#6b7280', lineHeight: 1, padding: 0 }}>×</button>
@@ -183,9 +281,9 @@ export function FormDemanda({
           <>
             <div style={{ padding: '16px 20px', flex: 1, overflowY: 'auto' }}>
 
-              {/* ---- ETAPA 1: Categoria + Autoridade + Endereço ---- */}
-              {etapa === 1 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {isMobile ? (
+                /* Mobile: tudo em um formulário único com scroll */
+                <form id="form-registrar-demanda" onSubmit={(e) => { e.preventDefault(); handleEnviarMobile() }} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Categoria *</label>
@@ -199,121 +297,62 @@ export function FormDemanda({
                     </div>
                   </div>
 
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Autoridade responsável * <span style={{ fontWeight: 400 }}>(até 3)</span></label>
-                    {(() => {
-                      const opcoesAutoridade = categoriaId ? entidades.filter(en => catEntidades[categoriaId]?.includes(en.id)) : entidades
-                      return (
-                        <div ref={dropdownRef} style={{ position: 'relative' }}>
-                          <button
-                            type="button"
-                            onClick={() => setDropdownAutoridade(!dropdownAutoridade)}
-                            style={{ width: '100%', background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', fontWeight: 500, fontFamily: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: entidadeIds.length === 0 ? '#6b7280' : '#111827', boxSizing: 'border-box' }}
-                          >
-                            <span>{entidadeIds.length === 0 ? 'Selecione a(s) autoridade(s)' : `${entidadeIds.length} selecionada${entidadeIds.length > 1 ? 's' : ''}`}</span>
-                            <span style={{ fontSize: '10px', color: '#6b7280' }}>{dropdownAutoridade ? '▲' : '▼'}</span>
-                          </button>
-                          {dropdownAutoridade && (
-                            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', zIndex: 50, overflow: 'hidden', maxHeight: '220px', overflowY: 'auto' }}>
-                              {opcoesAutoridade.length === 0 ? (
-                                <p style={{ margin: 0, padding: '10px 12px', fontSize: '12px', color: '#6b7280' }}>Nenhuma autoridade disponível.</p>
-                              ) : opcoesAutoridade.map(en => {
-                                const selecionado = entidadeIds.includes(en.id)
-                                const desabilitado = !selecionado && entidadeIds.length >= 3
-                                return (
-                                  <label key={en.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', cursor: desabilitado ? 'not-allowed' : 'pointer', borderBottom: '1px solid #f9fafb', opacity: desabilitado ? 0.4 : 1, background: selecionado ? '#eff6ff' : 'white' }}>
-                                    <input
-                                      type="checkbox"
-                                      checked={selecionado}
-                                      disabled={desabilitado}
-                                      onChange={() => setEntidadeIds(prev => selecionado ? prev.filter(id => id !== en.id) : prev.length >= 3 ? prev : [...prev, en.id])}
-                                      style={{ accentColor: '#4256c8', width: '15px', height: '15px', flexShrink: 0 }}
-                                    />
-                                    <div>
-                                      <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#111827' }}>{en.nome}</p>
-                                      <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>{en.cargo}</p>
-                                    </div>
-                                  </label>
-                                )
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })()}
-                    {categoriaId && !catEntidades[categoriaId]?.length && (
-                      <p style={{ fontSize: '11px', color: '#92400e', margin: '4px 0 0' }}>
-                        Nenhuma autoridade vinculada a essa categoria ainda. Contate o administrador.
-                      </p>
-                    )}
-                  </div>
+                  {blocoAutoridade}
 
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Endereço *</label>
                     <MiniMapaConfirmar
-                      altura={isMobile ? 180 : 240}
+                      altura={180}
                       onConfirmar={(endereco, lat, lng) => { setCoordenadas({ lat, lng, label: endereco }); setLocConfirmada(true) }}
                       onAlterar={() => { setCoordenadas(null); setLocConfirmada(false) }}
                     />
                   </div>
 
-                </div>
-              )}
-
-              {/* ---- ETAPA 2: Descrição + Foto + Turnstile + Enviar ---- */}
-              {etapa === 2 && (
-                <form id="form-registrar-demanda" onSubmit={(e) => { e.preventDefault(); handleEnviar() }} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Descrição *</label>
-                    <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
-                      <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descreva o problema em detalhes..."
-                        style={{ width: '100%', flex: 1, minHeight: '90px', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', paddingBottom: '32px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
-                      <button type="button" onClick={melhorarDescricao} disabled={!descricao.trim() || melhorandoTexto}
-                        title="Melhorar texto com IA"
-                        style={{ position: 'absolute', right: '8px', bottom: '8px', display: 'flex', alignItems: 'center', gap: '4px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 8px', fontSize: '11px', fontWeight: 600, color: descricao.trim() ? '#4256c8' : '#9ca3af', cursor: !descricao.trim() || melhorandoTexto ? 'default' : 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-                        {melhorandoTexto ? (
-                          <span>Melhorando...</span>
-                        ) : (
-                          <>
-                            <svg width="16" height="16" viewBox="0 0 24 24">
-                              <defs>
-                                <linearGradient id="gradienteMelhorar" x1="0" y1="0" x2="1" y2="1">
-                                  <stop offset="0%" stopColor="#4285f4" />
-                                  <stop offset="50%" stopColor="#9b72cb" />
-                                  <stop offset="100%" stopColor="#d96570" />
-                                </linearGradient>
-                              </defs>
-                              <path d="M11.47 2.365a.5.5 0 01.963 0l1.582 6.135a2 2 0 001.437 1.437l6.135 1.582a.5.5 0 010 .963l-6.135 1.582a2 2 0 00-1.437 1.437l-1.582 6.135a.5.5 0 01-.963 0l-1.582-6.135a2 2 0 00-1.437-1.437L2.316 12.482a.5.5 0 010-.963l6.135-1.582a2 2 0 001.437-1.437z" fill="url(#gradienteMelhorar)" />
-                            </svg>
-                            <span>Melhorar o texto com IA</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>
-                      Foto <span style={{ color: '#6b7280', fontWeight: 400 }}>(opcional)</span>
-                    </label>
-                    {!fotoPreview ? (
-                      <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '56px', border: '2px dashed #e5e7eb', borderRadius: '8px', textAlign: 'center', cursor: 'pointer' }}>
-                        <input type="file" accept="image/*" onChange={handleFotoChange} style={{ display: 'none' }} />
-                        <div style={{ fontSize: '12px', color: '#6b7280' }}><strong style={{ color: '#4256c8' }}>Toque para tirar foto</strong> ou escolher da galeria</div>
-                      </label>
-                    ) : (
-                      <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb', height: '56px' }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={fotoPreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                        <button type="button" onClick={() => { setFotoFile(null); setFotoPreview(null) }}
-                          style={{ position: 'absolute', top: '6px', right: '6px', background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-                      </div>
-                    )}
-                  </div>
+                  {blocoDescricao}
+                  {blocoFoto}
 
                   <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
                 </form>
+              ) : (
+                /* Desktop: etapa por etapa */
+                <>
+                  {etapa === 1 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Categoria *</label>
+                        <div style={{ position: 'relative' }}>
+                          <select value={categoriaId} onChange={(e) => { setCategoriaId(e.target.value); setEntidadeIds([]) }}
+                            style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 36px 8px 12px', fontSize: '14px', fontWeight: 500, fontFamily: 'inherit', background: 'white', outline: 'none', boxSizing: 'border-box', appearance: 'none', WebkitAppearance: 'none', color: categoriaId ? '#111827' : '#6b7280', cursor: 'pointer' }}>
+                            <option value="">Selecione</option>
+                            {categorias.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                          </select>
+                          <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', color: '#6b7280', pointerEvents: 'none' }}>▼</span>
+                        </div>
+                      </div>
+
+                      {blocoAutoridade}
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Endereço *</label>
+                        <MiniMapaConfirmar
+                          altura={240}
+                          onConfirmar={(endereco, lat, lng) => { setCoordenadas({ lat, lng, label: endereco }); setLocConfirmada(true) }}
+                          onAlterar={() => { setCoordenadas(null); setLocConfirmada(false) }}
+                        />
+                      </div>
+
+                    </div>
+                  )}
+
+                  {etapa === 2 && (
+                    <form id="form-registrar-demanda" onSubmit={(e) => { e.preventDefault(); handleEnviar() }} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      {blocoDescricao}
+                      {blocoFoto}
+                      <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
+                    </form>
+                  )}
+                </>
               )}
 
             </div>
@@ -322,24 +361,33 @@ export function FormDemanda({
             <div style={{ borderTop: '1px solid #e5e7eb', padding: '12px 20px', flexShrink: 0 }}>
               {erro && <div style={{ marginBottom: '8px', color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px 12px', fontSize: '12.5px' }}>{erro}</div>}
 
-              {etapa === 1 && (
-                <button type="button" onClick={avancar}
-                  style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
-                  Continuar →
+              {isMobile ? (
+                <button type="submit" form="form-registrar-demanda" disabled={enviando}
+                  style={{ width: '100%', backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+                  {enviando ? 'Enviando...' : 'Registrar Demanda'}
                 </button>
-              )}
+              ) : (
+                <>
+                  {etapa === 1 && (
+                    <button type="button" onClick={avancar}
+                      style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
+                      Continuar →
+                    </button>
+                  )}
 
-              {etapa === 2 && (
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button type="button" onClick={() => { setErro(''); setEtapa(1) }}
-                    style={{ flex: '0 0 auto', background: 'white', color: '#6b7280', fontWeight: 600, padding: '10px 16px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '14px' }}>
-                    ← Voltar
-                  </button>
-                  <button type="submit" form="form-registrar-demanda" disabled={enviando}
-                    style={{ flex: 1, backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
-                    {enviando ? 'Enviando...' : 'Registrar Demanda'}
-                  </button>
-                </div>
+                  {etapa === 2 && (
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button type="button" onClick={() => { setErro(''); setEtapa(1) }}
+                        style={{ flex: '0 0 auto', background: 'white', color: '#6b7280', fontWeight: 600, padding: '10px 16px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '14px' }}>
+                        ← Voltar
+                      </button>
+                      <button type="submit" form="form-registrar-demanda" disabled={enviando}
+                        style={{ flex: 1, backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+                        {enviando ? 'Enviando...' : 'Registrar Demanda'}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </>
