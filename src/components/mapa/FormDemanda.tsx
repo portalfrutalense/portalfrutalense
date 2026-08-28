@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '../AuthProvider'
 import MiniMapaConfirmar from '../MiniMapaConfirmar'
@@ -55,6 +55,17 @@ export function FormDemanda({
   const [categoriaId, setCategoriaId] = useState('')
   const [entidadeIds, setEntidadeIds] = useState<string[]>([])
   const [dropdownAutoridade, setDropdownAutoridade] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!dropdownAutoridade) return
+    function fecharFora(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownAutoridade(false)
+      }
+    }
+    document.addEventListener('mousedown', fecharFora)
+    return () => document.removeEventListener('mousedown', fecharFora)
+  }, [dropdownAutoridade])
   const [coordenadas, setCoordenadas] = useState<{ lat: number; lng: number; label: string } | null>(null)
   const [locConfirmada, setLocConfirmada] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState('')
@@ -191,7 +202,7 @@ export function FormDemanda({
                     {(() => {
                       const opcoesAutoridade = categoriaId ? entidades.filter(en => catEntidades[categoriaId]?.includes(en.id)) : entidades
                       return (
-                        <div style={{ position: 'relative' }}>
+                        <div ref={dropdownRef} style={{ position: 'relative' }}>
                           <button
                             type="button"
                             onClick={() => setDropdownAutoridade(!dropdownAutoridade)}
