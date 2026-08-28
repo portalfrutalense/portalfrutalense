@@ -94,7 +94,7 @@ Não inclua nada além do JSON.`
     }
 
     if (decisao === 'aprovada') {
-      const expiracao = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      const expiracao = null
 
       // Busca todos os vínculos de autoridade desta demanda
       const { data: vinculos } = await supabaseServer
@@ -134,7 +134,7 @@ Não inclua nada além do JSON.`
             `Descrição: ${demanda.descricao}`,
             demanda.endereco_label ? `Endereço: ${demanda.endereco_label}` : '',
             ``,
-            `Para responder, acesse o link abaixo (expira em 7 dias):`,
+            `Para responder, acesse o link abaixo:`,
             linkResposta,
             ``,
             `CidadanIA Frutal — cidadaniafrutal.com.br`,
@@ -165,7 +165,6 @@ Não inclua nada além do JSON.`
                   <a href="${linkResposta}" style="display:block;background:#4256c8;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;margin:20px 0;">
                     Responder esta demanda
                   </a>
-                  <p style="font-size:12px;color:#6b7280;text-align:center;">Este link expira em 7 dias.</p>
                 </div>
               </div>
             </body></html>`,

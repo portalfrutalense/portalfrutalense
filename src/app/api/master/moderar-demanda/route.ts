@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
 
       if (!demanda) return NextResponse.json({ error: 'Demanda não encontrada.' }, { status: 404 })
 
-      const expiracao = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      const expiracao = null
       const motivoAprovacao = motivo?.trim() || 'Aprovada manualmente pelo administrador.'
 
       const { data: vinculos } = await supabaseServer
@@ -125,7 +125,6 @@ export async function POST(req: NextRequest) {
                   <a href="${linkResposta}" style="display:block;background:#4256c8;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;margin:20px 0;">
                     Responder esta demanda →
                   </a>
-                  <p style="font-size:12px;color:#6b7280;text-align:center;">Este link expira em 7 dias.</p>
                 </div>
               </div>
             </body></html>`,

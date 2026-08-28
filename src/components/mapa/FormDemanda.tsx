@@ -199,7 +199,7 @@ export function FormDemanda({
                     <span style={{ fontSize: '10px', color: '#6b7280' }}>{dropdownAutoridade ? '▲' : '▼'}</span>
                   </button>
                   {dropdownAutoridade && (
-                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', zIndex: 50, overflow: 'hidden', maxHeight: '220px', overflowY: 'auto' }}>
+                    <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: '4px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 -4px 16px rgba(0,0,0,0.12)', zIndex: 50, overflow: 'hidden', maxHeight: '220px', overflowY: 'auto' }}>
                       {opcoesAutoridade.length === 0 ? (
                         <p style={{ margin: 0, padding: '10px 12px', fontSize: '12px', color: '#6b7280' }}>Nenhuma autoridade disponível.</p>
                       ) : opcoesAutoridade.map(en => {

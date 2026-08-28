@@ -1,14 +1,25 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useChatBot } from '@/hooks/useChatBot'
+import { useSheet } from '@/contexts/SheetContext'
 import Turnstile from './Turnstile'
 import MiniMapaConfirmar from './MiniMapaConfirmar'
 
+const SNAP: Record<string, number> = { peek: 0.20, half: 0.50, full: 0.75 }
+
 export default function ChatBot() {
   const bot = useChatBot()
+  const { sheetState } = useSheet()
+  const router = useRouter()
   const [aberto, setAberto] = useState(false)
   const [painelVisivel, setPainelVisivel] = useState(false)
+
+  // Posição do botão: acompanha o sheet quando no mapa, caso contrário canto inferior direito
+  const botaoBottom = sheetState && sheetState !== 'full'
+    ? `calc(${SNAP[sheetState] * 100}vh + 12px)`
+    : sheetState === null ? '24px' : undefined
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const botaoRef = useRef<HTMLButtonElement>(null)
@@ -17,25 +28,20 @@ export default function ChatBot() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [bot.mensagens, bot.etapaDemanda])
 
-  function abrirChat() {
-    setPainelVisivel(false)
-    setAberto(true)
-    requestAnimationFrame(() => requestAnimationFrame(() => setPainelVisivel(true)))
-    if (bot.mensagens.length === 0) bot.enviarSaudacaoInicial()
-  }
-
   if (!bot.user) return null
 
   return (
     <>
-      {/* Botão flutuante */}
-      {!aberto && (
+      {/* Botão flutuante — abre /assistenteia */}
+      {!aberto && sheetState !== 'full' && (
         <button
           ref={botaoRef}
-          onClick={abrirChat}
+          onClick={() => router.push('/assistenteia')}
           style={{
-            position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000,
-            width: '64px', height: '64px', borderRadius: '50%',
+            position: 'fixed',
+            ...(sheetState ? { bottom: botaoBottom, right: '16px', transition: 'bottom 0.25s ease' } : { bottom: '24px', right: '24px' }),
+            zIndex: 2000,
+            width: '54px', height: '54px', borderRadius: '50%',
             background: '#4256c8', border: 'none', cursor: 'pointer',
             boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
             padding: '0', overflow: 'visible',
@@ -55,7 +61,7 @@ export default function ChatBot() {
         <div style={{
           position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000,
           width: 'min(360px, calc(100vw - 32px))',
-          height: 'min(520px, calc(100vh - 100px))',
+          height: 'min(520px, calc(100dvh - 120px))',
           background: 'white', borderRadius: '16px',
           boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
           border: '1px solid #e5e7eb',
@@ -248,7 +254,7 @@ export default function ChatBot() {
       )}
 
       {bot.notif && (
-        <div style={{ position: 'fixed', bottom: '100px', right: '24px', zIndex: 1001, background: '#166534', color: 'white', borderRadius: '8px', padding: '10px 16px', fontSize: '13px', fontWeight: 600, boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+        <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 2001, background: '#166534', color: 'white', borderRadius: '8px', padding: '10px 16px', fontSize: '13px', fontWeight: 600, boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
           {bot.notif}
         </div>
       )}

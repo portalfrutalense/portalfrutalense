@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import MapaDemandas from '@/components/MapaDemandas'
 import TourBoasVindas from '@/components/TourBoasVindas'
+import ChatBot from '@/components/ChatBot'
 
 export default function MapaPage() {
   return (
@@ -9,6 +10,7 @@ export default function MapaPage() {
         <MapaDemandas />
       </Suspense>
       <TourBoasVindas />
+      <ChatBot />
     </>
   )
 }

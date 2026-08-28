@@ -245,10 +245,10 @@ export default function MasterPage() {
               <>
                 <div onClick={() => setPerfisAberto(false)} style={{ position: 'fixed', inset: 0, zIndex: 98 }} />
                 <div style={{
-                  position: 'absolute', left: 'calc(100% + 8px)', top: 0,
+                  position: 'absolute', left: '10px', right: '10px', top: '100%', marginTop: '4px',
                   background: '#4256c8', borderRadius: '10px',
                   boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-                  minWidth: '150px', zIndex: 99, padding: '6px',
+                  zIndex: 99, padding: '6px',
                 }}>
                   {([
                     { key: 'cidadao'    as SubSecaoPerfis, label: 'Cidadãos'    },
@@ -517,7 +517,7 @@ export default function MasterPage() {
                         <h2 style={{ fontWeight: 600, color: '#111827', fontSize: '15px', marginBottom: '16px' }}>Nova Categoria</h2>
                         <form onSubmit={salvarCategoria} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                           <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                            <input value={novaCatNome} onChange={(e) => setNovaCatNome(e.target.value)} placeholder="Nome da categoria (ex: Buraco na via)" required style={{ flex: 1, minWidth: '200px', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', outline: 'none' }} />
+                            <input value={novaCatNome} onChange={(e) => setNovaCatNome(e.target.value)} placeholder="Nome da categoria (ex: Buraco na via)" required style={{ flex: 1, minWidth: '120px', width: '100%', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '9px 12px', fontSize: '14px', outline: 'none' }} />
                             <div>
                               <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Cor do pin</label>
                               <input type="color" value={novaCatCor} onChange={(e) => setNovaCatCor(e.target.value)} style={{ width: '44px', height: '38px', borderRadius: '8px', cursor: 'pointer', border: '1px solid #e5e7eb', padding: '2px' }} />
@@ -589,7 +589,7 @@ export default function MasterPage() {
       </main>
 
       <style>{`
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
           .master-sidebar { transform: translateX(-100%); transition: transform 0.25s ease; width: 220px !important; }
           .master-sidebar.open { transform: translateX(0); }
           .master-main { margin-left: 0 !important; }
@@ -599,6 +599,9 @@ export default function MasterPage() {
           .master-card-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .master-form-row { flex-direction: column !important; }
           .master-config-tabs { overflow-x: auto; }
+        }
+        @media (max-width: 480px) {
+          .master-card-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </div>

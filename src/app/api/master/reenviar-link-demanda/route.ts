@@ -33,11 +33,9 @@ export async function POST(req: NextRequest) {
     if (!emailAutoridade) return NextResponse.json({ error: 'Autoridade sem e-mail cadastrado.' }, { status: 400 })
 
     const novoToken = gerarToken()
-    const expiracao = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-
     await supabaseServer.from('demandas').update({
       magic_token: novoToken,
-      magic_token_expira_em: expiracao,
+      magic_token_expira_em: null,
       link_enviado: true,
       status: 'aguardando_resposta',
     }).eq('id', demanda_id)
@@ -67,7 +65,6 @@ export async function POST(req: NextRequest) {
             <a href="${linkResposta}" style="display:block;background:#4256c8;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;margin:20px 0;">
               Responder esta demanda →
             </a>
-            <p style="font-size:12px;color:#6b7280;text-align:center;">Este link expira em 7 dias.</p>
           </div>
         </div>
       `,

@@ -127,7 +127,7 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
               onClick={() => setMenuMobile(!menuMobile)}
               style={{ display: 'none', background: 'none', border: 'none', cursor: 'pointer', color: 'white', fontSize: '12px', fontWeight: 600, padding: '4px 0', gap: '8px', alignItems: 'center', marginRight: '2px' }}
             >
-              <span style={{ fontSize: '12px', whiteSpace: 'nowrap', marginLeft: '-10px' }}>Olá, {nomeExibido.split(' ')[0]}</span>
+              <span style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>Olá, {nomeExibido.split(' ')[0]}</span>
               <span style={{ display: 'flex', flexDirection: 'column', gap: '3px', flexShrink: 0 }}>
                 <span style={{ display: 'block', width: '20px', height: '3px', background: 'white', borderRadius: '1px' }} />
                 <span style={{ display: 'block', width: '20px', height: '3px', background: 'white', borderRadius: '1px' }} />
@@ -145,8 +145,8 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
         </div>
 
             {menuMobile && (
-              <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, minWidth: '220px', background: '#3347b0', zIndex: 5001, display: 'flex', flexDirection: 'column', padding: '8px 0', borderRadius: '14px', boxShadow: '0 8px 32px rgba(0,0,0,0.22)' }}>
-                <div style={{ padding: '12px 20px 10px', borderBottom: '1px solid rgba(255,255,255,0.15)', marginBottom: '4px' }}>
+              <div style={{ position: 'fixed', top: '56px', right: '8px', left: '8px', minWidth: '220px', maxWidth: '320px', marginLeft: 'auto', background: '#3347b0', zIndex: 5001, display: 'flex', flexDirection: 'column', padding: '8px 0', borderRadius: '14px', boxShadow: '0 8px 32px rgba(0,0,0,0.22)' }}>
+                <div style={{ padding: '12px 20px 10px', borderBottom: '2px solid rgba(255,255,255,0.15)', marginBottom: '4px' }}>
                   <p style={{ margin: 0, color: 'rgba(255,255,255,0.6)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600 }}>Logado como</p>
                   <p style={{ margin: '2px 0 6px', color: '#fff', fontSize: '15px', fontWeight: 400 }}>{nomeExibido}</p>
                   <Link href="/perfil" onClick={() => setMenuMobile(false)}
@@ -160,7 +160,7 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
                     {label}
                   </Link>
                 ))}
-                <div style={{ height: '1px', background: 'rgba(255,255,255,0.15)', margin: '8px 20px' }} />
+                <div style={{ height: '2px', background: 'rgba(255,255,255,0.15)', margin: '8px 20px' }} />
                 <button onClick={() => { setMenuMobile(false); sair() }} style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px', padding: '12px 20px', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
                   Sair da conta
                 </button>

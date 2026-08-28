@@ -128,7 +128,7 @@ export default function PerfilPage() {
               <button
                 onClick={() => setSubModulo('demandas')}
                 style={{
-                  width: 'clamp(140px, 40vw, 180px)', height: '100px', background: 'white',
+                  width: 'clamp(140px, 40vw, 180px)', minHeight: '80px', height: 'auto', background: 'white',
                   border: '1px solid #e5e7eb', borderRadius: '10px',
                   cursor: 'pointer', display: 'flex', flexDirection: 'column',
                   alignItems: 'center', justifyContent: 'center',

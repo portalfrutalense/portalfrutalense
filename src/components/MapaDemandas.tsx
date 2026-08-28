@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from './AuthProvider'
+import { useSheet } from '@/contexts/SheetContext'
 import ModalAuth from './ModalAuth'
 import { useMapaBase } from './mapa/useMapaBase'
 import { usePets, useMarkersPets, SidebarPets, FormularioPet } from './mapa/CamadaPets'
@@ -77,10 +78,24 @@ export default function MapaDemandas() {
   const [demandaSelecionada, setDemandaSelecionada] = useState<Demanda | null>(null)
   const [vinculosDemanda, setVinculosDemanda] = useState<DemandaEntidade[]>([])
 
+  const { setSheetState: setSheetContext } = useSheet()
+
   // Bottom sheet (mobile)
   // Sempre inicia false para coincidir com o SSR; useEffect ajusta no cliente
   const [isMobile, setIsMobile] = useState(false)
-  const [sheetState, setSheetState] = useState<'peek' | 'half' | 'full'>('peek')
+  const [sheetState, setSheetStateLocal] = useState<'peek' | 'half' | 'full'>('peek')
+
+  function setSheetState(s: 'peek' | 'half' | 'full') {
+    setSheetStateLocal(s)
+    setSheetContext(s)
+  }
+
+  // Inicializa o contexto global com 'peek' ao montar
+  useEffect(() => {
+    setSheetContext('peek')
+    return () => setSheetContext(null)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   const [dicaArrasteVisivel, setDicaArrasteVisivel] = useState(true)
   const arrasteRef = useRef<{ startY: number; startFrac: number } | null>(null)
   const SNAP: Record<'peek' | 'half' | 'full', number> = { peek: 0.20, half: 0.50, full: 0.75 }
@@ -351,11 +366,7 @@ export default function MapaDemandas() {
     return () => mq.removeEventListener('change', aoMudar)
   }, [])
 
-  // Texto "Arraste para ver mais" some sozinho depois de 5s
-  useEffect(() => {
-    const t = setTimeout(() => setDicaArrasteVisivel(false), 10000)
-    return () => clearTimeout(t)
-  }, [])
+  // Texto "Arraste para ver mais" — sempre visível
 
   function cicloSheet() {
     setSheetState(prev => {
@@ -368,7 +379,6 @@ export default function MapaDemandas() {
   function aoIniciarArraste(e: React.TouchEvent) {
     arrasteRef.current = { startY: e.touches[0].clientY, startFrac: SNAP[sheetState] }
     if (sidebarRef.current) sidebarRef.current.style.transition = 'none'
-    setDicaArrasteVisivel(false)
   }
 
   function aoArrastar(e: React.TouchEvent) {
@@ -447,30 +457,25 @@ export default function MapaDemandas() {
         <div ref={sidebarRef} className="mapa-sidebar" style={sidebarEstilo}>
           {isMobile && (
             <div
-              onClick={cicloSheet}
+              onClick={sheetState === 'peek' ? cicloSheet : undefined}
               onTouchStart={aoIniciarArraste}
               onTouchMove={aoArrastar}
               onTouchEnd={aoSoltarArraste}
-              style={{ flexShrink: 0, padding: '6px 0 2px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', cursor: 'grab', touchAction: 'none' }}
+              style={{ flexShrink: 0, padding: sheetState === 'peek' ? '6px 0 2px' : '8px 0 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', cursor: 'grab', touchAction: 'none' }}
             >
-              <svg className="sheet-chevron" width="26" height="15" viewBox="0 0 22 13" fill="none" style={{ color: '#4256c8', marginTop: '4px' }}>
-                <path d="M1 12l10-10 10 10" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span style={{
-                fontSize: '11px', color: '#9ca3af', fontWeight: 500,
-                opacity: dicaArrasteVisivel ? 1 : 0,
-                maxHeight: dicaArrasteVisivel ? '16px' : '0px',
-                transition: 'opacity 0.5s ease, max-height 0.5s ease',
-                overflow: 'hidden',
-              }}>
-                Arraste para ver mais
-              </span>
+              {sheetState !== 'full' && (
+                <svg className={sheetState === 'half' ? 'sheet-chevron-down' : 'sheet-chevron-up'} width="26" height="15" viewBox="0 0 22 13" fill="none" style={{ color: '#4256c8', marginTop: '4px' }}>
+                  <path d="M1 12l10-10 10 10" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+              {sheetState === 'peek' && (
+                <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
+                  Arraste para ver mais
+                </span>
+              )}
             </div>
           )}
           <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
-          {isMobile && (
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '32px', background: 'linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.7))', zIndex: 10, pointerEvents: 'none' }} />
-          )}
           <div
             style={{ flex: 1, overflowY: isMobile ? 'hidden' : 'auto', minHeight: 0, touchAction: isMobile ? 'none' : undefined }}
             onTouchStart={isMobile ? aoIniciarArraste : undefined}
@@ -559,7 +564,7 @@ export default function MapaDemandas() {
                     <p style={{ fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.5 }}>{sentenceCase(demandaSelecionada.descricao)}</p>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
                     <div>
                       <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }}>Categoria</p>
                       <p style={{ fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.4 }}>{demandaSelecionada.categoria?.nome || '—'}</p>
@@ -752,7 +757,7 @@ export default function MapaDemandas() {
 
           {/* Banner de login */}
           {!user && (
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(15,36,64,0.92), transparent)', padding: '40px 24px 20px', zIndex: 1000, textAlign: 'center' }}>
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(15,36,64,0.92), transparent)', padding: 'clamp(24px,5vw,40px) clamp(12px,4vw,24px) 20px', zIndex: 1000, textAlign: 'center' }}>
               <p style={{ color: 'white', fontWeight: 600, fontSize: '14px', margin: '0 0 10px' }}>
                 {{
                   demandas: 'Faça login para ver as demandas completas',
@@ -859,7 +864,12 @@ export default function MapaDemandas() {
           0%, 100% { transform: translateY(0); opacity: 0.6; }
           50% { transform: translateY(-4px); opacity: 1; }
         }
-        .sheet-chevron { animation: sheet-chevron-bounce 1.6s ease-in-out infinite; }
+        @keyframes sheet-chevron-bounce-down {
+          0%, 100% { transform: rotate(180deg) translateY(0); opacity: 0.6; }
+          50% { transform: rotate(180deg) translateY(-4px); opacity: 1; }
+        }
+        .sheet-chevron-up { animation: sheet-chevron-bounce 1.6s ease-in-out infinite; }
+        .sheet-chevron-down { animation: sheet-chevron-bounce-down 1.6s ease-in-out infinite; }
       `}</style>
 
     </div>
