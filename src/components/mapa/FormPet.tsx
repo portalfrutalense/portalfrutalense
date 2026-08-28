@@ -9,6 +9,7 @@ import { Pet, TipoPet, EspeciePet, PortePet } from '@/types'
 import { salvarCamada } from './salvarCamada'
 import { IconeEspecie, rotuloEspecie, rotuloPorte } from './CamadaPets'
 import { mascaraTelefone, telefoneValido } from '@/lib/mascaraTelefone'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 /* ------------------------------------------------------------ helpers --- */
 
@@ -60,6 +61,7 @@ export function FormPet({
 }) {
   const supabase = createClient()
   const { user, perfil } = useAuth()
+  const isMobile = useIsMobile()
 
   const [etapa, setEtapa] = useState<1 | 2 | 3>(1)
 
@@ -186,8 +188,8 @@ export function FormPet({
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-      <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '440px', height: '580px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', padding: isMobile ? 0 : '16px' }}>
+      <div style={{ background: 'white', borderRadius: isMobile ? '12px 12px 0 0' : '10px', width: '100%', maxWidth: isMobile ? '100%' : '440px', height: isMobile ? '95dvh' : '580px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {/* Cabeçalho */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: '8px 20px', borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
@@ -359,7 +361,7 @@ export function FormPet({
                   </label>
                   <div>
                     <MiniMapaConfirmar
-                      altura={260}
+                      altura={isMobile ? 180 : 260}
                       onConfirmar={(endereco, lat, lng) => { setCoordenadas({ lat, lng, label: endereco }); setLocConfirmada(true) }}
                       onAlterar={() => { setCoordenadas(null); setLocConfirmada(false) }}
                     />

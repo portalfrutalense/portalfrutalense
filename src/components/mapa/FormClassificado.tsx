@@ -9,6 +9,7 @@ import { Classificado, TipoVeiculo } from '@/types'
 import { salvarCamada } from './salvarCamada'
 import { IconeVeiculo, ROTULO_VEICULO, TIPOS } from './CamadaClassificados'
 import { mascaraTelefone, telefoneValido } from '@/lib/mascaraTelefone'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 /* ------------------------------------------------------------ helpers --- */
 
@@ -55,6 +56,7 @@ export function FormClassificado({
 }) {
   const supabase = createClient()
   const { user, perfil } = useAuth()
+  const isMobile = useIsMobile()
 
   const [tipoVeiculo, setTipoVeiculo] = useState<TipoVeiculo>(editando?.tipo_veiculo ?? 'carro')
   const [titulo, setTitulo] = useState(editando?.titulo ?? '')
@@ -195,8 +197,8 @@ export function FormClassificado({
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-      <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '440px', height: sucesso ? 'auto' : '580px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', padding: isMobile ? 0 : '16px' }}>
+      <div style={{ background: 'white', borderRadius: isMobile ? '12px 12px 0 0' : '10px', width: '100%', maxWidth: isMobile ? '100%' : '440px', height: sucesso ? 'auto' : isMobile ? '95dvh' : '580px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {/* Cabeçalho */}
         {!sucesso && (

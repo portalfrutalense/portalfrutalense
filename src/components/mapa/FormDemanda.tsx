@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '../AuthProvider'
 import MiniMapaConfirmar from '../MiniMapaConfirmar'
@@ -48,6 +49,7 @@ export function FormDemanda({
 }) {
   const supabase = createClient()
   const { user, perfil } = useAuth()
+  const isMobile = useIsMobile()
 
   const [etapa, setEtapa] = useState<1 | 2>(1)
   const [descricao, setDescricao] = useState('')
@@ -162,8 +164,8 @@ export function FormDemanda({
   if (!aberto) return null
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-      <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '440px', height: '580px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', padding: isMobile ? 0 : '16px' }}>
+      <div style={{ background: 'white', borderRadius: isMobile ? '12px 12px 0 0' : '10px', width: '100%', maxWidth: isMobile ? '100%' : '440px', height: isMobile ? '95dvh' : '580px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: '8px 20px', borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
           <h2 style={{ fontWeight: 700, color: '#111827', margin: 0, fontSize: '15px' }}>Registrar uma nova demanda</h2>
           <button onClick={fechar} style={{ position: 'absolute', right: '20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#6b7280', lineHeight: 1, padding: 0 }}>×</button>
@@ -249,6 +251,7 @@ export function FormDemanda({
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Endereço *</label>
                     <MiniMapaConfirmar
+                      altura={isMobile ? 180 : 240}
                       onConfirmar={(endereco, lat, lng) => { setCoordenadas({ lat, lng, label: endereco }); setLocConfirmada(true) }}
                       onAlterar={() => { setCoordenadas(null); setLocConfirmada(false) }}
                     />
