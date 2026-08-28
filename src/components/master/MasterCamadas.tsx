@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase-browser'
 import { CamadaConfig } from '@/types'
 
 const GRUPOS: { camada: string; titulo: string; descricao: string }[] = [
-  { camada: 'pets', titulo: 'Pets', descricao: 'Cor do pin de cada situação. "Perdido" e "Achei na rua" são registros independentes.' },
+  { camada: 'pets', titulo: 'Pets', descricao: 'Cor do pin de cada situação. Perdidos, Abandonados, Adoção e Reencontrados são registros independentes.' },
   { camada: 'classificados', titulo: 'Classificados', descricao: 'Cor e ícone do pin por tipo de veículo. O ícone enviado substitui a silhueta padrão.' },
   { camada: 'empregos', titulo: 'Empregos', descricao: 'Cor do pin das vagas. A logo da empresa, quando houver, ocupa o miolo do pin.' },
 ]
