@@ -191,14 +191,14 @@ export function FormPet({
 
         {sucesso ? (
           <div style={{ padding: '32px', textAlign: 'center' }}>
-            <p style={{ fontWeight: 700, color: '#166534', fontSize: '16px', margin: '0 0 8px' }}>Registro publicado!</p>
+            <p style={{ fontWeight: 700, color: '#166534', fontSize: '16px', margin: '0 0 8px' }}>Registro enviado!</p>
             {protocolo && (
               <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827', margin: '0 0 6px' }}>
                 Protocolo: <span style={{ color: '#4256c8' }}>{protocolo}</span>
               </p>
             )}
             <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px', lineHeight: 1.6 }}>
-              Ele já aparece no mapa e fica visível por 30 dias.
+              Seu registro está em análise. Se aprovado pelo nosso Agente IA, aparecerá no mapa em instantes.
             </p>
             <button onClick={aoFechar} style={{ fontSize: '13px', color: '#4256c8', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Fechar</button>
           </div>
