@@ -113,7 +113,8 @@ export function FormPet({
   const exibeNome    = tipo === 'perdido'
   const exibeRaca    = tipo === 'perdido'
   const exibeCor     = tipo === 'perdido' || tipo === 'achado'
-  const exibeFoto    = tipo === 'perdido' || tipo === 'adocao'
+  const exibeFoto    = true // visível para todos; obrigatório só para perdido e adocao
+  const fotoObrigatoria = tipo === 'perdido' || tipo === 'adocao'
   const exibeDataHora = tipo === 'perdido' || tipo === 'achado'
 
   function avancar1() {
@@ -121,7 +122,7 @@ export function FormPet({
     if (exibeRaca && !raca.trim()) { mostrarErro('Informe a raça do Pet.'); return }
     if (exibeCor && !cor.trim()) { mostrarErro('Informe a cor do Pet.'); return }
     if (!porte) { mostrarErro('Selecione o porte do Pet.'); return }
-    if (exibeFoto && !fotoPreview) { mostrarErro('Adicione ao menos uma foto do Pet.'); return }
+    if (fotoObrigatoria && !fotoPreview) { mostrarErro('Adicione ao menos uma foto do Pet.'); return }
     setErro('')
     setEtapa(2)
   }
@@ -148,7 +149,7 @@ export function FormPet({
       if (url === null && erroFoto) { mostrarErro(erroFoto); setEnviando(false); return }
       foto_url = url
     }
-    if (exibeFoto && !foto_url) { mostrarErro('Adicione ao menos uma foto do Pet.'); setEnviando(false); return }
+    if (fotoObrigatoria && !foto_url) { mostrarErro('Adicione ao menos uma foto do Pet.'); setEnviando(false); return }
 
     const registro = {
       user_id: user.id,
@@ -287,7 +288,7 @@ export function FormPet({
                 </div>
 
                 {exibeFoto && <div>
-                  <label style={rotuloCampo}>Foto *</label>
+                  <label style={rotuloCampo}>{fotoObrigatoria ? 'Foto *' : 'Foto'}</label>
                   {!fotoPreview ? (
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '56px', border: '2px dashed #e5e7eb', borderRadius: '8px', textAlign: 'center', cursor: 'pointer' }}>
                       <input type="file" accept="image/*" onChange={aoEscolherFoto} style={{ display: 'none' }} />
