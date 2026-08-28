@@ -199,11 +199,14 @@ export function FormClassificado({
       <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '440px', height: sucesso ? 'auto' : '580px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {/* Cabeçalho */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: '8px 20px', borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
-          <h2 style={{ fontWeight: 700, color: '#111827', margin: 0, fontSize: '15px' }}>
-            {editando ? 'Editar anúncio' : 'Anunciar um veículo'}
-          </h2>
-          <button onClick={aoFechar} style={{ position: 'absolute', right: '20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#6b7280', lineHeight: 1, padding: 0 }}>×</button>
+        {!sucesso && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: '8px 20px', borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
+            <h2 style={{ fontWeight: 700, color: '#111827', margin: 0, fontSize: '15px' }}>
+              {editando ? 'Editar anúncio' : 'Anunciar um veículo'}
+            </h2>
+            <button onClick={aoFechar} style={{ position: 'absolute', right: '20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#6b7280', lineHeight: 1, padding: 0 }}>×</button>
+          </div>
+        )}
         </div>
 
         {sucesso ? (
