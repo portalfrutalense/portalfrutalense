@@ -13,6 +13,8 @@ interface ItemLista {
   titulo: string
   subtitulo?: string
   meta: { rotulo: string; valor: string }[]
+  /** Linha destacada exibida abaixo dos meta — mesmo estilo da "Análise IA" das demandas. */
+  destaque?: { rotulo: string; valor: string; cor?: string } | null
   foto?: string | null
   etiquetas: { texto: string; cor: string }[]
   oculto: boolean
@@ -120,6 +122,21 @@ function ListaModeracao({
                     </div>
                   ))}
                 </div>
+
+                {item.destaque && (
+                  <div style={{
+                    marginTop: '8px',
+                    fontSize: '12px',
+                    color: item.destaque.cor ?? '#6b7280',
+                    background: '#f9fafb',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '6px',
+                    padding: '7px 10px',
+                    lineHeight: 1.5,
+                  }}>
+                    <strong>{item.destaque.rotulo}</strong> {item.destaque.valor}
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flexShrink: 0 }}>
@@ -215,6 +232,11 @@ export function MasterPets() {
       { rotulo: 'Local', valor: p.endereco_label || '—' },
       { rotulo: 'Publicado', valor: dataCurta(p.created_at) },
     ],
+    destaque: p.ia_motivo ? {
+      rotulo: p.ia_decisao === 'rejeitada' ? 'Motivo IA:' : 'Análise IA:',
+      valor: p.ia_motivo,
+      cor: p.ia_decisao === 'rejeitada' ? '#dc2626' : '#6b7280',
+    } : null,
     acoes: [
       {
         rotulo: p.oculto ? 'Reexibir' : 'Ocultar',
@@ -309,6 +331,11 @@ export function MasterClassificados() {
       { rotulo: 'Região', valor: c.bairro_label || '—' },
       { rotulo: 'Publicado', valor: dataCurta(c.created_at) },
     ],
+    destaque: c.ia_motivo ? {
+      rotulo: c.ia_decisao === 'rejeitada' ? 'Motivo IA:' : 'Análise IA:',
+      valor: c.ia_motivo,
+      cor: c.ia_decisao === 'rejeitada' ? '#dc2626' : '#6b7280',
+    } : null,
     acoes: [
       {
         rotulo: c.oculto ? 'Reexibir' : 'Ocultar',
