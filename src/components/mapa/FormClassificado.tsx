@@ -7,9 +7,8 @@ import MiniMapaConfirmar from '../MiniMapaConfirmar'
 import Turnstile from '../Turnstile'
 import { Classificado, TipoVeiculo } from '@/types'
 import { salvarCamada } from './salvarCamada'
-import { IconeVeiculo, ROTULO_VEICULO, TIPOS } from './CamadaClassificados'
+import { ROTULO_VEICULO, TIPOS } from './CamadaClassificados'
 import { mascaraTelefone, telefoneValido } from '@/lib/mascaraTelefone'
-import { useIsMobile } from '@/hooks/useIsMobile'
 
 /* ------------------------------------------------------------ helpers --- */
 
@@ -56,7 +55,6 @@ export function FormClassificado({
 }) {
   const supabase = createClient()
   const { user, perfil } = useAuth()
-  const isMobile = useIsMobile()
 
   const [tipoVeiculo, setTipoVeiculo] = useState<TipoVeiculo>(editando?.tipo_veiculo ?? 'carro')
   const [titulo, setTitulo] = useState(editando?.titulo ?? '')
@@ -103,10 +101,7 @@ export function FormClassificado({
           if (error) throw error
           return supabase.storage.from('classificados-fotos').getPublicUrl(path).data.publicUrl
         })
-        .catch((err: any) => {
-          setErroFoto(`Erro ao enviar foto: ${err?.message || 'falha no upload'}`)
-          return null
-        })
+        .catch((err: any) => { setErroFoto(`Erro ao enviar foto: ${err?.message || 'falha no upload'}`); return null })
         .finally(() => setUploadandoFotos(n => n - 1))
       uploadPromises.current.push(promise)
     })
@@ -115,40 +110,26 @@ export function FormClassificado({
   function removerFoto(i: number) {
     setPreviews(prev => prev.filter((_, idx) => idx !== i))
     const jaPublicadas = editando?.fotos?.length ?? 0
-    if (i >= jaPublicadas) {
-      const idxNova = i - jaPublicadas
-      uploadPromises.current.splice(idxNova, 1)
-    }
+    if (i >= jaPublicadas) uploadPromises.current.splice(i - jaPublicadas, 1)
   }
 
-  const [etapa, setEtapa] = useState<1 | 2 | 3>(1)
-
-  function avancar1() {
-    setErro('')
+  async function enviar() {
+    // Valida todos os campos de uma vez
     if (!marca.trim()) { mostrarErro('Informe a marca do veículo.'); return }
     if (!modelo.trim()) { mostrarErro('Informe o modelo do veículo.'); return }
     if (!ano.trim() || isNaN(Number(ano))) { mostrarErro('Informe o ano do veículo.'); return }
     if (!km.trim() || isNaN(Number(km))) { mostrarErro('Informe a quilometragem do veículo.'); return }
     if (!cor.trim()) { mostrarErro('Informe a cor do veículo.'); return }
     if (!preco.trim() || isNaN(Number(preco)) || Number(preco) <= 0) { mostrarErro('Informe o preço do veículo.'); return }
-    setEtapa(2)
-  }
-
-  function avancar2() {
-    setErro('')
-    if (!descricao.trim() || descricao.trim().length < 10) { mostrarErro('Descreva melhor o veículo.'); return }
     if (!titulo.trim()) { mostrarErro('Dê um título ao anúncio.'); return }
+    if (!descricao.trim() || descricao.trim().length < 10) { mostrarErro('Descreva melhor o veículo.'); return }
     if (previews.length < 2) { mostrarErro('Adicione ao menos 2 fotos do veículo.'); return }
-    setEtapa(3)
-  }
-
-  async function enviar() {
-    setErro('')
-    if (!user) return
     if (!contato.trim()) { mostrarErro('Informe um contato.'); return }
     if (!telefoneValido(contato)) { mostrarErro('Informe um WhatsApp válido: (XX) 9XXXX-XXXX.'); return }
     if (!coordenadas || !locConfirmada) { mostrarErro('Confirme a região no mapa.'); return }
     if (!editando && !turnstileToken) { mostrarErro('Aguarde a verificação de segurança concluir.'); return }
+    if (!user) return
+    setErro('')
     setEnviando(true)
 
     const urls: string[] = previews.filter(p => !p.startsWith('data:'))
@@ -169,77 +150,28 @@ export function FormClassificado({
       user_id: user.id,
       autor_nome: perfil?.nome || user.email || 'Anônimo',
       tipo_veiculo: tipoVeiculo,
-      titulo: titulo.trim(),
-      marca: marca.trim() || null,
-      modelo: modelo.trim() || null,
-      ano: ano ? Number(ano) : null,
-      km: km ? Number(km) : null,
-      cor: cor.trim() || null,
-      preco: preco ? Number(preco) : null,
-      aceita_troca: aceitaTroca,
-      descricao: descricao.trim(),
-      lat: ponto.lat,
-      lng: ponto.lng,
+      titulo: titulo.trim(), marca: marca.trim() || null, modelo: modelo.trim() || null,
+      ano: ano ? Number(ano) : null, km: km ? Number(km) : null,
+      cor: cor.trim() || null, preco: preco ? Number(preco) : null,
+      aceita_troca: aceitaTroca, descricao: descricao.trim(),
+      lat: ponto.lat, lng: ponto.lng,
       bairro_label: bairro.trim() || coordenadas.label,
-      fotos: urls,
-      contato: contato.trim(),
+      fotos: urls, contato: contato.trim(),
     }
 
-    const { erro, id, protocolo: prot } = await salvarCamada({ camada: 'classificados', editando, dados: registro, turnstileToken, supabase })
+    const { erro, protocolo: prot } = await salvarCamada({ camada: 'classificados', editando, dados: registro, turnstileToken, supabase })
 
     setEnviando(false)
     if (erro) { mostrarErro(erro); return }
     if (editando) { aoSalvar(); aoFechar(); return }
-
     if (prot) setProtocolo(prot)
     setSucesso(true)
     aoSalvar()
   }
 
-  // Mobile: valida tudo de uma vez antes de enviar
-  async function enviarMobile() {
-    if (!marca.trim()) { mostrarErro('Informe a marca do veículo.'); return }
-    if (!modelo.trim()) { mostrarErro('Informe o modelo do veículo.'); return }
-    if (!ano.trim() || isNaN(Number(ano))) { mostrarErro('Informe o ano do veículo.'); return }
-    if (!km.trim() || isNaN(Number(km))) { mostrarErro('Informe a quilometragem do veículo.'); return }
-    if (!cor.trim()) { mostrarErro('Informe a cor do veículo.'); return }
-    if (!preco.trim() || isNaN(Number(preco)) || Number(preco) <= 0) { mostrarErro('Informe o preço do veículo.'); return }
-    if (!titulo.trim()) { mostrarErro('Dê um título ao anúncio.'); return }
-    if (!descricao.trim() || descricao.trim().length < 10) { mostrarErro('Descreva melhor o veículo.'); return }
-    if (previews.length < 2) { mostrarErro('Adicione ao menos 2 fotos do veículo.'); return }
-    await enviar()
-  }
-
-  /* ---- seção de fotos reutilizada ---- */
-  const secaoFotos = (
-    <div>
-      <label style={rotuloCampo}>Fotos * <span style={{ fontWeight: 400 }}>(mín. 2, até {MAX_FOTOS})</span></label>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-        {previews.map((p, i) => (
-          <div key={i} style={{ position: 'relative', borderRadius: '7px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={p} alt={`Foto ${i + 1}`} style={{ width: '100%', height: '64px', objectFit: 'cover', display: 'block' }} />
-            <button type="button" onClick={() => removerFoto(i)}
-              style={{ position: 'absolute', top: '3px', right: '3px', background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', cursor: 'pointer', fontSize: '11px' }}>×</button>
-            {p.startsWith('data:') && uploadandoFotos > 0 && (
-              <div style={{ position: 'absolute', bottom: '3px', left: '3px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '9px', borderRadius: '3px', padding: '1px 4px' }}>⏫</div>
-            )}
-          </div>
-        ))}
-        {previews.length < MAX_FOTOS && (
-          <label style={{ display: 'grid', placeItems: 'center', height: '64px', border: '2px dashed #e5e7eb', borderRadius: '7px', cursor: 'pointer', fontSize: '11px', color: '#4256c8', fontWeight: 600 }}>
-            <input type="file" accept="image/*" multiple onChange={aoEscolherFotos} style={{ display: 'none' }} />
-            + Foto
-          </label>
-        )}
-      </div>
-      {erroFoto && <p style={{ fontSize: '11px', color: '#dc2626', margin: '4px 0 0' }}>{erroFoto}</p>}
-    </div>
-  )
-
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-      <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '440px', height: sucesso ? 'auto' : isMobile ? 'auto' : '580px', maxHeight: '90dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '440px', height: sucesso ? 'auto' : 'auto', maxHeight: '90dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {/* Cabeçalho */}
         {!sucesso && (
@@ -264,180 +196,94 @@ export function FormClassificado({
           </div>
         ) : (
           <>
-            <div style={{ padding: '16px 20px', flex: 1, overflowY: 'auto' }}>
+            {/* Conteúdo com scroll */}
+            <form id="form-classificado" onSubmit={(e) => { e.preventDefault(); enviar() }}
+              style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px', minHeight: 0 }}>
 
-              {isMobile ? (
-                /* Mobile: tudo em um formulário único com scroll */
-                <form id="form-classificado" onSubmit={(e) => { e.preventDefault(); enviarMobile() }} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={rotuloCampo}>Tipo de veículo *</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  {TIPOS.map(t => (
+                    <button key={t} type="button" onClick={() => setTipoVeiculo(t)}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '9px', borderRadius: '7px', cursor: 'pointer', fontSize: '13px', fontWeight: tipoVeiculo === t ? 600 : 500, background: tipoVeiculo === t ? '#eff6ff' : 'white', border: `1px solid ${tipoVeiculo === t ? '#4256c8' : '#e5e7eb'}`, color: '#111827' }}>
+                      {ROTULO_VEICULO[t]}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-                  <div>
-                    <label style={rotuloCampo}>Tipo de veículo *</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                      {TIPOS.map(t => (
-                        <button key={t} type="button" onClick={() => setTipoVeiculo(t)}
-                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '9px', borderRadius: '7px', cursor: 'pointer', fontSize: '13px', fontWeight: tipoVeiculo === t ? 600 : 500, background: tipoVeiculo === t ? '#eff6ff' : 'white', border: `1px solid ${tipoVeiculo === t ? '#4256c8' : '#e5e7eb'}`, color: '#111827' }}>
-                          {ROTULO_VEICULO[t]}
-                        </button>
-                      ))}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div><label style={rotuloCampo}>Marca *</label><input value={marca} onChange={e => setMarca(e.target.value)} placeholder="Volkswagen" style={campoEstilo} /></div>
+                <div><label style={rotuloCampo}>Modelo *</label><input value={modelo} onChange={e => setModelo(e.target.value)} placeholder="Gol" style={campoEstilo} /></div>
+                <div><label style={rotuloCampo}>Ano *</label><input value={ano} onChange={e => setAno(e.target.value.replace(/\D/g, ''))} inputMode="numeric" maxLength={4} placeholder="2018" style={campoEstilo} /></div>
+                <div><label style={rotuloCampo}>Quilometragem *</label><input value={km} onChange={e => setKm(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder="85000" style={campoEstilo} /></div>
+                <div><label style={rotuloCampo}>Cor *</label><input value={cor} onChange={e => setCor(e.target.value)} placeholder="Prata" style={campoEstilo} /></div>
+                <div><label style={rotuloCampo}>Preço (R$) *</label><input value={preco} onChange={e => setPreco(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder="45000" style={campoEstilo} /></div>
+              </div>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#111827', cursor: 'pointer' }}>
+                <input type="checkbox" checked={aceitaTroca} onChange={e => setAceitaTroca(e.target.checked)} style={{ accentColor: '#4256c8', width: '15px', height: '15px' }} />
+                Aceito troca
+              </label>
+
+              <div><label style={rotuloCampo}>Título do anúncio *</label><input value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Ex.: Gol 1.0 completo" style={campoEstilo} /></div>
+
+              <div>
+                <label style={rotuloCampo}>Descrição *</label>
+                <textarea value={descricao} onChange={e => setDescricao(e.target.value)}
+                  placeholder="Estado de conservação, itens, documentação, motivo da venda..."
+                  style={{ ...campoEstilo, minHeight: '80px', resize: 'none' }} />
+              </div>
+
+              <div>
+                <label style={rotuloCampo}>Fotos * <span style={{ fontWeight: 400 }}>(mín. 2, até {MAX_FOTOS})</span></label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                  {previews.map((p, i) => (
+                    <div key={i} style={{ position: 'relative', borderRadius: '7px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={p} alt={`Foto ${i + 1}`} style={{ width: '100%', height: '64px', objectFit: 'cover', display: 'block' }} />
+                      <button type="button" onClick={() => removerFoto(i)}
+                        style={{ position: 'absolute', top: '3px', right: '3px', background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', cursor: 'pointer', fontSize: '11px' }}>×</button>
+                      {p.startsWith('data:') && uploadandoFotos > 0 && (
+                        <div style={{ position: 'absolute', bottom: '3px', left: '3px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '9px', borderRadius: '3px', padding: '1px 4px' }}>⏫</div>
+                      )}
                     </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div><label style={rotuloCampo}>Marca *</label><input value={marca} onChange={e => setMarca(e.target.value)} placeholder="Volkswagen" style={campoEstilo} /></div>
-                    <div><label style={rotuloCampo}>Modelo *</label><input value={modelo} onChange={e => setModelo(e.target.value)} placeholder="Gol" style={campoEstilo} /></div>
-                    <div><label style={rotuloCampo}>Ano *</label><input value={ano} onChange={e => setAno(e.target.value.replace(/\D/g, ''))} inputMode="numeric" maxLength={4} placeholder="2018" style={campoEstilo} /></div>
-                    <div><label style={rotuloCampo}>Quilometragem *</label><input value={km} onChange={e => setKm(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder="85000" style={campoEstilo} /></div>
-                    <div><label style={rotuloCampo}>Cor *</label><input value={cor} onChange={e => setCor(e.target.value)} placeholder="Prata" style={campoEstilo} /></div>
-                    <div><label style={rotuloCampo}>Preço (R$) *</label><input value={preco} onChange={e => setPreco(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder="45000" style={campoEstilo} /></div>
-                  </div>
-
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#111827', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={aceitaTroca} onChange={e => setAceitaTroca(e.target.checked)} style={{ accentColor: '#4256c8', width: '15px', height: '15px' }} />
-                    Aceito troca
-                  </label>
-
-                  <div><label style={rotuloCampo}>Título do anúncio *</label><input value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Ex.: Gol 1.0 completo" style={campoEstilo} /></div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-                    <label style={rotuloCampo}>Descrição *</label>
-                    <textarea value={descricao} onChange={e => setDescricao(e.target.value)}
-                      placeholder="Estado de conservação, itens, documentação, motivo da venda..."
-                      style={{ ...campoEstilo, flex: 1, minHeight: '80px', resize: 'none' }} />
-                  </div>
-
-                  {secaoFotos}
-
-                  <div>
-                    <label style={rotuloCampo}>Região aproximada *</label>
-                    <MiniMapaConfirmar
-                      altura={200}
-                      onConfirmar={(endereco, lat, lng) => { setCoordenadas({ lat, lng, label: endereco }); setLocConfirmada(true) }}
-                      onAlterar={() => { setCoordenadas(null); setLocConfirmada(false) }}
-                    />
-                    <p style={{ fontSize: '11px', color: '#6b7280', margin: '5px 0 0', lineHeight: 1.45 }}>O pin é publicado deslocado alguns metros — ninguém vê seu endereço exato.</p>
-                  </div>
-
-                  <div>
-                    <label style={rotuloCampo}>Contato *</label>
-                    <input value={contato} onChange={e => setContato(mascaraTelefone(e.target.value))} placeholder="(XX) 9XXXX-XXXX" inputMode="numeric" style={campoEstilo} />
-                  </div>
-
-                  {!editando && <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />}
-                </form>
-              ) : (
-                /* Desktop: etapa por etapa */
-                <>
-                  {etapa === 1 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                      <div>
-                        <label style={rotuloCampo}>Tipo de veículo *</label>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                          {TIPOS.map(t => (
-                            <button key={t} type="button" onClick={() => setTipoVeiculo(t)}
-                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '9px', borderRadius: '7px', cursor: 'pointer', fontSize: '13px', fontWeight: tipoVeiculo === t ? 600 : 500, background: tipoVeiculo === t ? '#eff6ff' : 'white', border: `1px solid ${tipoVeiculo === t ? '#4256c8' : '#e5e7eb'}`, color: '#111827' }}>
-                              {ROTULO_VEICULO[t]}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                        <div><label style={rotuloCampo}>Marca *</label><input value={marca} onChange={e => setMarca(e.target.value)} placeholder="Volkswagen" style={campoEstilo} /></div>
-                        <div><label style={rotuloCampo}>Modelo *</label><input value={modelo} onChange={e => setModelo(e.target.value)} placeholder="Gol" style={campoEstilo} /></div>
-                        <div><label style={rotuloCampo}>Ano *</label><input value={ano} onChange={e => setAno(e.target.value.replace(/\D/g, ''))} inputMode="numeric" maxLength={4} placeholder="2018" style={campoEstilo} /></div>
-                        <div><label style={rotuloCampo}>Quilometragem *</label><input value={km} onChange={e => setKm(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder="85000" style={campoEstilo} /></div>
-                        <div><label style={rotuloCampo}>Cor *</label><input value={cor} onChange={e => setCor(e.target.value)} placeholder="Prata" style={campoEstilo} /></div>
-                        <div><label style={rotuloCampo}>Preço (R$) *</label><input value={preco} onChange={e => setPreco(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder="45000" style={campoEstilo} /></div>
-                      </div>
-
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#111827', cursor: 'pointer' }}>
-                        <input type="checkbox" checked={aceitaTroca} onChange={e => setAceitaTroca(e.target.checked)} style={{ accentColor: '#4256c8', width: '15px', height: '15px' }} />
-                        Aceito troca
-                      </label>
-                    </div>
+                  ))}
+                  {previews.length < MAX_FOTOS && (
+                    <label style={{ display: 'grid', placeItems: 'center', height: '64px', border: '2px dashed #e5e7eb', borderRadius: '7px', cursor: 'pointer', fontSize: '11px', color: '#4256c8', fontWeight: 600 }}>
+                      <input type="file" accept="image/*" multiple onChange={aoEscolherFotos} style={{ display: 'none' }} />
+                      + Foto
+                    </label>
                   )}
+                </div>
+                {erroFoto && <p style={{ fontSize: '11px', color: '#dc2626', margin: '4px 0 0' }}>{erroFoto}</p>}
+              </div>
 
-                  {etapa === 2 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                      <div><label style={rotuloCampo}>Título do anúncio *</label><input value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Ex.: Gol 1.0 completo" style={campoEstilo} /></div>
-                      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-                        <label style={rotuloCampo}>Descrição *</label>
-                        <textarea value={descricao} onChange={e => setDescricao(e.target.value)}
-                          placeholder="Estado de conservação, itens, documentação, motivo da venda..."
-                          style={{ ...campoEstilo, flex: 1, minHeight: '80px', resize: 'none' }} />
-                      </div>
-                      {secaoFotos}
-                    </div>
-                  )}
+              <div>
+                <label style={rotuloCampo}>Região aproximada *</label>
+                <MiniMapaConfirmar
+                  altura={240}
+                  onConfirmar={(endereco, lat, lng) => { setCoordenadas({ lat, lng, label: endereco }); setLocConfirmada(true) }}
+                  onAlterar={() => { setCoordenadas(null); setLocConfirmada(false) }}
+                />
+                <p style={{ fontSize: '11px', color: '#6b7280', margin: '5px 0 0', lineHeight: 1.45 }}>O pin é publicado deslocado alguns metros — ninguém vê seu endereço exato.</p>
+              </div>
 
-                  {etapa === 3 && (
-                    <form id="form-classificado" onSubmit={(e) => { e.preventDefault(); enviar() }} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                      <div>
-                        <label style={rotuloCampo}>Região aproximada *</label>
-                        <MiniMapaConfirmar
-                          altura={230}
-                          onConfirmar={(endereco, lat, lng) => { setCoordenadas({ lat, lng, label: endereco }); setLocConfirmada(true) }}
-                          onAlterar={() => { setCoordenadas(null); setLocConfirmada(false) }}
-                        />
-                        <p style={{ fontSize: '11px', color: '#6b7280', margin: '5px 0 0', lineHeight: 1.45 }}>O pin é publicado deslocado alguns metros — ninguém vê seu endereço exato.</p>
-                      </div>
-                      <div>
-                        <label style={rotuloCampo}>Contato *</label>
-                        <input value={contato} onChange={e => setContato(mascaraTelefone(e.target.value))} placeholder="(XX) 9XXXX-XXXX" inputMode="numeric" style={campoEstilo} />
-                      </div>
-                      {!editando && <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />}
-                    </form>
-                  )}
-                </>
-              )}
+              <div>
+                <label style={rotuloCampo}>Contato *</label>
+                <input value={contato} onChange={e => setContato(mascaraTelefone(e.target.value))} placeholder="(XX) 9XXXX-XXXX" inputMode="numeric" style={campoEstilo} />
+              </div>
 
-            </div>
+              {!editando && <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />}
+            </form>
 
-            {/* ── Rodapé fixo com botões ── */}
+            {/* Rodapé fixo */}
             <div style={{ borderTop: '1px solid #e5e7eb', padding: '12px 20px', flexShrink: 0 }}>
               {erro && <div style={{ marginBottom: '8px', color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px 12px', fontSize: '12.5px' }}>{erro}</div>}
-
-              {isMobile ? (
-                <button type="submit" form="form-classificado" disabled={enviando || uploadandoFotos > 0}
-                  style={{ width: '100%', backgroundColor: (enviando || uploadandoFotos > 0) ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: (enviando || uploadandoFotos > 0) ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
-                  {enviando ? 'Salvando...' : uploadandoFotos > 0 ? 'Aguardando fotos...' : editando ? 'Salvar alterações' : 'Publicar anúncio'}
-                </button>
-              ) : (
-                <>
-                  {etapa === 1 && (
-                    <button type="button" onClick={avancar1}
-                      style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
-                      Continuar →
-                    </button>
-                  )}
-
-                  {etapa === 2 && (
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                      <button type="button" onClick={() => { setErro(''); setEtapa(1) }}
-                        style={{ flex: '0 0 auto', background: 'white', color: '#6b7280', fontWeight: 600, padding: '10px 16px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '14px' }}>
-                        ← Voltar
-                      </button>
-                      <button type="button" onClick={avancar2}
-                        style={{ flex: 1, backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
-                        Continuar →
-                      </button>
-                    </div>
-                  )}
-
-                  {etapa === 3 && (
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                      <button type="button" onClick={() => { setErro(''); setEtapa(2) }}
-                        style={{ flex: '0 0 auto', background: 'white', color: '#6b7280', fontWeight: 600, padding: '10px 16px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '14px' }}>
-                        ← Voltar
-                      </button>
-                      <button type="submit" form="form-classificado" disabled={enviando || uploadandoFotos > 0}
-                        style={{ flex: 1, backgroundColor: (enviando || uploadandoFotos > 0) ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: (enviando || uploadandoFotos > 0) ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
-                        {enviando ? 'Salvando...' : uploadandoFotos > 0 ? 'Aguardando fotos...' : editando ? 'Salvar alterações' : 'Publicar anúncio'}
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
+              <button type="submit" form="form-classificado" disabled={enviando || uploadandoFotos > 0}
+                style={{ width: '100%', backgroundColor: (enviando || uploadandoFotos > 0) ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: (enviando || uploadandoFotos > 0) ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+                {enviando ? 'Salvando...' : uploadandoFotos > 0 ? 'Aguardando fotos...' : editando ? 'Salvar alterações' : 'Publicar anúncio'}
+              </button>
             </div>
           </>
         )}
