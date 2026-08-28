@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
@@ -27,19 +27,48 @@ function EmailIcon() {
   )
 }
 
-type Aba = 'entrar' | 'cadastrar'
 type Tela = 'inicial' | 'email' | 'esqueci'
 
 export default function ModalAuth({ onFechar }: Props) {
   const supabase = createClient()
   const [tela, setTela] = useState<Tela>('inicial')
-  const [aba, setAba] = useState<Aba>('entrar')
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
+  const [senhaConfirm, setSenhaConfirm] = useState('')
+  const [fase, setFase] = useState<'form' | 'confirmar' | 'ok'>('form')
   const [carregando, setCarregando] = useState(false)
   const [carregandoGoogle, setCarregandoGoogle] = useState(false)
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState('')
+
+  async function entrarComGoogle() {
+    setCarregandoGoogle(true); setErro('')
+    const volta = encodeURIComponent(window.location.pathname + window.location.search)
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=${volta}` },
+    })
+    if (error) { setErro('Erro ao conectar com Google.'); setCarregandoGoogle(false) }
+  }
+
+  async function submeter(e: React.FormEvent) {
+    e.preventDefault(); setErro(''); setCarregando(true)
+    if (fase === 'form') {
+      const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
+      if (!error) return
+      setFase('confirmar'); setCarregando(false); return
+    }
+    if (senha.length < 6) { setErro('A senha precisa ter pelo menos 6 caracteres.'); setCarregando(false); return }
+    if (senha !== senhaConfirm) { setErro('As senhas não coincidem.'); setCarregando(false); return }
+    const { error: errSign } = await supabase.auth.signUp({ email, password: senha })
+    if (!errSign) { setFase('ok'); setCarregando(false); return }
+    if (errSign.message?.toLowerCase().includes('already')) {
+      setFase('form'); setSenhaConfirm(''); setErro('Senha incorreta. Confira e tente de novo.')
+    } else {
+      setErro(errSign.message || 'Não foi possível criar a conta.')
+    }
+    setCarregando(false)
+  }
 
   async function esqueceuSenha(e: React.FormEvent) {
     e.preventDefault(); setErro(''); setCarregando(true)
@@ -54,34 +83,7 @@ export default function ModalAuth({ onFechar }: Props) {
     setCarregando(false)
   }
 
-  async function entrarComGoogle() {
-    setCarregandoGoogle(true); setErro('')
-    const volta = encodeURIComponent(window.location.pathname + window.location.search)
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=${volta}` },
-    })
-    if (error) { setErro('Erro ao conectar com Google.'); setCarregandoGoogle(false) }
-  }
-
-  async function entrarComEmail(e: React.FormEvent) {
-    e.preventDefault(); setErro(''); setCarregando(true)
-    const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
-    if (error) { setErro('E-mail ou senha incorretos.'); setCarregando(false) }
-  }
-
-  async function cadastrarComEmail(e: React.FormEvent) {
-    e.preventDefault(); setErro(''); setCarregando(true)
-    if (senha.length < 6) { setErro('A senha deve ter pelo menos 6 caracteres.'); setCarregando(false); return }
-    const { error } = await supabase.auth.signUp({ email, password: senha })
-    if (error) {
-      setErro('Erro ao cadastrar. Verifique o e-mail.')
-      setCarregando(false)
-    } else {
-      setSucesso('Cadastro realizado! Verifique seu e-mail para confirmar a conta antes de entrar.')
-      setCarregando(false)
-    }
-  }
+  function voltar() { setTela('inicial'); setErro(''); setSucesso(''); setFase('form'); setSenhaConfirm('') }
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
@@ -96,93 +98,95 @@ export default function ModalAuth({ onFechar }: Props) {
 
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-          {tela === 'inicial' ? (
+          {tela === 'inicial' && (
             <>
               <p style={{ margin: 0, fontSize: '14px', color: '#111827', textAlign: 'center' }}>
                 Faça login ou registre-se em segundos
               </p>
-
-              {/* Google */}
               <button onClick={entrarComGoogle} disabled={carregandoGoogle}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '13px 16px', border: '1.5px solid #e5e7eb', borderRadius: '8px', background: 'white', cursor: carregandoGoogle ? 'wait' : 'pointer', fontSize: '15px', fontWeight: 600, color: '#111827', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
                 <GoogleIcon />
                 {carregandoGoogle ? 'Redirecionando...' : 'Continuar com Google'}
               </button>
-
-              {/* Email */}
               <button onClick={() => setTela('email')}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '13px 16px', border: '1.5px solid #e5e7eb', borderRadius: '8px', background: 'white', cursor: 'pointer', fontSize: '15px', fontWeight: 600, color: '#111827', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
                 <EmailIcon />
                 Entrar com e-mail
               </button>
-
-              {erro && <div style={{ color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
+              {erro && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
             </>
-          ) : (
+          )}
+
+          {tela === 'esqueci' && (
             <>
-              {/* Voltar */}
-              <button onClick={() => { setTela('inicial'); setErro(''); setSucesso('') }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '13px', padding: 0, display: 'flex', alignItems: 'center', gap: '4px', alignSelf: 'flex-start' }}>
+              <button onClick={voltar} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '13px', padding: 0, display: 'flex', alignItems: 'center', gap: '4px', alignSelf: 'flex-start' }}>
                 ← Voltar
               </button>
-
-              {tela === 'esqueci' && (
-                <>
-                  <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#111827' }}>Redefinir senha</p>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>Digite seu e-mail e enviaremos um link para você criar uma nova senha.</p>
-                  {erro && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
-                  {sucesso && <div style={{ color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '10px 12px', fontSize: '13px', lineHeight: 1.5 }}>{sucesso}</div>}
-                  {!sucesso && (
-                    <form onSubmit={esqueceuSenha} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-                        placeholder="seu@email.com"
-                        style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-                      <button type="submit" disabled={carregando}
-                        style={{ backgroundColor: carregando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 700, padding: '12px', borderRadius: '8px', border: 'none', cursor: carregando ? 'not-allowed' : 'pointer', fontSize: '15px' }}>
-                        {carregando ? 'Enviando...' : 'Enviar link de redefinição'}
-                      </button>
-                    </form>
-                  )}
-                </>
+              <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#111827' }}>Redefinir senha</p>
+              <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>Digite seu e-mail e enviaremos um link para criar uma nova senha.</p>
+              {erro && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
+              {sucesso ? (
+                <div style={{ color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '10px 12px', fontSize: '13px', lineHeight: 1.5 }}>{sucesso}</div>
+              ) : (
+                <form onSubmit={esqueceuSenha} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
+                    placeholder="seu@email.com"
+                    style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                  <button type="submit" disabled={carregando}
+                    style={{ backgroundColor: carregando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 700, padding: '12px', borderRadius: '8px', border: 'none', cursor: carregando ? 'not-allowed' : 'pointer', fontSize: '15px' }}>
+                    {carregando ? 'Enviando...' : 'Enviar link de redefinição'}
+                  </button>
+                </form>
               )}
+            </>
+          )}
 
-              {tela !== 'esqueci' && (
-                <>
-                  {/* Abas */}
-                  <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb' }}>
-                    {(['entrar', 'cadastrar'] as Aba[]).map((a) => (
-                      <button key={a} onClick={() => { setAba(a); setErro(''); setSucesso('') }}
-                        style={{ flex: 1, padding: '10px', fontSize: '13px', fontWeight: aba === a ? 700 : 400, color: aba === a ? '#4256c8' : '#6b7280', background: 'none', border: 'none', borderBottom: aba === a ? '2px solid #4256c8' : '2px solid transparent', cursor: 'pointer' }}>
-                        {a === 'entrar' ? 'Entrar' : 'Criar conta'}
-                      </button>
-                    ))}
-                  </div>
-
-                  {erro && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
-                  {sucesso && <div style={{ color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '10px 12px', fontSize: '13px', lineHeight: 1.5 }}>{sucesso}</div>}
-
-                  {!sucesso && (
-                    <form onSubmit={aba === 'entrar' ? entrarComEmail : cadastrarComEmail}
-                      style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-                        placeholder="seu@email.com"
-                        style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-                      <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required
-                        placeholder={aba === 'cadastrar' ? 'Crie uma senha (mín. 6 caracteres)' : 'Sua senha'}
-                        style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-                      {aba === 'entrar' && (
-                        <button type="button" onClick={() => { setTela('esqueci'); setErro(''); setSucesso('') }}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4256c8', fontSize: '12px', padding: 0, textAlign: 'right', alignSelf: 'flex-end' }}>
-                          Esqueci minha senha
-                        </button>
-                      )}
-                      <button type="submit" disabled={carregando}
-                        style={{ backgroundColor: carregando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 700, padding: '12px', borderRadius: '8px', border: 'none', cursor: carregando ? 'not-allowed' : 'pointer', fontSize: '15px' }}>
-                        {carregando ? 'Aguarde...' : aba === 'entrar' ? 'Entrar' : 'Criar conta'}
-                      </button>
-                    </form>
+          {tela === 'email' && (
+            <>
+              <button onClick={voltar} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '13px', padding: 0, display: 'flex', alignItems: 'center', gap: '4px', alignSelf: 'flex-start' }}>
+                ← Voltar
+              </button>
+              {erro && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
+              {fase === 'ok' ? (
+                <div style={{ color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '10px 12px', fontSize: '13px', lineHeight: 1.5 }}>
+                  Conta criada! Verifique seu e-mail para confirmar antes de entrar.
+                </div>
+              ) : (
+                <form onSubmit={submeter} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {fase === 'confirmar' && (
+                    <div style={{ color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', padding: '10px 12px', fontSize: '13px', lineHeight: 1.5 }}>
+                      Não encontramos essa conta. Digite sua senha novamente para criá-la.
+                    </div>
                   )}
-                </>
+                  <input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setErro('') }} required
+                    placeholder="seu@email.com" autoComplete="email"
+                    style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                  <input type="password" value={senha} onChange={(e) => { setSenha(e.target.value); setErro('') }} required
+                    placeholder={fase === 'confirmar' ? 'Crie uma senha (mín. 6 caracteres)' : 'Sua senha'}
+                    autoComplete={fase === 'confirmar' ? 'new-password' : 'current-password'}
+                    style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                  {fase === 'form' && (
+                    <button type="button" onClick={() => { setTela('esqueci'); setErro('') }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4256c8', fontSize: '12px', padding: 0, textAlign: 'right', alignSelf: 'flex-end' }}>
+                      Esqueci minha senha
+                    </button>
+                  )}
+                  {fase === 'confirmar' && (
+                    <input type="password" value={senhaConfirm} onChange={(e) => { setSenhaConfirm(e.target.value); setErro('') }} required
+                      placeholder="Repita a senha" autoComplete="new-password"
+                      style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '11px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                  )}
+                  <button type="submit" disabled={carregando}
+                    style={{ backgroundColor: carregando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 700, padding: '12px', borderRadius: '8px', border: 'none', cursor: carregando ? 'not-allowed' : 'pointer', fontSize: '15px' }}>
+                    {carregando ? 'Aguarde...' : fase === 'confirmar' ? 'Criar conta' : 'Entrar'}
+                  </button>
+                  {fase === 'confirmar' && (
+                    <button type="button" onClick={() => { setFase('form'); setErro(''); setSenhaConfirm('') }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '13px', padding: 0, display: 'flex', alignItems: 'center', gap: '4px', alignSelf: 'flex-start' }}>
+                      ← Voltar
+                    </button>
+                  )}
+                </form>
               )}
             </>
           )}
@@ -198,4 +202,3 @@ export default function ModalAuth({ onFechar }: Props) {
     </div>
   )
 }
-
