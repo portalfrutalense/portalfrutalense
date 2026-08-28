@@ -384,20 +384,18 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
       )}
 
       {fase === 'revisao' && (
-        <div style={{ position: 'absolute', bottom: '10px', left: '10px', right: '10px', zIndex: 1000, background: 'white', borderRadius: '10px', padding: '10px 12px', boxShadow: '0 1px 8px rgba(0,0,0,0.3)', textAlign: 'center' }}>
-          <p style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#111827' }}>
-            O local está correto?
-          </p>
-          <p style={{ margin: '4px 0 8px', fontSize: '11px', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ position: 'absolute', bottom: '8px', left: '8px', right: '8px', zIndex: 1000, background: 'white', borderRadius: '8px', padding: '6px 8px', boxShadow: '0 1px 6px rgba(0,0,0,0.25)', textAlign: 'center' }}>
+          <p style={{ margin: '0 0 2px', fontSize: '10px', fontWeight: 700, color: '#111827' }}>O local está correto?</p>
+          <p style={{ margin: '0 0 5px', fontSize: '9px', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {endereco.trim()}
           </p>
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
             <button type="button" onClick={voltarDaRevisao}
-              style={{ background: '#e5e7eb', color: '#111827', border: 'none', borderRadius: '16px', padding: '6px 16px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+              style={{ background: '#e5e7eb', color: '#111827', border: 'none', borderRadius: '12px', padding: '3px 10px', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}>
               Voltar
             </button>
             <button type="button" onClick={confirmarFinal}
-              style={{ background: '#4256c8', color: 'white', border: 'none', borderRadius: '16px', padding: '6px 16px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+              style={{ background: '#4256c8', color: 'white', border: 'none', borderRadius: '12px', padding: '3px 10px', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}>
               Confirmar
             </button>
           </div>
