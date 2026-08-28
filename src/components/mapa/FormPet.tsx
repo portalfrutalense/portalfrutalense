@@ -111,7 +111,7 @@ export function FormPet({
 
   // Campos obrigatórios por tipo
   const exibeNome    = tipo === 'perdido'
-  const exibeRaca    = tipo === 'perdido'
+  const exibeRaca    = tipo === 'perdido' || tipo === 'achado'
   const exibeCor     = tipo === 'perdido' || tipo === 'achado'
   const exibeFoto    = true // visível para todos; obrigatório só para perdido e adocao
   const fotoObrigatoria = tipo === 'perdido' || tipo === 'adocao'
