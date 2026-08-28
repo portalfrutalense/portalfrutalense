@@ -46,6 +46,15 @@ function ListaModeracao({
   notif: string
 }) {
   const [ocupado, setOcupado] = useState<string | null>(null)
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set())
+
+  function toggleExpandido(id: string) {
+    setExpandidos(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
 
   async function rodar(item: ItemLista, acao: Acao) {
     if (acao.confirmar && !confirm(acao.confirmar)) return
@@ -91,68 +100,91 @@ function ListaModeracao({
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {itens.map(item => (
-            <div key={item.id} style={{
-              background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '14px',
-              display: 'flex', gap: '13px', alignItems: 'flex-start',
-              opacity: item.oculto ? 0.6 : 1,
-            }}>
-              {item.foto ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img src={item.foto} alt="" style={{ width: '64px', height: '64px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, border: '1px solid #e5e7eb' }} />
-              ) : (
-                <div style={{ width: '64px', height: '64px', borderRadius: '8px', background: '#f9fafb', border: '1px solid #e5e7eb', flexShrink: 0 }} />
-              )}
-
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap', marginBottom: '3px' }}>
-                  <strong style={{ fontSize: '14px', color: '#111827' }}>{item.titulo}</strong>
+          {itens.map(item => {
+            const expandido = expandidos.has(item.id)
+            return (
+              <div key={item.id} style={{
+                background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', overflow: 'hidden',
+                opacity: item.oculto ? 0.6 : 1,
+              }}>
+                {/* Linha-resumo — sempre visível, clicável para expandir/recolher */}
+                <div
+                  onClick={() => toggleExpandido(item.id)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', cursor: 'pointer' }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+                    style={{ flexShrink: 0, transform: expandido ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
                   {item.etiquetas.map((e, i) => <Etiqueta key={i} {...e} />)}
+                  <span style={{ fontSize: '13px', fontWeight: 500, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                    {item.titulo}
+                  </span>
+                  {item.subtitulo && (
+                    <span style={{ fontSize: '11px', color: '#6b7280', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px' }}>
+                      {item.subtitulo}
+                    </span>
+                  )}
                 </div>
 
-                {item.subtitulo && (
-                  <p style={{ fontSize: '12.5px', color: '#6b7280', margin: '0 0 7px', lineHeight: 1.5 }}>{item.subtitulo}</p>
-                )}
+                {/* Corpo do card — só aparece expandido */}
+                {expandido && (
+                  <div style={{ padding: '0 16px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
-                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                  {item.meta.map((m, i) => (
-                    <div key={i}>
-                      <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.04em', margin: 0 }}>{m.rotulo}</p>
-                      <p style={{ fontSize: '12.5px', color: '#111827', margin: 0 }}>{m.valor}</p>
+                    {/* Foto + meta */}
+                    <div style={{ display: 'flex', gap: '13px', alignItems: 'flex-start' }}>
+                      {item.foto ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={item.foto} alt="" style={{ width: '64px', height: '64px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, border: '1px solid #e5e7eb' }} />
+                      ) : (
+                        <div style={{ width: '64px', height: '64px', borderRadius: '8px', background: '#f9fafb', border: '1px solid #e5e7eb', flexShrink: 0 }} />
+                      )}
+
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                          {item.meta.map((m, i) => (
+                            <div key={i}>
+                              <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.04em', margin: 0 }}>{m.rotulo}</p>
+                              <p style={{ fontSize: '12.5px', color: '#111827', margin: 0 }}>{m.valor}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  ))}
-                </div>
 
-                {item.destaque && (
-                  <div style={{
-                    marginTop: '8px',
-                    fontSize: '12px',
-                    color: item.destaque.cor ?? '#6b7280',
-                    background: '#f9fafb',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '6px',
-                    padding: '7px 10px',
-                    lineHeight: 1.5,
-                  }}>
-                    <strong>{item.destaque.rotulo}</strong> {item.destaque.valor}
+                    {/* Análise IA */}
+                    {item.destaque && (
+                      <div style={{
+                        fontSize: '12px',
+                        color: item.destaque.cor ?? '#6b7280',
+                        background: '#f9fafb',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '6px',
+                        padding: '7px 10px',
+                        lineHeight: 1.5,
+                      }}>
+                        <strong>{item.destaque.rotulo}</strong> {item.destaque.valor}
+                      </div>
+                    )}
+
+                    {/* Ações */}
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {item.acoes.map((a, i) => (
+                        <button key={i} onClick={() => rodar(item, a)} disabled={ocupado === item.id}
+                          style={{
+                            fontSize: '12px', fontWeight: 500, color: a.cor,
+                            background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px',
+                            padding: '7px 13px', cursor: ocupado === item.id ? 'wait' : 'pointer', whiteSpace: 'nowrap',
+                          }}>
+                          {a.rotulo}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flexShrink: 0 }}>
-                {item.acoes.map((a, i) => (
-                  <button key={i} onClick={() => rodar(item, a)} disabled={ocupado === item.id}
-                    style={{
-                      fontSize: '12px', fontWeight: 500, color: a.cor,
-                      background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px',
-                      padding: '7px 13px', cursor: ocupado === item.id ? 'wait' : 'pointer', whiteSpace: 'nowrap',
-                    }}>
-                    {a.rotulo}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
