@@ -72,8 +72,8 @@ export interface CamadaConfig {
 
 /* --------------------------------------------------------------- pets --- */
 
-/** 'perdido' e 'achado' são registros independentes — nunca se convertem. */
-export type TipoPet = 'perdido' | 'achado'
+/** 'perdido', 'achado' e 'adocao' são registros independentes — nunca se convertem. */
+export type TipoPet = 'perdido' | 'achado' | 'adocao'
 export type EspeciePet = 'cachorro' | 'gato'
 export type PortePet = 'pequeno' | 'medio' | 'grande'
 

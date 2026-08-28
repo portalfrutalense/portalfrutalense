@@ -147,7 +147,7 @@ export function FormPet({
       autor_nome: perfil?.nome || user.email || 'Anônimo',
       tipo,
       especie,
-      nome_pet: tipo === 'perdido' ? (nomePet.trim() || null) : null,
+      nome_pet: (tipo === 'perdido' || tipo === 'adocao') ? (nomePet.trim() || null) : null,
       raca: raca.trim() || null,
       cor: cor.trim() || null,
       porte: porte || null,
@@ -210,11 +210,13 @@ export function FormPet({
 
                 <div>
                   <label style={rotuloCampo}>O que você quer registrar? *</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
                     <BotaoOpcao ativo={tipo === 'perdido'} onClick={() => setTipo('perdido')}
-                      titulo="Perdi meu pet" desc="Ele sumiu de casa" />
+                      titulo="Perdi meu Pet" desc="Ele sumiu de casa" />
                     <BotaoOpcao ativo={tipo === 'achado'} onClick={() => setTipo('achado')}
-                      titulo="Achei na rua" desc="Animal abandonado" />
+                      titulo="Achei um Pet" desc="Encontrei na rua" />
+                    <BotaoOpcao ativo={tipo === 'adocao'} onClick={() => setTipo('adocao')}
+                      titulo="Doar um Pet" desc="Quero doar" />
                   </div>
                 </div>
 
@@ -235,7 +237,7 @@ export function FormPet({
                   </div>
                 </div>
 
-                {tipo === 'perdido' && (
+                {(tipo === 'perdido' || tipo === 'adocao') && (
                   <div>
                     <label style={rotuloCampo}>Nome do pet</label>
                     <input value={nomePet} onChange={(e) => setNomePet(e.target.value)} placeholder="Como ele se chama" style={campoEstilo} />

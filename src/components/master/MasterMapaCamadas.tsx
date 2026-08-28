@@ -251,7 +251,9 @@ export function MasterPets() {
         ? { texto: 'Reencontrado', cor: '#2563eb' }
         : p.tipo === 'perdido'
           ? { texto: 'Perdido', cor: '#dc2626' }
-          : { texto: 'Achei na rua', cor: '#16a34a' },
+          : p.tipo === 'adocao'
+            ? { texto: 'Adoção', cor: '#7c3aed' }
+            : { texto: 'Achei um Pet', cor: '#16a34a' },
       ...(p.ia_decisao === 'pendente' ? [{ texto: '⏳ IA Pendente', cor: '#b45309' }] : []),
       ...(p.ia_decisao === 'aprovada' ? [{ texto: '✓ IA', cor: '#15803d' }] : []),
       ...(p.ia_decisao === 'rejeitada' ? [{ texto: '✕ IA Rejeitada', cor: '#dc2626' }] : []),
@@ -299,7 +301,8 @@ export function MasterPets() {
       filtros={[
         { chave: 'todos', rotulo: 'Todos' },
         { chave: 'perdido', rotulo: 'Perdidos' },
-        { chave: 'achado', rotulo: 'Achei na rua' },
+        { chave: 'achado', rotulo: 'Achei um Pet' },
+        { chave: 'adocao', rotulo: 'Adoção' },
         { chave: 'reencontrado', rotulo: 'Reencontrados' },
         { chave: 'pendente_ia', rotulo: '⏳ Pendente IA' },
         { chave: 'ocultos', rotulo: 'Ocultos' },

@@ -42,18 +42,22 @@ function svgPinEspecie(especie: EspeciePet, cor: string) {
 /** Chave de configuração (cor do pin) correspondente ao registro. */
 export function chaveCorPet(p: Pet): string {
   if (p.reencontrado) return 'pet_reencontrado'
-  return p.tipo === 'perdido' ? 'pet_perdido' : 'pet_achado'
+  if (p.tipo === 'perdido') return 'pet_perdido'
+  if (p.tipo === 'adocao') return 'pet_adocao'
+  return 'pet_achado'
 }
 
 const COR_PADRAO: Record<string, string> = {
   pet_perdido: '#dc2626',
   pet_achado: '#16a34a',
+  pet_adocao: '#7c3aed',
   pet_reencontrado: '#2563eb',
 }
 
 const ROTULO_FILTRO: Record<string, string> = {
   pet_perdido: 'Perdidos',
-  pet_achado: 'Achei na rua',
+  pet_achado: 'Achei um Pet',
+  pet_adocao: 'Adotar um Pet',
   pet_reencontrado: 'Reencontrados',
 }
 
@@ -147,7 +151,9 @@ export function useMarkersPets({
       const marker = L.marker([p.lat, p.lng], { icon }).addTo(mapa)
       const titulo = p.reencontrado
         ? 'Reencontrado'
-        : p.tipo === 'perdido' ? 'Pet perdido' : 'Pet achado na rua'
+        : p.tipo === 'perdido' ? 'Perdi meu Pet'
+        : p.tipo === 'adocao' ? 'Adotar um Pet'
+        : 'Achei um Pet'
 
       marker.bindPopup(`
         <div style="min-width:200px;max-width:230px;font-family:Inter,sans-serif;">
@@ -210,7 +216,9 @@ export function SidebarPets({
     const ehMaster = perfil?.role === 'master'
     const titulo = selecionado.reencontrado
       ? 'Reencontrado'
-      : selecionado.tipo === 'perdido' ? 'Pet perdido' : 'Pet achado na rua'
+      : selecionado.tipo === 'perdido' ? 'Perdi meu Pet'
+      : selecionado.tipo === 'adocao' ? 'Adotar um Pet'
+      : 'Achei um Pet'
 
     return (
       <div key={selecionado.id} className="demanda-detalhe-anim" style={{ display: 'flex', flexDirection: 'column' }}>
@@ -273,7 +281,7 @@ export function SidebarPets({
             </div>
             {selecionado.endereco_label && (
               <div>
-                <p style={rotuloEstilo}>{selecionado.tipo === 'perdido' ? 'Sumiu perto de' : 'Encontrado em'}</p>
+                <p style={rotuloEstilo}>{selecionado.tipo === 'perdido' ? 'Sumiu perto de' : selecionado.tipo === 'adocao' ? 'Localização' : 'Encontrado em'}</p>
                 <p style={valorEstilo}>{selecionado.endereco_label}</p>
               </div>
             )}
@@ -285,7 +293,7 @@ export function SidebarPets({
 
           {meu && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {selecionado.tipo === 'perdido' && !selecionado.reencontrado && (
+              {(selecionado.tipo === 'perdido' || selecionado.tipo === 'adocao') && !selecionado.reencontrado && (
                 <button onClick={() => onMarcarReencontrado(selecionado)}
                   style={{ ...botaoAcao, color: '#166534', fontWeight: 600 }}>
                   Marcar como reencontrado
@@ -319,7 +327,7 @@ export function SidebarPets({
         <select value={filtro} onChange={e => setFiltro(e.target.value)}
           style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 10px', fontSize: '13px', background: 'white', color: '#111827', outline: 'none', cursor: 'pointer' }}>
           <option value=''>Todos</option>
-          {(['pet_perdido', 'pet_achado', 'pet_reencontrado'] as const).map(chave => (
+          {(['pet_perdido', 'pet_achado', 'pet_adocao', 'pet_reencontrado'] as const).map(chave => (
             <option key={chave} value={chave}>{ROTULO_FILTRO[chave]}</option>
           ))}
         </select>

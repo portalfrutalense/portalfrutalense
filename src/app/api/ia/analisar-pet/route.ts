@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     const promptBase = config?.prompt || 'Analise o registro de pet perdido ou encontrado e decida se deve ser aprovado ou rejeitado.'
     const instrucaoRigor = RIGOR_INSTRUCAO[rigor] || RIGOR_INSTRUCAO.moderado
 
-    const tipoRotulo = pet.tipo === 'perdido' ? 'Pet perdido' : 'Pet achado na rua'
+    const tipoRotulo = pet.tipo === 'perdido' ? 'Pet perdido' : pet.tipo === 'adocao' ? 'Pet para adoção' : 'Pet achado na rua'
 
     const prompt = `${promptBase}
 
