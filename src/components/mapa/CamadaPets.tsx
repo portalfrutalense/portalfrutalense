@@ -14,7 +14,7 @@ import { salvarCamada } from './salvarCamada'
 const PATH_CACHORRO = 'M4.5 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm15 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM8.5 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm7 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm-3.5 4c-2.8 0-5 2.5-5 5.2 0 1.6 1.1 2.8 2.6 2.8.9 0 1.6-.4 2.4-.4s1.5.4 2.4.4c1.5 0 2.6-1.2 2.6-2.8C17 13.5 14.8 11 12 11Z'
 const PATH_GATO = 'M12 5c-3.9 0-7 3-7 6.8 0 1.6.5 3 1.4 4.2L5 20.5c-.2.6.3 1.1.9.9l3-1.1c.9.4 2 .7 3.1.7s2.2-.3 3.1-.7l3 1.1c.6.2 1.1-.3.9-.9l-1.4-4.5c.9-1.2 1.4-2.6 1.4-4.2C19 8 15.9 5 12 5Zm-7.2.4L6.4 8M19.6 5.4 17.6 8M9.5 12.5h.01M14.5 12.5h.01M12 15.5c-.7 0-1.3-.3-1.6-.8M12 15.5c.7 0 1.3-.3 1.6-.8'
 
-function IconeEspecie({ especie, size = 18, cor = 'currentColor' }: { especie: EspeciePet; size?: number; cor?: string }) {
+export function IconeEspecie({ especie, size = 18, cor = 'currentColor' }: { especie: EspeciePet; size?: number; cor?: string }) {
   if (especie === 'gato') {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={cor} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -202,8 +202,8 @@ export function useMarkersPets({
 
 /* =============================================================== sidebar = */
 
-const rotuloEspecie: Record<EspeciePet, string> = { cachorro: 'Cachorro', gato: 'Gato' }
-const rotuloPorte: Record<PortePet, string> = { pequeno: 'Pequeno', medio: 'Médio', grande: 'Grande' }
+export const rotuloEspecie: Record<EspeciePet, string> = { cachorro: 'Cachorro', gato: 'Gato' }
+export const rotuloPorte: Record<PortePet, string> = { pequeno: 'Pequeno', medio: 'Médio', grande: 'Grande' }
 
 export function SidebarPets({
   pets, cores, filtro, setFiltro, selecionado, setSelecionado,
