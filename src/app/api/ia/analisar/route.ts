@@ -125,10 +125,26 @@ Não inclua nada além do JSON.`
         const ent = vinculo.entidade as any
         if (ent?.email) {
           const linkResposta = `${process.env.SITE_URL}/responder/${token}`
+          const textoPlano = [
+            `Olá, ${ent.nome}.`,
+            ``,
+            `${demanda.morador_nome} registrou uma demanda direcionada a você no CidadanIA Frutal.`,
+            ``,
+            `Categoria: ${demanda.categoria?.nome || ''}`,
+            `Descrição: ${demanda.descricao}`,
+            demanda.endereco_label ? `Endereço: ${demanda.endereco_label}` : '',
+            ``,
+            `Para responder, acesse o link abaixo (expira em 7 dias):`,
+            linkResposta,
+            ``,
+            `CidadanIA Frutal — cidadaniafrutal.com.br`,
+          ].filter(l => l !== undefined).join('\n')
+
           const { data: emailEnviado } = await resend.emails.send({
             from: 'CidadanIA Frutal <noreply@cidadaniafrutal.com.br>',
             to: ent.email,
-            subject: `Nova demanda para ${ent.nome} — CidadanIA Frutal`,
+            subject: `Nova demanda registrada no CidadanIA Frutal`,
+            text: textoPlano,
             html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>
               <div style="font-family:Inter,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;">
                 <div style="background:#4256c8;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
@@ -137,17 +153,20 @@ Não inclua nada além do JSON.`
                 <div style="background:white;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:24px;">
                   <p style="font-size:15px;color:#111827;">Olá, <strong>${ent.nome}</strong>,</p>
                   <p style="font-size:14px;color:#111827;line-height:1.6;">
-                    O cidadão <strong>${demanda.morador_nome}</strong> registrou uma demanda direcionada a você no CidadanIA Frutal.
+                    ${demanda.morador_nome} registrou uma demanda direcionada a você no CidadanIA Frutal.
                   </p>
                   <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:16px 0;">
-                    <p style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px;">Descrição da demanda</p>
+                    <p style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">Categoria</p>
+                    <p style="font-size:13px;color:#111827;margin:0 0 12px;">${demanda.categoria?.nome || ''}</p>
+                    <p style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">Descrição</p>
                     <p style="font-size:14px;color:#111827;margin:0;line-height:1.6;">${demanda.descricao}</p>
                     ${demanda.endereco_label ? `<p style="font-size:12px;color:#6b7280;margin:8px 0 0;">${demanda.endereco_label}</p>` : ''}
                   </div>
-                  <a href="${linkResposta}" style="display:block;background:#4256c8;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;margin:20px 0;">
-                    Responder esta demanda →
-                  </a>
-                  <p style="font-size:12px;color:#6b7280;text-align:center;">Este link expira em 7 dias.</p>
+                  <p style="font-size:14px;color:#111827;margin:20px 0 8px;">Para responder esta demanda, acesse o link abaixo:</p>
+                  <p style="font-size:13px;margin:0 0 16px;word-break:break-all;">
+                    <a href="${linkResposta}" style="color:#4256c8;">${linkResposta}</a>
+                  </p>
+                  <p style="font-size:12px;color:#6b7280;">Este link expira em 7 dias.</p>
                 </div>
               </div>
             </body></html>`,
