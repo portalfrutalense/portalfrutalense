@@ -121,13 +121,13 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
 
       // Garante que o Leaflet recalcule o tamanho após a montagem no DOM
       // Múltiplos timeouts para cobrir animações do container pai (chatbot)
-      setTimeout(() => mapa?.invalidateSize(), 50)
-      setTimeout(() => mapa?.invalidateSize(), 200)
-      setTimeout(() => mapa?.invalidateSize(), 500)
+      setTimeout(() => { try { mapa?.invalidateSize() } catch { /* ignora */ } }, 50)
+      setTimeout(() => { try { mapa?.invalidateSize() } catch { /* ignora */ } }, 200)
+      setTimeout(() => { try { mapa?.invalidateSize() } catch { /* ignora */ } }, 500)
 
       // ResizeObserver: recalcula quando o container ganha dimensão real
       if (mapRef.current && typeof ResizeObserver !== 'undefined') {
-        const ro = new ResizeObserver(() => mapa?.invalidateSize())
+        const ro = new ResizeObserver(() => { try { mapa?.invalidateSize() } catch { /* ignora se o mapa ainda não teve layout */ } })
         ro.observe(mapRef.current)
         // Limpar no cleanup via variável local
         ;(mapa as any)._ro = ro

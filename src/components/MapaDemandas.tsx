@@ -78,7 +78,8 @@ export default function MapaDemandas() {
   const [vinculosDemanda, setVinculosDemanda] = useState<DemandaEntidade[]>([])
 
   // Bottom sheet (mobile)
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches)
+  // Sempre inicia false para coincidir com o SSR; useEffect ajusta no cliente
+  const [isMobile, setIsMobile] = useState(false)
   const [sheetState, setSheetState] = useState<'peek' | 'half' | 'full'>('peek')
   const [dicaArrasteVisivel, setDicaArrasteVisivel] = useState(true)
   const arrasteRef = useRef<{ startY: number; startFrac: number } | null>(null)
@@ -344,6 +345,7 @@ export default function MapaDemandas() {
   // Detecta mobile (mesmo breakpoint do resto do layout)
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 640px)')
+    setIsMobile(mq.matches)  // lê valor real após hidratação
     const aoMudar = (e: MediaQueryListEvent) => setIsMobile(e.matches)
     mq.addEventListener('change', aoMudar)
     return () => mq.removeEventListener('change', aoMudar)
