@@ -119,6 +119,7 @@ export function useClassificados() {
       .select('*')
       .eq('oculto', false)
       .eq('vendido', false)
+      .eq('ia_decisao', 'aprovada')
       .order('created_at', { ascending: false })
     setClassificados((data || []) as Classificado[])
   }

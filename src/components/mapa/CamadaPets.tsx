@@ -104,6 +104,7 @@ export function usePets() {
       .from('pets')
       .select('*')
       .eq('oculto', false)
+      .eq('ia_decisao', 'aprovada')
       .gt('expira_em', new Date().toISOString())
       .order('created_at', { ascending: false })
     setPets((data || []) as Pet[])
