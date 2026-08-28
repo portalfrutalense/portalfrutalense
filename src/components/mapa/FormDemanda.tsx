@@ -176,11 +176,14 @@ export function FormDemanda({
 
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Categoria *</label>
-                    <select value={categoriaId} onChange={(e) => { setCategoriaId(e.target.value); setEntidadeIds([]) }}
-                      style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', background: 'white', outline: 'none', boxSizing: 'border-box' }}>
-                      <option value="">Selecione</option>
-                      {categorias.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                    </select>
+                    <div style={{ position: 'relative' }}>
+                      <select value={categoriaId} onChange={(e) => { setCategoriaId(e.target.value); setEntidadeIds([]) }}
+                        style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 36px 8px 12px', fontSize: '14px', fontWeight: 500, background: 'white', outline: 'none', boxSizing: 'border-box', appearance: 'none', WebkitAppearance: 'none', color: categoriaId ? '#111827' : '#6b7280', cursor: 'pointer' }}>
+                        <option value="">Selecione</option>
+                        {categorias.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                      </select>
+                      <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', color: '#6b7280', pointerEvents: 'none' }}>▼</span>
+                    </div>
                   </div>
 
                   <div>
