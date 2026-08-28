@@ -266,7 +266,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
   }
 
   return (
-    <>
+    <div style={{ position: 'relative', width: '100%' }}>
     <div style={{ position: 'relative', width: '100%', height: typeof altura === 'number' ? `${altura}px` : altura, borderRadius: '10px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
       <div
         ref={mapRef}
@@ -386,7 +386,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
     </div>
 
     {fase === 'revisao' && (
-      <div style={{ background: 'white', borderRadius: '10px', padding: '10px 12px', boxShadow: '0 1px 8px rgba(0,0,0,0.15)', border: '1px solid #e5e7eb', textAlign: 'center', marginTop: '6px' }}>
+      <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 1100, background: 'white', borderRadius: '10px', padding: '10px 12px', boxShadow: '0 4px 16px rgba(0,0,0,0.2)', border: '1px solid #e5e7eb', textAlign: 'center' }}>
         <p style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#111827' }}>
           O local está correto?
         </p>
@@ -405,6 +405,6 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
         </div>
       </div>
     )}
-    </>
+    </div>
   )
 }
