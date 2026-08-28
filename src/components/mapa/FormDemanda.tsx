@@ -171,7 +171,6 @@ export function FormDemanda({
               {/* ---- ETAPA 1: Categoria + Autoridade + Endereço ---- */}
               {etapa === 1 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  {erro && <div style={{ color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
 
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Categoria *</label>
@@ -239,6 +238,7 @@ export function FormDemanda({
                     />
                   </div>
 
+                  {erro && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px 12px', fontSize: '12.5px' }}>{erro}</div>}
                   <button type="button" onClick={avancar}
                     style={{ backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
                     Continuar →
@@ -249,7 +249,6 @@ export function FormDemanda({
               {/* ---- ETAPA 2: Descrição + Foto + Turnstile + Enviar ---- */}
               {etapa === 2 && (
                 <form id="form-registrar-demanda" onSubmit={handleEnviar} style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
-                  {erro && <div style={{ color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
 
                   <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Descrição *</label>
@@ -301,7 +300,9 @@ export function FormDemanda({
 
                   <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
 
-                  <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
+                  <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {erro && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px 12px', fontSize: '12.5px' }}>{erro}</div>}
+                  <div style={{ display: 'flex', gap: '10px' }}>
                     <button type="button" onClick={() => { setErro(''); setEtapa(1) }}
                       style={{ flex: '0 0 auto', background: 'white', color: '#6b7280', fontWeight: 600, padding: '10px 16px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '14px' }}>
                       ← Voltar
@@ -310,6 +311,7 @@ export function FormDemanda({
                       style={{ flex: 1, backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
                       {enviando ? 'Enviando...' : 'Registrar Demanda'}
                     </button>
+                  </div>
                   </div>
                 </form>
               )}
