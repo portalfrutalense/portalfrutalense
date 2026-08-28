@@ -17,6 +17,14 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   // Ancora as URLs absolutas (og:image etc.) no domínio canônico, sem www
   metadataBase: new URL('https://cidadaniafrutal.com.br'),
+  icons: {
+    icon: [
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: { url: '/favicon-192.png', sizes: '192x192', type: 'image/png' },
+    shortcut: '/favicon.ico',
+  },
   title: 'CidadanIA Frutal',
   description: 'Explore os mapas interativos da cidade para cobrar serviços públicos, encontrar oportunidades, empregos, ajudar a encontrar pets e apoiar causas locais.',
   alternates: {
