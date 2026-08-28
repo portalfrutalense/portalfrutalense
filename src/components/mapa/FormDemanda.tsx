@@ -248,7 +248,7 @@ export function FormDemanda({
 
               {/* ---- ETAPA 2: Descrição + Foto + Turnstile + Enviar ---- */}
               {etapa === 2 && (
-                <form id="form-registrar-demanda" onSubmit={handleEnviar} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <form id="form-registrar-demanda" onSubmit={handleEnviar} style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
                   {erro && <div style={{ color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
 
                   <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
@@ -301,7 +301,7 @@ export function FormDemanda({
 
                   <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
 
-                  <div style={{ display: 'flex', gap: '10px' }}>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
                     <button type="button" onClick={() => { setErro(''); setEtapa(1) }}
                       style={{ flex: '0 0 auto', background: 'white', color: '#6b7280', fontWeight: 600, padding: '10px 16px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '14px' }}>
                       ← Voltar
