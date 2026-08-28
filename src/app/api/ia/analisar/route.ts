@@ -162,11 +162,10 @@ Não inclua nada além do JSON.`
                     <p style="font-size:14px;color:#111827;margin:0;line-height:1.6;">${demanda.descricao}</p>
                     ${demanda.endereco_label ? `<p style="font-size:12px;color:#6b7280;margin:8px 0 0;">${demanda.endereco_label}</p>` : ''}
                   </div>
-                  <p style="font-size:14px;color:#111827;margin:20px 0 8px;">Para responder esta demanda, acesse o link abaixo:</p>
-                  <p style="font-size:13px;margin:0 0 16px;word-break:break-all;">
-                    <a href="${linkResposta}" style="color:#4256c8;">${linkResposta}</a>
-                  </p>
-                  <p style="font-size:12px;color:#6b7280;">Este link expira em 7 dias.</p>
+                  <a href="${linkResposta}" style="display:block;background:#4256c8;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;margin:20px 0;">
+                    Responder esta demanda
+                  </a>
+                  <p style="font-size:12px;color:#6b7280;text-align:center;">Este link expira em 7 dias.</p>
                 </div>
               </div>
             </body></html>`,
