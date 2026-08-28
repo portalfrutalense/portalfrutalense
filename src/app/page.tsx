@@ -121,7 +121,7 @@ function ProvaSocial() {
 /* ------------------------------------------------------------ card login -- */
 
 // Fluxo unificado: tenta login → se não existe, pede confirmação de senha e cria conta
-type FaseEmail = 'form' | 'confirmar' | 'ok'
+type FaseEmail = 'form' | 'confirmar' | 'ok' | 'esqueci'
 
 function CardAcesso() {
   const supabase = createClient()
@@ -132,6 +132,20 @@ function CardAcesso() {
   const [carregando, setCarregando] = useState(false)
   const [carregandoGoogle, setCarregandoGoogle] = useState(false)
   const [erro, setErro] = useState('')
+  const [msgEsqueci, setMsgEsqueci] = useState('')
+
+  async function enviarRedefinicao(e: React.FormEvent) {
+    e.preventDefault(); setErro(''); setCarregando(true)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/redefinir-senha`,
+    })
+    if (error) {
+      setErro('Erro ao enviar o e-mail. Verifique o endereço.')
+    } else {
+      setMsgEsqueci('E-mail enviado! Verifique sua caixa de entrada e clique no link para redefinir sua senha.')
+    }
+    setCarregando(false)
+  }
 
   async function entrarComGoogle() {
     setCarregandoGoogle(true); setErro('')
@@ -178,57 +192,93 @@ function CardAcesso() {
       </div>
 
       <div className="cartao-corpo">
-        {fase !== 'confirmar' && (<>
-          <button onClick={entrarComGoogle} disabled={carregandoGoogle} className="btn-primario">
-            <GoogleIcon />
-            {carregandoGoogle ? 'Redirecionando…' : 'Continuar com Google'}
-          </button>
-          <p className="dica-primaria">O jeito mais rápido — sem criar senha</p>
-          <div className="separador"><span>ou</span></div>
-        </>)}
-
-        {fase === 'ok' ? (
-          <div className="aviso-ok" role="status">
-            Conta criada com sucesso! Agora é só entrar.
-          </div>
-        ) : (
-          <form onSubmit={submeter} className="formulario">
-            {fase === 'confirmar' && (
-              <div className="aviso-info" role="status">
-                Não encontramos essa conta. Digite sua senha novamente para criá-la.
-              </div>
-            )}
-            {erro && <div className="aviso-erro" role="alert">{erro}</div>}
-            <input
-              type="email" value={email} onChange={(e) => { setEmail(e.target.value); setErro('') }}
-              required placeholder="seu@email.com" aria-label="E-mail"
-              autoComplete="email" className="campo"
-            />
-            <input
-              type="password" value={senha} onChange={(e) => { setSenha(e.target.value); setErro('') }}
-              required aria-label="Senha"
-              autoComplete={fase === 'confirmar' ? 'new-password' : 'current-password'}
-              placeholder={fase === 'confirmar' ? 'Crie uma senha (mín. 6 caracteres)' : 'Sua senha'}
-              className="campo"
-            />
-            {fase === 'confirmar' && (
-              <input
-                type="password" value={senhaConfirm} onChange={(e) => { setSenhaConfirm(e.target.value); setErro('') }}
-                required aria-label="Confirmar senha"
-                autoComplete="new-password"
-                placeholder="Repita a senha"
-                className="campo"
-              />
-            )}
-            <button type="submit" disabled={carregando} className="btn-enviar">
-              {carregando ? 'Aguarde…' : fase === 'confirmar' ? 'Criar conta' : 'Entrar'}
+        {fase === 'esqueci' ? (
+          <>
+            <button type="button" className="btn-voltar" onClick={() => { setFase('form'); setErro(''); setMsgEsqueci('') }}
+              style={{ marginBottom: '8px' }}>
+              ← Voltar
             </button>
-            {fase === 'confirmar' && (
-              <button type="button" className="btn-voltar" onClick={() => { setFase('form'); setErro(''); setSenhaConfirm('') }}>
-                ← Voltar
-              </button>
+            <p style={{ margin: '0 0 4px', fontSize: '14px', fontWeight: 600, color: '#111827' }}>Redefinir senha</p>
+            <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#6b7280' }}>
+              Informe seu e-mail e enviaremos um link para criar uma nova senha.
+            </p>
+            {erro && <div className="aviso-erro" role="alert">{erro}</div>}
+            {msgEsqueci ? (
+              <div className="aviso-ok" role="status">{msgEsqueci}</div>
+            ) : (
+              <form onSubmit={enviarRedefinicao} className="formulario">
+                <input
+                  type="email" value={email} onChange={(e) => { setEmail(e.target.value); setErro('') }}
+                  required placeholder="seu@email.com" aria-label="E-mail"
+                  autoComplete="email" className="campo"
+                />
+                <button type="submit" disabled={carregando} className="btn-enviar">
+                  {carregando ? 'Enviando…' : 'Enviar link de redefinição'}
+                </button>
+              </form>
             )}
-          </form>
+          </>
+        ) : (
+          <>
+            {fase !== 'confirmar' && (<>
+              <button onClick={entrarComGoogle} disabled={carregandoGoogle} className="btn-primario">
+                <GoogleIcon />
+                {carregandoGoogle ? 'Redirecionando…' : 'Continuar com Google'}
+              </button>
+              <p className="dica-primaria">O jeito mais rápido — sem criar senha</p>
+              <div className="separador"><span>ou</span></div>
+            </>)}
+
+            {fase === 'ok' ? (
+              <div className="aviso-ok" role="status">
+                Conta criada com sucesso! Agora é só entrar.
+              </div>
+            ) : (
+              <form onSubmit={submeter} className="formulario">
+                {fase === 'confirmar' && (
+                  <div className="aviso-info" role="status">
+                    Não encontramos essa conta. Digite sua senha novamente para criá-la.
+                  </div>
+                )}
+                {erro && <div className="aviso-erro" role="alert">{erro}</div>}
+                <input
+                  type="email" value={email} onChange={(e) => { setEmail(e.target.value); setErro('') }}
+                  required placeholder="seu@email.com" aria-label="E-mail"
+                  autoComplete="email" className="campo"
+                />
+                <input
+                  type="password" value={senha} onChange={(e) => { setSenha(e.target.value); setErro('') }}
+                  required aria-label="Senha"
+                  autoComplete={fase === 'confirmar' ? 'new-password' : 'current-password'}
+                  placeholder={fase === 'confirmar' ? 'Crie uma senha (mín. 6 caracteres)' : 'Sua senha'}
+                  className="campo"
+                />
+                {fase === 'form' && (
+                  <button type="button" onClick={() => { setFase('esqueci'); setErro('') }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4256c8', fontSize: '12px', padding: 0, textAlign: 'right', alignSelf: 'flex-end' }}>
+                    Esqueci minha senha
+                  </button>
+                )}
+                {fase === 'confirmar' && (
+                  <input
+                    type="password" value={senhaConfirm} onChange={(e) => { setSenhaConfirm(e.target.value); setErro('') }}
+                    required aria-label="Confirmar senha"
+                    autoComplete="new-password"
+                    placeholder="Repita a senha"
+                    className="campo"
+                  />
+                )}
+                <button type="submit" disabled={carregando} className="btn-enviar">
+                  {carregando ? 'Aguarde…' : fase === 'confirmar' ? 'Criar conta' : 'Entrar'}
+                </button>
+                {fase === 'confirmar' && (
+                  <button type="button" className="btn-voltar" onClick={() => { setFase('form'); setErro(''); setSenhaConfirm('') }}>
+                    ← Voltar
+                  </button>
+                )}
+              </form>
+            )}
+          </>
         )}
       </div>
     </div>
