@@ -123,8 +123,8 @@ export function FormDemanda({
     }
   }
 
-  async function handleEnviar(e: React.FormEvent) {
-    e.preventDefault(); setErro('')
+  async function handleEnviar() {
+    setErro('')
     if (!user || !perfil) return
     if (!coordenadas || !locConfirmada) { mostrarErro('Confirme a localização no mapa.'); return }
     if (!descricao.trim() || descricao.trim().length < 10) { mostrarErro('Descreva melhor o problema.'); return }
@@ -179,7 +179,7 @@ export function FormDemanda({
           </div>
         ) : (
           <>
-            <div style={{ padding: '16px 20px 20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '16px 20px', flex: 1, overflowY: 'auto' }}>
 
               {/* ---- ETAPA 1: Categoria + Autoridade + Endereço ---- */}
               {etapa === 1 && (
@@ -254,21 +254,12 @@ export function FormDemanda({
                     />
                   </div>
 
-                  <div style={{ position: 'relative' }}>
-                    {erro && (
-                      <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, right: 0, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px 12px', fontSize: '12.5px' }}>{erro}</div>
-                    )}
-                    <button type="button" onClick={avancar}
-                      style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
-                      Continuar →
-                    </button>
-                  </div>
                 </div>
               )}
 
               {/* ---- ETAPA 2: Descrição + Foto + Turnstile + Enviar ---- */}
               {etapa === 2 && (
-                <form id="form-registrar-demanda" onSubmit={handleEnviar} style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
+                <form id="form-registrar-demanda" onSubmit={(e) => { e.preventDefault(); handleEnviar() }} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
                   <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Descrição *</label>
@@ -319,25 +310,34 @@ export function FormDemanda({
                   </div>
 
                   <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
-
-                  <div style={{ marginTop: 'auto', position: 'relative' }}>
-                    {erro && (
-                      <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, right: 0, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px 12px', fontSize: '12.5px' }}>{erro}</div>
-                    )}
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                      <button type="button" onClick={() => { setErro(''); setEtapa(1) }}
-                        style={{ flex: '0 0 auto', background: 'white', color: '#6b7280', fontWeight: 600, padding: '10px 16px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '14px' }}>
-                        ← Voltar
-                      </button>
-                      <button type="submit" disabled={enviando}
-                        style={{ flex: 1, backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
-                        {enviando ? 'Enviando...' : 'Registrar Demanda'}
-                      </button>
-                    </div>
-                  </div>
                 </form>
               )}
 
+            </div>
+
+            {/* ── Rodapé fixo com botões ── */}
+            <div style={{ borderTop: '1px solid #e5e7eb', padding: '12px 20px', flexShrink: 0 }}>
+              {erro && <div style={{ marginBottom: '8px', color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px 12px', fontSize: '12.5px' }}>{erro}</div>}
+
+              {etapa === 1 && (
+                <button type="button" onClick={avancar}
+                  style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
+                  Continuar →
+                </button>
+              )}
+
+              {etapa === 2 && (
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button type="button" onClick={() => { setErro(''); setEtapa(1) }}
+                    style={{ flex: '0 0 auto', background: 'white', color: '#6b7280', fontWeight: 600, padding: '10px 16px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '14px' }}>
+                    ← Voltar
+                  </button>
+                  <button type="submit" form="form-registrar-demanda" disabled={enviando}
+                    style={{ flex: 1, backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+                    {enviando ? 'Enviando...' : 'Registrar Demanda'}
+                  </button>
+                </div>
+              )}
             </div>
           </>
         )}

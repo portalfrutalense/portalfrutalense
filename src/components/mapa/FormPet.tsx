@@ -136,8 +136,8 @@ export function FormPet({
     setEtapa(3)
   }
 
-  async function enviar(e: React.FormEvent) {
-    e.preventDefault(); setErro('')
+  async function enviar() {
+    setErro('')
     if (!user) return
     if (!coordenadas || !locConfirmada) { mostrarErro('Confirme a localização no mapa.'); return }
     if (!editando && !turnstileToken) { mostrarErro('Aguarde a verificação de segurança concluir.'); return }
@@ -211,11 +211,12 @@ export function FormPet({
             <button onClick={aoFechar} style={{ fontSize: '13px', color: '#4256c8', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Fechar</button>
           </div>
         ) : (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px 20px 20px', minHeight: 0 }}>
+          <>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', minHeight: 0 }}>
 
             {/* ---- ETAPA 1: Tipo + Espécie + Nome + Raça/Cor + Porte + Foto ---- */}
             {etapa === 1 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
                 <div>
                   <label style={rotuloCampo}>O que você quer registrar? *</label>
@@ -312,19 +313,12 @@ export function FormPet({
                   {erroFoto && <p style={{ fontSize: '11px', color: '#dc2626', margin: '4px 0 0' }}>{erroFoto}</p>}
                 </div>}
 
-                <div style={{ marginTop: 'auto', position: 'relative' }}>
-                  {erro && <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, right: 0, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px 12px', fontSize: '12.5px' }}>{erro}</div>}
-                  <button type="button" onClick={avancar1}
-                    style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
-                    Continuar →
-                  </button>
-                </div>
               </div>
             )}
 
             {/* ---- ETAPA 2: Descrição + Contato + Data/Hora ---- */}
             {etapa === 2 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
                 <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                   <label style={rotuloCampo}>Descrição *</label>
@@ -353,25 +347,12 @@ export function FormPet({
                   </div>
                 )}
 
-                <div style={{ marginTop: 'auto', position: 'relative' }}>
-                  {erro && <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, right: 0, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px 12px', fontSize: '12.5px' }}>{erro}</div>}
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button type="button" onClick={() => { setErro(''); setEtapa(1) }}
-                      style={{ flex: '0 0 auto', background: 'white', color: '#6b7280', fontWeight: 600, padding: '10px 16px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '14px' }}>
-                      ← Voltar
-                    </button>
-                    <button type="button" onClick={avancar2}
-                      style={{ flex: 1, backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
-                      Continuar →
-                    </button>
-                  </div>
-                </div>
               </div>
             )}
 
             {/* ---- ETAPA 3: Localização + Turnstile + Publicar ---- */}
             {etapa === 3 && (
-              <form onSubmit={enviar} style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
+              <form id="form-pet" onSubmit={(e) => { e.preventDefault(); enviar() }} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div>
                   <label style={rotuloCampo}>
                     {tipo === 'perdido' ? 'Onde ele sumiu? *' : 'Onde você encontrou? *'}
@@ -386,24 +367,49 @@ export function FormPet({
                 </div>
 
                 {!editando && <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />}
-
-                <div style={{ marginTop: 'auto', position: 'relative' }}>
-                  {erro && <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, right: 0, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px 12px', fontSize: '12.5px' }}>{erro}</div>}
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button type="button" onClick={() => { setErro(''); setEtapa(2) }}
-                      style={{ flex: '0 0 auto', background: 'white', color: '#6b7280', fontWeight: 600, padding: '10px 16px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '14px' }}>
-                      ← Voltar
-                    </button>
-                    <button type="submit" disabled={enviando || uploadandoFoto}
-                      style={{ flex: 1, backgroundColor: (enviando || uploadandoFoto) ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: (enviando || uploadandoFoto) ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
-                      {enviando ? 'Salvando...' : uploadandoFoto ? 'Aguardando foto...' : editando ? 'Salvar alterações' : 'Publicar registro'}
-                    </button>
-                  </div>
-                </div>
               </form>
             )}
 
           </div>
+
+          {/* ── Rodapé fixo com botões ── */}
+          <div style={{ borderTop: '1px solid #e5e7eb', padding: '12px 20px', flexShrink: 0 }}>
+            {erro && <div style={{ marginBottom: '8px', color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px 12px', fontSize: '12.5px' }}>{erro}</div>}
+
+            {etapa === 1 && (
+              <button type="button" onClick={avancar1}
+                style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
+                Continuar →
+              </button>
+            )}
+
+            {etapa === 2 && (
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button type="button" onClick={() => { setErro(''); setEtapa(1) }}
+                  style={{ flex: '0 0 auto', background: 'white', color: '#6b7280', fontWeight: 600, padding: '10px 16px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '14px' }}>
+                  ← Voltar
+                </button>
+                <button type="button" onClick={avancar2}
+                  style={{ flex: 1, backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
+                  Continuar →
+                </button>
+              </div>
+            )}
+
+            {etapa === 3 && (
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button type="button" onClick={() => { setErro(''); setEtapa(2) }}
+                  style={{ flex: '0 0 auto', background: 'white', color: '#6b7280', fontWeight: 600, padding: '10px 16px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '14px' }}>
+                  ← Voltar
+                </button>
+                <button type="submit" form="form-pet" disabled={enviando || uploadandoFoto}
+                  style={{ flex: 1, backgroundColor: (enviando || uploadandoFoto) ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: (enviando || uploadandoFoto) ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+                  {enviando ? 'Salvando...' : uploadandoFoto ? 'Aguardando foto...' : editando ? 'Salvar alterações' : 'Publicar registro'}
+                </button>
+              </div>
+            )}
+          </div>
+          </>
         )}
       </div>
     </div>
