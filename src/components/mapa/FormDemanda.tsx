@@ -150,7 +150,7 @@ export function FormDemanda({
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-      <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '760px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '440px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: '8px 20px', borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
           <h2 style={{ fontWeight: 700, color: '#111827', margin: 0, fontSize: '15px' }}>Registrar uma nova demanda</h2>
           <button onClick={fechar} style={{ position: 'absolute', right: '20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#6b7280', lineHeight: 1, padding: 0 }}>×</button>
@@ -166,7 +166,7 @@ export function FormDemanda({
           </div>
         ) : (
           <>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 24px' }}>
+            <div style={{ padding: '16px 20px 20px' }}>
 
               {/* ---- ETAPA 1: Categoria + Autoridade + Endereço ---- */}
               {etapa === 1 && (
@@ -255,7 +255,7 @@ export function FormDemanda({
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }}>Descrição *</label>
                     <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
                       <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descreva o problema em detalhes..."
-                        style={{ width: '100%', flex: 1, minHeight: '120px', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', paddingBottom: '32px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
+                        style={{ width: '100%', flex: 1, minHeight: '90px', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', paddingBottom: '32px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
                       <button type="button" onClick={melhorarDescricao} disabled={!descricao.trim() || melhorandoTexto}
                         title="Melhorar texto com IA"
                         style={{ position: 'absolute', right: '8px', bottom: '8px', display: 'flex', alignItems: 'center', gap: '4px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 8px', fontSize: '11px', fontWeight: 600, color: descricao.trim() ? '#4256c8' : '#9ca3af', cursor: !descricao.trim() || melhorandoTexto ? 'default' : 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
