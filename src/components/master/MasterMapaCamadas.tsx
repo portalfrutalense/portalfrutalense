@@ -314,7 +314,7 @@ export function MasterPets() {
 /* ======================================================= classificados = */
 
 const ROTULO_VEICULO: Record<string, string> = {
-  carro: 'Carro', moto: 'Moto', caminhonete: 'Caminhonete', caminhao: 'Caminhão',
+  carro: 'Carro', moto: 'Moto', onibus: 'Ônibus', caminhao: 'Caminhão',
 }
 
 export function MasterClassificados() {

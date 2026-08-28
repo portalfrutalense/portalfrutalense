@@ -18,18 +18,18 @@ import { salvarCamada } from './salvarCamada'
 const PATH_VEICULO: Record<TipoVeiculo, string> = {
   carro: 'M5 13l1.5-4.5A2 2 0 0 1 8.4 7h7.2a2 2 0 0 1 1.9 1.5L19 13m-14 0h14m-14 0v3.5m14-3.5v3.5M6.5 16.5h1m9 0h1M4 13h16v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3Z',
   moto: 'M5.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm13 0a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm-13-2.5h5l3-5.5h3m-6 0h-3m9 0 2.5 5.5M14 7h3',
-  caminhonete: 'M3 14l1-4h6V7h4.2a2 2 0 0 1 1.7 1l2.1 3H21v3M3 14h18M3 14v2.5h18V14M7 17.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm10 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z',
+  onibus: 'M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6Zm0 5h16M8 18v1m8-1v1M8 4v7m8-7v7',
   caminhao: 'M2 15V7h11v8M13 10h4.5l2.5 3v2M2 15h18M6.5 18a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm10 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z',
 }
 
 export const ROTULO_VEICULO: Record<TipoVeiculo, string> = {
   carro: 'Carro',
   moto: 'Moto',
-  caminhonete: 'Caminhonete',
+  onibus: 'Ônibus',
   caminhao: 'Caminhão',
 }
 
-export const TIPOS: TipoVeiculo[] = ['carro', 'moto', 'caminhonete', 'caminhao']
+export const TIPOS: TipoVeiculo[] = ['carro', 'moto', 'onibus', 'caminhao']
 
 export function IconeVeiculo({ tipo, size = 18, cor = 'currentColor' }: { tipo: TipoVeiculo; size?: number; cor?: string }) {
   return (

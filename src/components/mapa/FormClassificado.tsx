@@ -219,9 +219,22 @@ export function FormClassificado({
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
                 <div>
                   <label style={rotuloCampo}>Tipo de veículo *</label>
-                  <select value={tipoVeiculo} onChange={e => setTipoVeiculo(e.target.value as TipoVeiculo)} style={campoEstilo}>
-                    {TIPOS.map(t => <option key={t} value={t}>{ROTULO_VEICULO[t]}</option>)}
-                  </select>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    {TIPOS.map(t => (
+                      <button key={t} type="button" onClick={() => setTipoVeiculo(t)}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
+                          padding: '9px', borderRadius: '7px', cursor: 'pointer', fontSize: '13px',
+                          fontWeight: tipoVeiculo === t ? 600 : 500,
+                          background: tipoVeiculo === t ? '#eff6ff' : 'white',
+                          border: `1px solid ${tipoVeiculo === t ? '#4256c8' : '#e5e7eb'}`,
+                          color: '#111827',
+                        }}>
+                        <IconeVeiculo tipo={t} size={16} cor={tipoVeiculo === t ? '#4256c8' : '#6b7280'} />
+                        {ROTULO_VEICULO[t]}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>

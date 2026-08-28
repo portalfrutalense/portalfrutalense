@@ -108,7 +108,7 @@ export interface Pet {
 
 /* ------------------------------------------------------- classificados --- */
 
-export type TipoVeiculo = 'carro' | 'moto' | 'caminhonete' | 'caminhao'
+export type TipoVeiculo = 'carro' | 'moto' | 'onibus' | 'caminhao'
 
 export interface Classificado {
   id: string
