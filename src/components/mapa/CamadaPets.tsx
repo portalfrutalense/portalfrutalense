@@ -394,6 +394,7 @@ export function FormularioPet({
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState(false)
+  const [protocolo, setProtocolo] = useState('')
 
   function aoEscolherFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -454,12 +455,13 @@ export function FormularioPet({
       contato: contato.trim(),
     }
 
-    const { erro, id } = await salvarCamada({ camada: 'pets', editando, dados: registro, turnstileToken, supabase })
+    const { erro, id, protocolo: prot } = await salvarCamada({ camada: 'pets', editando, dados: registro, turnstileToken, supabase })
 
     setEnviando(false)
     if (erro) { setErro(erro); return }
     if (editando) { aoSalvar(); aoFechar(); return }
 
+    if (prot) setProtocolo(prot)
     setSucesso(true)
     aoSalvar()
   }
@@ -477,6 +479,11 @@ export function FormularioPet({
         {sucesso ? (
           <div style={{ padding: '32px', textAlign: 'center' }}>
             <p style={{ fontWeight: 700, color: '#166534', fontSize: '16px', margin: '0 0 8px' }}>Registro publicado!</p>
+            {protocolo && (
+              <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827', margin: '0 0 6px' }}>
+                Protocolo: <span style={{ color: '#4256c8' }}>{protocolo}</span>
+              </p>
+            )}
             <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px', lineHeight: 1.6 }}>
               Ele já aparece no mapa e fica visível por 30 dias.
             </p>
