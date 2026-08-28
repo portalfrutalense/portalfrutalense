@@ -256,7 +256,11 @@ export function FormPet({
               <div>
                 <label style={rotuloCampo}>Descrição *</label>
                 <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)}
-                  placeholder="Marcas, coleira, comportamento, quando foi visto pela última vez..."
+                  placeholder={
+                    tipo === 'perdido' ? 'Marcas, coleira, comportamento, quando e onde foi visto pela última vez...' :
+                    tipo === 'achado'  ? 'Onde foi encontrado, aparência, comportamento, sinais físicos...' :
+                    'Idade, temperamento, vacinado, castrado, se dá com crianças ou outros animais...'
+                  }
                   style={{ ...campoEstilo, minHeight: '80px', resize: 'none' }} />
               </div>
 
