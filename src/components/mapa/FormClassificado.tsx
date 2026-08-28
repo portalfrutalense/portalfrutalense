@@ -196,7 +196,7 @@ export function FormClassificado({
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-      <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '440px', height: '580px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '440px', height: sucesso ? 'auto' : '580px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {/* Cabeçalho */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: '8px 20px', borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
@@ -207,10 +207,10 @@ export function FormClassificado({
         </div>
 
         {sucesso ? (
-          <div style={{ padding: '32px', textAlign: 'center' }}>
-            <p style={{ fontWeight: 700, color: '#166534', fontSize: '16px', margin: '0 0 8px' }}>Anúncio publicado!</p>
+          <div style={{ padding: '32px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+            <p style={{ fontWeight: 700, color: '#166534', fontSize: '16px', margin: '0 0 8px' }}>Anúncio enviado!</p>
             {protocolo && <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827', margin: '0 0 6px' }}>Protocolo: <span style={{ color: '#4256c8' }}>{protocolo}</span></p>}
-            <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px', lineHeight: 1.6 }}>Ele já aparece no mapa com a localização aproximada.</p>
+            <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px', lineHeight: 1.6 }}>Seu anúncio está em análise. Se aprovado pela IA, aparecerá no mapa em instantes.</p>
             <button onClick={aoFechar} style={{ fontSize: '13px', color: '#4256c8', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Fechar</button>
           </div>
         ) : (
