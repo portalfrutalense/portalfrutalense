@@ -59,49 +59,48 @@ export default function MasterPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [carregandoAuth, user, perfil])
 
-  function carregarDados() {
+  async function carregarDados() {
+    // Categorias via cliente público (sem RLS relevante)
     client.from('categorias_mapa').select('*').order('nome').then(({ data }) => setCategorias((data as CategoriaMapa[]) || []))
-    client.from('demandas').select('status').then(({ data }) => {
-      const d = data || []
-      setStats({
-        total: d.length,
-        pendente: d.filter((x: any) => x.status === 'pendente').length,
-        aguardando: d.filter((x: any) => x.status === 'aguardando_resposta').length,
-        respondida: d.filter((x: any) => x.status === 'respondida').length,
-        resolvida: d.filter((x: any) => x.status === 'resolvida').length,
-        nao_resolvida: d.filter((x: any) => x.status === 'nao_resolvida').length,
-        denunciada: d.filter((x: any) => x.status === 'denunciada').length,
-      })
+
+    // Stats via API server-side (bypassa RLS — mostra totais reais)
+    const token = (await client.auth.getSession()).data.session?.access_token
+    if (!token) return
+    const res = await fetch('/api/master/stats', {
+      headers: { Authorization: `Bearer ${token}` },
     })
-    client.from('pets').select('tipo, reencontrado, oculto, ia_decisao').then(({ data }) => {
-      const d = data || []
-      setStatsPets({
-        total: d.length,
-        perdidos: d.filter((x: any) => x.tipo === 'perdido' && !x.reencontrado).length,
-        achados: d.filter((x: any) => x.tipo === 'achado').length,
-        reencontrados: d.filter((x: any) => x.reencontrado).length,
-        ocultos: d.filter((x: any) => x.oculto).length,
-        pendente_ia: d.filter((x: any) => x.ia_decisao === 'pendente').length,
-      })
+    if (!res.ok) return
+    const s = await res.json()
+
+    setStats({
+      total:         s.demandas.total,
+      pendente:      s.demandas.pendente,
+      aguardando:    s.demandas.aguardando,
+      respondida:    s.demandas.respondida,
+      resolvida:     s.demandas.resolvida,
+      nao_resolvida: s.demandas.nao_resolvida,
+      denunciada:    s.demandas.denunciada,
     })
-    client.from('classificados').select('vendido, oculto, ia_decisao').then(({ data }) => {
-      const d = data || []
-      setStatsClass({
-        total: d.length,
-        ativos: d.filter((x: any) => !x.vendido && !x.oculto).length,
-        vendidos: d.filter((x: any) => x.vendido).length,
-        ocultos: d.filter((x: any) => x.oculto).length,
-        pendente_ia: d.filter((x: any) => x.ia_decisao === 'pendente').length,
-      })
+    setStatsPets({
+      total:         s.pets.total,
+      perdidos:      s.pets.perdidos,
+      achados:       s.pets.achados,
+      reencontrados: s.pets.reencontrados,
+      ocultos:       s.pets.ocultos,
+      pendente_ia:   s.pets.pendente_ia,
     })
-    client.from('empregos').select('encerrada, oculto').then(({ data }) => {
-      const d = data || []
-      setStatsEmp({
-        total: d.length,
-        ativas: d.filter((x: any) => !x.encerrada && !x.oculto).length,
-        encerradas: d.filter((x: any) => x.encerrada).length,
-        ocultas: d.filter((x: any) => x.oculto).length,
-      })
+    setStatsClass({
+      total:       s.classificados.total,
+      ativos:      s.classificados.ativos,
+      vendidos:    s.classificados.vendidos,
+      ocultos:     s.classificados.ocultos,
+      pendente_ia: s.classificados.pendente_ia,
+    })
+    setStatsEmp({
+      total:      s.empregos.total,
+      ativas:     s.empregos.ativas,
+      encerradas: s.empregos.encerradas,
+      ocultas:    s.empregos.ocultas,
     })
   }
 
@@ -740,7 +739,10 @@ function MasterDemandas({ token }: { token: string | null }) {
     denunciada:          { bg: '#f9fafb', color: '#dc2626' },
   }
 
-  const filtradas = filtro === 'todos' ? demandas : demandas.filter(d => d.status === filtro)
+  const filtradas =
+    filtro === 'todos'   ? demandas :
+    filtro === 'ocultos' ? demandas.filter(d => d.oculto) :
+    demandas.filter(d => d.status === filtro)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -752,18 +754,28 @@ function MasterDemandas({ token }: { token: string | null }) {
 
       {/* Filtro de status */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-        {(['todos', 'pendente', 'aguardando_resposta', 'respondida', 'resolvida', 'rejeitada_ia', 'denunciada'] as const).map(f => (
+        {([
+          { chave: 'todos',               rotulo: 'Todas',              contagem: demandas.length },
+          { chave: 'pendente',            rotulo: 'Pendente IA',        contagem: demandas.filter(d => d.status === 'pendente').length },
+          { chave: 'aguardando_resposta', rotulo: 'Aguardando resposta',contagem: demandas.filter(d => d.status === 'aguardando_resposta').length },
+          { chave: 'respondida',          rotulo: 'Respondida',         contagem: demandas.filter(d => d.status === 'respondida').length },
+          { chave: 'nao_resolvida',       rotulo: 'Não respondida',     contagem: demandas.filter(d => d.status === 'nao_resolvida').length },
+          { chave: 'resolvida',           rotulo: 'Resolvida',          contagem: demandas.filter(d => d.status === 'resolvida').length },
+          { chave: 'rejeitada_ia',        rotulo: 'Rejeitada pela IA',  contagem: demandas.filter(d => d.status === 'rejeitada_ia').length },
+          { chave: 'denunciada',          rotulo: 'Denunciada',         contagem: demandas.filter(d => d.status === 'denunciada').length },
+          { chave: 'ocultos',             rotulo: 'Ocultos',            contagem: demandas.filter(d => d.oculto).length },
+        ] as const).map(f => (
           <button
-            key={f}
-            onClick={() => setFiltro(f)}
+            key={f.chave}
+            onClick={() => setFiltro(f.chave)}
             style={{
               fontSize: '12px', fontWeight: 600, padding: '6px 12px', borderRadius: '20px', cursor: 'pointer',
-              border: filtro === f ? '2px solid #4256c8' : '1px solid #e5e7eb',
-              background: filtro === f ? '#4256c8' : 'white',
-              color: filtro === f ? 'white' : '#111827',
+              border: filtro === f.chave ? '2px solid #4256c8' : '1px solid #e5e7eb',
+              background: filtro === f.chave ? '#4256c8' : 'white',
+              color: filtro === f.chave ? 'white' : '#111827',
             }}
           >
-            {f === 'todos' ? `Todas (${demandas.length})` : `${statusLabel[f]} (${demandas.filter(d => d.status === f).length})`}
+            {f.rotulo} ({f.contagem})
           </button>
         ))}
       </div>
@@ -786,7 +798,7 @@ function MasterDemandas({ token }: { token: string | null }) {
         const expandida = expandidas.has(d.id)
 
         return (
-          <div key={d.id} style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', overflow: 'hidden', position: 'relative' }}>
+          <div key={d.id} style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', position: 'relative' }}>
 
             {/* Linha-resumo — sempre visível, clicável para expandir/recolher */}
             <div
@@ -952,20 +964,21 @@ function MasterDemandas({ token }: { token: string | null }) {
                 </button>
               </div>
 
-              {/* Análise IA / motivo da denúncia — oculta se não houver */}
-              {d.ia_motivo && (
-                <div style={{
-                  fontSize: '12px',
-                  color: (d.status === 'rejeitada_ia' || d.status === 'denunciada') ? '#dc2626' : '#6b7280',
-                  background: '#f9fafb',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '6px',
-                  padding: '7px 10px',
-                  lineHeight: 1.5,
-                }}>
-                  <strong>{d.status === 'denunciada' ? 'Motivo da denúncia:' : 'Análise IA:'}</strong> {d.ia_motivo}
-                </div>
-              )}
+              {/* Análise IA — sempre presente */}
+              <div style={{
+                fontSize: '12px',
+                color: (d.status === 'rejeitada_ia' || d.status === 'denunciada') ? '#dc2626'
+                     : d.status === 'pendente' ? '#92400e'
+                     : '#6b7280',
+                background: '#f9fafb',
+                border: '1px solid #e5e7eb',
+                borderRadius: '6px',
+                padding: '7px 10px',
+                lineHeight: 1.5,
+              }}>
+                <strong>{d.status === 'denunciada' ? 'Motivo da denúncia:' : 'Análise IA:'}</strong>{' '}
+                {d.ia_motivo || (d.status === 'pendente' ? 'Aguardando análise automática' : 'Sem informações registradas')}
+              </div>
 
               {/* Respostas das autoridades (novo sistema multi-entidade) */}
               {(d.vinculos?.filter((v: any) => v.resposta) ?? []).length > 0 ? (
@@ -973,8 +986,8 @@ function MasterDemandas({ token }: { token: string | null }) {
                   <div key={v.id} style={{ fontSize: '12px', color: '#166534', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 10px', lineHeight: 1.5 }}>
                     <strong>{v.entidade?.nome || 'Autoridade'}:</strong> {v.resposta}
                     <div style={{ marginTop: '4px', fontSize: '11px', color: '#9ca3af', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                      {v.respondida_em && <span>🕐 {new Date(v.respondida_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>}
-                      {v.resposta_ip && <span>🌐 {v.resposta_ip}</span>}
+                      {v.respondida_em && <span>{new Date(v.respondida_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>}
+                      {v.resposta_ip && <span>IP: {v.resposta_ip}</span>}
                     </div>
                   </div>
                 ))
@@ -990,11 +1003,11 @@ function MasterDemandas({ token }: { token: string | null }) {
                   Fallback: demanda_entidades[].email_status (IA / moderar) */}
               {(() => {
                 const cfg: Record<string, { texto: string; cor: string; bg: string }> = {
-                  enviado:   { texto: '📧 Email enviado',      cor: '#6b7280', bg: '#f9fafb' },
-                  entregue:  { texto: '✅ Email entregue',      cor: '#15803d', bg: '#f0fdf4' },
-                  atrasado:  { texto: '⏳ Entrega atrasada',   cor: '#b45309', bg: '#fffbeb' },
-                  bounce:    { texto: '❌ Email bounced',       cor: '#dc2626', bg: '#fef2f2' },
-                  reclamado: { texto: '⚠️ Marcado como spam',  cor: '#dc2626', bg: '#fef2f2' },
+                  enviado:   { texto: 'Email enviado',      cor: '#6b7280', bg: '#f9fafb' },
+                  entregue:  { texto: 'Email entregue',     cor: '#166534', bg: '#f0fdf4' },
+                  atrasado:  { texto: 'Entrega atrasada',   cor: '#92400e', bg: '#fffbeb' },
+                  bounce:    { texto: 'Email bounced',      cor: '#dc2626', bg: '#fef2f2' },
+                  reclamado: { texto: 'Marcado como spam',  cor: '#dc2626', bg: '#fef2f2' },
                 }
                 // Usa status da demanda só se tiver id de rastreio real
                 const statusDemanda = d.email_resend_id ? d.email_status : null
@@ -1153,7 +1166,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
   }
 
   function mostrarNotif(msg: string, erro = false) {
-    setNotif((erro ? '⚠️ ' : '') + msg)
+    setNotif((erro ? 'Erro: ' : '') + msg)
     setTimeout(() => setNotif(''), 4000)
   }
 
@@ -1297,7 +1310,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
         </p>
       </div>
 
-      {notif && <div style={{ background: notif.startsWith('⚠️') ? '#f9fafb' : '#f9fafb', border: `1px solid ${notif.startsWith('⚠️') ? '#e5e7eb' : '#e5e7eb'}`, borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: notif.startsWith('⚠️') ? '#dc2626' : '#166534', marginBottom: '16px' }}>{notif}</div>}
+      {notif && <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: notif.startsWith('Erro:') ? '#dc2626' : '#166534', marginBottom: '16px' }}>{notif}</div>}
 
       {/* Formulário de criação — só para autoridade e empresa */}
       {subSecao !== 'cidadao' && (

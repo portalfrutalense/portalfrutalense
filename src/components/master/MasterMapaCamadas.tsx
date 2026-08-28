@@ -14,9 +14,10 @@ interface ItemLista {
   subtitulo?: string
   data: string               // ISO — exibida no header como data/hora
   meta: { rotulo: string; valor: string }[]
-  /** Caixa "Análise IA" separada, abaixo da caixa cinza de meta. */
-  destaque?: { rotulo: string; valor: string; cor?: string } | null
-  foto?: string | null
+  /** Caixa "Análise IA" separada, abaixo da caixa cinza de meta. Sempre presente. */
+  destaque: { rotulo: string; valor: string; cor?: string }
+  foto?: string | null       // foto única (pets, empregos)
+  fotos?: string[]           // múltiplas fotos (classificados)
   etiquetas: { texto: string; cor: string }[]
   oculto: boolean
   acoes: Acao[]
@@ -26,7 +27,7 @@ function Etiqueta({ texto, cor }: { texto: string; cor: string }) {
   return (
     <span style={{
       fontSize: '11px', fontWeight: 600, borderRadius: '20px', padding: '3px 10px',
-      background: '#f9fafb', color: cor, border: '1px solid #e5e7eb', whiteSpace: 'nowrap',
+      background: '#f9fafb', color: cor, whiteSpace: 'nowrap',
     }}>
       {texto}
     </span>
@@ -41,7 +42,7 @@ function ListaModeracao({
   carregando: boolean
   itens: ItemLista[]
   vazio: string
-  filtros: { chave: string; rotulo: string }[]
+  filtros: { chave: string; rotulo: string; contagem?: number }[]
   filtroAtivo: string
   setFiltro: (f: string) => void
   notif: string
@@ -90,7 +91,7 @@ function ListaModeracao({
             color: filtroAtivo === f.chave ? 'white' : '#6b7280',
             border: `1px solid ${filtroAtivo === f.chave ? '#4256c8' : '#e5e7eb'}`,
           }}>
-            {f.rotulo}
+            {f.rotulo}{f.contagem != null ? ` (${f.contagem})` : ''}
           </button>
         ))}
       </div>
@@ -111,7 +112,7 @@ function ListaModeracao({
             return (
               <div key={item.id} style={{
                 background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px',
-                overflow: 'hidden', position: 'relative', opacity: item.oculto ? 0.6 : 1,
+                position: 'relative', opacity: item.oculto ? 0.6 : 1,
               }}>
                 {/* Linha-resumo — sempre visível, clicável para expandir/recolher */}
                 <div
@@ -158,7 +159,10 @@ function ListaModeracao({
                     <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {item.meta.map((m, i) => (
                         <p key={i} style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-                          {m.rotulo}: <strong style={{ color: '#111827' }}>{m.valor}</strong>
+                          {m.rotulo}:{' '}
+                          <strong style={{ color: '#111827', fontFamily: m.rotulo === 'Protocolo' ? 'monospace' : undefined }}>
+                            {m.valor}
+                          </strong>
                         </p>
                       ))}
                       {item.foto && (
@@ -167,22 +171,30 @@ function ListaModeracao({
                           Ver foto
                         </a>
                       )}
+                      {item.fotos && item.fotos.length > 0 && (
+                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '2px' }}>
+                          {item.fotos.map((url, i) => (
+                            <a key={i} href={url} target="_blank" rel="noreferrer"
+                              style={{ fontSize: '12px', color: '#4256c8', textDecoration: 'underline' }}>
+                              Ver foto {item.fotos!.length > 1 ? i + 1 : ''}
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    {/* Análise IA — caixa separada, igual ao de demanda */}
-                    {item.destaque && (
-                      <div style={{
-                        fontSize: '12px',
-                        color: item.destaque.cor ?? '#6b7280',
-                        background: '#f9fafb',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '6px',
-                        padding: '7px 10px',
-                        lineHeight: 1.5,
-                      }}>
-                        <strong>{item.destaque.rotulo}</strong> {item.destaque.valor}
-                      </div>
-                    )}
+                    {/* Análise IA — sempre presente */}
+                    <div style={{
+                      fontSize: '12px',
+                      color: item.destaque.cor ?? '#6b7280',
+                      background: '#f9fafb',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '6px',
+                      padding: '7px 10px',
+                      lineHeight: 1.5,
+                    }}>
+                      <strong>{item.destaque.rotulo}</strong> {item.destaque.valor}
+                    </div>
                   </div>
                 )}
               </div>
@@ -235,41 +247,59 @@ export function MasterPets() {
     if (filtro === 'todos') return true
     if (filtro === 'ocultos') return p.oculto
     if (filtro === 'reencontrado') return p.reencontrado
-    if (filtro === 'pendente_ia') return p.ia_decisao === 'pendente'
+    if (filtro === 'pendente_ia') return !p.ia_decisao  // null = ainda não analisado
     return p.tipo === filtro && !p.reencontrado
   })
 
+  const ROTULO_TIPO: Record<string, string> = {
+    perdido: 'Perdido', achado: 'Achei um Pet', adocao: 'Adoção',
+  }
+  const ROTULO_ESPECIE: Record<string, string> = { cachorro: 'Cachorro', gato: 'Gato' }
+  const ROTULO_PORTE: Record<string, string> = { pequeno: 'Pequeno', medio: 'Médio', grande: 'Grande' }
+
   const itens: ItemLista[] = filtrados.map(p => ({
     id: p.id,
-    titulo: p.nome_pet || (p.especie === 'gato' ? 'Gato' : 'Cachorro'),
-    subtitulo: p.descricao,
+    titulo: p.autor_nome,
+    subtitulo: undefined,
     data: p.created_at,
     foto: p.foto_url,
     oculto: !!p.oculto,
     etiquetas: [
       p.reencontrado
-        ? { texto: 'Reencontrado', cor: '#2563eb' }
+        ? { texto: 'Reencontrado',  cor: '#4256c8' }
         : p.tipo === 'perdido'
-          ? { texto: 'Perdido', cor: '#dc2626' }
+          ? { texto: 'Perdido',     cor: '#dc2626' }
           : p.tipo === 'adocao'
-            ? { texto: 'Adoção', cor: '#7c3aed' }
-            : { texto: 'Achei um Pet', cor: '#16a34a' },
-      ...(p.ia_decisao === 'pendente' ? [{ texto: '⏳ IA Pendente', cor: '#b45309' }] : []),
-      ...(p.ia_decisao === 'aprovada' ? [{ texto: '✓ IA', cor: '#15803d' }] : []),
-      ...(p.ia_decisao === 'rejeitada' ? [{ texto: '✕ IA Rejeitada', cor: '#dc2626' }] : []),
-      ...(p.oculto ? [{ texto: 'Oculto', cor: '#92400e' }] : []),
+            ? { texto: 'Adoção',    cor: '#7c3aed' }
+            : { texto: 'Achei um Pet', cor: '#166534' },
+      ...(!p.ia_decisao                ? [{ texto: 'Pendente IA',      cor: '#92400e' }] : []),
+      ...(p.ia_decisao === 'aprovada'  ? [{ texto: 'Aprovada',          cor: '#166534' }] : []),
+      ...(p.ia_decisao === 'rejeitada' ? [{ texto: 'Rejeitada pela IA', cor: '#dc2626' }] : []),
+      ...(p.oculto                     ? [{ texto: 'Oculto',            cor: '#6b7280' }] : []),
     ],
     meta: [
-      ...(p.protocolo ? [{ rotulo: 'Protocolo', valor: p.protocolo }] : []),
-      { rotulo: 'Autor', valor: p.autor_nome },
-      { rotulo: 'Contato', valor: p.contato },
-      { rotulo: 'Local', valor: p.endereco_label || '—' },
+      ...(p.protocolo      ? [{ rotulo: 'Protocolo',  valor: p.protocolo }] : []),
+      { rotulo: 'Autor',     valor: p.autor_nome },
+      { rotulo: 'Tipo',      valor: p.reencontrado ? 'Reencontrado' : (ROTULO_TIPO[p.tipo] || p.tipo) },
+      { rotulo: 'Espécie',   valor: ROTULO_ESPECIE[p.especie] || p.especie },
+      ...(p.nome_pet  ? [{ rotulo: 'Nome do pet', valor: p.nome_pet }] : []),
+      ...(p.raca      ? [{ rotulo: 'Raça',         valor: p.raca }] : []),
+      ...(p.cor       ? [{ rotulo: 'Cor',           valor: p.cor }] : []),
+      ...(p.porte     ? [{ rotulo: 'Porte',         valor: ROTULO_PORTE[p.porte] || p.porte }] : []),
+      { rotulo: 'Descrição', valor: p.descricao },
+      { rotulo: 'Local',     valor: p.endereco_label || '—' },
+      { rotulo: 'Contato',   valor: p.contato || '—' },
+      { rotulo: 'Expira em', valor: diasRestantes(p.expira_em) },
     ],
-    destaque: p.ia_motivo ? {
+    destaque: {
       rotulo: p.ia_decisao === 'rejeitada' ? 'Motivo IA:' : 'Análise IA:',
-      valor: p.ia_motivo,
-      cor: p.ia_decisao === 'rejeitada' ? '#dc2626' : '#6b7280',
-    } : null,
+      valor: !p.ia_decisao
+        ? 'Aguardando análise automática'
+        : p.ia_decisao === 'aprovada'
+          ? (p.ia_motivo || 'Aprovada')
+          : (p.ia_motivo || 'Rejeitada'),
+      cor: !p.ia_decisao ? '#b45309' : p.ia_decisao === 'rejeitada' ? '#dc2626' : '#6b7280',
+    },
     acoes: [
       {
         rotulo: p.oculto ? 'Reexibir' : 'Ocultar',
@@ -299,13 +329,13 @@ export function MasterPets() {
       itens={itens}
       vazio="Nenhum registro nesse filtro."
       filtros={[
-        { chave: 'todos', rotulo: 'Todos' },
-        { chave: 'perdido', rotulo: 'Perdidos' },
-        { chave: 'achado', rotulo: 'Abandonados' },
-        { chave: 'adocao', rotulo: 'Adoção' },
-        { chave: 'reencontrado', rotulo: 'Reencontrados' },
-        { chave: 'pendente_ia', rotulo: 'Pendente IA' },
-        { chave: 'ocultos', rotulo: 'Ocultos' },
+        { chave: 'todos',       rotulo: 'Todos',         contagem: pets.length },
+        { chave: 'perdido',     rotulo: 'Perdidos',      contagem: pets.filter(p => p.tipo === 'perdido' && !p.reencontrado).length },
+        { chave: 'achado',      rotulo: 'Abandonados',   contagem: pets.filter(p => p.tipo === 'achado').length },
+        { chave: 'adocao',      rotulo: 'Adoção',        contagem: pets.filter(p => p.tipo === 'adocao').length },
+        { chave: 'reencontrado',rotulo: 'Reencontrados', contagem: pets.filter(p => p.reencontrado).length },
+        { chave: 'pendente_ia', rotulo: 'Pendente IA',   contagem: pets.filter(p => !p.ia_decisao).length },
+        { chave: 'ocultos',     rotulo: 'Ocultos',       contagem: pets.filter(p => p.oculto).length },
       ]}
       filtroAtivo={filtro}
       setFiltro={setFiltro}
@@ -336,40 +366,54 @@ export function MasterClassificados() {
   useEffect(() => { carregar() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtrados = itensBanco.filter(c => {
-    if (filtro === 'todos') return !c.vendido
+    if (filtro === 'todos') return true
     if (filtro === 'ocultos') return c.oculto
     if (filtro === 'vendidos') return c.vendido
-    if (filtro === 'pendente_ia') return c.ia_decisao === 'pendente'
-    return c.tipo_veiculo === filtro && !c.vendido
+    if (filtro === 'pendente_ia') return !c.ia_decisao  // null = ainda não analisado
+    return c.tipo_veiculo === filtro
   })
 
   const itens: ItemLista[] = filtrados.map(c => ({
     id: c.id,
-    titulo: c.titulo,
-    subtitulo: c.descricao,
+    titulo: c.autor_nome,
+    subtitulo: undefined,
     data: c.created_at,
-    foto: c.fotos?.[0] ?? null,
+    foto: null,
+    fotos: c.fotos ?? [],
     oculto: !!c.oculto,
     etiquetas: [
       { texto: ROTULO_VEICULO[c.tipo_veiculo] || c.tipo_veiculo, cor: '#4256c8' },
-      ...(c.ia_decisao === 'pendente' ? [{ texto: '⏳ IA Pendente', cor: '#b45309' }] : []),
-      ...(c.ia_decisao === 'aprovada' ? [{ texto: '✓ IA', cor: '#15803d' }] : []),
-      ...(c.ia_decisao === 'rejeitada' ? [{ texto: '✕ IA Rejeitada', cor: '#dc2626' }] : []),
-      ...(c.vendido ? [{ texto: 'Vendido', cor: '#6b7280' }] : []),
-      ...(c.oculto ? [{ texto: 'Oculto', cor: '#92400e' }] : []),
+      ...(!c.ia_decisao                       ? [{ texto: 'Pendente IA',      cor: '#92400e' }] : []),
+      ...(c.ia_decisao === 'aprovada'         ? [{ texto: 'Aprovada',          cor: '#166534' }] : []),
+      ...(c.ia_decisao === 'rejeitada'        ? [{ texto: 'Rejeitada pela IA', cor: '#dc2626' }] : []),
+      ...(c.vendido                           ? [{ texto: 'Vendido',           cor: '#6b7280' }] : []),
+      ...(c.oculto                            ? [{ texto: 'Oculto',            cor: '#6b7280' }] : []),
     ],
     meta: [
-      ...(c.protocolo ? [{ rotulo: 'Protocolo', valor: c.protocolo }] : []),
-      { rotulo: 'Preço', valor: moeda(c.preco) },
-      { rotulo: 'Autor', valor: c.autor_nome },
-      { rotulo: 'Contato', valor: c.contato },
-      { rotulo: 'Região', valor: c.bairro_label || '—' },
+      ...(c.protocolo   ? [{ rotulo: 'Protocolo',        valor: c.protocolo }] : []),
+      { rotulo: 'Autor',             valor: c.autor_nome },
+      { rotulo: 'Tipo de veículo',   valor: ROTULO_VEICULO[c.tipo_veiculo] || c.tipo_veiculo },
+      ...(c.marca       ? [{ rotulo: 'Marca',             valor: c.marca }] : []),
+      ...(c.modelo      ? [{ rotulo: 'Modelo',            valor: c.modelo }] : []),
+      ...(c.ano         ? [{ rotulo: 'Ano',               valor: String(c.ano) }] : []),
+      ...(c.km != null  ? [{ rotulo: 'Quilometragem',     valor: `${c.km.toLocaleString('pt-BR')} km` }] : []),
+      ...(c.cor         ? [{ rotulo: 'Cor',               valor: c.cor }] : []),
+      { rotulo: 'Preço',             valor: moeda(c.preco) },
+      { rotulo: 'Aceita troca',      valor: c.aceita_troca ? 'Sim' : 'Não' },
+      { rotulo: 'Título do anúncio', valor: c.titulo },
+      { rotulo: 'Descrição',         valor: c.descricao },
+      { rotulo: 'Região aproximada', valor: c.bairro_label || '—' },
+      { rotulo: 'Contato',           valor: c.contato },
     ],
-    destaque: c.ia_motivo ? {
+    destaque: {
       rotulo: c.ia_decisao === 'rejeitada' ? 'Motivo IA:' : 'Análise IA:',
-      valor: c.ia_motivo,
-      cor: c.ia_decisao === 'rejeitada' ? '#dc2626' : '#6b7280',
-    } : null,
+      valor: !c.ia_decisao
+        ? 'Aguardando análise automática'
+        : c.ia_decisao === 'aprovada'
+          ? (c.ia_motivo || 'Aprovada')
+          : (c.ia_motivo || 'Rejeitada'),
+      cor: !c.ia_decisao ? '#b45309' : c.ia_decisao === 'rejeitada' ? '#dc2626' : '#6b7280',
+    },
     acoes: [
       {
         rotulo: c.oculto ? 'Reexibir' : 'Ocultar',
@@ -399,14 +443,14 @@ export function MasterClassificados() {
       itens={itens}
       vazio="Nenhum anúncio nesse filtro."
       filtros={[
-        { chave: 'todos', rotulo: 'Todos' },
-        { chave: 'carro', rotulo: 'Carros' },
-        { chave: 'moto', rotulo: 'Motos' },
-        { chave: 'onibus', rotulo: 'Ônibus' },
-        { chave: 'caminhao', rotulo: 'Caminhões' },
-        { chave: 'pendente_ia', rotulo: 'Pendente IA' },
-        { chave: 'vendidos', rotulo: 'Vendidos' },
-        { chave: 'ocultos', rotulo: 'Ocultos' },
+        { chave: 'todos',       rotulo: 'Todos',       contagem: itensBanco.length },
+        { chave: 'pendente_ia', rotulo: 'Pendente IA', contagem: itensBanco.filter(c => !c.ia_decisao).length },
+        { chave: 'carro',       rotulo: 'Carros',      contagem: itensBanco.filter(c => c.tipo_veiculo === 'carro').length },
+        { chave: 'moto',        rotulo: 'Motos',       contagem: itensBanco.filter(c => c.tipo_veiculo === 'moto').length },
+        { chave: 'onibus',      rotulo: 'Ônibus',      contagem: itensBanco.filter(c => c.tipo_veiculo === 'onibus').length },
+        { chave: 'caminhao',    rotulo: 'Caminhões',   contagem: itensBanco.filter(c => c.tipo_veiculo === 'caminhao').length },
+        { chave: 'vendidos',    rotulo: 'Vendidos',    contagem: itensBanco.filter(c => c.vendido).length },
+        { chave: 'ocultos',     rotulo: 'Ocultos',     contagem: itensBanco.filter(c => !!c.oculto).length },
       ]}
       filtroAtivo={filtro}
       setFiltro={setFiltro}
@@ -463,6 +507,7 @@ export function MasterEmpregos() {
       { rotulo: 'Contato', valor: v.contato },
       { rotulo: 'Local', valor: v.endereco_label || '—' },
     ],
+    destaque: { rotulo: 'Análise IA:', valor: 'Empregos não passam por moderação automática.', cor: '#6b7280' },
     acoes: [
       {
         rotulo: v.oculto ? 'Reexibir' : 'Ocultar',
