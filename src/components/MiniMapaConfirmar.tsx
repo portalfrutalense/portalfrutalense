@@ -364,7 +364,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
       )}
 
       {fase === 'revisao' && (
-        <div style={{ position: 'absolute', bottom: '10px', left: '10px', right: '10px', zIndex: 1000, background: 'white', borderRadius: '10px', padding: '10px 12px', boxShadow: '0 1px 8px rgba(0,0,0,0.3)', textAlign: 'center' }}>
+        <div style={{ position: 'absolute', top: '10px', left: '10px', right: '10px', zIndex: 1000, background: 'white', borderRadius: '10px', padding: '10px 12px', boxShadow: '0 1px 8px rgba(0,0,0,0.3)', textAlign: 'center' }}>
           <p style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#111827' }}>
             O local está correto?
           </p>
