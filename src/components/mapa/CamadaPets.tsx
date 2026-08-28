@@ -239,7 +239,7 @@ export function SidebarPets({
 
           {selecionado.foto_url && (
             /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={selecionado.foto_url} alt={selecionado.nome_pet || 'Foto do pet'}
+            <img src={selecionado.foto_url} alt={selecionado.nome_pet || 'Foto do Pet'}
               onClick={() => onFoto(selecionado.foto_url!)}
               style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '7px', cursor: 'zoom-in', display: 'block' }} />
           )}
@@ -315,7 +315,7 @@ export function SidebarPets({
       <div style={{ flex: 1, overflowY: 'auto', padding: '18px 14px 12px' }}>
         <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 6px', lineHeight: 1.3 }}>Achei / Perdi um Pet</h2>
         <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 12px', lineHeight: 1.5 }}>
-          Pets perdidos pelos donos e animais encontrados abandonados nas ruas de Frutal-MG.
+          Pets perdidos, abandonados ou disponíveis para adoção em Frutal-MG.
         </p>
 
         <button onClick={onRegistrar}
@@ -324,16 +324,13 @@ export function SidebarPets({
         </button>
 
         <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#111827', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Tipo</label>
-        <div style={{ position: 'relative' }}>
-          <select value={filtro} onChange={e => setFiltro(e.target.value)}
-            style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 30px 8px 10px', fontSize: '13px', fontFamily: 'inherit', background: 'white', color: '#111827', outline: 'none', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none' }}>
-            <option value=''>Todos</option>
-            {(['pet_perdido', 'pet_achado', 'pet_adocao', 'pet_reencontrado'] as const).map(chave => (
-              <option key={chave} value={chave}>{ROTULO_FILTRO[chave]}</option>
-            ))}
-          </select>
-          <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', color: '#6b7280', pointerEvents: 'none' }}>▼</span>
-        </div>
+        <select value={filtro} onChange={e => setFiltro(e.target.value)}
+          style={{ width: '100%', fontSize: '13px', fontWeight: 500, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 28px 8px 10px', cursor: 'pointer', outline: 'none', appearance: 'none', fontFamily: 'inherit', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', boxSizing: 'border-box' }}>
+          <option value=''>Todos</option>
+          {(['pet_perdido', 'pet_achado', 'pet_adocao', 'pet_reencontrado'] as const).map(chave => (
+            <option key={chave} value={chave}>{ROTULO_FILTRO[chave]}</option>
+          ))}
+        </select>
       </div>
 
       <div style={{ padding: '10px 14px', borderTop: '1px solid #f9fafb' }}>

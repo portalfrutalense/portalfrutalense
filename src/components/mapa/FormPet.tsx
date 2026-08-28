@@ -171,7 +171,7 @@ export function FormPet({
   }
 
   const titulos: Record<1 | 2 | 3, string> = {
-    1: editando ? 'Editar registro' : 'Registrar um pet',
+    1: editando ? 'Editar registro' : 'Registrar um Pet',
     2: 'Detalhes',
     3: editando ? 'Editar registro' : 'Localização',
   }
