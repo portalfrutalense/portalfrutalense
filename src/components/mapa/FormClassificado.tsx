@@ -8,6 +8,7 @@ import Turnstile from '../Turnstile'
 import { Classificado, TipoVeiculo } from '@/types'
 import { salvarCamada } from './salvarCamada'
 import { IconeVeiculo, ROTULO_VEICULO, TIPOS } from './CamadaClassificados'
+import { mascaraTelefone, telefoneValido } from '@/lib/mascaraTelefone'
 
 /* ------------------------------------------------------------ helpers --- */
 
@@ -143,6 +144,7 @@ export function FormClassificado({
     e.preventDefault(); setErro('')
     if (!user) return
     if (!contato.trim()) { mostrarErro('Informe um contato.'); return }
+    if (!telefoneValido(contato)) { mostrarErro('Informe um WhatsApp válido: (XX) 9XXXX-XXXX.'); return }
     if (!coordenadas || !locConfirmada) { mostrarErro('Confirme a região no mapa.'); return }
     if (!editando && !turnstileToken) { mostrarErro('Aguarde a verificação de segurança concluir.'); return }
     setEnviando(true)
@@ -350,7 +352,7 @@ export function FormClassificado({
 
                 <div>
                   <label style={rotuloCampo}>Contato *</label>
-                  <input value={contato} onChange={e => setContato(e.target.value)} placeholder="WhatsApp ou telefone" style={campoEstilo} />
+                  <input value={contato} onChange={e => setContato(mascaraTelefone(e.target.value))} placeholder="(XX) 9XXXX-XXXX" inputMode="numeric" style={campoEstilo} />
                 </div>
 
                 {!editando && <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />}

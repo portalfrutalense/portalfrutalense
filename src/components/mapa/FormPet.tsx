@@ -8,6 +8,7 @@ import Turnstile from '../Turnstile'
 import { Pet, TipoPet, EspeciePet, PortePet } from '@/types'
 import { salvarCamada } from './salvarCamada'
 import { IconeEspecie, rotuloEspecie, rotuloPorte } from './CamadaPets'
+import { mascaraTelefone, telefoneValido } from '@/lib/mascaraTelefone'
 
 /* ------------------------------------------------------------ helpers --- */
 
@@ -121,6 +122,7 @@ export function FormPet({
   function avancar2() {
     if (!descricao.trim() || descricao.trim().length < 10) { mostrarErro('Descreva o pet com mais detalhes (mín. 10 caracteres).'); return }
     if (!contato.trim()) { mostrarErro('Informe um contato para quem encontrar o pet.'); return }
+    if (!telefoneValido(contato)) { mostrarErro('Informe um WhatsApp válido: (XX) 9XXXX-XXXX.'); return }
     if (!dataHora) { mostrarErro('Informe a data e hora aproximada.'); return }
     setErro('')
     setEtapa(3)
@@ -318,8 +320,8 @@ export function FormPet({
 
                 <div>
                   <label style={rotuloCampo}>Contato *</label>
-                  <input value={contato} onChange={(e) => setContato(e.target.value)}
-                    placeholder="WhatsApp ou telefone" style={campoEstilo} />
+                  <input value={contato} onChange={(e) => setContato(mascaraTelefone(e.target.value))}
+                    placeholder="(XX) 9XXXX-XXXX" inputMode="numeric" style={campoEstilo} />
                 </div>
 
                 <div>
