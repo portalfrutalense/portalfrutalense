@@ -109,20 +109,28 @@ export function FormPet({
       .finally(() => setUploadandoFoto(false))
   }
 
+  // Campos obrigatórios por tipo
+  const exibeNome    = tipo === 'perdido'
+  const exibeRaca    = tipo === 'perdido'
+  const exibeCor     = tipo === 'perdido' || tipo === 'achado'
+  const exibeFoto    = tipo === 'perdido' || tipo === 'adocao'
+  const exibeDataHora = tipo === 'perdido' || tipo === 'achado'
+
   function avancar1() {
-    if (!raca.trim()) { mostrarErro('Informe a raça do pet.'); return }
-    if (!cor.trim()) { mostrarErro('Informe a cor do pet.'); return }
-    if (!porte) { mostrarErro('Selecione o porte do pet.'); return }
-    if (!fotoPreview) { mostrarErro('Adicione ao menos uma foto do pet.'); return }
+    if (exibeNome && !nomePet.trim()) { mostrarErro('Informe o nome do Pet.'); return }
+    if (exibeRaca && !raca.trim()) { mostrarErro('Informe a raça do Pet.'); return }
+    if (exibeCor && !cor.trim()) { mostrarErro('Informe a cor do Pet.'); return }
+    if (!porte) { mostrarErro('Selecione o porte do Pet.'); return }
+    if (exibeFoto && !fotoPreview) { mostrarErro('Adicione ao menos uma foto do Pet.'); return }
     setErro('')
     setEtapa(2)
   }
 
   function avancar2() {
-    if (!descricao.trim() || descricao.trim().length < 10) { mostrarErro('Descreva o pet com mais detalhes (mín. 10 caracteres).'); return }
-    if (!contato.trim()) { mostrarErro('Informe um contato para quem encontrar o pet.'); return }
+    if (!descricao.trim() || descricao.trim().length < 10) { mostrarErro('Descreva o Pet com mais detalhes (mín. 10 caracteres).'); return }
+    if (!contato.trim()) { mostrarErro('Informe um contato.'); return }
     if (!telefoneValido(contato)) { mostrarErro('Informe um WhatsApp válido: (XX) 9XXXX-XXXX.'); return }
-    if (!dataHora) { mostrarErro('Informe a data e hora aproximada.'); return }
+    if (exibeDataHora && !dataHora) { mostrarErro('Informe a data e hora aproximada.'); return }
     setErro('')
     setEtapa(3)
   }
@@ -140,16 +148,16 @@ export function FormPet({
       if (url === null && erroFoto) { mostrarErro(erroFoto); setEnviando(false); return }
       foto_url = url
     }
-    if (!foto_url) { mostrarErro('Adicione ao menos uma foto do pet.'); setEnviando(false); return }
+    if (exibeFoto && !foto_url) { mostrarErro('Adicione ao menos uma foto do Pet.'); setEnviando(false); return }
 
     const registro = {
       user_id: user.id,
       autor_nome: perfil?.nome || user.email || 'Anônimo',
       tipo,
       especie,
-      nome_pet: (tipo === 'perdido' || tipo === 'adocao') ? (nomePet.trim() || null) : null,
-      raca: raca.trim() || null,
-      cor: cor.trim() || null,
+      nome_pet: exibeNome ? (nomePet.trim() || null) : null,
+      raca: exibeRaca ? (raca.trim() || null) : null,
+      cor: exibeCor ? (cor.trim() || null) : null,
       porte: porte || null,
       descricao: descricao.trim(),
       lat: coordenadas.lat,
@@ -237,23 +245,29 @@ export function FormPet({
                   </div>
                 </div>
 
-                {(tipo === 'perdido' || tipo === 'adocao') && (
+                {exibeNome && (
                   <div>
-                    <label style={rotuloCampo}>Nome do pet</label>
+                    <label style={rotuloCampo}>Nome do Pet *</label>
                     <input value={nomePet} onChange={(e) => setNomePet(e.target.value)} placeholder="Como ele se chama" style={campoEstilo} />
                   </div>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={rotuloCampo}>Raça *</label>
-                    <input value={raca} onChange={(e) => setRaca(e.target.value)} placeholder="Vira-lata, SRD..." style={campoEstilo} />
+                {(exibeRaca || exibeCor) && (
+                  <div style={{ display: 'grid', gridTemplateColumns: exibeRaca && exibeCor ? '1fr 1fr' : '1fr', gap: '10px' }}>
+                    {exibeRaca && (
+                      <div>
+                        <label style={rotuloCampo}>Raça *</label>
+                        <input value={raca} onChange={(e) => setRaca(e.target.value)} placeholder="Vira-lata, SRD..." style={campoEstilo} />
+                      </div>
+                    )}
+                    {exibeCor && (
+                      <div>
+                        <label style={rotuloCampo}>Cor *</label>
+                        <input value={cor} onChange={(e) => setCor(e.target.value)} placeholder="Caramelo, preto..." style={campoEstilo} />
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <label style={rotuloCampo}>Cor *</label>
-                    <input value={cor} onChange={(e) => setCor(e.target.value)} placeholder="Caramelo, preto..." style={campoEstilo} />
-                  </div>
-                </div>
+                )}
 
                 <div>
                   <label style={rotuloCampo}>Porte *</label>
@@ -272,7 +286,7 @@ export function FormPet({
                   </div>
                 </div>
 
-                <div>
+                {exibeFoto && <div>
                   <label style={rotuloCampo}>Foto *</label>
                   {!fotoPreview ? (
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '56px', border: '2px dashed #e5e7eb', borderRadius: '8px', textAlign: 'center', cursor: 'pointer' }}>
@@ -295,7 +309,7 @@ export function FormPet({
                     </div>
                   )}
                   {erroFoto && <p style={{ fontSize: '11px', color: '#dc2626', margin: '4px 0 0' }}>{erroFoto}</p>}
-                </div>
+                </div>}
 
                 <div style={{ marginTop: 'auto', position: 'relative' }}>
                   {erro && <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, right: 0, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px 12px', fontSize: '12.5px' }}>{erro}</div>}
@@ -324,17 +338,19 @@ export function FormPet({
                     placeholder="(XX) 9XXXX-XXXX" inputMode="numeric" style={campoEstilo} />
                 </div>
 
-                <div>
-                  <label style={rotuloCampo}>
-                    {tipo === 'perdido' ? 'Quando sumiu? (data e hora aproximada) *' : 'Quando encontrou? (data e hora aproximada) *'}
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={dataHora}
-                    onChange={e => setDataHora(e.target.value)}
-                    style={campoEstilo}
-                  />
-                </div>
+                {exibeDataHora && (
+                  <div>
+                    <label style={rotuloCampo}>
+                      {tipo === 'perdido' ? 'Quando sumiu? (data e hora aproximada) *' : 'Quando encontrou? (data e hora aproximada) *'}
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={dataHora}
+                      onChange={e => setDataHora(e.target.value)}
+                      style={campoEstilo}
+                    />
+                  </div>
+                )}
 
                 <div style={{ marginTop: 'auto', position: 'relative' }}>
                   {erro && <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, right: 0, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px 12px', fontSize: '12.5px' }}>{erro}</div>}
