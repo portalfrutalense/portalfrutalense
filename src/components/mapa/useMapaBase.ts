@@ -57,7 +57,7 @@ export function useMapaBase() {
         maxBoundsViscosity: 1.0,
         minZoom: 13,
         maxZoom: 18,
-      }).setView([FRUTAL_LAT, FRUTAL_LNG], 14)
+      }).setView([FRUTAL_LAT, FRUTAL_LNG], window.innerWidth < 768 ? 13 : 14)
 
       const tile = L.tileLayer(TILE_SATELITE, { attribution: '© Mapbox', maxZoom: 18 })
       tile.addTo(mapa)
