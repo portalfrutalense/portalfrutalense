@@ -12,8 +12,9 @@ interface ItemLista {
   id: string
   titulo: string
   subtitulo?: string
+  data: string               // ISO — exibida no header como data/hora
   meta: { rotulo: string; valor: string }[]
-  /** Linha destacada exibida abaixo dos meta — mesmo estilo da "Análise IA" das demandas. */
+  /** Caixa "Análise IA" separada, abaixo da caixa cinza de meta. */
   destaque?: { rotulo: string; valor: string; cor?: string } | null
   foto?: string | null
   etiquetas: { texto: string; cor: string }[]
@@ -47,6 +48,7 @@ function ListaModeracao({
 }) {
   const [ocupado, setOcupado] = useState<string | null>(null)
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set())
+  const [menuAberto, setMenuAberto] = useState<string | null>(null)
 
   function toggleExpandido(id: string) {
     setExpandidos(prev => {
@@ -58,6 +60,7 @@ function ListaModeracao({
 
   async function rodar(item: ItemLista, acao: Acao) {
     if (acao.confirmar && !confirm(acao.confirmar)) return
+    setMenuAberto(null)
     setOcupado(item.id)
     await acao.executar()
     setOcupado(null)
@@ -102,15 +105,18 @@ function ListaModeracao({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {itens.map(item => {
             const expandido = expandidos.has(item.id)
+            const menuEsteAberto = menuAberto === item.id
+            const dataFormatada = new Date(item.data).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+
             return (
               <div key={item.id} style={{
-                background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', overflow: 'hidden',
-                opacity: item.oculto ? 0.6 : 1,
+                background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px',
+                overflow: 'hidden', position: 'relative', opacity: item.oculto ? 0.6 : 1,
               }}>
                 {/* Linha-resumo — sempre visível, clicável para expandir/recolher */}
                 <div
                   onClick={() => toggleExpandido(item.id)}
-                  style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', cursor: 'pointer' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 48px 12px 20px', cursor: 'pointer' }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
                     style={{ flexShrink: 0, transform: expandido ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>
@@ -118,41 +124,52 @@ function ListaModeracao({
                   </svg>
                   {item.etiquetas.map((e, i) => <Etiqueta key={i} {...e} />)}
                   <span style={{ fontSize: '13px', fontWeight: 500, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                    {item.titulo}
+                    {item.titulo}{item.subtitulo ? ` · ${item.subtitulo.slice(0, 60)}` : ''}
                   </span>
-                  {item.subtitulo && (
-                    <span style={{ fontSize: '11px', color: '#6b7280', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px' }}>
-                      {item.subtitulo}
-                    </span>
+                  <span style={{ fontSize: '11px', color: '#6b7280', flexShrink: 0 }}>{dataFormatada}</span>
+                </div>
+
+                {/* Botão "..." no canto superior direito */}
+                <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: '14px', right: '16px', zIndex: 10 }}>
+                  <button
+                    onClick={() => setMenuAberto(menuEsteAberto ? null : item.id)}
+                    style={{ fontSize: '16px', fontWeight: 700, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', lineHeight: 1, borderRadius: '4px' }}
+                  >···</button>
+                  {menuEsteAberto && (
+                    <>
+                      <div onClick={() => setMenuAberto(null)} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
+                      <div style={{ position: 'absolute', top: '28px', right: 0, background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', minWidth: '160px', zIndex: 20, padding: '4px 0' }}>
+                        {item.acoes.map((a, i) => (
+                          <button key={i} onClick={() => rodar(item, a)} disabled={ocupado === item.id}
+                            style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: a.cor, background: 'none', border: 'none', cursor: ocupado === item.id ? 'wait' : 'pointer' }}>
+                            {a.rotulo}
+                          </button>
+                        ))}
+                      </div>
+                    </>
                   )}
                 </div>
 
                 {/* Corpo do card — só aparece expandido */}
                 {expandido && (
-                  <div style={{ padding: '0 16px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ padding: '0 20px 16px', paddingRight: '48px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
-                    {/* Foto + meta */}
-                    <div style={{ display: 'flex', gap: '13px', alignItems: 'flex-start' }}>
-                      {item.foto ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={item.foto} alt="" style={{ width: '64px', height: '64px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, border: '1px solid #e5e7eb' }} />
-                      ) : (
-                        <div style={{ width: '64px', height: '64px', borderRadius: '8px', background: '#f9fafb', border: '1px solid #e5e7eb', flexShrink: 0 }} />
+                    {/* Caixa cinza principal com todos os meta */}
+                    <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {item.meta.map((m, i) => (
+                        <p key={i} style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+                          {m.rotulo}: <strong style={{ color: '#111827' }}>{m.valor}</strong>
+                        </p>
+                      ))}
+                      {item.foto && (
+                        <a href={item.foto} target="_blank" rel="noreferrer"
+                          style={{ fontSize: '12px', color: '#4256c8', textDecoration: 'underline', marginTop: '2px' }}>
+                          Ver foto
+                        </a>
                       )}
-
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                          {item.meta.map((m, i) => (
-                            <div key={i}>
-                              <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.04em', margin: 0 }}>{m.rotulo}</p>
-                              <p style={{ fontSize: '12.5px', color: '#111827', margin: 0 }}>{m.valor}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
                     </div>
 
-                    {/* Análise IA */}
+                    {/* Análise IA — caixa separada, igual ao de demanda */}
                     {item.destaque && (
                       <div style={{
                         fontSize: '12px',
@@ -166,20 +183,6 @@ function ListaModeracao({
                         <strong>{item.destaque.rotulo}</strong> {item.destaque.valor}
                       </div>
                     )}
-
-                    {/* Ações */}
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                      {item.acoes.map((a, i) => (
-                        <button key={i} onClick={() => rodar(item, a)} disabled={ocupado === item.id}
-                          style={{
-                            fontSize: '12px', fontWeight: 500, color: a.cor,
-                            background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px',
-                            padding: '7px 13px', cursor: ocupado === item.id ? 'wait' : 'pointer', whiteSpace: 'nowrap',
-                          }}>
-                          {a.rotulo}
-                        </button>
-                      ))}
-                    </div>
                   </div>
                 )}
               </div>
@@ -199,10 +202,6 @@ function usarNotif() {
     notif,
     avisar: (msg: string) => { setNotif(msg); setTimeout(() => setNotif(''), 4000) },
   }
-}
-
-function dataCurta(iso: string) {
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 
 function diasRestantes(iso: string) {
@@ -244,6 +243,7 @@ export function MasterPets() {
     id: p.id,
     titulo: p.nome_pet || (p.especie === 'gato' ? 'Gato' : 'Cachorro'),
     subtitulo: p.descricao,
+    data: p.created_at,
     foto: p.foto_url,
     oculto: !!p.oculto,
     etiquetas: [
@@ -262,7 +262,6 @@ export function MasterPets() {
       { rotulo: 'Autor', valor: p.autor_nome },
       { rotulo: 'Contato', valor: p.contato },
       { rotulo: 'Local', valor: p.endereco_label || '—' },
-      { rotulo: 'Publicado', valor: dataCurta(p.created_at) },
     ],
     destaque: p.ia_motivo ? {
       rotulo: p.ia_decisao === 'rejeitada' ? 'Motivo IA:' : 'Análise IA:',
@@ -345,6 +344,7 @@ export function MasterClassificados() {
     id: c.id,
     titulo: c.titulo,
     subtitulo: c.descricao,
+    data: c.created_at,
     foto: c.fotos?.[0] ?? null,
     oculto: !!c.oculto,
     etiquetas: [
@@ -361,7 +361,6 @@ export function MasterClassificados() {
       { rotulo: 'Autor', valor: c.autor_nome },
       { rotulo: 'Contato', valor: c.contato },
       { rotulo: 'Região', valor: c.bairro_label || '—' },
-      { rotulo: 'Publicado', valor: dataCurta(c.created_at) },
     ],
     destaque: c.ia_motivo ? {
       rotulo: c.ia_decisao === 'rejeitada' ? 'Motivo IA:' : 'Análise IA:',
@@ -445,6 +444,7 @@ export function MasterEmpregos() {
     id: v.id,
     titulo: v.cargo,
     subtitulo: v.descricao,
+    data: v.created_at,
     foto: v.logo_url,
     oculto: !!v.oculto,
     etiquetas: [
@@ -459,7 +459,6 @@ export function MasterEmpregos() {
       { rotulo: 'Salário', valor: v.salario_a_combinar ? 'A combinar' : moeda(v.salario) },
       { rotulo: 'Contato', valor: v.contato },
       { rotulo: 'Local', valor: v.endereco_label || '—' },
-      { rotulo: 'Publicada', valor: dataCurta(v.created_at) },
     ],
     acoes: [
       {
