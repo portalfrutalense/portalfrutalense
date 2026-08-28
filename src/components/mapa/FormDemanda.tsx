@@ -195,7 +195,7 @@ export function FormDemanda({
                           <button
                             type="button"
                             onClick={() => setDropdownAutoridade(!dropdownAutoridade)}
-                            style={{ width: '100%', background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#111827', boxSizing: 'border-box' }}
+                            style={{ width: '100%', background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', fontWeight: 500, fontFamily: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: entidadeIds.length === 0 ? '#6b7280' : '#111827', boxSizing: 'border-box' }}
                           >
                             <span>{entidadeIds.length === 0 ? 'Selecione a(s) autoridade(s)' : `${entidadeIds.length} selecionada${entidadeIds.length > 1 ? 's' : ''}`}</span>
                             <span style={{ fontSize: '10px', color: '#6b7280' }}>{dropdownAutoridade ? '▲' : '▼'}</span>
