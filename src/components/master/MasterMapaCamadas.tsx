@@ -209,11 +209,11 @@ export function MasterPets() {
       ...(p.oculto ? [{ texto: 'Oculto', cor: '#92400e' }] : []),
     ],
     meta: [
+      ...(p.protocolo ? [{ rotulo: 'Protocolo', valor: p.protocolo }] : []),
       { rotulo: 'Autor', valor: p.autor_nome },
       { rotulo: 'Contato', valor: p.contato },
       { rotulo: 'Local', valor: p.endereco_label || '—' },
       { rotulo: 'Publicado', valor: dataCurta(p.created_at) },
-      { rotulo: 'Expira', valor: diasRestantes(p.expira_em) },
     ],
     acoes: [
       {
@@ -302,6 +302,7 @@ export function MasterClassificados() {
       ...(c.oculto ? [{ texto: 'Oculto', cor: '#92400e' }] : []),
     ],
     meta: [
+      ...(c.protocolo ? [{ rotulo: 'Protocolo', valor: c.protocolo }] : []),
       { rotulo: 'Preço', valor: moeda(c.preco) },
       { rotulo: 'Autor', valor: c.autor_nome },
       { rotulo: 'Contato', valor: c.contato },
@@ -394,6 +395,7 @@ export function MasterEmpregos() {
       ...(v.oculto ? [{ texto: 'Oculta', cor: '#92400e' }] : []),
     ],
     meta: [
+      ...(v.protocolo ? [{ rotulo: 'Protocolo', valor: v.protocolo }] : []),
       { rotulo: 'Empresa', valor: v.empresa_nome },
       { rotulo: 'Salário', valor: v.salario_a_combinar ? 'A combinar' : moeda(v.salario) },
       { rotulo: 'Contato', valor: v.contato },
