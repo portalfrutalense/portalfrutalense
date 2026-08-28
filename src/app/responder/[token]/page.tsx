@@ -82,11 +82,18 @@ export default function PageResponder() {
   }
 
   if (erro) {
+    const jaRespondida = erro.toLowerCase().includes('já foi respondida')
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
         <div style={{ maxWidth: '480px', width: '100%', textAlign: 'center' }}>
-          <p style={{ fontSize: '22px', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>Link Inválido</p>
-          <p style={{ fontSize: '14px', color: '#6b7280' }}>{erro}</p>
+          <p style={{ fontSize: '22px', fontWeight: 700, color: '#111827', marginBottom: '8px' }}>
+            {jaRespondida ? 'Resposta Já Registrada' : 'Link Inválido'}
+          </p>
+          <p style={{ fontSize: '14px', color: '#6b7280' }}>
+            {jaRespondida
+              ? 'Você já enviou sua resposta oficial para esta demanda. Obrigado pela participação.'
+              : erro}
+          </p>
         </div>
       </div>
     )

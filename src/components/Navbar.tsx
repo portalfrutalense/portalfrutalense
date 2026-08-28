@@ -125,9 +125,14 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
             <button
               className="nav-hamburger"
               onClick={() => setMenuMobile(!menuMobile)}
-              style={{ display: 'none', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', cursor: 'pointer', color: 'white', fontSize: '12px', fontWeight: 700, letterSpacing: '0.06em', padding: '5px 10px' }}
+              style={{ display: 'none', background: 'none', border: 'none', cursor: 'pointer', color: 'white', fontSize: '12px', fontWeight: 600, padding: '4px 0', gap: '8px', alignItems: 'center', marginRight: '2px' }}
             >
-              MENU
+              <span style={{ fontSize: '12px', whiteSpace: 'nowrap', marginLeft: '-10px' }}>Olá, {nomeExibido.split(' ')[0]}</span>
+              <span style={{ display: 'flex', flexDirection: 'column', gap: '3px', flexShrink: 0 }}>
+                <span style={{ display: 'block', width: '20px', height: '3px', background: 'white', borderRadius: '1px' }} />
+                <span style={{ display: 'block', width: '20px', height: '3px', background: 'white', borderRadius: '1px' }} />
+                <span style={{ display: 'block', width: '20px', height: '3px', background: 'white', borderRadius: '1px' }} />
+              </span>
             </button>
 
         {/* Auth mobile — só Entrar quando deslogado */}

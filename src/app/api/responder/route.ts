@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Link expirado.' }, { status: 410 })
       }
 
-      // Salva resposta no vínculo e invalida o token (uso único)
+      // Salva resposta no vínculo (mantém token para exibir mensagem correta se acessar novamente)
       const { error: updateVinculo } = await supabaseServer
         .from('demanda_entidades')
         .update({
@@ -93,8 +93,6 @@ export async function POST(req: NextRequest) {
           status: 'respondida',
           respondida_em: new Date().toISOString(),
           resposta_ip: ip,
-          magic_token: null,
-          magic_token_expira_em: null,
         })
         .eq('id', vinculo.id)
 
@@ -132,8 +130,6 @@ export async function POST(req: NextRequest) {
         status: 'respondida',
         respondido_em: new Date().toISOString(),
         resposta_ip: ip,
-        magic_token: null,
-        magic_token_expira_em: null,
       })
       .eq('id', data.id)
 
