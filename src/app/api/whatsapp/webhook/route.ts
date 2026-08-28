@@ -330,8 +330,22 @@ const RE_NEGATIVO = new RegExp(`^\\s*(n[aã]o|n|nop|negativo|errado|incorreto|ou
 function ehNegativo(texto: string) { return RE_NEGATIVO.test(texto) }
 function ehPositivo(texto: string) { return !ehNegativo(texto) && RE_POSITIVO.test(texto) }
 
+const MAX_HISTORICO_BANCO = 30
+const TIMEOUT_SESSAO_MS = 30 * 60 * 1000 // 30 minutos
+
 async function salvarHistorico(id: string, historico: unknown, etapa: string, dados: DadosPendentes | null) {
-  await supabaseServer.from('whatsapp_conversas').update({ historico, etapa, dados_pendentes: dados }).eq('id', id)
+  // Limita o histórico salvo no banco para os últimos MAX_HISTORICO_BANCO itens
+  const historicoLimitado = Array.isArray(historico) ? (historico as unknown[]).slice(-MAX_HISTORICO_BANCO) : historico
+  await supabaseServer.from('whatsapp_conversas').update({
+    historico: historicoLimitado,
+    etapa,
+    dados_pendentes: dados,
+    ultima_mensagem_em: new Date().toISOString(),
+  }).eq('id', id)
+}
+
+function ehCancelar(texto: string) {
+  return /^\s*(cancelar|sair|parar|desistir|cancela|para)\b/i.test(texto)
 }
 
 async function processarMensagem(body: EvolutionWebhookBody) {
@@ -351,7 +365,7 @@ async function processarMensagem(body: EvolutionWebhookBody) {
   // Busca ou cria a conversa
   let { data: conversa } = await supabaseServer.from('whatsapp_conversas').select('*').eq('telefone', telefone).single()
   if (!conversa) {
-    const { data: nova } = await supabaseServer.from('whatsapp_conversas').insert({ telefone }).select().single()
+    const { data: nova } = await supabaseServer.from('whatsapp_conversas').insert({ telefone, ultima_mensagem_em: new Date().toISOString() }).select().single()
     conversa = nova
   }
   if (!conversa) return
@@ -375,9 +389,28 @@ async function processarMensagem(body: EvolutionWebhookBody) {
     }
   }
 
-  const historico: { role: string; content: string }[] = conversa.historico || []
-  const dados: DadosPendentes = conversa.dados_pendentes || {}
-  const etapa: string = conversa.etapa || 'nenhuma'
+  let historico: { role: string; content: string }[] = conversa.historico || []
+  let dados: DadosPendentes = conversa.dados_pendentes || {}
+  let etapa: string = conversa.etapa || 'nenhuma'
+
+  // ── Timeout de sessão: se ficou mais de 30 min sem mensagem e estava no meio de um fluxo, reseta ──
+  const ultimaMensagem = conversa.ultima_mensagem_em ? new Date(conversa.ultima_mensagem_em).getTime() : null
+  const sesssaoExpirou = ultimaMensagem && (Date.now() - ultimaMensagem) > TIMEOUT_SESSAO_MS
+  if (sesssaoExpirou && etapa !== 'nenhuma') {
+    etapa = 'nenhuma'
+    dados = {}
+    historico = []
+    await salvarHistorico(conversa.id, [], 'nenhuma', null)
+    await enviarWhatsapp(telefone, 'Sua conversa anterior expirou por inatividade. Estou aqui quando quiser — é só me chamar!')
+    return
+  }
+
+  // ── Cancelar global: funciona em qualquer etapa de fluxo ──
+  if (etapa !== 'nenhuma' && texto && ehCancelar(texto)) {
+    await salvarHistorico(conversa.id, historico, 'nenhuma', null)
+    await enviarWhatsapp(telefone, 'Tudo bem, cancelei por aqui. Se quiser começar de novo é só me chamar!')
+    return
+  }
 
   // Tenta os dois formatos de telefone (com e sem o 9º dígito) pois a Evolution
   // às vezes omite o 9 em celulares BR (553491500046 vs 5534991500046)
