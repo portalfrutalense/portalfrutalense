@@ -327,18 +327,13 @@ export function FormClassificado({
                   <div>
                     <MiniMapaConfirmar
                       altura={180}
-                      onConfirmar={(endereco, lat, lng) => { setCoordenadas({ lat, lng, label: endereco }); setLocConfirmada(true); if (!bairro) setBairro(endereco) }}
+                      onConfirmar={(endereco, lat, lng) => { setCoordenadas({ lat, lng, label: endereco }); setLocConfirmada(true) }}
                       onAlterar={() => { setCoordenadas(null); setLocConfirmada(false) }}
                     />
                   </div>
                   <p style={{ fontSize: '11px', color: '#6b7280', margin: '5px 0 0', lineHeight: 1.45 }}>
                     O pin é publicado deslocado alguns metros — ninguém vê seu endereço exato.
                   </p>
-                </div>
-
-                <div>
-                  <label style={rotuloCampo}>Bairro exibido</label>
-                  <input value={bairro} onChange={e => setBairro(e.target.value)} placeholder="Centro" style={campoEstilo} />
                 </div>
 
                 <div>
