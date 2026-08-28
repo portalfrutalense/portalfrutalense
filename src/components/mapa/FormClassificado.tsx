@@ -268,16 +268,16 @@ export function FormClassificado({
             {/* ---- ETAPA 2: Descrição + Título + Fotos ---- */}
             {etapa === 2 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
+                <div>
+                  <label style={rotuloCampo}>Título do anúncio *</label>
+                  <input value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Ex.: Gol 1.0 completo" style={campoEstilo} />
+                </div>
+
                 <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                   <label style={rotuloCampo}>Descrição *</label>
                   <textarea value={descricao} onChange={e => setDescricao(e.target.value)}
                     placeholder="Estado de conservação, itens, documentação, motivo da venda..."
                     style={{ ...campoEstilo, flex: 1, minHeight: '80px', resize: 'none' }} />
-                </div>
-
-                <div>
-                  <label style={rotuloCampo}>Título do anúncio *</label>
-                  <input value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Ex.: Gol 1.0 completo" style={campoEstilo} />
                 </div>
 
                 <div>
