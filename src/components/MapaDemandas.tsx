@@ -369,11 +369,11 @@ export default function MapaDemandas() {
   // Texto "Arraste para ver mais" — sempre visível
 
   function cicloSheet() {
-    setSheetState(prev => {
-      if (prev === 'peek') return 'half'
-      if (prev === 'half') return (demandaSelecionada || petSelecionado || classificadoSelecionado || empregoSelecionado) ? 'full' : 'peek'
-      return 'peek'
-    })
+    const next: 'peek' | 'half' | 'full' =
+      sheetState === 'peek' ? 'half'
+      : sheetState === 'half' ? ((demandaSelecionada || petSelecionado || classificadoSelecionado || empregoSelecionado) ? 'full' : 'peek')
+      : 'peek'
+    setSheetState(next)
   }
 
   function aoIniciarArraste(e: React.TouchEvent) {

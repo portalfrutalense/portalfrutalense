@@ -36,7 +36,8 @@ export default function AssistenteIAPage() {
   }, [bot.mensagens.length])
 
   function autoResize(el: HTMLTextAreaElement) {
-    el.style.height = 'auto'
+    // Usar '0' em vez de 'auto' evita o colapso visual antes de recalcular
+    el.style.height = '0'
     el.style.height = Math.min(el.scrollHeight, 160) + 'px'
   }
 
@@ -48,10 +49,7 @@ export default function AssistenteIAPage() {
   const campoInput = (
     <>
       <style>{`
-        .abx-textarea { min-height: 24px; }
-        @media (max-width: 480px) {
-          .abx-textarea { min-height: 52px; }
-        }
+        .abx-textarea { min-height: 24px; caret-color: #4256c8; }
         @keyframes abx-pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.55; }
@@ -143,9 +141,9 @@ export default function AssistenteIAPage() {
               }
             `}</style>
             <div className="abx-empty-state" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-              <div style={{ width: '240px', height: '240px', borderRadius: '50%', background: '#4256c8', position: 'relative', marginBottom: '16px' }}>
+              <div style={{ width: 'clamp(140px, 35vw, 200px)', height: 'clamp(140px, 35vw, 200px)', borderRadius: '50%', background: '#4256c8', position: 'relative', marginBottom: '16px' }}>
                 {/* Da metade pra baixo a foto fica presa ao circulo; da metade pra cima pode vazar */}
-                <div style={{ position: 'absolute', inset: 0, clipPath: 'inset(-1000px 0 0 0 round 0 0 120px 120px)' }}>
+                <div style={{ position: 'absolute', inset: 0, clipPath: 'inset(-1000px 0 0 0 round 0 0 50% 50%)' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/assistenteia.png" alt="Assistente virtual" style={{ position: 'absolute', bottom: '-60px', left: '50%', transform: 'translateX(-50%)', height: '150%', width: 'auto', pointerEvents: 'none' }} />
                 </div>
