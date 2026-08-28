@@ -25,6 +25,7 @@ interface Props {
   enderecoInicial?: string
   onConfirmar: (endereco: string, lat: number, lng: number) => void
   onAlterar?: () => void
+  altura?: number | string
 }
 
 type Fase = 'inicial' | 'ajuste' | 'revisao' | 'confirmado'
@@ -53,7 +54,7 @@ const botaoFlutuante: React.CSSProperties = {
   boxShadow: '0 1px 4px rgba(0,0,0,0.25)', color: '#111827',
 }
 
-export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, onAlterar }: Props) {
+export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, onAlterar, altura = 280 }: Props) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapaObj = useRef<Leaflet.Map | null>(null)
   const tileAtual = useRef<Leaflet.TileLayer | null>(null)
@@ -90,6 +91,15 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
 
     import('leaflet').then((L) => {
       if (!mapRef.current) return
+      // Se o container já tem _leaflet_id (cleanup assíncrono não terminou a tempo),
+      // remove o mapa existente antes de criar um novo
+      if ((mapRef.current as any)._leaflet_id != null) {
+        try {
+          const mapaExistente = mapaObj.current
+          if (mapaExistente) { mapaExistente.remove() } else { delete (mapRef.current as any)._leaflet_id }
+        } catch { delete (mapRef.current as any)._leaflet_id }
+        mapaObj.current = null
+      }
       mapa = L.map(mapRef.current, { zoomControl: false }).setView([FRUTAL_LAT, FRUTAL_LNG], ZOOM_CIDADE)
       const tile = L.tileLayer(TILE_RUA, { attribution: '© Mapbox © OpenStreetMap' })
       tile.addTo(mapa)
@@ -256,7 +266,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
   }
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '280px', borderRadius: '10px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+    <div style={{ position: 'relative', width: '100%', height: typeof altura === 'number' ? `${altura}px` : altura, borderRadius: '10px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
       <div
         ref={mapRef}
         style={{
