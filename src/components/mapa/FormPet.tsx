@@ -119,8 +119,8 @@ export function FormPet({
     if (!porte) { mostrarErro('Selecione o porte do Pet.'); return }
     if (fotoObrigatoria && !fotoPreview) { mostrarErro('Adicione ao menos uma foto do Pet.'); return }
     if (!descricao.trim() || descricao.trim().length < 10) { mostrarErro('Descreva o Pet com mais detalhes (mín. 10 caracteres).'); return }
-    if (!contato.trim()) { mostrarErro('Informe um contato.'); return }
-    if (!telefoneValido(contato)) { mostrarErro('Informe um WhatsApp válido: (XX) 9XXXX-XXXX.'); return }
+    if (tipo !== 'achado' && !contato.trim()) { mostrarErro('Informe um contato.'); return }
+    if (contato.trim() && !telefoneValido(contato)) { mostrarErro('Informe um WhatsApp válido: (XX) 9XXXX-XXXX.'); return }
     if (exibeDataHora && !dataHora) { mostrarErro('Informe a data e hora aproximada.'); return }
     if (!coordenadas || !locConfirmada) { mostrarErro('Confirme a localização no mapa.'); return }
     if (!editando && !turnstileToken) { mostrarErro('Aguarde a verificação de segurança concluir.'); return }
@@ -261,7 +261,7 @@ export function FormPet({
               </div>
 
               <div>
-                <label style={rotuloCampo}>Contato *</label>
+                <label style={rotuloCampo}>Contato {tipo !== 'achado' ? '*' : <span style={{ fontWeight: 400 }}>(opcional)</span>}</label>
                 <input value={contato} onChange={(e) => setContato(mascaraTelefone(e.target.value))} placeholder="(XX) 9XXXX-XXXX" inputMode="numeric" style={campoEstilo} />
               </div>
 
