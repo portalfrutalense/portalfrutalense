@@ -301,10 +301,10 @@ export function MasterPets() {
       filtros={[
         { chave: 'todos', rotulo: 'Todos' },
         { chave: 'perdido', rotulo: 'Perdidos' },
-        { chave: 'achado', rotulo: 'Achei um Pet' },
+        { chave: 'achado', rotulo: 'Abandonados' },
         { chave: 'adocao', rotulo: 'Adoção' },
         { chave: 'reencontrado', rotulo: 'Reencontrados' },
-        { chave: 'pendente_ia', rotulo: '⏳ Pendente IA' },
+        { chave: 'pendente_ia', rotulo: 'Pendente IA' },
         { chave: 'ocultos', rotulo: 'Ocultos' },
       ]}
       filtroAtivo={filtro}
@@ -402,9 +402,9 @@ export function MasterClassificados() {
         { chave: 'todos', rotulo: 'Todos' },
         { chave: 'carro', rotulo: 'Carros' },
         { chave: 'moto', rotulo: 'Motos' },
-        { chave: 'caminhonete', rotulo: 'Caminhonetes' },
+        { chave: 'onibus', rotulo: 'Ônibus' },
         { chave: 'caminhao', rotulo: 'Caminhões' },
-        { chave: 'pendente_ia', rotulo: '⏳ Pendente IA' },
+        { chave: 'pendente_ia', rotulo: 'Pendente IA' },
         { chave: 'vendidos', rotulo: 'Vendidos' },
         { chave: 'ocultos', rotulo: 'Ocultos' },
       ]}

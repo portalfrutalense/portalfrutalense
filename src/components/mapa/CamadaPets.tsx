@@ -56,8 +56,8 @@ const COR_PADRAO: Record<string, string> = {
 
 const ROTULO_FILTRO: Record<string, string> = {
   pet_perdido: 'Perdidos',
-  pet_achado: 'Achei um Pet',
-  pet_adocao: 'Adotar um Pet',
+  pet_achado: 'Abandonados',
+  pet_adocao: 'Adoção',
   pet_reencontrado: 'Reencontrados',
 }
 
@@ -324,13 +324,16 @@ export function SidebarPets({
         </button>
 
         <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#111827', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Tipo</label>
-        <select value={filtro} onChange={e => setFiltro(e.target.value)}
-          style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 10px', fontSize: '13px', background: 'white', color: '#111827', outline: 'none', cursor: 'pointer' }}>
-          <option value=''>Todos</option>
-          {(['pet_perdido', 'pet_achado', 'pet_adocao', 'pet_reencontrado'] as const).map(chave => (
-            <option key={chave} value={chave}>{ROTULO_FILTRO[chave]}</option>
-          ))}
-        </select>
+        <div style={{ position: 'relative' }}>
+          <select value={filtro} onChange={e => setFiltro(e.target.value)}
+            style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 30px 8px 10px', fontSize: '13px', fontFamily: 'inherit', background: 'white', color: '#111827', outline: 'none', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none' }}>
+            <option value=''>Todos</option>
+            {(['pet_perdido', 'pet_achado', 'pet_adocao', 'pet_reencontrado'] as const).map(chave => (
+              <option key={chave} value={chave}>{ROTULO_FILTRO[chave]}</option>
+            ))}
+          </select>
+          <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', color: '#6b7280', pointerEvents: 'none' }}>▼</span>
+        </div>
       </div>
 
       <div style={{ padding: '10px 14px', borderTop: '1px solid #f9fafb' }}>

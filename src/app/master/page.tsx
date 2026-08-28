@@ -204,7 +204,7 @@ export default function MasterPage() {
             { key: 'demandas'      as SecaoMaster, label: 'Demandas Municipais' },
             { key: 'empregos'      as SecaoMaster, label: 'Empregos' },
             { key: 'classificados' as SecaoMaster, label: 'Classificados' },
-            { key: 'pets'          as SecaoMaster, label: 'Achei/Perdi um Pet' },
+            { key: 'pets'          as SecaoMaster, label: 'Pet' },
             { key: 'chatbot'       as SecaoMaster, label: 'Chatbot IA' },
           ].map(item => (
             <button
