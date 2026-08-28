@@ -63,6 +63,8 @@ export function FormPet({
   const supabase = createClient()
   const { user, perfil } = useAuth()
 
+  const [etapa, setEtapa] = useState<1 | 2 | 3>(1)
+
   const [tipo, setTipo] = useState<TipoPet>(editando?.tipo ?? 'perdido')
   const [especie, setEspecie] = useState<EspeciePet>(editando?.especie ?? 'cachorro')
   const [nomePet, setNomePet] = useState(editando?.nome_pet ?? '')
@@ -71,6 +73,7 @@ export function FormPet({
   const [porte, setPorte] = useState<PortePet | ''>(editando?.porte ?? '')
   const [descricao, setDescricao] = useState(editando?.descricao ?? '')
   const [contato, setContato] = useState(editando?.contato ?? '')
+  const [dataHora, setDataHora] = useState('')
   const [coordenadas, setCoordenadas] = useState<{ lat: number; lng: number; label: string } | null>(
     editando ? { lat: editando.lat, lng: editando.lng, label: editando.endereco_label ?? '' } : null
   )
@@ -108,12 +111,24 @@ export function FormPet({
       .finally(() => setUploadandoFoto(false))
   }
 
+  function avancar1() {
+    if (!porte) { mostrarErro('Selecione o porte do pet.'); return }
+    if (!fotoPreview) { mostrarErro('Adicione ao menos uma foto do pet.'); return }
+    setErro('')
+    setEtapa(2)
+  }
+
+  function avancar2() {
+    if (!descricao.trim() || descricao.trim().length < 10) { mostrarErro('Descreva o pet com mais detalhes (mín. 10 caracteres).'); return }
+    if (!contato.trim()) { mostrarErro('Informe um contato para quem encontrar o pet.'); return }
+    if (!dataHora) { mostrarErro('Informe a data e hora aproximada.'); return }
+    setErro('')
+    setEtapa(3)
+  }
+
   async function enviar(e: React.FormEvent) {
     e.preventDefault(); setErro('')
     if (!user) return
-    if (!porte) { mostrarErro('Selecione o porte do pet.'); return }
-    if (!descricao.trim() || descricao.trim().length < 10) { mostrarErro('Descreva o pet com mais detalhes.'); return }
-    if (!contato.trim()) { mostrarErro('Informe um contato para quem encontrar o pet.'); return }
     if (!coordenadas || !locConfirmada) { mostrarErro('Confirme a localização no mapa.'); return }
     if (!editando && !turnstileToken) { mostrarErro('Aguarde a verificação de segurança concluir.'); return }
     setEnviando(true)
@@ -154,12 +169,20 @@ export function FormPet({
     aoSalvar()
   }
 
+  const titulos: Record<1 | 2 | 3, string> = {
+    1: editando ? 'Editar registro' : 'Registrar um pet',
+    2: 'Detalhes',
+    3: editando ? 'Editar registro' : 'Localização',
+  }
+
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-      <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '760px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '440px', height: '580px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+        {/* Cabeçalho */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: '8px 20px', borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
           <h2 style={{ fontWeight: 700, color: '#111827', margin: 0, fontSize: '15px' }}>
-            {editando ? 'Editar registro' : 'Registrar um pet'}
+            {titulos[etapa]}
           </h2>
           <button onClick={aoFechar} style={{ position: 'absolute', right: '20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#6b7280', lineHeight: 1, padding: 0 }}>×</button>
         </div>
@@ -178,12 +201,12 @@ export function FormPet({
             <button onClick={aoFechar} style={{ fontSize: '13px', color: '#4256c8', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Fechar</button>
           </div>
         ) : (
-          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 24px' }}>
-            <form onSubmit={enviar} className="registro-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
-              {erro && <div style={{ gridColumn: '1 / -1', color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '13px' }}>{erro}</div>}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px 20px 20px', minHeight: 0 }}>
 
-              {/* Coluna esquerda */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* ---- ETAPA 1: Tipo + Espécie + Nome + Raça/Cor + Porte + Foto ---- */}
+            {etapa === 1 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+
                 <div>
                   <label style={rotuloCampo}>O que você quer registrar? *</label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -231,7 +254,7 @@ export function FormPet({
                 </div>
 
                 <div>
-                  <label style={rotuloCampo}>Porte</label>
+                  <label style={rotuloCampo}>Porte *</label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
                     {(['pequeno', 'medio', 'grande'] as const).map(p => (
                       <button key={p} type="button" onClick={() => setPorte(porte === p ? '' : p)}
@@ -248,23 +271,49 @@ export function FormPet({
                 </div>
 
                 <div>
-                  <label style={rotuloCampo}>
-                    {tipo === 'perdido' ? 'Onde ele sumiu? *' : 'Onde você encontrou? *'}
-                  </label>
-                  <MiniMapaConfirmar
-                    onConfirmar={(endereco, lat, lng) => { setCoordenadas({ lat, lng, label: endereco }); setLocConfirmada(true) }}
-                    onAlterar={() => { setCoordenadas(null); setLocConfirmada(false) }}
-                  />
+                  <label style={rotuloCampo}>Foto *</label>
+                  {!fotoPreview ? (
+                    <label style={{ display: 'block', border: '2px dashed #e5e7eb', borderRadius: '8px', padding: '16px', textAlign: 'center', cursor: 'pointer' }}>
+                      <input type="file" accept="image/*" onChange={aoEscolherFoto} style={{ display: 'none' }} />
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                        <strong style={{ color: '#4256c8' }}>Toque para tirar foto</strong> ou escolher da galeria
+                      </div>
+                    </label>
+                  ) : (
+                    <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb', height: '90px' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={fotoPreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      <button type="button" onClick={() => { uploadFotoPromise.current = null; setFotoPreview(null); setErroFoto('') }}
+                        style={{ position: 'absolute', top: '6px', right: '6px', background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', fontSize: '14px' }}>×</button>
+                      {uploadandoFoto && (
+                        <div style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '10px', borderRadius: '4px', padding: '2px 6px' }}>
+                          ⏫ Enviando…
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {erroFoto && <p style={{ fontSize: '11px', color: '#dc2626', margin: '4px 0 0' }}>{erroFoto}</p>}
+                </div>
+
+                <div style={{ marginTop: 'auto', position: 'relative' }}>
+                  {erro && <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, right: 0, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px 12px', fontSize: '12.5px' }}>{erro}</div>}
+                  <button type="button" onClick={avancar1}
+                    style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
+                    Continuar →
+                  </button>
                 </div>
               </div>
+            )}
 
-              {/* Coluna direita */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* ---- ETAPA 2: Descrição + Contato + Data/Hora ---- */}
+            {etapa === 2 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
+
                 <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                   <label style={rotuloCampo}>Descrição *</label>
                   <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)}
                     placeholder="Marcas, coleira, comportamento, quando foi visto pela última vez..."
-                    style={{ ...campoEstilo, flex: 1, minHeight: '90px', resize: 'none' }} />
+                    style={{ ...campoEstilo, flex: 1, minHeight: '80px', resize: 'none' }} />
                 </div>
 
                 <div>
@@ -274,38 +323,67 @@ export function FormPet({
                 </div>
 
                 <div>
-                  <label style={rotuloCampo}>Foto <span style={{ fontWeight: 400 }}>(recomendada)</span></label>
-                  {!fotoPreview ? (
-                    <label style={{ display: 'block', border: '2px dashed #e5e7eb', borderRadius: '8px', padding: '20px', textAlign: 'center', cursor: 'pointer' }}>
-                      <input type="file" accept="image/*" onChange={aoEscolherFoto} style={{ display: 'none' }} />
-                      <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                        <strong style={{ color: '#4256c8' }}>Toque para tirar foto</strong> ou escolher da galeria
-                      </div>
-                    </label>
-                  ) : (
-                    <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={fotoPreview} alt="Preview" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', display: 'block' }} />
-                      <button type="button" onClick={() => { uploadFotoPromise.current = null; setFotoPreview(null); setErroFoto('') }}
-                        style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: '50%', width: '28px', height: '28px', cursor: 'pointer', fontSize: '14px' }}>×</button>
-                      {uploadandoFoto && (
-                        <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '11px', borderRadius: '4px', padding: '3px 8px' }}>
-                          ⏫ Enviando foto…
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {erroFoto && <p style={{ fontSize: '12px', color: '#dc2626', margin: '4px 0 0' }}>{erroFoto}</p>}
+                  <label style={rotuloCampo}>
+                    {tipo === 'perdido' ? 'Quando sumiu? (data e hora aproximada) *' : 'Quando encontrou? (data e hora aproximada) *'}
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={dataHora}
+                    onChange={e => setDataHora(e.target.value)}
+                    style={campoEstilo}
+                  />
+                </div>
+
+                <div style={{ marginTop: 'auto', position: 'relative' }}>
+                  {erro && <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, right: 0, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px 12px', fontSize: '12.5px' }}>{erro}</div>}
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button type="button" onClick={() => { setErro(''); setEtapa(1) }}
+                      style={{ flex: '0 0 auto', background: 'white', color: '#6b7280', fontWeight: 600, padding: '10px 16px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '14px' }}>
+                      ← Voltar
+                    </button>
+                    <button type="button" onClick={avancar2}
+                      style={{ flex: 1, backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
+                      Continuar →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ---- ETAPA 3: Localização + Turnstile + Publicar ---- */}
+            {etapa === 3 && (
+              <form onSubmit={enviar} style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
+                <div>
+                  <label style={rotuloCampo}>
+                    {tipo === 'perdido' ? 'Onde ele sumiu? *' : 'Onde você encontrou? *'}
+                  </label>
+                  <div>
+                    <MiniMapaConfirmar
+                      altura={260}
+                      onConfirmar={(endereco, lat, lng) => { setCoordenadas({ lat, lng, label: endereco }); setLocConfirmada(true) }}
+                      onAlterar={() => { setCoordenadas(null); setLocConfirmada(false) }}
+                    />
+                  </div>
                 </div>
 
                 {!editando && <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />}
 
-                <button type="submit" disabled={enviando || uploadandoFoto}
-                  style={{ marginTop: 'auto', backgroundColor: (enviando || uploadandoFoto) ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: (enviando || uploadandoFoto) ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
-                  {enviando ? 'Salvando...' : uploadandoFoto ? 'Aguardando foto...' : editando ? 'Salvar alterações' : 'Publicar registro'}
-                </button>
-              </div>
-            </form>
+                <div style={{ marginTop: 'auto', position: 'relative' }}>
+                  {erro && <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, right: 0, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px 12px', fontSize: '12.5px' }}>{erro}</div>}
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button type="button" onClick={() => { setErro(''); setEtapa(2) }}
+                      style={{ flex: '0 0 auto', background: 'white', color: '#6b7280', fontWeight: 600, padding: '10px 16px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '14px' }}>
+                      ← Voltar
+                    </button>
+                    <button type="submit" disabled={enviando || uploadandoFoto}
+                      style={{ flex: 1, backgroundColor: (enviando || uploadandoFoto) ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: (enviando || uploadandoFoto) ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+                      {enviando ? 'Salvando...' : uploadandoFoto ? 'Aguardando foto...' : editando ? 'Salvar alterações' : 'Publicar registro'}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
+
           </div>
         )}
       </div>
