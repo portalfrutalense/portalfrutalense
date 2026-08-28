@@ -246,9 +246,6 @@ export function SidebarPets({
               <IconeEspecie especie={selecionado.especie} size={13} cor={cor} />
               {titulo}
             </span>
-            <span style={{ fontSize: '11px', color: '#6b7280' }}>
-              some em {diasRestantes(selecionado.expira_em)}d
-            </span>
           </div>
 
           {selecionado.foto_url && (
