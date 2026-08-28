@@ -78,6 +78,7 @@ export function FormClassificado({
   const [turnstileToken, setTurnstileToken] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
+  function mostrarErro(msg: string) { setErro(msg); setTimeout(() => setErro(''), 5000) }
   const [sucesso, setSucesso] = useState(false)
   const [protocolo, setProtocolo] = useState('')
 
@@ -120,22 +121,28 @@ export function FormClassificado({
   async function enviar(e: React.FormEvent) {
     e.preventDefault(); setErro('')
     if (!user) return
-    if (!titulo.trim()) { setErro('Dê um título ao anúncio.'); return }
-    if (!descricao.trim() || descricao.trim().length < 10) { setErro('Descreva melhor o veículo.'); return }
-    if (!contato.trim()) { setErro('Informe um contato.'); return }
-    if (!coordenadas || !locConfirmada) { setErro('Confirme a região no mapa.'); return }
-    if (!editando && !turnstileToken) { setErro('Aguarde a verificação de segurança concluir.'); return }
+    if (!titulo.trim()) { mostrarErro('Dê um título ao anúncio.'); return }
+    if (!marca.trim()) { mostrarErro('Informe a marca do veículo.'); return }
+    if (!modelo.trim()) { mostrarErro('Informe o modelo do veículo.'); return }
+    if (!ano.trim() || isNaN(Number(ano))) { mostrarErro('Informe o ano do veículo.'); return }
+    if (!km.trim() || isNaN(Number(km))) { mostrarErro('Informe a quilometragem do veículo.'); return }
+    if (!cor.trim()) { mostrarErro('Informe a cor do veículo.'); return }
+    if (!preco.trim() || isNaN(Number(preco)) || Number(preco) <= 0) { mostrarErro('Informe o preço do veículo.'); return }
+    if (!descricao.trim() || descricao.trim().length < 10) { mostrarErro('Descreva melhor o veículo.'); return }
+    if (!contato.trim()) { mostrarErro('Informe um contato.'); return }
+    if (!coordenadas || !locConfirmada) { mostrarErro('Confirme a região no mapa.'); return }
+    if (!editando && !turnstileToken) { mostrarErro('Aguarde a verificação de segurança concluir.'); return }
     setEnviando(true)
 
     const urls: string[] = previews.filter(p => !p.startsWith('data:'))
     if (uploadPromises.current.length > 0) {
       const resultados = await Promise.all(uploadPromises.current)
       for (const url of resultados) {
-        if (url === null) { setErro(erroFoto || 'Erro ao enviar uma das fotos.'); setEnviando(false); return }
+        if (url === null) { mostrarErro(erroFoto || 'Erro ao enviar uma das fotos.'); setEnviando(false); return }
         urls.push(url)
       }
     }
-    if (urls.length < 2) { setErro('Adicione ao menos 2 fotos do veículo.'); setEnviando(false); return }
+    if (urls.length < 2) { mostrarErro('Adicione ao menos 2 fotos do veículo.'); setEnviando(false); return }
 
     const ponto = editando && coordenadas.lat === editando.lat && coordenadas.lng === editando.lng
       ? { lat: editando.lat, lng: editando.lng }
@@ -164,7 +171,7 @@ export function FormClassificado({
     const { erro, id, protocolo: prot } = await salvarCamada({ camada: 'classificados', editando, dados: registro, turnstileToken, supabase })
 
     setEnviando(false)
-    if (erro) { setErro(erro); return }
+    if (erro) { mostrarErro(erro); return }
     if (editando) { aoSalvar(); aoFechar(); return }
 
     if (prot) setProtocolo(prot)

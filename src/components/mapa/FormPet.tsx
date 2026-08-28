@@ -82,6 +82,7 @@ export function FormPet({
   const [turnstileToken, setTurnstileToken] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
+  function mostrarErro(msg: string) { setErro(msg); setTimeout(() => setErro(''), 5000) }
   const [sucesso, setSucesso] = useState(false)
   const [protocolo, setProtocolo] = useState('')
 
@@ -110,19 +111,20 @@ export function FormPet({
   async function enviar(e: React.FormEvent) {
     e.preventDefault(); setErro('')
     if (!user) return
-    if (!descricao.trim() || descricao.trim().length < 10) { setErro('Descreva o pet com mais detalhes.'); return }
-    if (!contato.trim()) { setErro('Informe um contato para quem encontrar o pet.'); return }
-    if (!coordenadas || !locConfirmada) { setErro('Confirme a localização no mapa.'); return }
-    if (!editando && !turnstileToken) { setErro('Aguarde a verificação de segurança concluir.'); return }
+    if (!porte) { mostrarErro('Selecione o porte do pet.'); return }
+    if (!descricao.trim() || descricao.trim().length < 10) { mostrarErro('Descreva o pet com mais detalhes.'); return }
+    if (!contato.trim()) { mostrarErro('Informe um contato para quem encontrar o pet.'); return }
+    if (!coordenadas || !locConfirmada) { mostrarErro('Confirme a localização no mapa.'); return }
+    if (!editando && !turnstileToken) { mostrarErro('Aguarde a verificação de segurança concluir.'); return }
     setEnviando(true)
 
     let foto_url: string | null = editando?.foto_url ?? null
     if (uploadFotoPromise.current) {
       const url = await uploadFotoPromise.current
-      if (url === null && erroFoto) { setErro(erroFoto); setEnviando(false); return }
+      if (url === null && erroFoto) { mostrarErro(erroFoto); setEnviando(false); return }
       foto_url = url
     }
-    if (!foto_url) { setErro('Adicione ao menos uma foto do pet.'); setEnviando(false); return }
+    if (!foto_url) { mostrarErro('Adicione ao menos uma foto do pet.'); setEnviando(false); return }
 
     const registro = {
       user_id: user.id,
@@ -144,7 +146,7 @@ export function FormPet({
     const { erro, id, protocolo: prot } = await salvarCamada({ camada: 'pets', editando, dados: registro, turnstileToken, supabase })
 
     setEnviando(false)
-    if (erro) { setErro(erro); return }
+    if (erro) { mostrarErro(erro); return }
     if (editando) { aoSalvar(); aoFechar(); return }
 
     if (prot) setProtocolo(prot)

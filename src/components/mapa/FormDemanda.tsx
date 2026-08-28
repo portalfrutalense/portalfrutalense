@@ -62,6 +62,7 @@ export function FormDemanda({
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
+  function mostrarErro(msg: string) { setErro(msg); setTimeout(() => setErro(''), 5000) }
   const [sucesso, setSucesso] = useState(false)
 
   function resetar() {
@@ -72,9 +73,9 @@ export function FormDemanda({
 
   function avancar() {
     setErro('')
-    if (!categoriaId) { setErro('Selecione a categoria.'); return }
-    if (entidadeIds.length === 0) { setErro('Selecione ao menos uma autoridade responsável.'); return }
-    if (!coordenadas || !locConfirmada) { setErro('Confirme a localização no mapa.'); return }
+    if (!categoriaId) { mostrarErro('Selecione a categoria.'); return }
+    if (entidadeIds.length === 0) { mostrarErro('Selecione ao menos uma autoridade responsável.'); return }
+    if (!coordenadas || !locConfirmada) { mostrarErro('Confirme a localização no mapa.'); return }
     setEtapa(2)
   }
 
@@ -114,8 +115,9 @@ export function FormDemanda({
   async function handleEnviar(e: React.FormEvent) {
     e.preventDefault(); setErro('')
     if (!user || !perfil) return
-    if (!descricao.trim() || descricao.trim().length < 10) { setErro('Descreva melhor o problema.'); return }
-    if (!turnstileToken) { setErro('Aguarde a verificação de segurança concluir.'); return }
+    if (!coordenadas || !locConfirmada) { mostrarErro('Confirme a localização no mapa.'); return }
+    if (!descricao.trim() || descricao.trim().length < 10) { mostrarErro('Descreva melhor o problema.'); return }
+    if (!turnstileToken) { mostrarErro('Aguarde a verificação de segurança concluir.'); return }
     setEnviando(true)
 
     let foto_url: string | null = null
@@ -126,7 +128,7 @@ export function FormDemanda({
         const { error: uploadError } = await supabase.storage.from('demandas-fotos').upload(path, blob, { contentType: 'image/jpeg' })
         if (uploadError) throw uploadError
         foto_url = supabase.storage.from('demandas-fotos').getPublicUrl(path).data.publicUrl
-      } catch (err: any) { setErro(`Erro ao enviar foto: ${err?.message || JSON.stringify(err)}`); setEnviando(false); return }
+      } catch (err: any) { mostrarErro(`Erro ao enviar foto: ${err?.message || JSON.stringify(err)}`); setEnviando(false); return }
     }
 
     try {
@@ -142,7 +144,7 @@ export function FormDemanda({
       resetar()
       setSucesso(true) // mantém sucesso visível após resetar
     } catch (err: any) {
-      setErro(err.message || 'Erro ao enviar.')
+      mostrarErro(err.message || 'Erro ao enviar.')
     } finally { setEnviando(false) }
   }
 
@@ -238,11 +240,15 @@ export function FormDemanda({
                     />
                   </div>
 
-                  {erro && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px 12px', fontSize: '12.5px' }}>{erro}</div>}
-                  <button type="button" onClick={avancar}
-                    style={{ backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
-                    Continuar →
-                  </button>
+                  <div style={{ position: 'relative' }}>
+                    {erro && (
+                      <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, right: 0, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px 12px', fontSize: '12.5px' }}>{erro}</div>
+                    )}
+                    <button type="button" onClick={avancar}
+                      style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
+                      Continuar →
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -300,18 +306,20 @@ export function FormDemanda({
 
                   <Turnstile size="flexible" onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
 
-                  <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {erro && <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px 12px', fontSize: '12.5px' }}>{erro}</div>}
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button type="button" onClick={() => { setErro(''); setEtapa(1) }}
-                      style={{ flex: '0 0 auto', background: 'white', color: '#6b7280', fontWeight: 600, padding: '10px 16px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '14px' }}>
-                      ← Voltar
-                    </button>
-                    <button type="submit" disabled={enviando}
-                      style={{ flex: 1, backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
-                      {enviando ? 'Enviando...' : 'Registrar Demanda'}
-                    </button>
-                  </div>
+                  <div style={{ marginTop: 'auto', position: 'relative' }}>
+                    {erro && (
+                      <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, right: 0, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '7px 12px', fontSize: '12.5px' }}>{erro}</div>
+                    )}
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button type="button" onClick={() => { setErro(''); setEtapa(1) }}
+                        style={{ flex: '0 0 auto', background: 'white', color: '#6b7280', fontWeight: 600, padding: '10px 16px', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '14px' }}>
+                        ← Voltar
+                      </button>
+                      <button type="submit" disabled={enviando}
+                        style={{ flex: 1, backgroundColor: enviando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '6px', border: 'none', cursor: enviando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
+                        {enviando ? 'Enviando...' : 'Registrar Demanda'}
+                      </button>
+                    </div>
                   </div>
                 </form>
               )}
