@@ -100,6 +100,7 @@ export interface Pet {
   ia_decisao?: string
   ia_motivo?: string
   ia_analisado_em?: string
+  protocolo?: string
   expira_em: string
   created_at: string
   updated_at: string
@@ -134,6 +135,7 @@ export interface Classificado {
   ia_decisao?: string
   ia_motivo?: string
   ia_analisado_em?: string
+  protocolo?: string
   created_at: string
   updated_at: string
 }
@@ -161,6 +163,7 @@ export interface Emprego {
   contato: string
   encerrada: boolean
   oculto?: boolean
+  protocolo?: string
   created_at: string
   updated_at: string
 }
