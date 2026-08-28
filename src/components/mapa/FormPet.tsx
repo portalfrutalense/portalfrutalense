@@ -287,17 +287,17 @@ export function FormPet({
                   </div>
                 </div>
 
-                {exibeFoto && <div>
+                {exibeFoto && <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                   <label style={rotuloCampo}>{fotoObrigatoria ? 'Foto *' : 'Foto'}</label>
                   {!fotoPreview ? (
-                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '56px', border: '2px dashed #e5e7eb', borderRadius: '8px', textAlign: 'center', cursor: 'pointer' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, minHeight: '56px', border: '2px dashed #e5e7eb', borderRadius: '8px', textAlign: 'center', cursor: 'pointer' }}>
                       <input type="file" accept="image/*" onChange={aoEscolherFoto} style={{ display: 'none' }} />
                       <div style={{ fontSize: '12px', color: '#6b7280' }}>
                         <strong style={{ color: '#4256c8' }}>Toque para tirar foto</strong> ou escolher da galeria
                       </div>
                     </label>
                   ) : (
-                    <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb', height: '56px' }}>
+                    <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb', flex: 1, minHeight: '56px' }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={fotoPreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                       <button type="button" onClick={() => { uploadFotoPromise.current = null; setFotoPreview(null); setErroFoto('') }}
