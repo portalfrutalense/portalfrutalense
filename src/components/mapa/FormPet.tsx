@@ -232,7 +232,6 @@ export function FormPet({
                           background: especie === e ? '#eff6ff' : 'white',
                           border: `1px solid ${especie === e ? '#4256c8' : '#e5e7eb'}`, color: '#111827',
                         }}>
-                        <IconeEspecie especie={e} size={17} cor={especie === e ? '#4256c8' : '#6b7280'} />
                         {rotuloEspecie[e]}
                       </button>
                     ))}
