@@ -434,6 +434,7 @@ export function FormularioPet({
       if (url === null && erroFoto) { setErro(erroFoto); setEnviando(false); return }
       foto_url = url
     }
+    if (!foto_url) { setErro('Adicione ao menos uma foto do pet.'); setEnviando(false); return }
 
     const registro = {
       user_id: user.id,

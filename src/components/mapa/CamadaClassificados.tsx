@@ -448,6 +448,7 @@ export function FormularioClassificado({
         urls.push(url)
       }
     }
+    if (urls.length < 2) { setErro('Adicione ao menos 2 fotos do veículo.'); setEnviando(false); return }
 
     // Ao editar, a coordenada aprovada já está aproximada — não desloca de novo
     const ponto = editando && coordenadas.lat === editando.lat && coordenadas.lng === editando.lng
