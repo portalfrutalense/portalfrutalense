@@ -326,7 +326,7 @@ export function FormClassificado({
                   <label style={rotuloCampo}>Região aproximada *</label>
                   <div>
                     <MiniMapaConfirmar
-                      altura={180}
+                      altura={230}
                       onConfirmar={(endereco, lat, lng) => { setCoordenadas({ lat, lng, label: endereco }); setLocConfirmada(true) }}
                       onAlterar={() => { setCoordenadas(null); setLocConfirmada(false) }}
                     />
