@@ -35,18 +35,15 @@ async function comprimirFoto(file: File): Promise<Blob> {
 const rotuloCampo: React.CSSProperties = { display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }
 const campoEstilo: React.CSSProperties = { width: '100%', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 12px', fontSize: '14px', background: 'white', outline: 'none', boxSizing: 'border-box' }
 
-function BotaoOpcao({ ativo, cor, onClick, titulo, desc }: { ativo: boolean; cor: string; onClick: () => void; titulo: string; desc: string }) {
+function BotaoOpcao({ ativo, onClick, titulo, desc }: { ativo: boolean; onClick: () => void; titulo: string; desc: string }) {
   return (
     <button type="button" onClick={onClick} style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px',
-      padding: '9px 11px', borderRadius: '7px', cursor: 'pointer', textAlign: 'left',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
+      padding: '9px 11px', borderRadius: '7px', cursor: 'pointer', textAlign: 'center',
       background: ativo ? '#eff6ff' : 'white',
-      border: `1px solid ${ativo ? cor : '#e5e7eb'}`,
+      border: `1px solid ${ativo ? '#4256c8' : '#e5e7eb'}`,
     }}>
-      <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: ativo ? 700 : 600, color: '#111827' }}>
-        <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: cor }} />
-        {titulo}
-      </span>
+      <span style={{ fontSize: '13px', fontWeight: ativo ? 700 : 600, color: '#111827' }}>{titulo}</span>
       <span style={{ fontSize: '11px', color: '#6b7280' }}>{desc}</span>
     </button>
   )
@@ -214,9 +211,9 @@ export function FormPet({
                 <div>
                   <label style={rotuloCampo}>O que você quer registrar? *</label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <BotaoOpcao ativo={tipo === 'perdido'} cor="#dc2626" onClick={() => setTipo('perdido')}
+                    <BotaoOpcao ativo={tipo === 'perdido'} onClick={() => setTipo('perdido')}
                       titulo="Perdi meu pet" desc="Ele sumiu de casa" />
-                    <BotaoOpcao ativo={tipo === 'achado'} cor="#16a34a" onClick={() => setTipo('achado')}
+                    <BotaoOpcao ativo={tipo === 'achado'} onClick={() => setTipo('achado')}
                       titulo="Achei na rua" desc="Animal abandonado" />
                   </div>
                 </div>
