@@ -173,7 +173,7 @@ export function FormDemanda({
           <div style={{ padding: '32px', textAlign: 'center' }}>
             <p style={{ fontWeight: 700, color: '#166534', fontSize: '16px', margin: '0 0 8px' }}>Demanda registrada!</p>
             <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px', lineHeight: 1.6 }}>
-              Sua demanda está sendo analisada. Se aprovada, aparecerá no mapa e a autoridade será notificada por e-mail.
+              Sua demanda está em análise. Se aprovada pelo nosso Agente IA, aparecerá no mapa e a autoridade será notificada por e-mail.
             </p>
             <button onClick={fechar} style={{ fontSize: '13px', color: '#4256c8', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Fechar</button>
           </div>
