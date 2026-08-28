@@ -14,6 +14,17 @@ const ZOOM_REVISAO = 19
 const ZOOM_MIN_NECESSARIO = 1
 const ARRASTE_MIN_NECESSARIO = 1
 
+// Preposições que ficam em minúsculo no título
+const PREPS = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'a', 'o', 'em', 'no', 'na', 'nos', 'nas', 'ao', 'aos'])
+
+function capitalizarEndereco(texto: string): string {
+  return texto
+    .toLowerCase()
+    .split(' ')
+    .map((palavra, i) => (i === 0 || !PREPS.has(palavra)) ? palavra.charAt(0).toUpperCase() + palavra.slice(1) : palavra)
+    .join(' ')
+}
+
 // Verifica se coordenadas estão dentro de ~15km de Frutal-MG
 function dentroFrutal(lat: number, lng: number): boolean {
   const dlat = lat - FRUTAL_LAT
@@ -252,7 +263,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
     if (!mapaObj.current || !endereco.trim()) return
     const c = mapaObj.current.getCenter()
     setCoordConfirmada({ lat: c.lat, lng: c.lng })
-    onConfirmar(endereco.trim(), c.lat, c.lng)
+    onConfirmar(capitalizarEndereco(endereco.trim()), c.lat, c.lng)
     setFase('confirmado')
   }
 
@@ -369,7 +380,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
             Endereço confirmado
           </p>
           <p style={{ margin: '0 0 4px', fontSize: '12px', color: '#111827', fontWeight: 600, wordBreak: 'break-word' }}>
-            {endereco.trim()}
+            {capitalizarEndereco(endereco.trim())}
           </p>
           {coordConfirmada && (
             <p style={{ margin: '0 0 10px', fontSize: '10px', color: '#6b7280', fontVariantNumeric: 'tabular-nums' }}>
@@ -387,7 +398,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
         <div style={{ position: 'absolute', bottom: '8px', left: '8px', right: '8px', zIndex: 1000, background: 'white', borderRadius: '8px', padding: '6px 8px', boxShadow: '0 1px 6px rgba(0,0,0,0.25)', textAlign: 'center' }}>
           <p style={{ margin: '0 0 2px', fontSize: '10px', fontWeight: 700, color: '#111827' }}>O local está correto?</p>
           <p style={{ margin: '0 0 5px', fontSize: '9px', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {endereco.trim()}
+            {capitalizarEndereco(endereco.trim())}
           </p>
           <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
             <button type="button" onClick={voltarDaRevisao}
