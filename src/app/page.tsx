@@ -310,9 +310,9 @@ export default function LandingPage() {
     }
   }, [])
 
-  // Já logado — vai direto pro mapa
+  // Já logado — vai direto pro painel
   useEffect(() => {
-    if (user) window.location.replace('/mapa')
+    if (user) window.location.replace('/dashboard')
   }, [user])
 
   if (user) return null
