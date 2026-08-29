@@ -145,7 +145,7 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
         </div>
 
             {menuMobile && (
-              <div style={{ position: 'fixed', top: '56px', right: '8px', left: '8px', minWidth: '220px', maxWidth: '320px', marginLeft: 'auto', background: '#3347b0', zIndex: 5001, display: 'flex', flexDirection: 'column', padding: '8px 0', borderRadius: '14px', boxShadow: '0 8px 32px rgba(0,0,0,0.22)' }}>
+              <div style={{ position: 'fixed', top: '56px', right: '8px', left: '8px', minWidth: '220px', maxWidth: '320px', marginLeft: 'auto', background: '#4256c8', zIndex: 5001, display: 'flex', flexDirection: 'column', padding: '8px 0', borderRadius: '14px', boxShadow: '0 8px 32px rgba(0,0,0,0.22)' }}>
                 <div style={{ padding: '12px 20px 10px', borderBottom: '2px solid rgba(255,255,255,0.15)', marginBottom: '4px' }}>
                   <p style={{ margin: 0, color: 'rgba(255,255,255,0.6)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600 }}>Logado como</p>
                   <p style={{ margin: '2px 0 6px', color: '#fff', fontSize: '15px', fontWeight: 400 }}>{nomeExibido}</p>

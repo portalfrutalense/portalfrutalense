@@ -22,6 +22,7 @@ export default function ChatBot() {
     : sheetState === null ? '24px' : undefined
 
   const bottomRef = useRef<HTMLDivElement>(null)
+  const camInputRef = useRef<HTMLInputElement>(null)
   const botaoRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
@@ -176,14 +177,19 @@ export default function ChatBot() {
             {/* Etapa: perguntar sobre foto */}
             {bot.etapaDemanda === 'perguntar_foto' && (
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start' }}>
-                <button onClick={() => bot.fotoInputRef.current?.click()}
+                <button onClick={() => camInputRef.current?.click()}
                   style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
-                  Anexar foto
+                  Tirar foto
+                </button>
+                <button onClick={() => bot.fotoInputRef.current?.click()}
+                  style={{ background: 'white', color: '#4256c8', border: '1px solid #4256c8', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                  Galeria
                 </button>
                 <button onClick={bot.aoClicarSemFoto}
                   style={{ background: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
                   Sem foto
                 </button>
+                <input ref={camInputRef} type="file" accept="image/*" capture="environment" onChange={bot.selecionarFoto} style={{ display: 'none' }} />
                 <input ref={bot.fotoInputRef} type="file" accept="image/*" onChange={bot.selecionarFoto} style={{ display: 'none' }} />
               </div>
             )}

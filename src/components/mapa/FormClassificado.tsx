@@ -250,10 +250,19 @@ export function FormClassificado({
                     </div>
                   ))}
                   {previews.length < MAX_FOTOS && (
-                    <label style={{ display: 'grid', placeItems: 'center', height: '64px', border: '2px dashed #e5e7eb', borderRadius: '7px', cursor: 'pointer', fontSize: '11px', color: '#4256c8', fontWeight: 600 }}>
-                      <input type="file" accept="image/*" multiple onChange={aoEscolherFotos} style={{ display: 'none' }} />
-                      + Foto
-                    </label>
+                    <>
+                      {/* Com capture o celular abre a camera; sem capture abre a galeria */}
+                      <label style={{ display: 'grid', placeItems: 'center', gap: '2px', height: '64px', border: '2px dashed #e5e7eb', borderRadius: '7px', cursor: 'pointer', fontSize: '10px', color: '#4256c8', fontWeight: 600 }}>
+                        <input type="file" accept="image/*" capture="environment" onChange={aoEscolherFotos} style={{ display: 'none' }} />
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                        Câmera
+                      </label>
+                      <label style={{ display: 'grid', placeItems: 'center', gap: '2px', height: '64px', border: '2px dashed #e5e7eb', borderRadius: '7px', cursor: 'pointer', fontSize: '10px', color: '#6b7280', fontWeight: 600 }}>
+                        <input type="file" accept="image/*" multiple onChange={aoEscolherFotos} style={{ display: 'none' }} />
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                        Galeria
+                      </label>
+                    </>
                   )}
                 </div>
                 {erroFoto && <p style={{ fontSize: '11px', color: '#dc2626', margin: '4px 0 0' }}>{erroFoto}</p>}

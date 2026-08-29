@@ -268,10 +268,19 @@ export function FormDemanda({
                   Foto <span style={{ color: '#6b7280', fontWeight: 400 }}>(opcional)</span>
                 </label>
                 {!fotoPreview ? (
-                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '56px', border: '2px dashed #e5e7eb', borderRadius: '8px', textAlign: 'center', cursor: 'pointer' }}>
-                    <input type="file" accept="image/*" onChange={handleFotoChange} style={{ display: 'none' }} />
-                    <div style={{ fontSize: '12px', color: '#6b7280' }}><strong style={{ color: '#4256c8' }}>Toque para tirar foto</strong> ou escolher da galeria</div>
-                  </label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {/* Com capture o celular abre a camera; sem capture abre a galeria */}
+                    <label style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', height: '56px', border: '2px dashed #e5e7eb', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', color: '#4256c8', fontWeight: 600 }}>
+                      <input type="file" accept="image/*" capture="environment" onChange={handleFotoChange} style={{ display: 'none' }} />
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                      Tirar foto
+                    </label>
+                    <label style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', height: '56px', border: '2px dashed #e5e7eb', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', color: '#6b7280', fontWeight: 600 }}>
+                      <input type="file" accept="image/*" onChange={handleFotoChange} style={{ display: 'none' }} />
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                      Galeria
+                    </label>
+                  </div>
                 ) : (
                   <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb', height: '56px' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
