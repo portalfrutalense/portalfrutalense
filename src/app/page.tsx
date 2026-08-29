@@ -312,7 +312,7 @@ export default function LandingPage() {
 
   // Já logado — vai direto pro painel
   useEffect(() => {
-    if (user) window.location.replace('/dashboard')
+    if (user) window.location.replace('/mapa')
   }, [user])
 
   if (user) return null
