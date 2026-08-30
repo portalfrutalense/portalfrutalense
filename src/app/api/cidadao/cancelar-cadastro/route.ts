@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getUser } from '@/lib/auth-api'
 import { supabaseServer } from '@/lib/supabase-server'
 
 // DELETE — cancela cadastro incompleto: remove o usuário do Auth sem ter perfil ainda
 export async function DELETE(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '')
-  if (!token || token === 'undefined' || token === 'null') return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
-
-  const authRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/user`, {
-    headers: { 'Authorization': `Bearer ${token}`, 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
-  })
-  if (!authRes.ok) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
-  const user = await authRes.json()
-  if (!user?.id) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+  const user = await getUser(req)
+  if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
   // Garante que não tem perfil completo — não deixa excluir conta ativa por engano
   const { data: perfil } = await supabaseServer.from('perfis').select('cpf').eq('id', user.id).maybeSingle()

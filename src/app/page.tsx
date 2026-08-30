@@ -42,7 +42,13 @@ const CATEGORIAS = [
 function Contador({ valor }: { valor: number }) {
   const [mostrado, setMostrado] = useState(0)
   const refValor = useRef(valor)
-  refValor.current = valor
+  // Escrever em ref.current direto no corpo do componente é proibido a
+  // partir do React 19 (regra react-hooks/refs) — a atualização roda num
+  // efeito à parte, sem deps (executa depois de cada render), definido
+  // antes do efeito da animação para já estar atualizado quando ele ler.
+  useEffect(() => {
+    refValor.current = valor
+  })
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -131,8 +137,28 @@ function CardAcesso() {
   const [fase, setFase] = useState<FaseEmail>('form')
   const [carregando, setCarregando] = useState(false)
   const [carregandoGoogle, setCarregandoGoogle] = useState(false)
-  const [erro, setErro] = useState('')
+  // "?erro=login" vem do /auth/callback quando o login com Google falha —
+  // antes disso o usuário só era jogado de volta pro mapa sem explicação
+  // nenhuma. O valor inicial é lido direto no inicializador do useState (só
+  // roda uma vez, na primeira renderização) — chamar setState dentro de um
+  // useEffect pra isso é desencorajado a partir do React 19 (regra
+  // react-hooks/set-state-in-effect), porque dispara uma renderização extra
+  // logo depois da primeira. Lê via window.location (não useSearchParams)
+  // pra não exigir um Suspense boundary só por causa disso.
+  const [erro, setErro] = useState(() =>
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('erro') === 'login'
+      ? 'Não foi possível concluir o login com o Google. Tente de novo.'
+      : ''
+  )
   const [msgEsqueci, setMsgEsqueci] = useState('')
+
+  // Só a limpeza da URL é um efeito de verdade (mexe no histórico do
+  // navegador, não em estado do React).
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('erro') === 'login') {
+      window.history.replaceState(null, '', window.location.pathname)
+    }
+  }, [])
 
   async function enviarRedefinicao(e: React.FormEvent) {
     e.preventDefault(); setErro(''); setCarregando(true)
@@ -237,7 +263,7 @@ function CardAcesso() {
               <form onSubmit={submeter} className="formulario">
                 {fase === 'confirmar' && (
                   <div className="aviso-info" role="status">
-                    Não encontramos essa conta. Digite sua senha novamente para criá-la.
+                    Não conseguimos entrar com esse e-mail e senha. Se você ainda não tem conta, digite uma senha abaixo para criá-la.
                   </div>
                 )}
                 {erro && <div className="aviso-erro" role="alert">{erro}</div>}

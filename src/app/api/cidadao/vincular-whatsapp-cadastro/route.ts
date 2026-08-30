@@ -1,16 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getUser, limiteExcedido } from '@/lib/auth-api'
 import { supabaseServer } from '@/lib/supabase-server'
 
+/**
+ * ATENÇÃO — achado de auditoria ainda não resolvido de verdade:
+ * "telefone" vem de um campo de texto que o próprio usuário digita
+ * (ModalCPF.tsx), não do número que de fato conversou com o bot. Nada aqui
+ * confirma que quem está pedindo o vínculo é o dono real desse telefone —
+ * só que ALGUÉM logado pediu pra vincular ELE a uma conversa recente.
+ * O rate limit abaixo reduz tentativa em massa, mas não resolve a causa:
+ * a correção completa exigiria um código de confirmação enviado pelo
+ * próprio bot do WhatsApp (mexe no Bloco 6), fora do escopo desta rodada.
+ */
 export async function POST(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '')
-  if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+  const user = await getUser(req)
+  if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
-  const authRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/user`, {
-    headers: { 'Authorization': `Bearer ${token}`, 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
-  })
-  if (!authRes.ok) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
-  const user = await authRes.json()
-  if (!user?.id) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+  if (limiteExcedido(`vincular-whatsapp:${user.id}`, 5, 10 * 60_000)) {
+    return NextResponse.json({ error: 'Muitas tentativas em pouco tempo. Aguarde um pouco.' }, { status: 429 })
+  }
 
   const { telefone } = await req.json()
   if (!telefone) return NextResponse.json({ error: 'Telefone obrigatório.' }, { status: 400 })

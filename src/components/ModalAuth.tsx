@@ -155,7 +155,7 @@ export default function ModalAuth({ onFechar }: Props) {
                 <form onSubmit={submeter} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {fase === 'confirmar' && (
                     <div style={{ color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', padding: '10px 12px', fontSize: '13px', lineHeight: 1.5 }}>
-                      Não encontramos essa conta. Digite sua senha novamente para criá-la.
+                      Não conseguimos entrar com esse e-mail e senha. Se você ainda não tem conta, digite uma senha abaixo para criá-la.
                     </div>
                   )}
                   <input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setErro('') }} required

@@ -1,14 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getUser } from '@/lib/auth-api'
 import { supabaseServer } from '@/lib/supabase-server'
-import { createClient } from '@supabase/supabase-js'
-
-async function getUser(req: NextRequest) {
-  const token = req.headers.get('Authorization')?.replace('Bearer ', '')
-  if (!token) return null
-  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
-  const { data: { user } } = await supabase.auth.getUser(token)
-  return user
-}
 
 function pathDaFoto(fotoUrl: string): string | null {
   try {
@@ -29,9 +21,15 @@ export async function POST(req: NextRequest) {
   const { demanda_id } = await req.json()
   if (!demanda_id) return NextResponse.json({ error: 'demanda_id obrigatório.' }, { status: 400 })
 
-  const { data: demanda } = await supabaseServer.from('demandas').select('id, user_id, foto_url').eq('id', demanda_id).single()
+  const { data: demanda } = await supabaseServer.from('demandas').select('id, user_id, foto_url, status').eq('id', demanda_id).single()
   if (!demanda) return NextResponse.json({ error: 'Demanda não encontrada.' }, { status: 404 })
   if (demanda.user_id !== user.id) return NextResponse.json({ error: 'Não autorizado.' }, { status: 403 })
+  // Uma demanda denunciada fica em moderação até o master decidir — não deixa
+  // o próprio autor apagar ela nesse meio tempo, o que destruiria o que
+  // seria revisado.
+  if (demanda.status === 'denunciada') {
+    return NextResponse.json({ error: 'Esta demanda está em análise pela administração e não pode ser excluída no momento.' }, { status: 403 })
+  }
 
   if (demanda.foto_url) {
     const caminho = pathDaFoto(demanda.foto_url)

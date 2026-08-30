@@ -71,7 +71,9 @@ export default function PerfilPage() {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
       body: JSON.stringify({ demanda_id: id }),
     })
-    if (res.ok) setDemandas(prev => prev.filter(d => d.id !== id))
+    if (res.ok) { setDemandas(prev => prev.filter(d => d.id !== id)); return }
+    const d = await res.json().catch(() => ({}))
+    alert(d.error || 'Erro ao excluir.')
   }
 
   if (carregando || !user) return null

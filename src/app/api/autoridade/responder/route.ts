@@ -44,11 +44,15 @@ export async function POST(req: NextRequest) {
 
     if (updateError) return NextResponse.json({ error: 'Erro ao salvar resposta.' }, { status: 500 })
 
+    // Nunca sobrescreve "resolvida" nem "denunciada" — esta última fica em
+    // moderação até o master decidir; sem essa segunda trava, responder por
+    // um vínculo ainda válido tirava a demanda do limbo sozinho.
     await supabaseServer
       .from('demandas')
       .update({ status: 'respondida' })
       .eq('id', vinculo.demanda_id)
       .neq('status', 'resolvida')
+      .neq('status', 'denunciada')
 
     return NextResponse.json({ ok: true })
   } catch {

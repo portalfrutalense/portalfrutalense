@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from './AuthProvider'
 import { validarCPF, formatarCPF } from '@/lib/cpf'
+import { telefoneValido } from '@/lib/mascaraTelefone'
 
 function capitalizarNome(str: string) {
   return str.toLowerCase().replace(/(?:^|\s)\S/g, (c) => c.toUpperCase())
@@ -37,7 +38,7 @@ function dataParaISO(valor: string) {
 }
 
 export default function ModalCPF() {
-  const { user, setPerfil, sair } = useAuth()
+  const { user, setPerfil } = useAuth()
   const supabase = createClient()
   const [cpf, setCpf] = useState('')
   const [nome, setNome] = useState(
@@ -62,8 +63,7 @@ export default function ModalCPF() {
     if (!validarCPF(cpf)) { setErro('CPF inválido. Verifique e tente novamente.'); return }
     const dataISO = dataParaISO(dataNascimento)
     if (!dataISO) { setErro('Data de nascimento inválida. Use o formato dd/mm/aaaa.'); return }
-    const whatsappLimpo = whatsapp.replace(/\D/g, '')
-    if (whatsappLimpo.length < 11) { setErro('Informe o WhatsApp com DDD e os 9 dígitos.'); return }
+    if (!telefoneValido(whatsapp)) { setErro('Informe o WhatsApp com DDD e os 9 dígitos.'); return }
     if (!user) return
     setEnviando(true)
     try {
@@ -119,18 +119,31 @@ export default function ModalCPF() {
       }
       if (error) throw error
 
-      // Vincula conversa WhatsApp pendente via API (usa service role, bypass RLS)
-      const { data: { session } } = await supabase.auth.getSession()
-      const resVinculo = await fetch('/api/cidadao/vincular-whatsapp-cadastro', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ telefone: whatsappParaSalvar(whatsapp) }),
-      })
-      const vinculo = await resVinculo.json()
-
+      // A partir daqui o perfil JÁ FOI salvo com sucesso — uma falha no passo
+      // de vínculo do WhatsApp (rede, resposta inesperada) não pode mais
+      // cair no catch de fora, porque aquele catch mostra "Erro ao salvar",
+      // o que seria falso: o cadastro deu certo, só esse passo extra que
+      // falhou. Por isso esse try/catch é separado do de fora.
       const dadosPerfil = { id: user.id, nome: nome.trim(), cpf: cpfLimpo, email: user.email || undefined, role: perfilExistente?.role }
+      let conversaVinculada = false
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const resVinculo = await fetch('/api/cidadao/vincular-whatsapp-cadastro', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+          body: JSON.stringify({ telefone: whatsappParaSalvar(whatsapp) }),
+        })
+        if (resVinculo.ok) {
+          const vinculo = await resVinculo.json()
+          conversaVinculada = !!vinculo.conversaVinculada
+        } else {
+          console.error('[ModalCPF] vincular-whatsapp-cadastro respondeu erro:', resVinculo.status)
+        }
+      } catch (eVinculo) {
+        console.error('[ModalCPF] falha ao vincular conversa do WhatsApp (perfil já salvo):', eVinculo)
+      }
 
-      if (vinculo.conversaVinculada) {
+      if (conversaVinculada) {
         // Guarda os dados do perfil e mostra tela de WhatsApp — NÃO chama setPerfil aqui
         // (setPerfil fecha o modal, precisamos manter aberto até o usuário clicar)
         setPerfilPendente(dadosPerfil)
@@ -138,7 +151,8 @@ export default function ModalCPF() {
         return
       }
 
-      // Sem conversa pendente — fecha o modal normalmente
+      // Sem conversa pendente (ou o vínculo falhou) — fecha o modal normalmente,
+      // o cadastro em si já está garantido
       setPerfil(dadosPerfil)
     } catch (e) {
       const err = e as { message?: string; code?: string; details?: string; hint?: string }

@@ -19,7 +19,14 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // Só mostra vínculos cuja demanda já passou pela análise (não mostra pendente/rejeitada_ia)
-  const visiveis = (data || []).filter((v: any) => {
+  // O tipo que o cliente do Supabase infere pro relacionamento aninhado
+  // modela "demanda" como array (não sabe, sem os tipos gerados do schema,
+  // que é um-pra-um) — mas em runtime vem objeto único, como o código
+  // sempre tratou. A interface abaixo reflete o formato real, não o
+  // inferido, pra não arriscar mudar o comportamento por causa do tipo.
+  interface VinculoComDemanda { demanda?: { status?: string } | null }
+  const vinculos = (data || []) as unknown as VinculoComDemanda[]
+  const visiveis = vinculos.filter((v) => {
     const statusDemanda = v.demanda?.status
     return statusDemanda && !['pendente', 'rejeitada_ia'].includes(statusDemanda)
   })

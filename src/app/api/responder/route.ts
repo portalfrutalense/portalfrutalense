@@ -98,12 +98,16 @@ export async function POST(req: NextRequest) {
 
       if (updateVinculo) return NextResponse.json({ error: 'Erro ao salvar resposta.' }, { status: 500 })
 
-      // Atualiza status da demanda para "respondida" se ainda não estiver
+      // Atualiza status da demanda para "respondida" se ainda não estiver —
+      // nunca sobrescreve "resolvida" nem "denunciada" (esta última fica em
+      // moderação até o master decidir; sem essa segunda trava, responder
+      // por um vínculo ainda válido tirava a demanda do limbo sozinho)
       await supabaseServer
         .from('demandas')
         .update({ status: 'respondida' })
         .eq('id', vinculo.demanda_id)
         .neq('status', 'resolvida')
+        .neq('status', 'denunciada')
 
       return NextResponse.json({ ok: true })
     }

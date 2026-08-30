@@ -2,7 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
 import { getUser, ipDaRequisicao, verificarTurnstile, limiteExcedido } from '@/lib/auth-api'
 
-
+/**
+ * "foto_url" chega no corpo da requisição como texto livre — o cliente
+ * normal manda a URL que o próprio upload ao Storage gerou, mas nada
+ * impede uma chamada direta à API de mandar qualquer string ali. Sem essa
+ * checagem, um valor malicioso (ex: `x" onerror="alert(1)`) fica gravado
+ * e — como o popup do mapa não escapa esse campo especificamente — vira
+ * XSS armazenado pra quem visualizar a demanda. Aceita só o formato real
+ * de URL pública do bucket "demandas-fotos".
+ */
+function fotoUrlValida(url: unknown): url is string {
+  if (typeof url !== 'string' || !url) return false
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (!base) return false
+  return url.startsWith(`${base}/storage/v1/object/public/demandas-fotos/`)
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,6 +33,11 @@ export async function POST(req: NextRequest) {
 
     if (!descricao || !lat || !lng || !categoria_id || !entidade_ids?.length) {
       return NextResponse.json({ error: 'Campos obrigatórios ausentes.' }, { status: 400 })
+    }
+    // A UI sempre manda número — isso só protege contra chamada direta à
+    // API com lat/lng fora do formato esperado (string, NaN, Infinity).
+    if (typeof lat !== 'number' || typeof lng !== 'number' || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return NextResponse.json({ error: 'Localização inválida.' }, { status: 400 })
     }
     if (!Array.isArray(entidade_ids) || entidade_ids.length > 3) {
       return NextResponse.json({ error: 'Máximo de 3 autoridades.' }, { status: 400 })
@@ -48,7 +67,7 @@ export async function POST(req: NextRequest) {
       lng,
       categoria_id,
       entidade_id: entidade_ids[0], // mantém coluna legada com a primeira autoridade
-      foto_url: foto_url || null,
+      foto_url: fotoUrlValida(foto_url) ? foto_url : null,
       endereco_label: endereco_label || null,
       status: 'pendente',
     }).select().single()

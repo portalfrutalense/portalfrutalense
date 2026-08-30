@@ -133,12 +133,14 @@ export function FormDemanda({
     setEnviando(true)
 
     let foto_url: string | null = null
+    let fotoPath: string | null = null // guardado à parte pra poder limpar do Storage se o passo seguinte falhar
     if (fotoFile) {
       try {
         const blob = await comprimirFoto(fotoFile)
         const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
         const { error: uploadError } = await supabase.storage.from('demandas-fotos').upload(path, blob, { contentType: 'image/jpeg' })
         if (uploadError) throw uploadError
+        fotoPath = path
         foto_url = supabase.storage.from('demandas-fotos').getPublicUrl(path).data.publicUrl
       } catch (err: any) { mostrarErro(`Erro ao enviar foto: ${err?.message || JSON.stringify(err)}`); setEnviando(false); return }
     }
@@ -151,11 +153,17 @@ export function FormDemanda({
         body: JSON.stringify({ descricao: descricao.trim(), lat: coordenadas.lat, lng: coordenadas.lng, categoria_id: categoriaId, entidade_ids: entidadeIds, foto_url, endereco_label: coordenadas.label, turnstile_token: turnstileToken }),
       })
       if (!res.ok) { const d = await res.json(); throw new Error(d.error) }
-      setSucesso(true)
       aoSalvar()
       resetar()
-      setSucesso(true) // mantém sucesso visível após resetar
+      setSucesso(true) // depois do resetar() — que também zera sucesso — pra ficar visível
     } catch (err: any) {
+      // A foto já tinha sido enviada ao Storage antes desse passo falhar —
+      // sem isso, ela ficaria órfã lá pra sempre, sem nenhuma demanda
+      // referenciando. Best-effort: se a limpeza falhar também, só loga.
+      if (fotoPath) {
+        supabase.storage.from('demandas-fotos').remove([fotoPath])
+          .catch(e => console.error('[FormDemanda] falha ao limpar foto órfã:', e))
+      }
       mostrarErro(err.message || 'Erro ao enviar.')
     } finally { setEnviando(false) }
   }

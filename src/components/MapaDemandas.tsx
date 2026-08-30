@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from './AuthProvider'
@@ -12,13 +12,9 @@ import { useClassificados, useMarkersClassificados, SidebarClassificados, Formul
 import { useEmpregos, useMarkersEmpregos, SidebarEmpregos, FormularioEmprego } from './mapa/CamadaEmpregos'
 import { FormDemanda } from './mapa/FormDemanda'
 import { Demanda, CategoriaMapa, Entidade, DemandaEntidade, Camada, Pet, Classificado, Emprego } from '@/types'
-
-const CAMADAS: { id: Camada; rotulo: string }[] = [
-  { id: 'demandas', rotulo: 'Demandas' },
-  { id: 'pets', rotulo: 'Pets' },
-  { id: 'classificados', rotulo: 'Classificados' },
-  { id: 'empregos', rotulo: 'Empregos' },
-]
+// Só o tipo — o leaflet em si continua carregado dinamicamente por
+// useMapaBase (import type é apagado na compilação, não força o bundle).
+import type { Marker } from 'leaflet'
 
 function titleCase(str?: string) {
   if (!str) return ''
@@ -33,25 +29,26 @@ function sentenceCase(str?: string) {
 
 export default function MapaDemandas() {
   const supabase = createClient()
-  const { user, perfil } = useAuth()
+  const { user } = useAuth()
   const [modalAuth, setModalAuth] = useState(false)
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
 
   // Mapa base compartilhado por todas as camadas — criado uma única vez
   const { mapRef, mapaObj, leafletObj, mapaCarregado } = useMapaBase()
 
-  const markersRef = useRef<any[]>([])
+  const markersRef = useRef<Marker[]>([])
   const sidebarRef = useRef<HTMLDivElement>(null)
 
   // Camada ativa — sincroniza com ?camada= da URL
   const searchParams = useSearchParams()
   const camadaParam = (searchParams.get('camada') as Camada) || 'demandas'
   const [camada, setCamada] = useState<Camada>(camadaParam)
-  useEffect(() => {
-    const c = (searchParams.get('camada') as Camada) || 'demandas'
-    if (c !== camada) trocarCamada(c)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams])
+  // O efeito que reage a mudanças de "?camada=" na URL fica logo abaixo da
+  // declaração de trocarCamada (perto do fim do componente) — antes ele
+  // ficava aqui em cima, chamando trocarCamada antes dela ser declarada no
+  // arquivo. Funcionava (declaração de função sobe em JS), mas o linter
+  // não consegue garantir que a versão usada aqui sempre reflita o estado
+  // mais atual do componente conforme ele muda.
 
   // Estado da camada de pets
   const { pets, cores: coresPets, recarregar: recarregarPets } = usePets()
@@ -96,7 +93,6 @@ export default function MapaDemandas() {
     return () => setSheetContext(null)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [dicaArrasteVisivel, setDicaArrasteVisivel] = useState(true)
   const arrasteRef = useRef<{ startY: number; startFrac: number } | null>(null)
   const SNAP: Record<'peek' | 'half' | 'full', number> = { peek: 0.20, half: 0.50, full: 0.75 }
 
@@ -172,16 +168,24 @@ export default function MapaDemandas() {
       return true
     })
 
-    function criarIcone(d: typeof filtradas[0], zoom: number) {
+    function escapeHtml(s?: string) {
+      if (!s) return ''
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    }
+
+    function criarIcone(d: typeof filtradas[0]) {
       const cor = d.categoria?.cor || '#4256c8'
       const iconeUrl = d.categoria?.icone_url
 
-      // Miolo do pin — o que muda entre os 3 casos
+      // Miolo do pin — o que muda entre os 3 casos.
+      // foto_url/iconeUrl vão pra dentro de um src="" de HTML bruto (não é
+      // JSX, não escapa sozinho) — sem escapeHtml aqui, um valor malicioso
+      // vira XSS armazenado pra quem visualizar o mapa.
       let miolo: string
       if (d.foto_url) {
-        miolo = `<img src="${d.foto_url}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:32px;height:32px;object-fit:cover;" />`
+        miolo = `<img src="${escapeHtml(d.foto_url)}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:32px;height:32px;object-fit:cover;" />`
       } else if (iconeUrl) {
-        miolo = `<img src="${iconeUrl}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:125%;height:125%;object-fit:contain;filter:brightness(1.3);" />`
+        miolo = `<img src="${escapeHtml(iconeUrl)}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:125%;height:125%;object-fit:contain;filter:brightness(1.3);" />`
       } else {
         miolo = `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:23px;height:23px;border-radius:50%;background:${cor};"></div>`
       }
@@ -200,19 +204,14 @@ export default function MapaDemandas() {
       })
     }
 
-    function escapeHtml(s?: string) {
-      if (!s) return ''
-      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-    }
-
     const demandaPorId = new Map(filtradas.map(d => [d.id, d]))
 
     filtradas.forEach((d) => {
-      const marker = L.marker([d.lat, d.lng], { icon: criarIcone(d, mapa.getZoom()) }).addTo(mapa)
+      const marker = L.marker([d.lat, d.lng], { icon: criarIcone(d) }).addTo(mapa)
 
       const popupHtml = `
         <div style="min-width:200px;max-width:230px;font-family:Inter,sans-serif;">
-          ${d.foto_url ? `<img src="${d.foto_url}" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin-bottom:8px;display:block;" />` : ''}
+          ${d.foto_url ? `<img src="${escapeHtml(d.foto_url)}" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin-bottom:8px;display:block;" />` : ''}
           <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#4256c8;text-transform:uppercase;letter-spacing:.03em;">${escapeHtml(d.categoria?.nome) || 'Sem categoria'}</p>
           <p style="margin:0 0 6px;font-size:12px;color:#6b7280;">${escapeHtml(d.endereco_label)}</p>
           <p style="margin:0 0 10px;font-size:13px;color:#111827;line-height:1.4;">${escapeHtml(sentenceCase(d.descricao))}</p>
@@ -308,6 +307,12 @@ export default function MapaDemandas() {
     setEmpregoSelecionado(null)
     setSheetState('peek')
   }
+
+  useEffect(() => {
+    const c = (searchParams.get('camada') as Camada) || 'demandas'
+    if (c !== camada) trocarCamada(c)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   async function excluirPet(p: Pet) {
     if (!confirm('Excluir este registro? Essa ação não pode ser desfeita.')) return

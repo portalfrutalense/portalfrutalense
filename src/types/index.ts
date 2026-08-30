@@ -1,5 +1,11 @@
 export type StatusDemanda = 'pendente' | 'aguardando_resposta' | 'respondida' | 'rejeitada_ia' | 'resolvida' | 'nao_resolvida' | 'denunciada'
 
+/** Os 4 papéis que existem em `perfis.role` — todo o sistema de permissão
+ * do site se baseia nessa comparação, então vale a pena fixar o tipo em
+ * vez de deixar como string solta (onde um erro de digitação passaria
+ * batido no compilador). */
+export type Role = 'cidadao' | 'autoridade' | 'empresa' | 'master'
+
 export interface DemandaEntidade {
   id: string
   demanda_id: string
