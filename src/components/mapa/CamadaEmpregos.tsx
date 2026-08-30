@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import type { Map as LeafletMap, Marker } from 'leaflet'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '../AuthProvider'
 import MiniMapaConfirmar from '../MiniMapaConfirmar'
 import Turnstile from '../Turnstile'
 import { Emprego, TipoContrato, CamadaConfig } from '@/types'
 import { salvarCamada } from './salvarCamada'
+import { escapeHtml } from '@/lib/escapeHtml'
 
 /* ------------------------------------------------------------- ícones --- */
 
@@ -45,11 +47,6 @@ function sentenceCase(str?: string) {
   return str.charAt(0).toUpperCase() + str.slice(1)
 }
 
-function escapeHtml(s?: string) {
-  if (!s) return ''
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-}
-
 /* ================================================================= dados = */
 
 export function useEmpregos() {
@@ -85,12 +82,12 @@ export function useMarkersEmpregos({
   empregos: Emprego[]
   config: CamadaConfig | null
   filtro: string
-  mapaObj: React.MutableRefObject<any>
-  leafletObj: React.MutableRefObject<any>
+  mapaObj: React.MutableRefObject<LeafletMap | null>
+  leafletObj: React.MutableRefObject<typeof import('leaflet') | null>
   mapaCarregado: boolean
   aoSelecionar: (e: Emprego) => void
 }) {
-  const markersRef = useRef<any[]>([])
+  const markersRef = useRef<Marker[]>([])
 
   useEffect(() => {
     if (!mapaCarregado || !mapaObj.current || !leafletObj.current) return
@@ -277,17 +274,6 @@ export function SidebarEmpregos({
   )
 }
 
-function estiloFiltro(ativo: boolean): React.CSSProperties {
-  return {
-    display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
-    padding: '8px 10px', borderRadius: '7px', cursor: 'pointer', fontSize: '13px',
-    fontWeight: ativo ? 600 : 500, textAlign: 'left',
-    background: ativo ? '#eff6ff' : 'white',
-    border: `1px solid ${ativo ? '#4256c8' : '#e5e7eb'}`,
-    color: '#111827',
-  }
-}
-
 /* ============================================================ formulário = */
 
 const rotuloCampo: React.CSSProperties = { display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }
@@ -333,6 +319,7 @@ export function FormularioEmprego({
     if (!cargo.trim()) { setErro('Informe o cargo da vaga.'); return }
     if (!descricao.trim() || descricao.trim().length < 10) { setErro('Descreva melhor a vaga.'); return }
     if (!contato.trim()) { setErro('Informe como o candidato deve se candidatar.'); return }
+    if (!aCombinar && !salario.trim()) { setErro('Informe o salário ou marque "Salário a combinar".'); return }
     if (!coordenadas || !locConfirmada) { setErro('Confirme o endereço da empresa no mapa.'); return }
     if (!editando && !turnstileToken) { setErro('Aguarde a verificação de segurança concluir.'); return }
     setEnviando(true)
