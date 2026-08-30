@@ -29,10 +29,15 @@ export default function Turnstile({ onVerify, onExpire, size = 'compact' }: Prop
   // nova referência de função (comum quando o prop vem de um hook sem
   // useCallback, como em ChatBot.tsx), o widget continuaria chamando a
   // versão antiga, presa a um estado desatualizado.
+  // A atualização roda num efeito (depois do render), nunca durante o
+  // render em si — escrever em ref.current no corpo do componente é
+  // proibido a partir do React 19 (regra react-hooks/refs).
   const onVerifyRef = useRef(onVerify)
-  onVerifyRef.current = onVerify
   const onExpireRef = useRef(onExpire)
-  onExpireRef.current = onExpire
+  useEffect(() => {
+    onVerifyRef.current = onVerify
+    onExpireRef.current = onExpire
+  })
 
   useEffect(() => {
     let intervalId: ReturnType<typeof setInterval> | null = null
