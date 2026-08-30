@@ -1,4 +1,15 @@
-export const metadata = { title: 'Política de Privacidade — CidadanIA Frutal' }
+import Link from 'next/link'
+
+const titulo = 'Política de Privacidade — CidadanIA Frutal'
+const descricao = 'Política de Privacidade da plataforma CidadanIA Frutal.'
+
+export const metadata = {
+  title: titulo,
+  description: descricao,
+  alternates: { canonical: 'https://cidadaniafrutal.com.br/privacidade' },
+  openGraph: { title: titulo, description: descricao, url: 'https://cidadaniafrutal.com.br/privacidade' },
+  twitter: { title: titulo, description: descricao },
+}
 
 export default function PoliticaPrivacidade() {
   return (
@@ -23,13 +34,13 @@ export default function PoliticaPrivacidade() {
         </p>
         <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '15px', color: '#111827', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <li><strong>Nome completo</strong> — obtido via Google OAuth ou informado manualmente. Exibido publicamente junto à demanda no mapa.</li>
-          <li><strong>Endereço de e-mail</strong> — obtido via Google OAuth. Utilizado para identificação da conta e comunicações operacionais. Nunca exibido publicamente.</li>
+          <li><strong>Endereço de e-mail</strong> — obtido via Google OAuth ou informado no cadastro por e-mail e senha. Utilizado para identificação da conta e comunicações operacionais. Nunca exibido publicamente.</li>
           <li><strong>CPF</strong> — coletado obrigatoriamente no cadastro para validação de identidade e prevenção de perfis falsos. Nunca exibido publicamente.</li>
           <li><strong>Data de nascimento</strong> — coletada obrigatoriamente no cadastro como dado complementar de identificação. Nunca exibida publicamente.</li>
           <li><strong>Número de WhatsApp</strong> — coletado obrigatoriamente no cadastro para vinculação ao assistente virtual da plataforma. Nunca exibido publicamente.</li>
           <li><strong>Dados de ocorrências</strong> — endereço, coordenadas geográficas, descrição e fotos anexadas voluntariamente. Tornam-se públicos após aprovação da demanda.</li>
           <li><strong>Histórico de conversa com o bot</strong> — mensagens trocadas com o assistente virtual via WhatsApp, armazenadas para viabilizar o fluxo de registro de demandas.</li>
-          <li><strong>Dados técnicos de segurança</strong> — endereço IP coletado no momento do envio de demandas e nas respostas de autoridades, além de registros de verificação anti-bot (Cloudflare Turnstile), para proteção contra acessos automatizados.</li>
+          <li><strong>Dados técnicos de segurança</strong> — o endereço IP de quem envia uma demanda passa pelo nosso servidor apenas para a verificação anti-bot (Cloudflare Turnstile), sem ser armazenado junto do registro. Já o endereço IP de quem responde uma demanda em nome de uma autoridade é registrado, para fins de auditoria e segurança.</li>
         </ul>
       </section>
 
@@ -91,7 +102,7 @@ export default function PoliticaPrivacidade() {
       </section>
 
       <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '24px', marginTop: '16px' }}>
-        <a href="/" style={{ fontSize: '13px', color: '#4256c8', textDecoration: 'none' }}>Voltar ao CidadanIA Frutal</a>
+        <Link href="/" style={{ fontSize: '13px', color: '#4256c8', textDecoration: 'none' }}>Voltar ao CidadanIA Frutal</Link>
       </div>
     </div>
   )

@@ -7,10 +7,13 @@ export const alt = 'CidadanIA Frutal'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
-export default function Image() {
-  const logoData = readFileSync(join(process.cwd(), 'public', 'CIDADANIA.png'))
-  const logoBase64 = `data:image/png;base64,${logoData.toString('base64')}`
+// Lido uma única vez, no carregamento do módulo — a imagem gerada é sempre
+// idêntica (não depende de nada da requisição), então reler e recodificar o
+// logo em base64 a cada chamada da função era trabalho repetido à toa.
+const logoData = readFileSync(join(process.cwd(), 'public', 'CIDADANIA.png'))
+const logoBase64 = `data:image/png;base64,${logoData.toString('base64')}`
 
+export default function Image() {
   return new ImageResponse(
     (
       <div

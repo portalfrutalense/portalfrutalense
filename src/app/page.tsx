@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '@/components/AuthProvider'
@@ -17,110 +18,6 @@ function GoogleIcon() {
       <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
     </svg>
-  )
-}
-
-function EmailIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }} aria-hidden="true">
-      <rect x="2" y="4" width="20" height="16" rx="2"/>
-      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
-    </svg>
-  )
-}
-
-
-const CATEGORIAS = [
-  { rotulo: 'Demandas municipais', cor: '#d97706' },
-  { rotulo: 'Empregos', cor: '#0891b2' },
-  { rotulo: 'Achei/Perdi um pet', cor: '#db2777' },
-  { rotulo: 'Classificados', cor: '#059669' },
-]
-
-/* ------------------------------------------------------------- contador --- */
-
-function Contador({ valor }: { valor: number }) {
-  const [mostrado, setMostrado] = useState(0)
-  const refValor = useRef(valor)
-  // Escrever em ref.current direto no corpo do componente é proibido a
-  // partir do React 19 (regra react-hooks/refs) — a atualização roda num
-  // efeito à parte, sem deps (executa depois de cada render), definido
-  // antes do efeito da animação para já estar atualizado quando ele ler.
-  useEffect(() => {
-    refValor.current = valor
-  })
-
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setMostrado(refValor.current)
-      return
-    }
-    const duracao = 900
-    const inicio = performance.now()
-    let raf = 0
-    const passo = (agora: number) => {
-      const p = Math.min((agora - inicio) / duracao, 1)
-      const eased = 1 - Math.pow(1 - p, 3)
-      setMostrado(Math.round(refValor.current * eased))
-      if (p < 1) raf = requestAnimationFrame(passo)
-    }
-    raf = requestAnimationFrame(passo)
-    // rede de segurança: em aba de fundo o requestAnimationFrame não dispara e o
-    // número ficaria preso em zero — aqui ele chega ao valor real de todo jeito
-    const garantia = window.setTimeout(() => setMostrado(refValor.current), duracao + 120)
-    return () => { cancelAnimationFrame(raf); window.clearTimeout(garantia) }
-  }, [valor])
-
-  return <span style={{ fontVariantNumeric: 'tabular-nums' }}>{mostrado}</span>
-}
-
-/* ---------------------------------------------------------- prova social -- */
-
-/** Abaixo disso o contador não aparece — ver comentário no corpo do componente. */
-const MINIMO_PARA_EXIBIR = 0
-
-function ProvaSocial() {
-  const [stats, setStats] = useState<{ total: number; resolvidas: number } | null>(null)
-
-  useEffect(() => {
-    let vivo = true
-    const supabase = createClient()
-    // limit(1) em vez de head:true — o count vem no header do GET e o corpo é
-    // de uma linha só (o servidor responde 401 a requisições HEAD)
-    Promise.all([
-      supabase.from('demandas').select('id', { count: 'exact' }).limit(1),
-      supabase.from('demandas').select('id', { count: 'exact' }).eq('status', 'resolvida').limit(1),
-    ])
-      .then(([todas, resolvidas]) => {
-        // Sem número real disponível, o bloco simplesmente não aparece
-        if (!vivo || todas.count == null) return
-        setStats({ total: todas.count, resolvidas: resolvidas.count ?? 0 })
-      })
-      .catch(() => {})
-    return () => { vivo = false }
-  }, [])
-
-  // Número real ou nada: enquanto a plataforma é nova, um contador baixo
-  // enfraquece a página em vez de ajudar. O bloco aparece sozinho quando os
-  // números passarem a falar por si.
-  if (!stats || stats.total < MINIMO_PARA_EXIBIR) return null
-
-  return (
-    <div className="prova">
-      <div className="prova-item">
-        <strong><Contador valor={stats.total} /></strong>
-        <span>{stats.total === 1 ? 'demanda registrada' : 'demandas registradas'}</span>
-      </div>
-      {stats.resolvidas > 0 && (
-        <>
-          <div className="prova-risco" aria-hidden="true" />
-          <div className="prova-item">
-            <strong style={{ color: '#059669' }}><Contador valor={stats.resolvidas} /></strong>
-            <span>{stats.resolvidas === 1 ? 'já resolvida' : 'já resolvidas'}</span>
-          </div>
-        </>
-      )}
-    </div>
   )
 }
 
@@ -315,6 +212,7 @@ function CardAcesso() {
 
 export default function LandingPage() {
   const { user } = useAuth()
+  const router = useRouter()
   const cardRef = useRef<HTMLDivElement>(null)
   const [tremendo, setTremendo] = useState(false)
 
@@ -338,8 +236,8 @@ export default function LandingPage() {
 
   // Já logado — vai direto pro painel
   useEffect(() => {
-    if (user) window.location.replace('/mapa')
-  }, [user])
+    if (user) router.replace('/mapa')
+  }, [user, router])
 
   if (user) return null
 
@@ -366,10 +264,6 @@ export default function LandingPage() {
           <p className="subtitulo surge" style={{ animationDelay: '210ms' }}>
             Explore os mapas interativos da cidade para cobrar serviços públicos, encontrar oportunidades, empregos, ajudar a encontrar pets e apoiar causas locais. Conte com o suporte do nosso assistente IA para guiar sua navegação.
           </p>
-
-          <div className="surge" style={{ animationDelay: '270ms' }}>
-            <ProvaSocial />
-          </div>
         </section>
 
         <section className="coluna-acao surge" style={{ animationDelay: '260ms' }}>
@@ -448,24 +342,6 @@ export default function LandingPage() {
 
         .coluna-conteudo { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
 
-        .etiqueta {
-          display: inline-flex; align-items: center; gap: 8px;
-          padding: 5px 12px 5px 10px; border-radius: 999px;
-          border: 1px solid var(--borda); background: rgba(66,86,200,0.07);
-          font-size: 11.5px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
-          color: var(--marca-escura);
-        }
-        .ponto-vivo {
-          width: 6px; height: 6px; border-radius: 50%; background: #059669;
-          box-shadow: 0 0 0 0 rgba(5,150,105,0.55); animation: pulsa 2.4s ease-out infinite;
-          flex-shrink: 0;
-        }
-        @keyframes pulsa {
-          0%   { box-shadow: 0 0 0 0 rgba(5,150,105,0.45); }
-          70%  { box-shadow: 0 0 0 7px rgba(5,150,105,0); }
-          100% { box-shadow: 0 0 0 0 rgba(5,150,105,0); }
-        }
-
         .titulo {
           font-family: var(--font-display), 'Plus Jakarta Sans', Inter, sans-serif;
           font-size: clamp(36px, 4.4vw, 58px);
@@ -479,34 +355,6 @@ export default function LandingPage() {
           font-size: clamp(13px, 1.65vh, 16.5px); line-height: 1.62;
           color: var(--tinta-suave); max-width: 53ch; margin: 0;
         }
-
-        .categorias {
-          list-style: none; margin: clamp(14px, 2.4vh, 26px) 0 0; padding: 0;
-          display: flex; flex-wrap: wrap; gap: 8px;
-        }
-        .categorias li {
-          display: inline-flex; align-items: center; gap: 7px;
-          padding: 6px 13px; border-radius: 999px;
-          border: 1px solid var(--borda); background: rgba(255,255,255,0.85);
-          font-size: 12.5px; font-weight: 500; color: var(--tinta-suave);
-          backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-          white-space: nowrap;
-        }
-        .categoria-ponto { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-
-        /* ---- prova social ---- */
-        .prova {
-          display: flex; align-items: center; gap: clamp(14px, 2vw, 22px);
-          margin-top: clamp(16px, 2.6vh, 28px);
-        }
-        .prova-item { display: flex; align-items: baseline; gap: 7px; }
-        .prova-item strong {
-          font-family: var(--font-display), 'Plus Jakarta Sans', Inter, sans-serif;
-          font-size: clamp(20px, 2.9vh, 30px); font-weight: 800; letter-spacing: -0.02em;
-          color: var(--tinta);
-        }
-        .prova-item span { font-size: 12.5px; color: var(--tinta-fraca); }
-        .prova-risco { width: 1px; height: 26px; background: var(--borda-forte); }
 
         /* ---- cartão de acesso ---- */
         .coluna-acao { min-width: 0; display: flex; justify-content: center; }
@@ -523,7 +371,6 @@ export default function LandingPage() {
           background: var(--marca);
         }
         .cartao-topo p { margin: 0; font-size: 13px; font-weight: 600; color: #ffffff; }
-        .cartao-topo .ponto-vivo { background: #6ee7b7; box-shadow: 0 0 0 0 rgba(110,231,183,0.7); }
         .cartao-corpo { padding: clamp(16px, 2.6vh, 22px); display: flex; flex-direction: column; gap: 10px; }
 
         .btn-primario, .btn-secundario, .btn-enviar {
@@ -714,27 +561,17 @@ export default function LandingPage() {
         /* telas curtas: enxuga o que é secundário para nada vazar da tela */
         @media (max-width: 860px) and (max-height: 620px) {
           .subtitulo { display: none; }
-          .categorias { gap: 6px; }
-          .categorias li { font-size: 11.5px; padding: 5px 10px; }
-          .prova { margin-top: 12px; }
           .atalho { padding: 11px 13px; }
-        }
-        @media (max-width: 860px) and (max-height: 620px) {
-          .categorias, .prova, .etiqueta { display: none; }
         }
 
         /* com o formulário de e-mail aberto o cartão cresce; numa tela baixa o
            conteúdo editorial cede o espaço para ele, em vez de ser encoberto */
         @media (max-width: 860px) and (max-height: 780px) {
-          .palco:has(.formulario) .categorias,
-          .palco:has(.formulario) .prova,
-          .palco:has(.formulario) .etiqueta { display: none; }
           .palco:has(.formulario) .titulo { font-size: clamp(22px, 5.4vw, 30px); margin-top: 4px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
           .surge { animation: none; }
-          .ponto-vivo { animation: none; }
           .atalho, .btn-primario, .btn-enviar, .atalho-seta { transition: none; }
         }
 

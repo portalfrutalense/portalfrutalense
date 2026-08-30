@@ -27,9 +27,11 @@ export const metadata: Metadata = {
   },
   title: 'CidadanIA Frutal',
   description: 'Explore os mapas interativos da cidade para cobrar serviços públicos, encontrar oportunidades, empregos, ajudar a encontrar pets e apoiar causas locais.',
-  alternates: {
-    canonical: 'https://cidadaniafrutal.com.br',
-  },
+  // Sem "alternates.canonical" fixo aqui: como esse campo não é sobrescrito
+  // automaticamente por página, deixá-lo no layout raiz fazia todo o site
+  // (inclusive /termos e /privacidade) apontar seu canonical pra home —
+  // dizendo ao Google que essas páginas eram cópias dela. Cada página que
+  // precisar de canonical próprio declara o dela (ver termos/privacidade).
   openGraph: {
     title: 'CidadanIA Frutal',
     description: 'Explore os mapas interativos da cidade para cobrar serviços públicos, encontrar oportunidades, empregos, ajudar a encontrar pets e apoiar causas locais.',

@@ -1,4 +1,15 @@
-export const metadata = { title: 'Termos de Uso — CidadanIA Frutal' }
+import Link from 'next/link'
+
+const titulo = 'Termos de Uso — CidadanIA Frutal'
+const descricao = 'Termos de Uso e Serviço da plataforma CidadanIA Frutal.'
+
+export const metadata = {
+  title: titulo,
+  description: descricao,
+  alternates: { canonical: 'https://cidadaniafrutal.com.br/termos' },
+  openGraph: { title: titulo, description: descricao, url: 'https://cidadaniafrutal.com.br/termos' },
+  twitter: { title: titulo, description: descricao },
+}
 
 export default function TermosDeUso() {
   return (
@@ -26,7 +37,7 @@ export default function TermosDeUso() {
       <section style={{ marginBottom: '32px' }}>
         <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#4256c8', marginBottom: '8px' }}>3. Cadastro, Autenticação e Privacidade dos Dados</h2>
         <p style={{ margin: '0 0 12px', fontSize: '15px', color: '#111827' }}>
-          <strong>Autenticação Segura:</strong> O acesso a funcionalidades de envio de demandas exige autenticação prévia via Google OAuth e a validação de dados de identificação, incluindo nome completo, CPF válido, data de nascimento e número de WhatsApp. O login via Google é utilizado exclusivamente para autenticar a identidade do usuário e prevenir a criação de perfis automatizados ou falsos.
+          <strong>Autenticação Segura:</strong> O acesso a funcionalidades de envio de demandas exige autenticação prévia — via Google OAuth ou cadastro com e-mail e senha — e a validação de dados de identificação, incluindo nome completo, CPF válido, data de nascimento e número de WhatsApp. A autenticação é utilizada exclusivamente para confirmar a identidade do usuário e prevenir a criação de perfis automatizados ou falsos.
         </p>
         <p style={{ margin: '0 0 8px', fontSize: '15px', color: '#111827' }}><strong>Dados Públicos vs. Dados Privados:</strong></p>
         <ul style={{ margin: '0 0 12px', paddingLeft: '20px', fontSize: '15px', color: '#111827', display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -115,7 +126,7 @@ export default function TermosDeUso() {
       </section>
 
       <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '24px', marginTop: '16px' }}>
-        <a href="/" style={{ fontSize: '13px', color: '#4256c8', textDecoration: 'none' }}>Voltar ao CidadanIA Frutal</a>
+        <Link href="/" style={{ fontSize: '13px', color: '#4256c8', textDecoration: 'none' }}>Voltar ao CidadanIA Frutal</Link>
       </div>
     </div>
   )
