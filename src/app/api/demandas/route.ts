@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
-import { getUser, ipDaRequisicao, verificarTurnstile } from '@/lib/auth-api'
+import { getUser, ipDaRequisicao, verificarTurnstile, limiteExcedido } from '@/lib/auth-api'
 
 
 
@@ -8,6 +8,11 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getUser(req)
     if (!user) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
+
+    // Best-effort — cada demanda aprovada dispara e-mail pra até 3 autoridades
+    if (limiteExcedido(`demandas:${user.id}`, 10, 10 * 60_000)) {
+      return NextResponse.json({ error: 'Muitas demandas registradas em pouco tempo. Aguarde um pouco.' }, { status: 429 })
+    }
 
     const body = await req.json()
     const { descricao, lat, lng, categoria_id, entidade_ids, foto_url, endereco_label, turnstile_token } = body

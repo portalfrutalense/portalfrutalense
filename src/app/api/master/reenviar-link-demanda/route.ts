@@ -33,9 +33,10 @@ export async function POST(req: NextRequest) {
     if (!emailAutoridade) return NextResponse.json({ error: 'Autoridade sem e-mail cadastrado.' }, { status: 400 })
 
     const novoToken = gerarToken()
+    const expiracao = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 dias
     await supabaseServer.from('demandas').update({
       magic_token: novoToken,
-      magic_token_expira_em: null,
+      magic_token_expira_em: expiracao,
       link_enviado: true,
       status: 'aguardando_resposta',
     }).eq('id', demanda_id)

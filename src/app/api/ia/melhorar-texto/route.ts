@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { getUser, limiteExcedido } from '@/lib/auth-api'
 
 export const maxDuration = 60
 
-async function verificarUsuario(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '')
-  if (!token) return null
-  const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
-  const { data: { user } } = await sb.auth.getUser(token)
-  return user || null
-}
-
 export async function POST(req: NextRequest) {
-  const user = await verificarUsuario(req)
+  const user = await getUser(req)
   if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+
+  // Best-effort — ver comentário em limiteExcedido (não é garantia em serverless)
+  if (limiteExcedido(`melhorar-texto:${user.id}`, 10, 60_000)) {
+    return NextResponse.json({ error: 'Muitas tentativas em pouco tempo. Aguarde um instante.' }, { status: 429 })
+  }
 
   const { texto } = await req.json()
   if (!texto || !String(texto).trim()) {

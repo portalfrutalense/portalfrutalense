@@ -1,4 +1,5 @@
 ﻿import { NextRequest, NextResponse } from 'next/server'
+import { segredoValido } from '@/lib/auth-api'
 import { supabaseServer } from '@/lib/supabase-server'
 import { gerarToken } from '@/lib/token'
 import { Resend } from 'resend'
@@ -18,7 +19,7 @@ const RIGOR_INSTRUCAO: Record<string, string> = {
 export async function POST(req: NextRequest) {
   // Verificação interna — chave entre APIs
   const key = req.headers.get('x-internal-key')
-  if (key !== process.env.INTERNAL_SECRET) {
+  if (!segredoValido(key, process.env.INTERNAL_SECRET)) {
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
   }
 
@@ -94,7 +95,7 @@ Não inclua nada além do JSON.`
     }
 
     if (decisao === 'aprovada') {
-      const expiracao = null
+      const expiracao = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 dias
 
       // Busca todos os vínculos de autoridade desta demanda
       const { data: vinculos } = await supabaseServer

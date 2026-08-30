@@ -1,22 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getMasterUser } from '@/lib/auth-api'
 import { supabaseServer } from '@/lib/supabase-server'
 
-async function verificarMaster(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '')
-  if (!token || token === 'undefined' || token === 'null') return null
-  const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/user`, {
-    headers: { 'Authorization': `Bearer ${token}`, 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
-  })
-  if (!res.ok) return null
-  const user = await res.json()
-  if (!user?.id) return null
-  const { data: perfil } = await supabaseServer.from('perfis').select('role').eq('id', user.id).single()
-  if (perfil?.role !== 'master') return null
-  return user
-}
-
 export async function POST(req: NextRequest) {
-  const master = await verificarMaster(req)
+  const master = await getMasterUser(req)
   if (!master) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
   const { nome, cargo, email, senha, role, categorias } = await req.json()

@@ -87,8 +87,9 @@ export function FormClassificado({
     const arquivos = Array.from(e.target.files ?? [])
     if (!arquivos.length) return
     const espaco = MAX_FOTOS - previews.length
-    const aceitos = arquivos.slice(0, Math.max(0, espaco))
-    setErroFoto('')
+    const semGigantes = arquivos.filter(f => f.size <= 20 * 1024 * 1024)
+    const aceitos = semGigantes.slice(0, Math.max(0, espaco))
+    setErroFoto(semGigantes.length < arquivos.length ? 'Uma ou mais fotos muito grandes (máx. 20 MB) foram ignoradas.' : '')
     aceitos.forEach(file => {
       const reader = new FileReader()
       reader.onload = (ev) => setPreviews(prev => [...prev, ev.target?.result as string])

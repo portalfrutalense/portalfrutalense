@@ -16,6 +16,34 @@ export default function MasterPage() {
   const { user, perfil, carregando: carregandoAuth } = useAuth()
   const router = useRouter()
   const [tokenSessao, setTokenSessao] = useState<string | null>(null)
+  const [reprocessando, setReprocessando] = useState(false)
+  const [avisoReprocessar, setAvisoReprocessar] = useState('')
+
+  async function reprocessarPendentes() {
+    if (!tokenSessao) return
+    setReprocessando(true)
+    setAvisoReprocessar('')
+    try {
+      const res = await fetch('/api/master/reprocessar-pendentes', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tokenSessao}` },
+      })
+      const d = await res.json()
+      if (!res.ok) { setAvisoReprocessar(d.error || 'Erro ao reprocessar.'); return }
+      const { demandas, pets, classificados } = d.reprocessadas
+      const total = demandas + pets + classificados
+      setAvisoReprocessar(
+        total === 0
+          ? 'Nada pendente há mais de 10 minutos.'
+          : `Reenviado pra análise: ${demandas} demanda(s), ${pets} pet(s), ${classificados} classificado(s).`
+      )
+    } catch {
+      setAvisoReprocessar('Erro ao reprocessar. Tente de novo.')
+    } finally {
+      setReprocessando(false)
+      setTimeout(() => setAvisoReprocessar(''), 6000)
+    }
+  }
   const [secao, setSecao] = useState<SecaoMaster>('dashboard')
   const [subSecaoPerfis, setSubSecaoPerfis] = useState<SubSecaoPerfis | null>(null)
   const [perfisAberto, setPerfisAberto] = useState(false)
@@ -481,10 +509,22 @@ export default function MasterPage() {
                       Voltar as demandas
                     </button>
                   ) : (
-                    <button onClick={() => { setConfigurando(true); setAbaConfig('categorias') }}
-                      style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer' }}>
-                      Configurar
-                    </button>
+                    <>
+                      {avisoReprocessar && (
+                        <span style={{ fontSize: '12px', color: '#6b7280' }}>{avisoReprocessar}</span>
+                      )}
+                      <button
+                        onClick={reprocessarPendentes}
+                        disabled={reprocessando}
+                        title="Demanda/pet/classificado às vezes fica preso em 'pendente' se a análise de IA falhar ao ser criado. Isso reenvia tudo que está travado há mais de 10 minutos."
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: reprocessando ? 'wait' : 'pointer', opacity: reprocessando ? 0.6 : 1 }}>
+                        {reprocessando ? 'Reprocessando...' : 'Reprocessar pendentes travados'}
+                      </button>
+                      <button onClick={() => { setConfigurando(true); setAbaConfig('categorias') }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer' }}>
+                        Configurar
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

@@ -158,6 +158,11 @@ export function useChatBot() {
   function selecionarFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (file.size > 20 * 1024 * 1024) {
+      setMensagens(prev => [...prev, { role: 'assistant', content: 'Essa foto está muito grande (máx. 20 MB). Tente outra.' }])
+      e.target.value = ''
+      return
+    }
     setFotoFile(file)
     setFotoPreview(URL.createObjectURL(file))
     e.target.value = ''

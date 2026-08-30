@@ -30,8 +30,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — .env.example é o template e deve ir pro repositório;
+# só os arquivos com segredo de verdade ficam de fora
 .env*
+!.env.example
 
 # vercel
 .vercel

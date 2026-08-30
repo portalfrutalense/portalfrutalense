@@ -20,38 +20,39 @@ const RESEND_STATUS: Record<string, string> = {
 
 export async function POST(req: NextRequest) {
   try {
-    // Verificação de assinatura (opcional mas recomendada)
-    // Configure RESEND_WEBHOOK_SECRET no painel da Resend e no .env
+    // Verificação de assinatura OBRIGATÓRIA — sem RESEND_WEBHOOK_SECRET
+    // configurado, o endpoint recusa toda chamada em vez de aceitar sem
+    // checar origem. Configure em resend.com/webhooks e no .env.
     const secret = process.env.RESEND_WEBHOOK_SECRET
-    if (secret) {
-      const svixId        = req.headers.get('svix-id')
-      const svixTimestamp = req.headers.get('svix-timestamp')
-      const svixSignature = req.headers.get('svix-signature')
-
-      if (!svixId || !svixTimestamp || !svixSignature) {
-        return NextResponse.json({ error: 'Assinatura ausente.' }, { status: 401 })
-      }
-
-      // Verificação manual da assinatura HMAC (sem dependência extra)
-      // O segredo Svix é base64 — precisa decodificar antes de usar como chave
-      const body = await req.text()
-      const mensagem = `${svixId}.${svixTimestamp}.${body}`
-      const encoder = new TextEncoder()
-      const keyData = Uint8Array.from(atob(secret.replace(/^whsec_/, '')), c => c.charCodeAt(0))
-      const cryptoKey = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
-      const assinatura = await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(mensagem))
-      const assinaturaB64 = btoa(String.fromCharCode(...new Uint8Array(assinatura)))
-
-      const assinaturasRecebidas = svixSignature.split(' ').map(s => s.replace(/^v1,/, ''))
-      if (!assinaturasRecebidas.includes(assinaturaB64)) {
-        return NextResponse.json({ error: 'Assinatura inválida.' }, { status: 401 })
-      }
-
-      const payload = JSON.parse(body)
-      return await processarEvento(payload)
+    if (!secret) {
+      console.error('[webhook/resend] RESEND_WEBHOOK_SECRET não configurado — recusando chamada.')
+      return NextResponse.json({ error: 'Webhook não configurado.' }, { status: 401 })
     }
 
-    const payload = await req.json()
+    const svixId        = req.headers.get('svix-id')
+    const svixTimestamp = req.headers.get('svix-timestamp')
+    const svixSignature = req.headers.get('svix-signature')
+
+    if (!svixId || !svixTimestamp || !svixSignature) {
+      return NextResponse.json({ error: 'Assinatura ausente.' }, { status: 401 })
+    }
+
+    // Verificação manual da assinatura HMAC (sem dependência extra)
+    // O segredo Svix é base64 — precisa decodificar antes de usar como chave
+    const body = await req.text()
+    const mensagem = `${svixId}.${svixTimestamp}.${body}`
+    const encoder = new TextEncoder()
+    const keyData = Uint8Array.from(atob(secret.replace(/^whsec_/, '')), c => c.charCodeAt(0))
+    const cryptoKey = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+    const assinatura = await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(mensagem))
+    const assinaturaB64 = btoa(String.fromCharCode(...new Uint8Array(assinatura)))
+
+    const assinaturasRecebidas = svixSignature.split(' ').map(s => s.replace(/^v1,/, ''))
+    if (!assinaturasRecebidas.includes(assinaturaB64)) {
+      return NextResponse.json({ error: 'Assinatura inválida.' }, { status: 401 })
+    }
+
+    const payload = JSON.parse(body)
     return await processarEvento(payload)
   } catch (err) {
     console.error('[webhook/resend] Erro:', err)

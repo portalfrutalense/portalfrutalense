@@ -1,24 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getUser } from '@/lib/auth-api'
 import { supabaseServer } from '@/lib/supabase-server'
-
-async function verificarUsuario(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '')
-  if (!token || token === 'undefined' || token === 'null') return null
-  const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/user`, {
-    headers: { 'Authorization': `Bearer ${token}`, 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
-  })
-  if (!res.ok) return null
-  const user = await res.json()
-  if (!user?.id) return null
-  return user
-}
 
 // POST /api/autoridade/denunciar  { demanda_id, motivo? }
 // Não depende de já ter respondido. Some do mapa público pra todo mundo,
 // aparece pro master como "denunciada". Reaproveita a coluna ia_motivo
 // (sem uso nesse status) pra guardar o motivo dado pela autoridade.
 export async function POST(req: NextRequest) {
-  const user = await verificarUsuario(req)
+  const user = await getUser(req)
   if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
   const { demanda_id, motivo } = await req.json()

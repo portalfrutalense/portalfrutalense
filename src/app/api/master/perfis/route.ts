@@ -1,23 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getMasterUser } from '@/lib/auth-api'
 import { supabaseServer } from '@/lib/supabase-server'
-
-async function verificarMaster(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '')
-  if (!token || token === 'undefined' || token === 'null') return null
-  const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/user`, {
-    headers: { 'Authorization': `Bearer ${token}`, 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
-  })
-  if (!res.ok) return null
-  const user = await res.json()
-  if (!user?.id) return null
-  const { data: perfil } = await supabaseServer.from('perfis').select('role').eq('id', user.id).single()
-  if (perfil?.role !== 'master') return null
-  return user
-}
 
 // GET — lista todos os perfis
 export async function GET(req: NextRequest) {
-  const user = await verificarMaster(req)
+  const user = await getMasterUser(req)
   if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
   const { data, error } = await supabaseServer
@@ -31,7 +18,7 @@ export async function GET(req: NextRequest) {
 
 // PATCH — editar campos do perfil (e entidade se for autoridade)
 export async function PATCH(req: NextRequest) {
-  const master = await verificarMaster(req)
+  const master = await getMasterUser(req)
   if (!master) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
   const { id, categorias, ...campos } = await req.json()
@@ -83,7 +70,7 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE — excluir perfil + entidade (se autoridade) + fotos + demandas + auth
 export async function DELETE(req: NextRequest) {
-  const master = await verificarMaster(req)
+  const master = await getMasterUser(req)
   if (!master) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
   const { id } = await req.json()

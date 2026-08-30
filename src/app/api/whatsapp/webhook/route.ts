@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse, after } from 'next/server'
+import { segredoValido, limiteExcedido } from '@/lib/auth-api'
 import { supabaseServer } from '@/lib/supabase-server'
 import { enviarWhatsapp, enviarImagemWhatsapp, baixarMidiaWhatsapp } from '@/lib/whatsapp'
 
@@ -355,6 +356,11 @@ async function processarMensagem(body: EvolutionWebhookBody) {
   if (!remoteJid.endsWith('@s.whatsapp.net')) return
 
   const telefone = remoteJid.replace('@s.whatsapp.net', '')
+
+  // Best-effort — protege a cota do Gemini mesmo de um número legítimo
+  // enviando mensagens em sequência rápida demais para ser humano.
+  if (limiteExcedido(`whatsapp:${telefone}`, 20, 60_000)) return
+
   const texto = (body.data?.message?.conversation || body.data?.message?.extendedTextMessage?.text || '').trim()
   const location = body.data?.message?.locationMessage
   const temImagem = body.data?.messageType === 'imageMessage'
@@ -797,7 +803,25 @@ async function processarMensagem(body: EvolutionWebhookBody) {
   }
 }
 
+/**
+ * A Evolution API não assina os payloads que envia — o único jeito de saber
+ * que uma requisição veio dela mesmo (e não de qualquer um que descubra a
+ * URL) é um segredo compartilhado. Configure a URL do webhook na Evolution
+ * API como ".../api/whatsapp/webhook?secret=SEU_SEGREDO" (ou, se a sua
+ * instância suportar header customizado, "x-webhook-secret: SEU_SEGREDO"),
+ * com o mesmo valor de WHATSAPP_WEBHOOK_SECRET no .env. Sem essa variável
+ * configurada, o endpoint recusa qualquer chamada — falha fechado.
+ */
+function webhookAutorizado(req: NextRequest): boolean {
+  const recebido = req.headers.get('x-webhook-secret') || req.nextUrl.searchParams.get('secret')
+  return segredoValido(recebido, process.env.WHATSAPP_WEBHOOK_SECRET)
+}
+
 export async function POST(req: NextRequest) {
+  if (!webhookAutorizado(req)) {
+    return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+  }
+
   const body = (await req.json().catch(() => null)) as EvolutionWebhookBody | null
   if (!body || body.event !== 'messages.upsert') return NextResponse.json({ ok: true })
 

@@ -1,24 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getUser } from '@/lib/auth-api'
 import { supabaseServer } from '@/lib/supabase-server'
-
-async function verificarUsuario(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '')
-  if (!token || token === 'undefined' || token === 'null') return null
-  const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/user`, {
-    headers: { 'Authorization': `Bearer ${token}`, 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
-  })
-  if (!res.ok) return null
-  const user = await res.json()
-  if (!user?.id) return null
-  return user
-}
 
 // POST /api/autoridade/responder  { vinculo_id, resposta }
 // Mesma lógica de POST /api/responder, mas autenticada por sessão em vez de magic_token.
 // Invalida o magic_token do vínculo também — se ela responder por aqui, o link do
 // e-mail correspondente passa a acusar "já respondida" pra quem clicar nele depois.
 export async function POST(req: NextRequest) {
-  const user = await verificarUsuario(req)
+  const user = await getUser(req)
   if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
   try {

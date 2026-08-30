@@ -1,22 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getUser } from '@/lib/auth-api'
 import { supabaseServer } from '@/lib/supabase-server'
-
-async function verificarUsuario(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '')
-  if (!token || token === 'undefined' || token === 'null') return null
-  const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/user`, {
-    headers: { 'Authorization': `Bearer ${token}`, 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
-  })
-  if (!res.ok) return null
-  const user = await res.json()
-  if (!user?.id) return null
-  return user
-}
 
 // POST /api/autoridade/marcar-resolvida  { demanda_id }
 // Só permite se a autoridade já respondeu o próprio vínculo naquela demanda.
 export async function POST(req: NextRequest) {
-  const user = await verificarUsuario(req)
+  const user = await getUser(req)
   if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
   const { demanda_id } = await req.json()

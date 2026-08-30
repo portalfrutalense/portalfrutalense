@@ -9,6 +9,11 @@ import { CategoriaMapa, Entidade } from '@/types'
 
 /* ------------------------------------------------------------ helpers --- */
 
+// Barreira antes da compressão: um arquivo absurdamente grande ainda
+// precisa ser carregado inteiro na memória do navegador (via Image) antes
+// do canvas reduzir — recusar cedo evita travar a aba em arquivos gigantes.
+const TAMANHO_MAX_FOTO = 20 * 1024 * 1024 // 20 MB
+
 async function comprimirFoto(file: File): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image()
@@ -86,6 +91,11 @@ export function FormDemanda({
   function handleFotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (file.size > TAMANHO_MAX_FOTO) {
+      mostrarErro('Foto muito grande (máx. 20 MB). Escolha outra.')
+      e.target.value = ''
+      return
+    }
     setFotoFile(file)
     const reader = new FileReader()
     reader.onload = (ev) => setFotoPreview(ev.target?.result as string)

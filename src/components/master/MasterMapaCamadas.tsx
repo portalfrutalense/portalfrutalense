@@ -4,6 +4,25 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { Pet, Classificado, Emprego } from '@/types'
 
+/**
+ * Moderação (oculto/encerrada) passa pela API com service_role, não mais
+ * direto pelo cliente — RLS restringe o autor a colunas de conteúdo, então
+ * só o backend pode mexer nessas flags agora. Ver src/app/api/master/camada.
+ */
+async function moderarCamada(
+  client: ReturnType<typeof createClient>,
+  camada: 'pets' | 'classificados' | 'empregos',
+  id: string,
+  campos: Record<string, unknown>
+) {
+  const { data: { session } } = await client.auth.getSession()
+  await fetch('/api/master/camada', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+    body: JSON.stringify({ camada, id, campos }),
+  })
+}
+
 /* ------------------------------------------------------------- shell --- */
 
 type Acao = { rotulo: string; cor: string; executar: () => Promise<void>; confirmar?: string }
@@ -305,7 +324,7 @@ export function MasterPets() {
         rotulo: p.oculto ? 'Reexibir' : 'Ocultar',
         cor: p.oculto ? '#166534' : '#92400e',
         executar: async () => {
-          await client.from('pets').update({ oculto: !p.oculto }).eq('id', p.id)
+          await moderarCamada(client, 'pets', p.id, { oculto: !p.oculto })
           avisar(p.oculto ? 'Registro reexibido no mapa.' : 'Registro ocultado do mapa.')
           carregar()
         },
@@ -419,7 +438,7 @@ export function MasterClassificados() {
         rotulo: c.oculto ? 'Reexibir' : 'Ocultar',
         cor: c.oculto ? '#166534' : '#92400e',
         executar: async () => {
-          await client.from('classificados').update({ oculto: !c.oculto }).eq('id', c.id)
+          await moderarCamada(client, 'classificados', c.id, { oculto: !c.oculto })
           avisar(c.oculto ? 'Anúncio reexibido no mapa.' : 'Anúncio ocultado do mapa.')
           carregar()
         },
@@ -513,7 +532,7 @@ export function MasterEmpregos() {
         rotulo: v.oculto ? 'Reexibir' : 'Ocultar',
         cor: v.oculto ? '#166534' : '#92400e',
         executar: async () => {
-          await client.from('empregos').update({ oculto: !v.oculto }).eq('id', v.id)
+          await moderarCamada(client, 'empregos', v.id, { oculto: !v.oculto })
           avisar(v.oculto ? 'Vaga reexibida no mapa.' : 'Vaga ocultada do mapa.')
           carregar()
         },
@@ -522,7 +541,7 @@ export function MasterEmpregos() {
         rotulo: v.encerrada ? 'Reabrir' : 'Encerrar',
         cor: v.encerrada ? '#166534' : '#92400e',
         executar: async () => {
-          await client.from('empregos').update({ encerrada: !v.encerrada }).eq('id', v.id)
+          await moderarCamada(client, 'empregos', v.id, { encerrada: !v.encerrada })
           avisar(v.encerrada ? 'Vaga reaberta.' : 'Vaga encerrada.')
           carregar()
         },

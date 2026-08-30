@@ -1,20 +1,72 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { timingSafeEqual } from 'node:crypto'
+import { supabaseServer } from '@/lib/supabase-server'
 
 /** Usuário autenticado a partir do Bearer token, ou null. */
 export async function getUser(req: NextRequest) {
   const token = req.headers.get('Authorization')?.replace('Bearer ', '')
-  if (!token) return null
+  if (!token || token === 'undefined' || token === 'null') return null
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
   const { data: { user } } = await supabase.auth.getUser(token)
+  return user || null
+}
+
+/**
+ * Usuário autenticado E com role='master' no perfil, ou null.
+ * Centraliza o que antes estava duplicado (quase) idêntico em ~15 rotas
+ * de /api/master/* e /api/autoridade/* — qualquer correção de auth agora
+ * vale para todas elas de uma vez.
+ */
+export async function getMasterUser(req: NextRequest) {
+  const user = await getUser(req)
+  if (!user) return null
+  const { data: perfil } = await supabaseServer.from('perfis').select('role').eq('id', user.id).single()
+  if (perfil?.role !== 'master') return null
   return user
 }
 
 export function ipDaRequisicao(req: NextRequest) {
   return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null
+}
+
+/**
+ * Compara dois segredos em tempo constante — `!==` vaza, por timing, quantos
+ * caracteres do início bateram, o que facilita (um pouco) adivinhar a chave
+ * certa por tentativa e erro. Usado para comparar chaves internas fixas
+ * (x-internal-key, webhook secrets), nunca para senha de usuário (essa passa
+ * pelo Supabase Auth, que já trata isso).
+ */
+export function segredoValido(recebido: string | null | undefined, esperado: string | undefined): boolean {
+  if (!recebido || !esperado) return false
+  const a = Buffer.from(recebido)
+  const b = Buffer.from(esperado)
+  if (a.length !== b.length) return false
+  return timingSafeEqual(a, b)
+}
+
+/**
+ * Limitador de taxa best-effort, em memória — NÃO é garantia real em produção
+ * serverless: cada instância fria do Vercel tem sua própria memória, então um
+ * atacante distribuído entre instâncias pode passar disso. Serve para conter
+ * abuso trivial de um mesmo processo/IP martelando a rota em sequência, não
+ * para proteção robusta. Uma solução real exigiria um store compartilhado
+ * (Upstash Redis, Vercel KV) — não configurado neste projeto.
+ */
+const _janelasRate = new Map<string, { contagem: number; expiraEm: number }>()
+
+export function limiteExcedido(chave: string, maxPorJanela: number, janelaMs: number): boolean {
+  const agora = Date.now()
+  const atual = _janelasRate.get(chave)
+  if (!atual || agora > atual.expiraEm) {
+    _janelasRate.set(chave, { contagem: 1, expiraEm: agora + janelaMs })
+    return false
+  }
+  atual.contagem++
+  return atual.contagem > maxPorJanela
 }
 
 /**

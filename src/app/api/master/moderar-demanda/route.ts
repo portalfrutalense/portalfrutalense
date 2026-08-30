@@ -1,30 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getMasterUser } from '@/lib/auth-api'
 import { supabaseServer } from '@/lib/supabase-server'
 import { gerarToken } from '@/lib/token'
 import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-async function verificarMaster(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '')
-  if (!token || token === 'undefined' || token === 'null') return null
-  const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/user`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    },
-  })
-  if (!res.ok) return null
-  const user = await res.json()
-  if (!user?.id) return null
-  const { data: perfil } = await supabaseServer.from('perfis').select('role').eq('id', user.id).single()
-  if (perfil?.role !== 'master') return null
-  return user
-}
-
 // POST /api/master/moderar-demanda  { demanda_id, acao: 'aprovar' | 'rejeitar' | 'ocultar' | 'reexibir', motivo? }
 export async function POST(req: NextRequest) {
-  const user = await verificarMaster(req)
+  const user = await getMasterUser(req)
   if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
   try {
@@ -74,7 +58,7 @@ export async function POST(req: NextRequest) {
 
       if (!demanda) return NextResponse.json({ error: 'Demanda não encontrada.' }, { status: 404 })
 
-      const expiracao = null
+      const expiracao = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 dias
       const motivoAprovacao = motivo?.trim() || 'Aprovada manualmente pelo administrador.'
 
       const { data: vinculos } = await supabaseServer

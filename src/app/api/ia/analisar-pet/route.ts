@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { segredoValido } from '@/lib/auth-api'
 import { supabaseServer } from '@/lib/supabase-server'
 
 // Gemini pode demorar; aumentar limite para não cortar a análise.
@@ -6,7 +7,7 @@ export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
   const key = req.headers.get('x-internal-key')
-  if (key !== process.env.INTERNAL_SECRET) {
+  if (!segredoValido(key, process.env.INTERNAL_SECRET)) {
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
   }
 

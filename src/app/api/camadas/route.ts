@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
-import { getUser, ipDaRequisicao, verificarTurnstile } from '@/lib/auth-api'
+import { getUser, ipDaRequisicao, verificarTurnstile, limiteExcedido } from '@/lib/auth-api'
 
 /**
  * Criação de registros das camadas do mapa (pets, classificados, empregos).
@@ -41,6 +41,11 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getUser(req)
     if (!user) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
+
+    // Best-effort — cada registro dispara análise de IA (custo por chamada)
+    if (limiteExcedido(`camadas:${user.id}`, 15, 10 * 60_000)) {
+      return NextResponse.json({ error: 'Muitos registros em pouco tempo. Aguarde um pouco.' }, { status: 429 })
+    }
 
     const body = await req.json()
     const camada = body?.camada as Camada

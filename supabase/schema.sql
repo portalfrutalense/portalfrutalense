@@ -1,4 +1,22 @@
 -- ============================================================
+-- ⚠️  ARQUIVO OBSOLETO — NÃO REFLETE O BANCO ATUAL. NÃO EXECUTE.
+-- ============================================================
+-- Este arquivo descreve o schema ORIGINAL do projeto (tabelas "denuncias"
+-- e "ocorrencias"), de antes da tabela "demandas" existir. Ficou aqui só
+-- como registro histórico — rodar isto num banco novo NÃO reproduz o
+-- sistema atual, e vai faltar praticamente tudo que o código usa hoje
+-- (demandas, demanda_entidades, pets, classificados, empregos, chatbot_*,
+-- ia_config, camadas_config, whatsapp_conversas, e as RLS policies atuais).
+--
+-- O schema real está espalhado, em ordem cronológica, pelos arquivos de:
+--   - migration_demanda_entidades.sql (raiz do projeto)
+--   - sql/*.sql
+--   - supabase/*.sql (exceto este arquivo)
+-- Não existe um dump único e atualizado do schema completo — ver seção
+-- "Observações para quem for auditar" em SISTEMA.md, na raiz do projeto.
+-- ============================================================
+
+-- ============================================================
 -- Portal Frutalense - Schema do Banco de Dados (Supabase)
 -- Execute este arquivo no SQL Editor do Supabase
 -- ============================================================

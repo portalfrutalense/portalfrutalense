@@ -1,21 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getUser } from '@/lib/auth-api'
 import { supabaseServer } from '@/lib/supabase-server'
-
-async function verificarUsuario(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '')
-  if (!token || token === 'undefined' || token === 'null') return null
-  const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/user`, {
-    headers: { 'Authorization': `Bearer ${token}`, 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
-  })
-  if (!res.ok) return null
-  const user = await res.json()
-  if (!user?.id) return null
-  return user
-}
 
 // GET /api/autoridade/demandas — lista as demandas direcionadas à autoridade logada
 export async function GET(req: NextRequest) {
-  const user = await verificarUsuario(req)
+  const user = await getUser(req)
   if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
   const { data, error } = await supabaseServer
