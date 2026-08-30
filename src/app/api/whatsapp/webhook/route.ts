@@ -399,16 +399,22 @@ async function processarMensagem(body: EvolutionWebhookBody) {
   let dados: DadosPendentes = conversa.dados_pendentes || {}
   let etapa: string = conversa.etapa || 'nenhuma'
 
-  // ── Timeout de sessão: se ficou mais de 30 min sem mensagem e estava no meio de um fluxo, reseta ──
+  // ── Timeout de sessão: mais de 30 min sem mensagem reseta o histórico sempre —
+  // antes só resetava no meio de um fluxo guiado; na conversa livre o histórico
+  // nunca era limpo, e o bot continuava "lembrando" de um "oi" de dias atrás. ──
   const ultimaMensagem = conversa.ultima_mensagem_em ? new Date(conversa.ultima_mensagem_em).getTime() : null
   const sesssaoExpirou = ultimaMensagem && (Date.now() - ultimaMensagem) > TIMEOUT_SESSAO_MS
-  if (sesssaoExpirou && etapa !== 'nenhuma') {
-    etapa = 'nenhuma'
-    dados = {}
+  if (sesssaoExpirou) {
     historico = []
-    await salvarHistorico(conversa.id, [], 'nenhuma', null)
-    await enviarWhatsapp(telefone, 'Sua conversa anterior expirou por inatividade. Estou aqui quando quiser — é só me chamar!')
-    return
+    dados = {}
+    if (etapa !== 'nenhuma') {
+      etapa = 'nenhuma'
+      await salvarHistorico(conversa.id, [], 'nenhuma', null)
+      await enviarWhatsapp(telefone, 'Sua conversa anterior expirou por inatividade. Estou aqui quando quiser — é só me chamar!')
+      return
+    }
+    // Já estava em conversa livre — só limpa o histórico em silêncio e segue
+    // processando a mensagem atual normalmente, sem soar como um aviso de erro.
   }
 
   // ── Cancelar global: funciona em qualquer etapa de fluxo ──
