@@ -21,9 +21,12 @@ export function validarCPF(cpf: string): boolean {
 
 /**
  * Formata CPF: "12345678900" → "123.456.789-00"
+ * Com menos de 11 dígitos (ex: usuário ainda digitando), devolve os
+ * dígitos sem máscara em vez de deixar o regex não casar em silêncio.
  */
 export function formatarCPF(cpf: string): string {
   const limpo = cpf.replace(/\D/g, '')
+  if (limpo.length !== 11) return limpo
   return limpo.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
 }
 

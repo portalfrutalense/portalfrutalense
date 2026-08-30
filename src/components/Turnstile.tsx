@@ -23,6 +23,17 @@ export default function Turnstile({ onVerify, onExpire, size = 'compact' }: Prop
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetId = useRef<string | null>(null)
 
+  // O widget é registrado uma única vez (efeito com deps []) — sem essas refs,
+  // o callback ficaria preso na função onVerify/onExpire de quando o widget
+  // foi montado. Se o componente pai re-renderizar nesse meio tempo com uma
+  // nova referência de função (comum quando o prop vem de um hook sem
+  // useCallback, como em ChatBot.tsx), o widget continuaria chamando a
+  // versão antiga, presa a um estado desatualizado.
+  const onVerifyRef = useRef(onVerify)
+  onVerifyRef.current = onVerify
+  const onExpireRef = useRef(onExpire)
+  onExpireRef.current = onExpire
+
   useEffect(() => {
     let intervalId: ReturnType<typeof setInterval> | null = null
 
@@ -33,8 +44,8 @@ export default function Turnstile({ onVerify, onExpire, size = 'compact' }: Prop
         size,
         theme: 'light',
         appearance: 'always',
-        callback: onVerify,
-        'expired-callback': () => onExpire?.(),
+        callback: (token: string) => onVerifyRef.current(token),
+        'expired-callback': () => onExpireRef.current?.(),
       })
     }
 

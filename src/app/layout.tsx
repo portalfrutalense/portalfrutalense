@@ -24,7 +24,6 @@ export const metadata: Metadata = {
       { url: '/favicon-192.png', sizes: '192x192', type: 'image/png' },
     ],
     apple: { url: '/favicon-192.png', sizes: '192x192', type: 'image/png' },
-    shortcut: '/favicon.ico',
   },
   title: 'CidadanIA Frutal',
   description: 'Explore os mapas interativos da cidade para cobrar serviços públicos, encontrar oportunidades, empregos, ajudar a encontrar pets e apoiar causas locais.',

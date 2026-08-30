@@ -57,8 +57,23 @@ export function segredoValido(recebido: string | null | undefined, esperado: str
  * (Upstash Redis, Vercel KV) — não configurado neste projeto.
  */
 const _janelasRate = new Map<string, { contagem: number; expiraEm: number }>()
+let _proximaLimpeza = 0
+
+/** Varre e descarta entradas já expiradas — sem isso o Map só cresce
+ * (cada chave nova nunca é removida, só sobrescrita se repetir). Roda no
+ * máximo 1x por minuto, disparada de carona numa chamada normal, pra não
+ * precisar de um timer/cron separado só pra isso. */
+function limparExpiradas() {
+  const agora = Date.now()
+  if (agora < _proximaLimpeza) return
+  _proximaLimpeza = agora + 60_000
+  for (const [chave, janela] of _janelasRate) {
+    if (agora > janela.expiraEm) _janelasRate.delete(chave)
+  }
+}
 
 export function limiteExcedido(chave: string, maxPorJanela: number, janelaMs: number): boolean {
+  limparExpiradas()
   const agora = Date.now()
   const atual = _janelasRate.get(chave)
   if (!atual || agora > atual.expiraEm) {
