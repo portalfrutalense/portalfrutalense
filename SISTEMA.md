@@ -483,3 +483,28 @@ depois dos arquivos de fix de RLS (§13) — ele reabre a exposição pública d
 CPF/`magic_token`/e-mail de autoridade que esses corrigem. Só existe como
 registro histórico de uma emergência de produção já resolvida; agora tem um
 aviso no topo do próprio arquivo.
+
+### 13.3 Auditoria ao vivo do Supabase (Bloco 14) — pendência SQL adicional
+
+O usuário rodou uma query de diagnóstico completa contra o banco real (tabelas,
+colunas, RLS, GRANTs por coluna, constraints, triggers, funções, Storage) e
+colou o resultado pra conferência. Achados que só uma leitura ao vivo do banco
+conseguiria pegar (invisíveis olhando só o código) — **rode
+`supabase/fix_bloco14_2026-08-30.sql`** no SQL Editor do Supabase:
+
+- **Demanda/pet/classificado podia nascer já "aprovado"**, pulando IA e master
+  por completo — o gatilho `restringir_status_demanda` (§13.2) só protege
+  `UPDATE`; o caminho de `INSERT` nunca tinha sido testado, e os GRANTs por
+  coluna liberam `status`/`ia_decisao`/`oculto`/`magic_token` etc. para INSERT
+  de `authenticated`, sem a policy de RLS restringir nenhum valor (só
+  `auth.uid() = user_id`). Fix: gatilhos `BEFORE INSERT` que forçam os campos
+  de moderação para os valores seguros de um registro recém-criado, fora do
+  backend (`service_role`).
+- **Demandas `nao_resolvida` eram invisíveis no mapa público** — nenhuma das
+  duas policies de `SELECT` público em `demandas` incluía esse status na lista
+  permitida (bug que já vinha do `migration-demandas.sql` original, nunca
+  corrigido). Como a policy é quem decide o que aparece no mapa, isso
+  contrariava o próprio propósito de transparência do sistema. De quebra,
+  havia duas policies praticamente iguais (uma exigia `authenticated`, a outra
+  não — RLS combina com OR, então a exigência da primeira já não valia nada na
+  prática); ficou só uma, com o status corrigido.
