@@ -76,6 +76,12 @@ export function FormPet({
   const [locConfirmada, setLocConfirmada] = useState(!!editando)
   const [fotoPreview, setFotoPreview] = useState<string | null>(editando?.foto_url ?? null)
   const uploadFotoPromise = useRef<Promise<string | null> | null>(null)
+  // Rastreiam o upload em andamento pra poder limpar o Storage se ele "perder"
+  // a corrida: usuário troca de foto, remove a foto, ou o envio final falha
+  // depois do upload já ter completado. Sem isso, cada uma dessas situações
+  // deixava um arquivo órfão em "pets-fotos" pra sempre.
+  const fotoUploadToken = useRef<{ cancelado: boolean } | null>(null)
+  const fotoPathAtual = useRef<string | null>(null)
   const [uploadandoFoto, setUploadandoFoto] = useState(false)
   const [erroFoto, setErroFoto] = useState('')
   const [turnstileToken, setTurnstileToken] = useState('')
@@ -92,6 +98,13 @@ export function FormPet({
   const fotoObrigatoria = tipo === 'perdido' || tipo === 'adocao'
   const exibeDataHora = tipo === 'perdido' || tipo === 'achado'
 
+  /** Apaga do Storage um upload que não vai mais ser usado — best-effort. */
+  function limparFotoOrfa(path: string | null) {
+    if (!path) return
+    supabase.storage.from('pets-fotos').remove([path])
+      .catch(err => console.error('[FormPet] falha ao limpar foto órfã:', err))
+  }
+
   function aoEscolherFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -100,6 +113,15 @@ export function FormPet({
       e.target.value = ''
       return
     }
+    // Uma foto anterior ainda podia estar subindo — marca o upload dela
+    // como cancelado (o .then() dela vai se limpar sozinho ao perceber
+    // isso) e descarta qualquer caminho que já tivesse "vencido".
+    if (fotoUploadToken.current) fotoUploadToken.current.cancelado = true
+    limparFotoOrfa(fotoPathAtual.current)
+    fotoPathAtual.current = null
+    const token = { cancelado: false }
+    fotoUploadToken.current = token
+
     setErroFoto('')
     const reader = new FileReader()
     reader.onload = (ev) => setFotoPreview(ev.target?.result as string)
@@ -110,9 +132,16 @@ export function FormPet({
         const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
         const { error } = await supabase.storage.from('pets-fotos').upload(path, blob, { contentType: 'image/jpeg' })
         if (error) throw error
+        if (token.cancelado) {
+          // Usuário trocou/removeu a foto enquanto esse upload ainda rodava —
+          // ele só terminou agora, mas ninguém vai usar o resultado.
+          limparFotoOrfa(path)
+          return null
+        }
+        fotoPathAtual.current = path
         return supabase.storage.from('pets-fotos').getPublicUrl(path).data.publicUrl
       })
-      .catch((err: any) => { setErroFoto(`Erro ao enviar foto: ${err?.message || 'falha no upload'}`); return null })
+      .catch((err: unknown) => { setErroFoto(`Erro ao enviar foto: ${err instanceof Error ? err.message : 'falha no upload'}`); return null })
       .finally(() => setUploadandoFoto(false))
   }
 
@@ -158,7 +187,15 @@ export function FormPet({
     const { erro, protocolo: prot } = await salvarCamada({ camada: 'pets', editando, dados: registro, turnstileToken, supabase })
 
     setEnviando(false)
-    if (erro) { mostrarErro(erro); return }
+    if (erro) {
+      // O upload já tinha completado com sucesso antes desse passo falhar —
+      // sem isso, o arquivo ficava órfão no Storage pra sempre.
+      limparFotoOrfa(fotoPathAtual.current)
+      fotoPathAtual.current = null
+      mostrarErro(erro)
+      return
+    }
+    fotoPathAtual.current = null // usado com sucesso — não é mais candidato a limpeza
     if (editando) { aoSalvar(); aoFechar(); return }
     if (prot) setProtocolo(prot)
     setSucesso(true)
@@ -259,7 +296,14 @@ export function FormPet({
                   <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb', height: '56px' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={fotoPreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                    <button type="button" onClick={() => { uploadFotoPromise.current = null; setFotoPreview(null); setErroFoto('') }}
+                    <button type="button" onClick={() => {
+                      if (fotoUploadToken.current) fotoUploadToken.current.cancelado = true
+                      limparFotoOrfa(fotoPathAtual.current)
+                      fotoPathAtual.current = null
+                      uploadFotoPromise.current = null
+                      setFotoPreview(null)
+                      setErroFoto('')
+                    }}
                       style={{ position: 'absolute', top: '6px', right: '6px', background: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', fontSize: '14px' }}>×</button>
                     {uploadandoFoto && <div style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '10px', borderRadius: '4px', padding: '2px 6px' }}>⏫ Enviando…</div>}
                   </div>

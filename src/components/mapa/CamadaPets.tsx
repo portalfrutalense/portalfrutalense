@@ -3,10 +3,10 @@
 import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '../AuthProvider'
-import MiniMapaConfirmar from '../MiniMapaConfirmar'
-import Turnstile from '../Turnstile'
-import { Pet, TipoPet, EspeciePet, PortePet, CamadaConfig } from '@/types'
-import { salvarCamada } from './salvarCamada'
+import { Pet, EspeciePet, PortePet, CamadaConfig } from '@/types'
+// Só o tipo — o leaflet em si continua carregado dinamicamente por
+// useMapaBase (import type é apagado na compilação, não força o bundle).
+import type { Map as LeafletMap, Marker } from 'leaflet'
 
 /* ------------------------------------------------------------- ícones --- */
 
@@ -71,11 +71,6 @@ function escapeHtml(s?: string) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
-function diasRestantes(expira_em: string) {
-  const ms = new Date(expira_em).getTime() - Date.now()
-  return Math.max(0, Math.ceil(ms / 86400000))
-}
-
 /* ================================================================= dados = */
 
 export function usePets() {
@@ -116,12 +111,12 @@ export function useMarkersPets({
   pets: Pet[]
   cores: Record<string, string>
   filtro: string
-  mapaObj: React.MutableRefObject<any>
-  leafletObj: React.MutableRefObject<any>
+  mapaObj: React.MutableRefObject<LeafletMap | null>
+  leafletObj: React.MutableRefObject<typeof import('leaflet') | null>
   mapaCarregado: boolean
   aoSelecionar: (p: Pet) => void
 }) {
-  const markersRef = useRef<any[]>([])
+  const markersRef = useRef<Marker[]>([])
 
   useEffect(() => {
     if (!mapaCarregado || !mapaObj.current || !leafletObj.current) return

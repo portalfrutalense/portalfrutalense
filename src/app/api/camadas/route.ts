@@ -37,6 +37,27 @@ const CAMPOS: Record<Camada, string[]> = {
   ],
 }
 
+/**
+ * "foto_url"/"fotos" chegam no corpo da requisição como texto livre — nada
+ * garante que o cliente mandou a URL que o upload dele mesmo gerou. Sem essa
+ * checagem, um valor malicioso fica gravado e, se algum lugar futuro exibir
+ * esse campo sem escapar (o popup do mapa de pets já escapa hoje, mas nada
+ * garante que toda tela nova vá lembrar disso), vira XSS armazenado — o
+ * mesmo problema já corrigido em /api/demandas. Aceita só o formato real de
+ * URL pública do bucket esperado.
+ */
+function urlDoBucketValida(url: unknown, bucket: string): url is string {
+  if (typeof url !== 'string' || !url) return false
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (!base) return false
+  return url.startsWith(`${base}/storage/v1/object/public/${bucket}/`)
+}
+
+const BUCKET_FOTO: Partial<Record<Camada, string>> = {
+  pets: 'pets-fotos',
+  classificados: 'classificados-fotos',
+}
+
 export async function POST(req: NextRequest) {
   try {
     const user = await getUser(req)
@@ -73,11 +94,39 @@ export async function POST(req: NextRequest) {
     }
 
     // Só os campos previstos, mais a autoria — que vem da sessão, nunca do corpo
-    const registro: Record<string, any> = { user_id: user.id }
+    const registro: Record<string, unknown> = { user_id: user.id }
     for (const campo of CAMPOS[camada]) {
       if (dados[campo] !== undefined) registro[campo] = dados[campo]
     }
     if (camada !== 'empregos') registro.autor_nome = perfil.nome || 'Anônimo'
+
+    // Valida foto_url (pets) / fotos (classificados) contra o bucket certo —
+    // descarta silenciosamente o que não bater, em vez de gravar lixo.
+    const bucket = BUCKET_FOTO[camada]
+    if (bucket && camada === 'pets' && 'foto_url' in registro) {
+      registro.foto_url = urlDoBucketValida(registro.foto_url, bucket) ? registro.foto_url : null
+    }
+    if (bucket && camada === 'classificados' && Array.isArray(registro.fotos)) {
+      registro.fotos = registro.fotos.filter((f: unknown) => urlDoBucketValida(f, bucket))
+    }
+
+    // Valida os enums de pet antes do banco — sem isso, um valor fora da
+    // lista só era barrado pelo CHECK constraint do Postgres, devolvendo o
+    // erro cru do banco pro cliente em vez de uma mensagem clara.
+    if (camada === 'pets') {
+      const TIPOS_PET = ['perdido', 'achado', 'adocao']
+      const ESPECIES_PET = ['cachorro', 'gato']
+      const PORTES_PET = ['pequeno', 'medio', 'grande']
+      if (!TIPOS_PET.includes(registro.tipo as string)) {
+        return NextResponse.json({ error: 'Tipo de registro inválido.' }, { status: 400 })
+      }
+      if (!ESPECIES_PET.includes(registro.especie as string)) {
+        return NextResponse.json({ error: 'Espécie inválida.' }, { status: 400 })
+      }
+      if (registro.porte != null && !PORTES_PET.includes(registro.porte as string)) {
+        return NextResponse.json({ error: 'Porte inválido.' }, { status: 400 })
+      }
+    }
 
     // Pets e classificados nascem com ia_decisao='pendente' — a rota de IA atualiza ao terminar.
     // Assim registros que nunca foram analisados ficam visíveis no master como pendentes.
@@ -105,7 +154,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ ok: true, registro: data })
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'Erro ao salvar.' }, { status: 500 })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Erro ao salvar.'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
