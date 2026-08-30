@@ -35,6 +35,11 @@ export async function POST(req: NextRequest) {
       const jaRespondida = (vinculos || []).some(v => !!v.resposta)
       const { error } = await supabaseServer.from('demandas').update({
         status: jaRespondida ? 'respondida' : 'aguardando_resposta',
+        // Reaprovar reinicia a contagem do job "marcar_nao_resolvida" (que usa
+        // ia_analisado_em) — sem isso, uma demanda denunciada há muito tempo e
+        // reaprovada hoje podia virar "não resolvida" já no dia seguinte, sem
+        // a autoridade ter tido qualquer chance real de responder.
+        ia_analisado_em: new Date().toISOString(),
       }).eq('id', demanda_id)
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
       return NextResponse.json({ ok: true })

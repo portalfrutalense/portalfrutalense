@@ -1,4 +1,14 @@
 -- ============================================================
+-- ⚠️  HISTÓRICO — NÃO RODE ISTO DEPOIS DE fix_rls_seguranca_2026-08.sql
+-- OU fix_rls_seguranca_2026-08-30.sql. Este arquivo reabre a exposição
+-- pública de CPF, magic_token e e-mail de autoridade que esses dois
+-- corrigiram — ele só existe como registro do que foi rodado numa
+-- emergência específica de produção, antes do código ter sido corrigido
+-- pra não depender mais de select('*') nessas tabelas. Ver SISTEMA.md
+-- §13 para o estado atual esperado.
+-- ============================================================
+
+-- ============================================================
 -- ROLLBACK URGENTE — restaura select(*) em demandas, demanda_entidades
 -- e entidades, que quebrou em produção (403 Forbidden).
 --

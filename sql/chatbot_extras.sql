@@ -15,6 +15,12 @@ INSERT INTO chatbot_config (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 ALTER TABLE chatbot_config ENABLE ROW LEVEL SECURITY;
 
 -- Log de perguntas que o chatbot não soube responder
+-- ATENÇÃO: cópia duplicada da criação desta tabela — a versão canônica é
+-- sql/chatbot_sem_resposta.sql, com policy de INSERT restrita ao próprio
+-- user_id (a policy "insere_sem_resposta" abaixo, WITH CHECK (true), é mais
+-- permissiva e não deve ser aplicada junto com a de lá). Se ambas já tiverem
+-- sido rodadas, rode supabase/fix_bloco11_2026-08-30.sql pra remover a
+-- policy mais permissiva.
 CREATE TABLE IF NOT EXISTS chatbot_sem_resposta (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
