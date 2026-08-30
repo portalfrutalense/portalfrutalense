@@ -310,10 +310,23 @@ export default function MapaDemandas() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
 
+  // Passa pelo backend (service_role) em vez de apagar a linha direto do
+  // client: só assim dá pra limpar a foto do Storage antes de excluir —
+  // apagar via RLS comum nunca teve acesso pra isso, e a linha ficava
+  // apagada mas o arquivo continuava órfão no bucket pra sempre.
+  async function excluirViaApi(camada: 'pets' | 'classificados' | 'empregos', id: string) {
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/camadas/excluir', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ camada, id }),
+    })
+    return res.ok
+  }
+
   async function excluirPet(p: Pet) {
     if (!confirm('Excluir este registro? Essa ação não pode ser desfeita.')) return
-    const { error } = await supabase.from('pets').delete().eq('id', p.id)
-    if (error) return
+    if (!await excluirViaApi('pets', p.id)) return
     setPetSelecionado(null)
     recarregarPets()
   }
@@ -330,8 +343,7 @@ export default function MapaDemandas() {
 
   async function excluirClassificado(c: Classificado) {
     if (!confirm('Excluir este anúncio? Essa ação não pode ser desfeita.')) return
-    const { error } = await supabase.from('classificados').delete().eq('id', c.id)
-    if (error) return
+    if (!await excluirViaApi('classificados', c.id)) return
     setClassificadoSelecionado(null)
     recarregarClassificados()
   }
@@ -345,8 +357,7 @@ export default function MapaDemandas() {
 
   async function excluirEmprego(e: Emprego) {
     if (!confirm('Excluir esta vaga? Essa ação não pode ser desfeita.')) return
-    const { error } = await supabase.from('empregos').delete().eq('id', e.id)
-    if (error) return
+    if (!await excluirViaApi('empregos', e.id)) return
     setEmpregoSelecionado(null)
     recarregarEmpregos()
   }

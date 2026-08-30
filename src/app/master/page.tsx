@@ -10,7 +10,7 @@ import { CategoriaMapa } from '@/types'
 
 type SecaoMaster = 'dashboard' | 'demandas' | 'pets' | 'classificados' | 'empregos' | 'chatbot' | 'perfis'
 type SubSecaoPerfis = 'cidadao' | 'autoridade' | 'empresa'
-type AbaConfig = 'categorias' | 'camadas' | 'ia'
+type AbaConfig = 'categorias' | 'ia'
 
 export default function MasterPage() {
   const { user, perfil, carregando: carregandoAuth } = useAuth()
@@ -576,7 +576,7 @@ export default function MasterPage() {
                   {/* Sub-abas */}
                   <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid #e5e7eb', marginBottom: '24px' }}>
                     {(['categorias', 'ia'] as AbaConfig[]).map((a) => {
-                      const labels: Record<AbaConfig, string> = { categorias: 'Categorias', camadas: 'Camadas do mapa', ia: 'IA' }
+                      const labels: Record<AbaConfig, string> = { categorias: 'Categorias', ia: 'IA' }
                       return (
                         <button key={a} onClick={() => setAbaConfig(a)} style={{
                           padding: '8px 16px', borderRadius: '6px 6px 0 0', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
@@ -655,8 +655,6 @@ export default function MasterPage() {
                       </div>
                     </div>
                   )}
-
-                  {abaConfig === 'camadas' && null}
 
                   {abaConfig === 'ia' && <MasterIA />}
                 </div>
@@ -1307,10 +1305,15 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
   async function salvarEdicao(id: string) {
     const t = await getToken()
     const perfil = perfis.find(p => p.id === id)
-    const body: any = { id, nome: editNome, cpf: editCpf, email: editEmail, whatsapp: editWhatsapp || null, data_nascimento: editDataNascimento || null }
+    const body: Record<string, unknown> = { id, nome: editNome, email: editEmail, whatsapp: editWhatsapp || null, data_nascimento: editDataNascimento || null }
     if (perfil?.role === 'autoridade') {
       body.cargo = editCargo
       body.categorias = editCats
+    } else {
+      // O campo CPF fica oculto no formulário de edição pra autoridades (não
+      // precisam de CPF) — enviar editCpf mesmo assim sobrescreveria/zeraria
+      // um valor que o usuário nunca viu nem editou nesta tela.
+      body.cpf = editCpf
     }
     await fetch('/api/master/perfis', {
       method: 'PATCH',

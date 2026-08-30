@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '../AuthProvider'
 import MiniMapaConfirmar from '../MiniMapaConfirmar'
@@ -104,6 +104,17 @@ export function FormPet({
     supabase.storage.from('pets-fotos').remove([path])
       .catch(err => console.error('[FormPet] falha ao limpar foto órfã:', err))
   }
+
+  // Se o usuário fecha o modal (botão "×", sem passar por enviar()) com um
+  // upload em andamento ou já concluído mas não usado, o arquivo ficava
+  // órfão no Storage pra sempre — nada interceptava aoFechar antes disso.
+  useEffect(() => {
+    return () => {
+      if (fotoUploadToken.current) fotoUploadToken.current.cancelado = true
+      limparFotoOrfa(fotoPathAtual.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function aoEscolherFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]

@@ -43,7 +43,7 @@ export function IconeVeiculo({ tipo, size = 18, cor = 'currentColor' }: { tipo: 
 /** Miolo do pin: ícone cadastrado no painel quando houver, senão a silhueta padrão. */
 function svgPinVeiculo(tipo: TipoVeiculo, iconeUrl: string | undefined, cor: string) {
   if (iconeUrl) {
-    return `<img src="${iconeUrl}" style="width:19px;height:19px;object-fit:contain;" />`
+    return `<img src="${escapeHtml(iconeUrl)}" style="width:19px;height:19px;object-fit:contain;" />`
   }
   return `<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="${cor}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="${PATH_VEICULO[tipo]}"/></svg>`
 }

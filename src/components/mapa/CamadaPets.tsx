@@ -95,7 +95,7 @@ export function usePets() {
     })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { pets, setPets, cores, recarregar }
+  return { pets, cores, recarregar }
 }
 
 /* =============================================================== markers = */

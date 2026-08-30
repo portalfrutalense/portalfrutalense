@@ -59,8 +59,18 @@ export default function PerfilPage() {
 
   async function marcarResolvida(id: string) {
     if (!confirm('Marcar esta demanda como resolvida?')) return
-    await supabase.from('demandas').update({ status: 'resolvida' }).eq('id', id)
-    setDemandas(prev => prev.map(d => d.id === id ? { ...d, status: 'resolvida' } : d))
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/cidadao/marcar-resolvida', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ demanda_id: id }),
+    })
+    if (res.ok) {
+      setDemandas(prev => prev.map(d => d.id === id ? { ...d, status: 'resolvida' } : d))
+      return
+    }
+    const d = await res.json().catch(() => ({}))
+    alert(d.error || 'Erro ao marcar como resolvida.')
   }
 
   async function excluirDemanda(id: string) {

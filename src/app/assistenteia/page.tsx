@@ -10,6 +10,14 @@ import MiniMapaConfirmar from '@/components/MiniMapaConfirmar'
 export default function AssistenteIAPage() {
   const bot = useChatBot()
   const [modalAuth, setModalAuth] = useState(false)
+  const [nomeBot, setNomeBot] = useState('Assistente')
+
+  useEffect(() => {
+    fetch('/api/chatbot-config')
+      .then(res => res.json())
+      .then(data => { if (data?.nome_bot) setNomeBot(data.nome_bot) })
+      .catch(() => {})
+  }, [])
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -176,7 +184,7 @@ export default function AssistenteIAPage() {
                 {/* Conteúdo */}
                 {m.role === 'assistant' ? (
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827', margin: '0 0 6px' }}>Lucas</p>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827', margin: '0 0 6px' }}>{nomeBot}</p>
                     <p style={{ fontSize: '15px', color: '#111827', margin: 0, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{m.content}</p>
                   </div>
                 ) : (
@@ -296,7 +304,7 @@ export default function AssistenteIAPage() {
             {/* Digitando */}
             {bot.enviando && (
               <div>
-                <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827', margin: '0 0 6px' }}>Lucas</p>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827', margin: '0 0 6px' }}>{nomeBot}</p>
                 <p style={{ fontSize: '15px', color: '#6b7280', margin: 0 }}>Digitando...</p>
               </div>
             )}

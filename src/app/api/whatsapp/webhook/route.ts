@@ -345,8 +345,13 @@ async function salvarHistorico(id: string, historico: unknown, etapa: string, da
   }).eq('id', id)
 }
 
+// Mesmo problema do \b explicado acima (RE_POSITIVO/RE_NEGATIVO) — sem a
+// flag u, \b só reconhece [A-Za-z0-9_], então uma palavra logo após com
+// acento (ex: "paraí", "cancelará") não teria fronteira reconhecida do jeito
+// esperado. Usa a mesma trava ciente de acentos.
+const RE_CANCELAR = new RegExp(`^\\s*(cancelar|sair|parar|desistir|cancela|para)${FIM}`, 'iu')
 function ehCancelar(texto: string) {
-  return /^\s*(cancelar|sair|parar|desistir|cancela|para)\b/i.test(texto)
+  return RE_CANCELAR.test(texto)
 }
 
 async function processarMensagem(body: EvolutionWebhookBody) {
@@ -402,6 +407,18 @@ async function processarMensagem(body: EvolutionWebhookBody) {
       console.log(`[webhook] mensagem ${messageId} ja processada — ignorando`)
       return
     }
+
+    // A leitura de `conversa` no topo da função pode estar desatualizada: se
+    // outra mensagem deste mesmo número foi processada e salvou historico/etapa
+    // novos entre essa leitura e a reivindicação acima, seguir com o snapshot
+    // antigo sobrescreveria esse progresso (lost update). Rebusca a linha agora
+    // que a reivindicação garante que somos os únicos processando esta mensagem.
+    const { data: conversaAtualizada } = await supabaseServer
+      .from('whatsapp_conversas')
+      .select('*')
+      .eq('id', conversa.id)
+      .single()
+    if (conversaAtualizada) conversa = conversaAtualizada
   }
 
   // Tudo daqui pra frente já reivindicou o messageId acima — se algo falhar no
@@ -734,6 +751,14 @@ async function processarMensagem(body: EvolutionWebhookBody) {
           // em toda invocação, inclusive nas mensagens que são só texto.
           const { default: sharp } = await import('sharp')
           const bufferOriginal = Buffer.from(midia.base64, 'base64')
+          // Mesmo teto de 20MB já aplicado no upload de foto do site (cliente
+          // recusa antes de carregar na memória do navegador) — aqui o limite
+          // precisa ser aplicado no servidor, já que a mídia chega pronta da
+          // Evolution API sem nenhuma checagem de tamanho antes desse ponto.
+          const TAMANHO_MAX_FOTO_BYTES = 20 * 1024 * 1024
+          if (bufferOriginal.length > TAMANHO_MAX_FOTO_BYTES) {
+            throw new Error(`foto maior que 20MB (${bufferOriginal.length} bytes)`)
+          }
           const bufferComprimido = await sharp(bufferOriginal)
             .resize(600, 600, { fit: 'inside', withoutEnlargement: true })
             .jpeg({ quality: 50 })
@@ -790,16 +815,18 @@ async function processarMensagem(body: EvolutionWebhookBody) {
       return
     }
 
-    const { data: perfilCompleto } = await supabaseServer.from('perfis').select('nome, cpf').eq('id', perfilLigado.id).single()
-    if (!perfilCompleto?.cpf) {
+    // perfilLigado já traz nome e cpf (selecionados no início do processamento
+    // desta mesma mensagem, linha ~477) — rebuscar aqui seria uma consulta
+    // redundante ao mesmo registro dentro da mesma requisição.
+    if (!perfilLigado.cpf) {
       await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, `Antes de registrar, preciso que você complete seu CPF no cadastro — é obrigatório. Entra no site aqui: ${process.env.SITE_URL}/perfil`)])
       return
     }
 
     const { data: demanda, error } = await supabaseServer.from('demandas').insert({
       user_id: perfilLigado.id,
-      morador_nome: perfilCompleto.nome,
-      morador_cpf: perfilCompleto.cpf,
+      morador_nome: perfilLigado.nome,
+      morador_cpf: perfilLigado.cpf,
       descricao: dados.descricao,
       lat: dados.lat,
       lng: dados.lng,
@@ -816,7 +843,12 @@ async function processarMensagem(body: EvolutionWebhookBody) {
     }
 
     const vinculos = dados.entidades_ids.map((eid) => ({ demanda_id: demanda.id, entidade_id: eid, status: 'aguardando_resposta' }))
-    await supabaseServer.from('demanda_entidades').insert(vinculos)
+    const { error: vinculoError } = await supabaseServer.from('demanda_entidades').insert(vinculos)
+    if (vinculoError) {
+      console.error('[webhook] Erro ao inserir demanda_entidades:', vinculoError)
+      // Não bloqueia — demanda já foi criada; fica sem vínculo de autoridade
+      // até alguém notar (mesmo comportamento já aceito em /api/demandas).
+    }
 
     try {
       await fetch(`${process.env.SITE_URL}/api/ia/analisar`, {

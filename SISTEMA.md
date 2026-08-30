@@ -509,3 +509,94 @@ conseguiria pegar (invisíveis olhando só o código) — **rode
   havia duas policies praticamente iguais (uma exigia `authenticated`, a outra
   não — RLS combina com OR, então a exigência da primeira já não valia nada na
   prática); ficou só uma, com o status corrigido.
+
+### 13.4 Auditoria de repositório completo (2026-08-30) — código + pendência SQL
+
+Auditoria exaustiva de todo o repositório (raiz, `sql/`, `supabase/`, `src/app/`,
+`src/components/`, `src/hooks/`, `src/lib/`, `src/types/`), feita em paralelo por
+três leituras independentes. Corrigido:
+
+- **`/api/demandas` bloqueava a resposta ao cidadão esperando a análise de IA
+  terminar** (`await fetch('/api/ia/analisar')`) — contradizia o próprio
+  comentário do código e o padrão "fire-and-forget" já usado em `/api/camadas`
+  e descrito na seção 5.1. Corrigido pro mesmo padrão (sem `await`, com `.catch`).
+- **Webhook do WhatsApp — lost update no dedupe de mensagem**: depois de
+  reivindicar o `messageId` (update condicional), o código seguia usando o
+  snapshot de `historico`/`etapa`/`dados_pendentes` lido antes da reivindicação
+  — se outra mensagem do mesmo número tivesse sido processada e salva nesse
+  intervalo, esse progresso era perdido. Agora rebusca a conversa logo após
+  reivindicar o `messageId`.
+- **Webhook do WhatsApp — erro do insert em `demanda_entidades` não era checado**
+  no fluxo de registro por conversa (só no site já era checado) — corrigido pra
+  logar, mesmo padrão de `/api/demandas`.
+- **Webhook do WhatsApp — regex de "cancelar" sem suporte a acento** (`\b` sem
+  flag `u`) — mesma classe de bug já documentada e corrigida pra
+  `RE_POSITIVO`/`RE_NEGATIVO`, replicada aqui.
+- **Webhook do WhatsApp — foto sem teto de tamanho antes do `sharp`** — mídia
+  do WhatsApp não tinha nenhum limite de tamanho antes de ser processada
+  (diferente do teto de 20MB já aplicado no upload do site); adicionado o
+  mesmo limite.
+- **Painel master — aba "Camadas do mapa" era código morto inacessível**
+  (`AbaConfig` incluía `'camadas'`, mas o loop de abas nunca renderizava o
+  botão, e o conteúdo era `null`) — removida. `MasterCamadas` nunca teve
+  suporte a `camada="demandas"` (a cor de demandas já é por categoria, na aba
+  Categorias), então não era uma feature perdida, só scaffolding não usado.
+- **Painel master — edição de perfil sempre mandava `cpf` no PATCH**, mesmo
+  quando o campo fica oculto na tela pra `role === 'autoridade'` — podia
+  zerar um CPF existente sem o usuário nunca ter visto o campo. Corrigido pra
+  só incluir `cpf` no corpo quando o campo é de fato editável.
+- **Nome do assistente hardcoded como "Lucas"** em `/assistenteia`, sem ler
+  `chatbot_config.nome_bot` (configurável pelo master, já usado corretamente
+  em `/api/chat` e no WhatsApp). Como `chatbot_config` só tem `SELECT` liberado
+  por RLS pra `role='master'`, criada `GET /api/chatbot-config` (expõe só
+  `nome_bot`, via `service_role`) pra UI do site poder ler o nome configurado.
+- **`/app/perfil/page.tsx` marcava demanda como resolvida direto do client**
+  (`supabase.from('demandas').update(...)`), diferente do padrão adotado pro
+  resto do sistema (autoridade e master usam rota de API). Criada
+  `POST /api/cidadao/marcar-resolvida`, com a mesma checagem de estado
+  elegível que já existia na UI, reforçada aqui no servidor.
+- **Vazamento de foto no Storage — 2 casos novos, mesma classe já corrigida em
+  outros lugares**: `FormPet.tsx`/`FormClassificado.tsx` não tinham cleanup no
+  unmount — fechar o modal (botão "×") com upload em andamento ou já concluído
+  deixava o arquivo órfão no bucket; adicionado `useEffect` de limpeza.
+  `MapaDemandas.tsx` (`excluirPet`/`excluirClassificado`/`excluirEmprego`)
+  apagava a linha direto do client sem tocar na foto — mesmo problema já
+  corrigido no caminho do master, nunca replicado pro caminho do dono do
+  registro. Criada `POST /api/camadas/excluir` (ownership check + limpeza de
+  Storage + delete via `service_role`), e as três funções do mapa passaram a
+  chamá-la em vez de `supabase.from(camada).delete()` direto.
+- `icone_url` de classificados ia pro `divIcon.html` do Leaflet sem
+  `escapeHtml` (único ponto do arquivo com essa inconsistência; risco baixo,
+  campo só é setado pelo master) — corrigido.
+- Tipagem: `catch (err: any)` em `FormDemanda.tsx` (2 pontos) trocado por
+  `catch (err: unknown)` com `instanceof Error`, mesmo padrão de
+  `FormPet.tsx`/`FormClassificado.tsx`. `alterarLocal` em `MasterCamadas.tsx`
+  ganhou tipo genérico (`<K extends keyof CamadaConfig>`) no lugar de `any`.
+- Código morto: `setPets` (retorno de `usePets()`) nunca consumido, removido
+  do retorno do hook. Consulta redundante a `perfis(nome, cpf)` no webhook do
+  WhatsApp (o mesmo registro já tinha sido buscado no início do processamento
+  da mesma mensagem) — removida, reaproveitando o resultado já em memória.
+
+**Pendência SQL** (não aplicável pelo código — precisa rodar manualmente):
+`demandas.protocolo`, `demandas.email_resend_id` e `demandas.email_status`
+são usadas ativamente pelo app e por `fix_rls_seguranca_2026-08-30.sql` /
+`fix_bloco14_2026-08-30.sql`, mas **nenhum arquivo SQL versionado as cria** —
+reconstruir o banco do zero só com os arquivos do repositório deixaria essas
+3 colunas faltando. Rode **`supabase/fix_colunas_faltantes_2026-08-30.sql`**
+no SQL Editor do Supabase (idempotente — seguro rodar mesmo que as colunas já
+existam em produção).
+
+**Achado novo, não corrigido nesta sessão** — fora do escopo desta rodada:
+rodar `npx eslint` direto (fora do `next build`) nos arquivos de `src/app/`
+revela dezenas de erros reais de regras `react-hooks` mais rígidas
+(`react-hooks/refs`, `react-hooks/set-state-in-effect` — prováveis regras do
+React Compiler já habilitadas em `eslint.config.mjs`), pré-existentes e
+espalhadas por várias páginas/componentes (`assistenteia/page.tsx`,
+`perfil/page.tsx`, `master/page.tsx`, `MapaDemandas.tsx`, `CamadaPets.tsx`,
+`CamadaClassificados.tsx`, `MasterCamadas.tsx`, entre outros). O `next build`
+não falha por causa delas (usa `eslint-config-next`, que não inclui essas
+regras), então passaram despercebidas em todo build/commit anterior. Como é
+um padrão só de calling setState/lendo refs dentro do corpo de efeitos — não
+um bug de comportamento confirmado — e o volume é grande (dezenas de pontos
+em muitos arquivos), corrigir tudo exige sua própria auditoria dedicada, não
+uma correção pontual dentro desta.

@@ -142,7 +142,7 @@ export function FormDemanda({
         if (uploadError) throw uploadError
         fotoPath = path
         foto_url = supabase.storage.from('demandas-fotos').getPublicUrl(path).data.publicUrl
-      } catch (err: any) { mostrarErro(`Erro ao enviar foto: ${err?.message || JSON.stringify(err)}`); setEnviando(false); return }
+      } catch (err: unknown) { mostrarErro(`Erro ao enviar foto: ${err instanceof Error ? err.message : 'falha no upload'}`); setEnviando(false); return }
     }
 
     try {
@@ -156,7 +156,7 @@ export function FormDemanda({
       aoSalvar()
       resetar()
       setSucesso(true) // depois do resetar() — que também zera sucesso — pra ficar visível
-    } catch (err: any) {
+    } catch (err: unknown) {
       // A foto já tinha sido enviada ao Storage antes desse passo falhar —
       // sem isso, ela ficaria órfã lá pra sempre, sem nenhuma demanda
       // referenciando. Best-effort: se a limpeza falhar também, só loga.
@@ -164,7 +164,7 @@ export function FormDemanda({
         supabase.storage.from('demandas-fotos').remove([fotoPath])
           .catch(e => console.error('[FormDemanda] falha ao limpar foto órfã:', e))
       }
-      mostrarErro(err.message || 'Erro ao enviar.')
+      mostrarErro(err instanceof Error ? err.message : 'Erro ao enviar.')
     } finally { setEnviando(false) }
   }
 

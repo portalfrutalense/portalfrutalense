@@ -23,7 +23,7 @@ export default function MasterCamadas({ camada: camadaFiltro }: { camada?: strin
       .then(({ data }) => setItens((data as CamadaConfig[]) || []))
   }
 
-  function alterarLocal(chave: string, campo: keyof CamadaConfig, valor: any) {
+  function alterarLocal<K extends keyof CamadaConfig>(chave: string, campo: K, valor: CamadaConfig[K]) {
     setItens(prev => prev.map(i => i.chave === chave ? { ...i, [campo]: valor } : i))
   }
 

@@ -89,19 +89,19 @@ export async function POST(req: NextRequest) {
       // Não bloqueia — demanda já foi criada
     }
 
-    const resposta = NextResponse.json({ ok: true, id: demanda.id }, { status: 201 })
-
-    try {
-      await fetch(`${process.env.SITE_URL}/api/ia/analisar`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-internal-key': process.env.INTERNAL_SECRET! },
-        body: JSON.stringify({ demanda_id: demanda.id }),
-      })
-    } catch (e) {
+    // Dispara a análise de IA em segundo plano — não bloqueia a resposta ao
+    // cliente (mesmo padrão de /api/camadas). Sem await: se o fetch falhar,
+    // a demanda fica pendente até o botão "Reprocessar pendentes travados"
+    // (painel master) reenviar pra análise.
+    fetch(`${process.env.SITE_URL}/api/ia/analisar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-internal-key': process.env.INTERNAL_SECRET! },
+      body: JSON.stringify({ demanda_id: demanda.id }),
+    }).catch((e) => {
       console.error('Erro ao chamar IA:', e)
-    }
+    })
 
-    return resposta
+    return NextResponse.json({ ok: true, id: demanda.id }, { status: 201 })
   } catch (err) {
     console.error(err)
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })

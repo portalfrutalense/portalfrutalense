@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '../AuthProvider'
 import MiniMapaConfirmar from '../MiniMapaConfirmar'
@@ -147,10 +147,21 @@ export function FormClassificado({
   /** Limpa do Storage todo upload desta sessão que já tinha terminado, e
    * esvazia os rastreadores — usado quando o envio não vai mais prosseguir. */
   function limparTodosUploadsPendentes() {
-    for (const token of uploadTokens.current) limparFotoOrfa(token.path)
+    for (const token of uploadTokens.current) {
+      token.cancelado = true // uploads ainda em andamento se limpam sozinhos ao completar
+      limparFotoOrfa(token.path)
+    }
     uploadTokens.current = []
     uploadPromises.current = []
   }
+
+  // Se o usuário fecha o modal (botão "×", sem passar por enviar()) com fotos
+  // ainda subindo ou já subidas mas não usadas, elas ficavam órfãs no Storage
+  // pra sempre — nada interceptava aoFechar antes disso.
+  useEffect(() => {
+    return () => limparTodosUploadsPendentes()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function enviar() {
     // Valida todos os campos de uma vez
