@@ -439,3 +439,29 @@ como correção de auditoria sem confirmação explícita:
   `demanda_entidades` — é cirurgia em dado de produção, não código.
 - Reescrever o painel master (1870 linhas de `style={{}}` inline) em Tailwind —
   é um projeto à parte, não uma correção.
+
+### 13.2 Auditoria por blocos (2026-08-30, sessão de blocos 1-11) — pendência SQL adicional
+
+Durante a auditoria em blocos (Bloco 11 — Migrações SQL), além de conferir se
+`fix_rls_seguranca_2026-08-30.sql` (§13) já foi executado, **rode também
+`supabase/fix_bloco11_2026-08-30.sql`** no SQL Editor do Supabase — corrige:
+
+- Cidadão podia, via API direta do Supabase (fora da UI), marcar a própria
+  demanda como `resolvida` mesmo estando `pendente` (nunca moderada pela IA
+  nem pelo master) — `GRANT UPDATE (status)` restringia a coluna, mas nada
+  restringia o valor. Fix: gatilho `restringir_status_demanda`.
+- Job `marcar_nao_resolvida` (pg_cron) usava `created_at` em vez de
+  `ia_analisado_em` — uma demanda aprovada/reaprovada tardiamente podia virar
+  "não resolvida" no dia seguinte, sem a autoridade ter tido chance real de
+  responder.
+- `chatbot_sem_resposta` tinha duas policies de INSERT conflitantes (uma
+  restrita ao próprio `user_id`, outra aberta) por ter sido criada em dois
+  arquivos SQL diferentes (`sql/chatbot_sem_resposta.sql` e
+  `sql/chatbot_extras.sql`) — mantida só a restrita.
+- Tabela `ia_historico`, nunca usada pelo código, removida.
+
+Também: **`supabase/rollback_urgente_select.sql` nunca deve ser executado**
+depois dos arquivos de fix de RLS (§13) — ele reabre a exposição pública de
+CPF/`magic_token`/e-mail de autoridade que esses corrigem. Só existe como
+registro histórico de uma emergência de produção já resolvida; agora tem um
+aviso no topo do próprio arquivo.
