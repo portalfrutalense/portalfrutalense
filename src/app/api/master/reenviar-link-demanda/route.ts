@@ -92,30 +92,6 @@ export async function POST(req: NextRequest) {
         }
       }
       await supabaseServer.from('demandas').update({ status: 'aguardando_resposta' }).eq('id', demanda_id)
-    } else if (demanda.entidade?.email) {
-      // Demanda legada, sem vínculos em demanda_entidades.
-      const novoToken = gerarToken()
-      await supabaseServer.from('demandas').update({
-        magic_token: novoToken,
-        magic_token_expira_em: expiracao,
-        link_enviado: true,
-        status: 'aguardando_resposta',
-      }).eq('id', demanda_id)
-
-      const linkResposta = `${process.env.SITE_URL}/responder/${novoToken}`
-      const { data: emailEnviado } = await resend.emails.send({
-        from: 'CidadanIA Frutal <noreply@cidadaniafrutal.com.br>',
-        to: demanda.entidade.email,
-        subject: `[REENVIO] Demanda aguardando sua resposta — CidadanIA Frutal`,
-        html: montarEmailHtml(demanda.entidade.nome, demanda.morador_nome, demanda.descricao, demanda.endereco_label, linkResposta),
-      })
-      if (emailEnviado?.id) {
-        await supabaseServer.from('demandas').update({
-          email_resend_id: emailEnviado.id,
-          email_status: 'enviado',
-        }).eq('id', demanda_id)
-        algumEmailEnviado = true
-      }
     }
 
     if (!algumEmailEnviado) return NextResponse.json({ error: 'Nenhuma autoridade vinculada tem e-mail cadastrado.' }, { status: 400 })

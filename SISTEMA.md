@@ -383,11 +383,12 @@ normalmente para leitura pública.
   existem espalhadas pelos scripts incrementais da pasta `sql/` e no arquivo solto
   `migration_demanda_entidades.sql` na raiz — não há um dump único e atualizado
   do schema completo no repositório.
-- Existe débito técnico de "modo legado" em várias rotas: `/api/responder` e
-  `/api/autoridade/responder`, por exemplo, mantêm um caminho de fallback para
-  quando `demanda_entidades` não tem o vínculo e cai de volta no `magic_token`
-  direto da tabela `demandas` — resquício de uma versão anterior do sistema
-  (antes de demandas poderem ter múltiplas autoridades).
+- O caminho de fallback "modo legado" (`/api/responder`, `/api/master/moderar-demanda`
+  ação "aprovar", `/api/master/reenviar-link-demanda` — usar `magic_token` direto na
+  tabela `demandas` quando não havia vínculo em `demanda_entidades`, resquício de uma
+  versão anterior do sistema antes de demandas poderem ter múltiplas autoridades) foi
+  **removido em 2026-08-30**, já que o sistema ainda está em desenvolvimento e não há
+  dado real no formato legado a preservar. `demanda_entidades` é hoje o único caminho.
 - A landing page (`src/app/page.tsx`) e o painel master têm seções de UI escritas
   quase inteiramente com `style={{ ... }}` inline em vez de CSS Modules/Tailwind
   consistente — o projeto usa Tailwind (`tailwindcss` está nas dependências) mas

@@ -128,15 +128,6 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Demanda legada, sem vínculos em demanda_entidades — usa entidade direta
-      if (!vinculos?.length && demanda.entidade?.email) {
-        const token = gerarToken()
-        await supabaseServer.from('demandas').update({
-          magic_token: token,
-          magic_token_expira_em: expiracao,
-        }).eq('id', demanda_id)
-      }
-
       return NextResponse.json({ ok: true })
     }
 
