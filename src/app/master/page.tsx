@@ -18,6 +18,8 @@ export default function MasterPage() {
   const [tokenSessao, setTokenSessao] = useState<string | null>(null)
   const [reprocessando, setReprocessando] = useState(false)
   const [avisoReprocessar, setAvisoReprocessar] = useState('')
+  const [marcandoNaoResolvidas, setMarcandoNaoResolvidas] = useState(false)
+  const [avisoNaoResolvidas, setAvisoNaoResolvidas] = useState('')
 
   async function reprocessarPendentes() {
     if (!tokenSessao) return
@@ -42,6 +44,32 @@ export default function MasterPage() {
     } finally {
       setReprocessando(false)
       setTimeout(() => setAvisoReprocessar(''), 6000)
+    }
+  }
+
+  // Botão manual, não job de cron — demandas em aguardando_resposta/respondida
+  // há mais de 30 dias (contando da aprovação, não da criação) viram nao_resolvida.
+  async function marcarNaoResolvidas() {
+    if (!tokenSessao) return
+    setMarcandoNaoResolvidas(true)
+    setAvisoNaoResolvidas('')
+    try {
+      const res = await fetch('/api/master/marcar-nao-resolvidas', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tokenSessao}` },
+      })
+      const d = await res.json()
+      if (!res.ok) { setAvisoNaoResolvidas(d.error || 'Erro ao marcar.'); return }
+      setAvisoNaoResolvidas(
+        d.marcadas === 0
+          ? 'Nada parado há mais de 30 dias.'
+          : `${d.marcadas} demanda(s) marcada(s) como não resolvida.`
+      )
+    } catch {
+      setAvisoNaoResolvidas('Erro ao marcar. Tente de novo.')
+    } finally {
+      setMarcandoNaoResolvidas(false)
+      setTimeout(() => setAvisoNaoResolvidas(''), 6000)
     }
   }
   const [secao, setSecao] = useState<SecaoMaster>('dashboard')
@@ -519,6 +547,16 @@ export default function MasterPage() {
                         title="Demanda/pet/classificado às vezes fica preso em 'pendente' se a análise de IA falhar ao ser criado. Isso reenvia tudo que está travado há mais de 10 minutos."
                         style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: reprocessando ? 'wait' : 'pointer', opacity: reprocessando ? 0.6 : 1 }}>
                         {reprocessando ? 'Reprocessando...' : 'Reprocessar pendentes travados'}
+                      </button>
+                      {avisoNaoResolvidas && (
+                        <span style={{ fontSize: '12px', color: '#6b7280' }}>{avisoNaoResolvidas}</span>
+                      )}
+                      <button
+                        onClick={marcarNaoResolvidas}
+                        disabled={marcandoNaoResolvidas}
+                        title="Marca como 'não resolvida' demandas aguardando resposta ou respondidas há mais de 30 dias (contando da aprovação, não da criação)."
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: marcandoNaoResolvidas ? 'wait' : 'pointer', opacity: marcandoNaoResolvidas ? 0.6 : 1 }}>
+                        {marcandoNaoResolvidas ? 'Marcando...' : 'Marcar paradas há 30+ dias'}
                       </button>
                       <button onClick={() => { setConfigurando(true); setAbaConfig('categorias') }}
                         style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer' }}>

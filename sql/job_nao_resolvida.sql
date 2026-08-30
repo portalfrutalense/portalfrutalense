@@ -1,3 +1,10 @@
+-- ⚠️  SUBSTITUÍDO — não use mais este job de cron. Virou um botão manual no
+-- painel master (POST /api/master/marcar-nao-resolvidas), decisão do usuário
+-- de não depender de pg_cron/job automático pra isso (mesmo padrão já usado
+-- em "reprocessar pendentes"). Se este job chegou a ser agendado, remova com:
+--   SELECT cron.unschedule('marcar_nao_resolvida');
+-- Mantido aqui só como registro histórico.
+
 -- Habilita a extensão pg_cron (rodar uma vez no SQL Editor do Supabase)
 -- Se já estiver habilitada, ignore esta linha
 CREATE EXTENSION IF NOT EXISTS pg_cron;

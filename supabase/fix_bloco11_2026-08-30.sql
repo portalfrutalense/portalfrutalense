@@ -34,32 +34,16 @@ CREATE TRIGGER trg_restringir_status_demanda
   FOR EACH ROW EXECUTE FUNCTION public.restringir_status_demanda();
 
 -- ────────────────────────────────────────────────────────────
--- 🟡 MÉDIO — job "marcar_nao_resolvida" usava created_at (data de
--- criação) em vez de quando a demanda de fato entrou em espera de
--- resposta. Uma demanda aprovada/reaprovada tardiamente podia virar
--- "não resolvida" logo na primeira execução seguinte, mesmo que a
--- autoridade tivesse acabado de ser notificada.
--- Fix: usa ia_analisado_em (marcado no momento da aprovação) com
--- fallback pra created_at nos poucos registros antigos sem esse
--- campo preenchido. cron.schedule com o mesmo nome substitui o job
--- existente, então rodar isso de novo é seguro.
---
--- Precisa da extensão pg_cron — se o job original (sql/job_nao_resolvida.sql)
--- nunca chegou a ser aplicado neste projeto, o schema "cron" ainda não existe;
--- a linha abaixo garante que existe antes de tentar agendar.
+-- 🟡 MÉDIO — "marcar como não resolvida" deixou de ser um job
+-- automático (pg_cron) — o usuário decidiu não usar cron/job nenhum
+-- pra isso, mesma escolha já feita antes para "reprocessar pendentes"
+-- (ver POST /api/master/reprocessar-pendentes). Passa a ser um botão
+-- manual no painel master: POST /api/master/marcar-nao-resolvidas
+-- (rota nova, criada no código — nada a rodar aqui pra essa parte).
+-- Se o job "marcar_nao_resolvida" chegou a ser agendado antes (via
+-- sql/job_nao_resolvida.sql), desagenda com:
+--   SELECT cron.unschedule('marcar_nao_resolvida');
 -- ────────────────────────────────────────────────────────────
-CREATE EXTENSION IF NOT EXISTS pg_cron;
-
-SELECT cron.schedule(
-  'marcar_nao_resolvida',
-  '0 3 * * *',
-  $$
-    UPDATE demandas
-    SET status = 'nao_resolvida'
-    WHERE status IN ('aguardando_resposta', 'respondida')
-      AND COALESCE(ia_analisado_em, created_at) < NOW() - INTERVAL '30 days';
-  $$
-);
 
 -- ────────────────────────────────────────────────────────────
 -- 🟡 MÉDIO — chatbot_sem_resposta foi criada em dois arquivos diferentes
