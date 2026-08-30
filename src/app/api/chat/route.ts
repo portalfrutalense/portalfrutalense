@@ -17,6 +17,55 @@ interface ChatConfig {
 }
 interface MensagemChat { role: 'user' | 'assistant'; content: string }
 
+// Só as últimas N mensagens vão pro Gemini — mesmo motivo do limite equivalente
+// no WhatsApp (MAX_HISTORICO_GEMINI): histórico completo faz cada mensagem ficar
+// mais lenta e mais cara que a anterior, sem ganho real de contexto, e em
+// conversas longas pode estourar o limite de tokens de entrada do modelo.
+const MAX_HISTORICO_GEMINI = 20
+
+// Localiza um objeto {"action":...} completo, contando chaves e ignorando as que
+// aparecem dentro de strings — mesma lógica do webhook do WhatsApp (acharBlocoAcao).
+function acharBlocoAcao(texto: string): { inicio: number; fim: number } | null {
+  const inicio = texto.search(/\{\s*"action"\s*:/)
+  if (inicio === -1) return null
+  let profundidade = 0
+  let emString = false
+  let escapado = false
+  for (let i = inicio; i < texto.length; i++) {
+    const c = texto[i]
+    if (escapado) { escapado = false; continue }
+    if (c === '\\') { escapado = true; continue }
+    if (c === '"') { emString = !emString; continue }
+    if (emString) continue
+    if (c === '{') profundidade++
+    else if (c === '}' && --profundidade === 0) return { inicio, fim: i + 1 }
+  }
+  return null
+}
+
+function extrairAcao(texto: string): Record<string, unknown> | null {
+  const bloco = acharBlocoAcao(texto)
+  if (!bloco) return null
+  try {
+    return JSON.parse(texto.slice(bloco.inicio, bloco.fim))
+  } catch {
+    return null
+  }
+}
+
+// Rede de segurança equivalente à do WhatsApp (limparJsonDaResposta): o modelo às
+// vezes devolve um JSON de ação numa hora que não devia — por exemplo, já no meio
+// do fluxo guiado de registro, que a partir daí é conduzido por código, não pela
+// IA. Sem isso o cidadão via o JSON cru na tela. "detectar_demanda" passa intacto
+// porque o cliente (useChatBot.ts) depende dele pra iniciar o fluxo de registro.
+function limparAcaoInesperada(texto: string, acao: Record<string, unknown> | null): string {
+  if (!acao || acao.action === 'detectar_demanda') return texto
+  const bloco = acharBlocoAcao(texto)
+  if (!bloco) return texto
+  const limpo = (texto.slice(0, bloco.inicio) + texto.slice(bloco.fim)).replace(/```(?:json)?/gi, '').trim()
+  return limpo.length >= 5 ? limpo : 'Pode me contar um pouco mais sobre isso?'
+}
+
 export async function POST(req: NextRequest) {
   const user = await getUser(req)
   if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
@@ -26,7 +75,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Muitas mensagens em pouco tempo. Aguarde um instante.' }, { status: 429 })
   }
 
-  const { mensagens, nomeUsuario } = await req.json()
+  const body = await req.json().catch(() => null)
+  const mensagensRecebidas = body?.mensagens
+  const nomeUsuario = body?.nomeUsuario
+  if (!Array.isArray(mensagensRecebidas) || mensagensRecebidas.length === 0) {
+    return NextResponse.json({ error: 'Mensagens inválidas.' }, { status: 400 })
+  }
+  const mensagens = (mensagensRecebidas as MensagemChat[]).slice(-MAX_HISTORICO_GEMINI)
+
+  try {
 
   // Busca base de conhecimento + categorias + config em paralelo
   const [{ data: base }, { data: categorias }, { data: chatConfig }] = await Promise.all([
@@ -99,12 +156,15 @@ ${cfg.prompt_extra ? `\nINSTRUÇÕES ADICIONAIS:\n${cfg.prompt_extra}` : ''}`
 
   // Detecta de forma deterministica quando a propria IA sinaliza que nao sabe responder
   // (em vez de tentar adivinhar por palavras-chave num texto livre, que fica obsoleto
-  // toda vez que o prompt muda e nunca bate de verdade)
-  const semRespostaMatch = resposta.match(/\{"action":"sem_resposta"\}/)
+  // toda vez que o prompt muda e nunca bate de verdade). Usa o mesmo extrator com
+  // contagem de chaves do "detectar_demanda" — a regex antiga só casava o JSON
+  // exato "{"action":"sem_resposta"}", sem espaços; agora ambos os casos passam
+  // pelo mesmo caminho, incluindo variações de formatação que o modelo emita.
+  const acao = extrairAcao(resposta)
 
-  if (semRespostaMatch) {
+  if (acao?.action === 'sem_resposta') {
     resposta = 'Não tenho essa informação disponível no momento. Recomendo entrar em contato diretamente com a Prefeitura de Frutal para mais detalhes.'
-    const ultimaMensagemUsuario = [...(mensagens as MensagemChat[])].reverse().find((m) => m.role === 'user')
+    const ultimaMensagemUsuario = [...mensagens].reverse().find((m) => m.role === 'user')
     if (ultimaMensagemUsuario) {
       await supabaseServer.from('chatbot_sem_resposta').insert({
         user_id: user.id,
@@ -112,7 +172,16 @@ ${cfg.prompt_extra ? `\nINSTRUÇÕES ADICIONAIS:\n${cfg.prompt_extra}` : ''}`
         resposta_bot: resposta,
       })
     }
+  } else {
+    // Rede de segurança: remove qualquer outro JSON de ação que o modelo tenha
+    // emitido fora de hora (ex.: já no meio do fluxo de registro, conduzido por
+    // código) — sem isso o cidadão via o JSON cru na tela do chat.
+    resposta = limparAcaoInesperada(resposta, acao)
   }
 
   return NextResponse.json({ resposta })
+  } catch (err) {
+    console.error('[chat] falhou:', err)
+    return NextResponse.json({ error: 'Erro ao processar mensagem.' }, { status: 500 })
+  }
 }

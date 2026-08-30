@@ -9,6 +9,12 @@ export interface Mensagem {
   content: string
 }
 
+// Só as últimas N mensagens são mandadas pro servidor a cada requisição — a
+// tela continua mostrando a conversa inteira, mas o payload enviado (e o que o
+// Gemini recebe) fica limitado. O servidor (/api/chat) já corta de novo, isso
+// aqui só evita mandar um payload crescendo sem teto numa conversa longa.
+const MAX_HISTORICO_ENVIADO = 20
+
 export interface Entidade {
   id: string
   nome: string
@@ -211,7 +217,7 @@ export function useChatBot() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ mensagens: historico, nomeUsuario }),
+        body: JSON.stringify({ mensagens: historico.slice(-MAX_HISTORICO_ENVIADO), nomeUsuario }),
       })
       const data = await res.json()
       const resposta: string = data.resposta || 'Erro ao processar mensagem.'

@@ -2,6 +2,7 @@
 import { segredoValido } from '@/lib/auth-api'
 import { supabaseServer } from '@/lib/supabase-server'
 import { gerarToken } from '@/lib/token'
+import { escapeHtml } from '@/lib/escapeHtml'
 import { Resend } from 'resend'
 
 // Gemini pode demorar até ~25s; sem maxDuration a função era cortada pelo
@@ -152,16 +153,16 @@ Não inclua nada além do JSON.`
                   <h1 style="color:white;font-size:18px;margin:0;">CidadanIA Frutal</h1>
                 </div>
                 <div style="background:white;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:24px;">
-                  <p style="font-size:15px;color:#111827;">Olá, <strong>${ent.nome}</strong>,</p>
+                  <p style="font-size:15px;color:#111827;">Olá, <strong>${escapeHtml(ent.nome)}</strong>,</p>
                   <p style="font-size:14px;color:#111827;line-height:1.6;">
-                    ${demanda.morador_nome} registrou uma demanda direcionada a você no CidadanIA Frutal.
+                    ${escapeHtml(demanda.morador_nome)} registrou uma demanda direcionada a você no CidadanIA Frutal.
                   </p>
                   <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:16px 0;">
                     <p style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">Categoria</p>
-                    <p style="font-size:13px;color:#111827;margin:0 0 12px;">${demanda.categoria?.nome || ''}</p>
+                    <p style="font-size:13px;color:#111827;margin:0 0 12px;">${escapeHtml(demanda.categoria?.nome) || ''}</p>
                     <p style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">Descrição</p>
-                    <p style="font-size:14px;color:#111827;margin:0;line-height:1.6;">${demanda.descricao}</p>
-                    ${demanda.endereco_label ? `<p style="font-size:12px;color:#6b7280;margin:8px 0 0;">${demanda.endereco_label}</p>` : ''}
+                    <p style="font-size:14px;color:#111827;margin:0;line-height:1.6;">${escapeHtml(demanda.descricao)}</p>
+                    ${demanda.endereco_label ? `<p style="font-size:12px;color:#6b7280;margin:8px 0 0;">${escapeHtml(demanda.endereco_label)}</p>` : ''}
                   </div>
                   <a href="${linkResposta}" style="display:block;background:#4256c8;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;margin:20px 0;">
                     Responder esta demanda
