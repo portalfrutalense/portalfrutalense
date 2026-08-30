@@ -37,8 +37,20 @@ export default function MasterCamadas({ camada: camadaFiltro }: { camada?: strin
     if (error) setErro(`Não foi possível salvar "${item.rotulo}": ${error.message}`)
   }
 
+  /** Extrai o caminho do arquivo dentro do bucket a partir da URL pública completa. */
+  function caminhoNoBucket(fotoUrl: string, bucket: string): string | null {
+    try {
+      const url = new URL(fotoUrl)
+      const parts = url.pathname.split(`/${bucket}/`)
+      return parts[1] || null
+    } catch {
+      return null
+    }
+  }
+
   async function enviarIcone(item: CamadaConfig, file: File) {
     setSalvando(item.chave); setErro('')
+    const iconeAnterior = item.icone_url
     try {
       const path = `camadas/${item.chave}-${Date.now()}.${file.name.split('.').pop()}`
       const { error: upErro } = await client.storage.from('categoria-icones').upload(path, file, { upsert: true })
@@ -47,6 +59,10 @@ export default function MasterCamadas({ camada: camadaFiltro }: { camada?: strin
       const { error } = await client.from('camadas_config').update({ icone_url: url }).eq('chave', item.chave)
       if (error) throw error
       alterarLocal(item.chave, 'icone_url', url)
+      // Best-effort: apaga o ícone antigo agora que o novo já está salvo —
+      // sem isso cada troca deixava um arquivo órfão no bucket pra sempre.
+      const caminhoAntigo = iconeAnterior && caminhoNoBucket(iconeAnterior, 'categoria-icones')
+      if (caminhoAntigo) client.storage.from('categoria-icones').remove([caminhoAntigo]).catch(() => {})
     } catch (e: any) {
       setErro(`Falha ao enviar o ícone: ${e?.message || 'erro no upload'}`)
     } finally {
@@ -57,6 +73,8 @@ export default function MasterCamadas({ camada: camadaFiltro }: { camada?: strin
   async function removerIcone(item: CamadaConfig) {
     setSalvando(item.chave)
     await client.from('camadas_config').update({ icone_url: null }).eq('chave', item.chave)
+    const caminho = item.icone_url && caminhoNoBucket(item.icone_url, 'categoria-icones')
+    if (caminho) client.storage.from('categoria-icones').remove([caminho]).catch(() => {})
     alterarLocal(item.chave, 'icone_url', undefined)
     setSalvando(null)
   }

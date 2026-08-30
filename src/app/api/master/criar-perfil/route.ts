@@ -57,7 +57,8 @@ export async function POST(req: NextRequest) {
     // 4. Atribuir categorias
     if (Array.isArray(categorias) && categorias.length > 0) {
       const rows = categorias.map((catId: string) => ({ categoria_id: catId, entidade_id: userId }))
-      await supabaseServer.from('categoria_entidades').insert(rows)
+      const { error: catError } = await supabaseServer.from('categoria_entidades').insert(rows)
+      if (catError) console.error('[master/criar-perfil] falha ao salvar categorias:', catError)
     }
   }
 

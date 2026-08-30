@@ -23,6 +23,24 @@ async function moderarCamada(
   })
 }
 
+/**
+ * Exclusão também vai pela API com service_role — antes ia direto do cliente
+ * (client.from(camada).delete()), o que também nunca limpava a foto no
+ * Storage. Ver src/app/api/master/camada.
+ */
+async function excluirCamada(
+  client: ReturnType<typeof createClient>,
+  camada: 'pets' | 'classificados' | 'empregos',
+  id: string
+) {
+  const { data: { session } } = await client.auth.getSession()
+  await fetch('/api/master/camada', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+    body: JSON.stringify({ camada, id }),
+  })
+}
+
 /* ------------------------------------------------------------- shell --- */
 
 type Acao = { rotulo: string; cor: string; executar: () => Promise<void>; confirmar?: string }
@@ -227,7 +245,7 @@ function ListaModeracao({
 
 /* --------------------------------------------------------- utilitários --- */
 
-function usarNotif() {
+function useNotif() {
   const [notif, setNotif] = useState('')
   return {
     notif,
@@ -252,7 +270,7 @@ export function MasterPets() {
   const [pets, setPets] = useState<Pet[]>([])
   const [carregando, setCarregando] = useState(true)
   const [filtro, setFiltro] = useState('todos')
-  const { notif, avisar } = usarNotif()
+  const { notif, avisar } = useNotif()
 
   async function carregar() {
     setCarregando(true)
@@ -334,7 +352,7 @@ export function MasterPets() {
         cor: '#dc2626',
         confirmar: 'Excluir este registro permanentemente? Esta ação não pode ser desfeita.',
         executar: async () => {
-          await client.from('pets').delete().eq('id', p.id)
+          await excluirCamada(client, 'pets', p.id)
           avisar('Registro excluído.')
           carregar()
         },
@@ -374,7 +392,7 @@ export function MasterClassificados() {
   const [itensBanco, setItensBanco] = useState<Classificado[]>([])
   const [carregando, setCarregando] = useState(true)
   const [filtro, setFiltro] = useState('todos')
-  const { notif, avisar } = usarNotif()
+  const { notif, avisar } = useNotif()
 
   async function carregar() {
     setCarregando(true)
@@ -448,7 +466,7 @@ export function MasterClassificados() {
         cor: '#dc2626',
         confirmar: 'Excluir este anúncio permanentemente? Esta ação não pode ser desfeita.',
         executar: async () => {
-          await client.from('classificados').delete().eq('id', c.id)
+          await excluirCamada(client, 'classificados', c.id)
           avisar('Anúncio excluído.')
           carregar()
         },
@@ -489,7 +507,7 @@ export function MasterEmpregos() {
   const [vagas, setVagas] = useState<Emprego[]>([])
   const [carregando, setCarregando] = useState(true)
   const [filtro, setFiltro] = useState('todos')
-  const { notif, avisar } = usarNotif()
+  const { notif, avisar } = useNotif()
 
   async function carregar() {
     setCarregando(true)
@@ -551,7 +569,7 @@ export function MasterEmpregos() {
         cor: '#dc2626',
         confirmar: 'Excluir esta vaga permanentemente? Esta ação não pode ser desfeita.',
         executar: async () => {
-          await client.from('empregos').delete().eq('id', v.id)
+          await excluirCamada(client, 'empregos', v.id)
           avisar('Vaga excluída.')
           carregar()
         },

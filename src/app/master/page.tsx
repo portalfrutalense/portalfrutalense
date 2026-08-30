@@ -762,6 +762,23 @@ function MasterDemandas({ token }: { token: string | null }) {
     carregarDemandas()
   }
 
+  // Antes escrevia direto do navegador (sbClient.from('demandas').update(...)),
+  // contornando a mesma rota com service_role que todas as outras ações desta
+  // tela já usam — passa a ir por /api/master/demanda (PATCH), com whitelist
+  // de campos no servidor.
+  async function marcarResolvida(id: string) {
+    const token = await getToken()
+    const res = await fetch('/api/master/demanda', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ demanda_id: id, status: 'resolvida' }),
+    })
+    const d = await res.json()
+    if (!d.ok) { mostrarNotif(d.error, true); return }
+    setDemandas(prev => prev.map(x => x.id === id ? { ...x, status: 'resolvida' } : x))
+    mostrarNotif('Demanda marcada como resolvida.')
+  }
+
   const statusLabel: Record<string, string> = {
     pendente: 'Pendente',
     aguardando_resposta: 'Aguardando resposta',
@@ -921,11 +938,7 @@ function MasterDemandas({ token }: { token: string | null }) {
                     </button>
                     {['aguardando_resposta', 'respondida', 'nao_resolvida'].includes(d.status) && (
                       <button
-                        onClick={async () => {
-                          await sbClient.from('demandas').update({ status: 'resolvida' }).eq('id', d.id)
-                          setDemandas(prev => prev.map(x => x.id === d.id ? { ...x, status: 'resolvida' } : x))
-                          setMenuAbertoDemandaId(null)
-                        }}
+                        onClick={() => { marcarResolvida(d.id); setMenuAbertoDemandaId(null) }}
                         style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#166534', background: 'none', border: 'none', cursor: 'pointer' }}>
                         Marcar como resolvida
                       </button>
@@ -1165,12 +1178,6 @@ function MasterIAGenerico({ configId, textoAtivo, promptPadrao, descRigor }: {
 }
 
 // ── Sub-componente: IA ────────────────────────────────────
-const CONFIG_PADRAO = {
-  ativo: true,
-  rigor: 'moderado',
-  prompt: 'Analise a demanda do cidadão e decida se deve ser aprovada ou rejeitada. Rejeite se: for ofensiva, difamatória, sem relação com problemas reais do município de Frutal-MG, spam, ou conteúdo político partidário. Aprove se for uma demanda legítima de um cidadão sobre infraestrutura, saúde, educação, segurança ou outro serviço público.',
-}
-
 const LABEL_PERFIS: Record<SubSecaoPerfis, string> = {
   cidadao:    'Cidadãos',
   autoridade: 'Autoridades',
@@ -1828,83 +1835,22 @@ function MasterChatbot() {
   )
 }
 
+// Era ~80 linhas quase idênticas a MasterIAGenerico (só configId, textoAtivo
+// e descRigor fixos em vez de vir por prop) — reduzido a um wrapper fino,
+// igual ao usado para Pets/Classificados, pra não ter duas cópias do mesmo
+// componente divergindo ao longo do tempo.
 function MasterIA() {
-  const sbClient = createClient()
-  const [config, setConfig] = useState<any>(null)
-  const [salvando, setSalvando] = useState(false)
-  const [notif, setNotif] = useState('')
-  const [erro, setErro] = useState('')
-
-  useEffect(() => {
-    sbClient.from('ia_config').select('*').eq('id', 1).maybeSingle().then(({ data, error }: any) => {
-      if (error) { setErro('Erro ao carregar configurações da IA.'); return }
-      setConfig(data || CONFIG_PADRAO)
-    })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  async function salvar() {
-    if (!config) return
-    setSalvando(true)
-    const { error } = await sbClient.from('ia_config').upsert({ id: 1, ativo: config.ativo, prompt: config.prompt, rigor: config.rigor, updated_at: new Date().toISOString() })
-    setNotif(error ? `Erro ao salvar: ${error.message}` : 'Configurações salvas!')
-    setTimeout(() => setNotif(''), 4000)
-    setSalvando(false)
-  }
-
-  if (erro) return <p style={{ color: '#dc2626', fontSize: '13px' }}>{erro}</p>
-  if (!config) return <p style={{ color: '#6b7280', fontSize: '13px' }}>Carregando...</p>
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {notif && <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#166534' }}>{notif}</div>}
-
-      <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '20px' }}>
-        <h2 style={{ fontWeight: 700, color: '#111827', fontSize: '15px', marginBottom: '20px' }}>Configurações da IA</h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-            <div>
-              <p style={{ fontSize: '14px', fontWeight: 600, color: '#111827', margin: 0 }}>Análise automática ativa</p>
-              <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0' }}>Quando desativada, demandas ficam pendentes para aprovação manual</p>
-            </div>
-            <button onClick={() => setConfig({ ...config, ativo: !config.ativo })}
-              style={{ width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: config.ativo ? '#4256c8' : '#e5e7eb', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
-              <span style={{ position: 'absolute', top: '2px', left: config.ativo ? '22px' : '2px', width: '20px', height: '20px', borderRadius: '50%', background: 'white', transition: 'left 0.2s', display: 'block' }} />
-            </button>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#111827', marginBottom: '8px' }}>Nível de rigor</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {['permissivo', 'moderado', 'rigoroso'].map(r => (
-                <button key={r} onClick={() => setConfig({ ...config, rigor: r })}
-                  style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1.5px solid', borderColor: config.rigor === r ? '#4256c8' : '#e5e7eb', background: config.rigor === r ? '#f9fafb' : 'white', color: config.rigor === r ? '#4256c8' : '#111827', fontSize: '13px', fontWeight: config.rigor === r ? 600 : 400, cursor: 'pointer', textTransform: 'capitalize' }}>
-                  {r}
-                </button>
-              ))}
-            </div>
-            <p style={{ fontSize: '11px', color: '#6b7280', margin: '6px 0 0' }}>
-              {config.rigor === 'permissivo' && 'Rejeita apenas conteúdo claramente ofensivo ou spam.'}
-              {config.rigor === 'moderado' && 'Rejeita conteúdo ofensivo, político-partidário ou sem relação com serviços públicos.'}
-              {config.rigor === 'rigoroso' && 'Rejeita demandas vagas, sem endereço ou que não sejam solicitações legítimas.'}
-            </p>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#111827', marginBottom: '8px' }}>Prompt de análise</label>
-            <textarea value={config.prompt} onChange={(e) => setConfig({ ...config, prompt: e.target.value })} rows={6}
-              style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', lineHeight: 1.6 }} />
-          </div>
-
-          <button onClick={salvar} disabled={salvando}
-            style={{ backgroundColor: salvando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '8px', border: 'none', cursor: salvando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
-            {salvando ? 'Salvando...' : 'Salvar configurações'}
-          </button>
-        </div>
-      </div>
-
-    </div>
+    <MasterIAGenerico
+      configId={1}
+      textoAtivo="Quando desativada, demandas ficam pendentes para aprovação manual."
+      promptPadrao="Analise a demanda do cidadão e decida se deve ser aprovada ou rejeitada. Rejeite se: for ofensiva, difamatória, sem relação com problemas reais do município de Frutal-MG, spam, ou conteúdo político partidário. Aprove se for uma demanda legítima de um cidadão sobre infraestrutura, saúde, educação, segurança ou outro serviço público."
+      descRigor={{
+        permissivo: 'Rejeita apenas conteúdo claramente ofensivo ou spam.',
+        moderado: 'Rejeita conteúdo ofensivo, político-partidário ou sem relação com serviços públicos.',
+        rigoroso: 'Rejeita demandas vagas, sem endereço ou que não sejam solicitações legítimas.',
+      }}
+    />
   )
 }
 

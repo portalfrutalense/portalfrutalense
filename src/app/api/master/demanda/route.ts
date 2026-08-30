@@ -48,7 +48,15 @@ export async function DELETE(req: NextRequest) {
   return NextResponse.json({ ok: true })
 }
 
-// PATCH /api/master/demanda  { demanda_id, oculto?, descricao? }
+// PATCH /api/master/demanda  { demanda_id, oculto?, descricao?, status? }
+//
+// Whitelist de campos — antes aceitava qualquer coisa no corpo e passava
+// direto pro .update(), contrariando o mesmo cuidado já documentado em
+// /api/master/camada. "status" só aceita os dois valores que o master de
+// fato decide manualmente por aqui (as outras transições passam por
+// /api/master/moderar-demanda, que já valida cada ação).
+const STATUS_PERMITIDOS = ['resolvida', 'nao_resolvida']
+
 export async function PATCH(req: NextRequest) {
   const user = await getMasterUser(req)
   if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
@@ -56,7 +64,15 @@ export async function PATCH(req: NextRequest) {
   const { demanda_id, ...campos } = await req.json()
   if (!demanda_id) return NextResponse.json({ error: 'demanda_id obrigatório.' }, { status: 400 })
 
-  const { error } = await supabaseServer.from('demandas').update(campos).eq('id', demanda_id)
+  const atualizacao: Record<string, unknown> = {}
+  if (typeof campos.descricao === 'string') atualizacao.descricao = campos.descricao
+  if (typeof campos.oculto === 'boolean') atualizacao.oculto = campos.oculto
+  if (typeof campos.status === 'string' && STATUS_PERMITIDOS.includes(campos.status)) atualizacao.status = campos.status
+  if (Object.keys(atualizacao).length === 0) {
+    return NextResponse.json({ error: 'Nenhum campo permitido informado.' }, { status: 400 })
+  }
+
+  const { error } = await supabaseServer.from('demandas').update(atualizacao).eq('id', demanda_id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ ok: true })
