@@ -12,6 +12,7 @@ import { useClassificados, useMarkersClassificados, SidebarClassificados, Formul
 import { useEmpregos, useMarkersEmpregos, SidebarEmpregos, FormularioEmprego } from './mapa/CamadaEmpregos'
 import { FormDemanda } from './mapa/FormDemanda'
 import { Demanda, CategoriaMapa, Entidade, DemandaEntidade, Camada, Pet, Classificado, Emprego } from '@/types'
+import { escapeHtml } from '@/lib/escapeHtml'
 // Só o tipo — o leaflet em si continua carregado dinamicamente por
 // useMapaBase (import type é apagado na compilação, não força o bundle).
 import type { Marker } from 'leaflet'
@@ -167,11 +168,6 @@ export default function MapaDemandas() {
 
       return true
     })
-
-    function escapeHtml(s?: string) {
-      if (!s) return ''
-      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-    }
 
     function criarIcone(d: typeof filtradas[0]) {
       const cor = d.categoria?.cor || '#4256c8'
@@ -507,7 +503,6 @@ export default function MapaDemandas() {
             /* ── CAMADA: CLASSIFICADOS ── */
             <SidebarClassificados
               classificados={classificados}
-              config={configClassificados}
               filtro={filtroClassificado}
               setFiltro={setFiltroClassificado}
               selecionado={classificadoSelecionado}

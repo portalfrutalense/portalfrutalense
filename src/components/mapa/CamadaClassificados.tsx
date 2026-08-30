@@ -3,10 +3,11 @@
 import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '../AuthProvider'
-import MiniMapaConfirmar from '../MiniMapaConfirmar'
-import Turnstile from '../Turnstile'
 import { Classificado, TipoVeiculo, CamadaConfig } from '@/types'
-import { salvarCamada } from './salvarCamada'
+import { escapeHtml } from '@/lib/escapeHtml'
+// Só o tipo — o leaflet em si continua carregado dinamicamente por
+// useMapaBase (import type é apagado na compilação, não força o bundle).
+import type { Map as LeafletMap, Marker } from 'leaflet'
 
 /* ------------------------------------------------------------- ícones --- */
 
@@ -72,11 +73,6 @@ function sentenceCase(str?: string) {
   return str.charAt(0).toUpperCase() + str.slice(1)
 }
 
-function escapeHtml(s?: string) {
-  if (!s) return ''
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-}
-
 /* ================================================================= dados = */
 
 export function useClassificados() {
@@ -117,12 +113,12 @@ export function useMarkersClassificados({
   classificados: Classificado[]
   config: Record<string, CamadaConfig>
   filtro: string
-  mapaObj: React.MutableRefObject<any>
-  leafletObj: React.MutableRefObject<any>
+  mapaObj: React.MutableRefObject<LeafletMap | null>
+  leafletObj: React.MutableRefObject<typeof import('leaflet') | null>
   mapaCarregado: boolean
   aoSelecionar: (c: Classificado) => void
 }) {
-  const markersRef = useRef<any[]>([])
+  const markersRef = useRef<Marker[]>([])
 
   useEffect(() => {
     if (!mapaCarregado || !mapaObj.current || !leafletObj.current) return
@@ -192,11 +188,10 @@ const valorEstilo: React.CSSProperties = { fontSize: '13px', color: '#111827', m
 const botaoAcao: React.CSSProperties = { fontSize: '12px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px', cursor: 'pointer', fontWeight: 500, width: '100%' }
 
 export function SidebarClassificados({
-  classificados, config, filtro, setFiltro, selecionado, setSelecionado,
+  classificados, filtro, setFiltro, selecionado, setSelecionado,
   onRegistrar, onEditar, onExcluir, onMarcarVendido, onFoto,
 }: {
   classificados: Classificado[]
-  config: Record<string, CamadaConfig>
   filtro: string
   setFiltro: (f: string) => void
   selecionado: Classificado | null

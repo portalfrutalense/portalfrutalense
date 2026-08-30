@@ -67,13 +67,18 @@ export function FormClassificado({
   const [aceitaTroca, setAceitaTroca] = useState(editando?.aceita_troca ?? false)
   const [descricao, setDescricao] = useState(editando?.descricao ?? '')
   const [contato, setContato] = useState(editando?.contato ?? '')
-  const [bairro, setBairro] = useState(editando?.bairro_label ?? '')
   const [coordenadas, setCoordenadas] = useState<{ lat: number; lng: number; label: string } | null>(
     editando ? { lat: editando.lat, lng: editando.lng, label: editando.bairro_label ?? '' } : null
   )
   const [locConfirmada, setLocConfirmada] = useState(!!editando)
   const [previews, setPreviews] = useState<string[]>(editando?.fotos ?? [])
   const uploadPromises = useRef<Promise<string | null>[]>([])
+  // Um token por upload, sempre no mesmo índice do array acima — permite
+  // cancelar/limpar um upload específico mesmo com vários rodando ao mesmo
+  // tempo. Sem isso: remover uma foto antes do upload terminar, ou o envio
+  // final falhar depois de várias fotos já terem subido, deixava cada
+  // arquivo órfão no Storage pra sempre (até 4 por vez, o máximo permitido).
+  const uploadTokens = useRef<{ cancelado: boolean; path: string | null }[]>([])
   const [uploadandoFotos, setUploadandoFotos] = useState(0)
   const [erroFoto, setErroFoto] = useState('')
   const [turnstileToken, setTurnstileToken] = useState('')
@@ -82,6 +87,13 @@ export function FormClassificado({
   function mostrarErro(msg: string) { setErro(msg); setTimeout(() => setErro(''), 5000) }
   const [sucesso, setSucesso] = useState(false)
   const [protocolo, setProtocolo] = useState('')
+
+  /** Apaga do Storage um upload que não vai mais ser usado — best-effort. */
+  function limparFotoOrfa(path: string | null) {
+    if (!path) return
+    supabase.storage.from('classificados-fotos').remove([path])
+      .catch(err => console.error('[FormClassificado] falha ao limpar foto órfã:', err))
+  }
 
   function aoEscolherFotos(e: React.ChangeEvent<HTMLInputElement>) {
     const arquivos = Array.from(e.target.files ?? [])
@@ -95,14 +107,23 @@ export function FormClassificado({
       reader.onload = (ev) => setPreviews(prev => [...prev, ev.target?.result as string])
       reader.readAsDataURL(file)
       setUploadandoFotos(n => n + 1)
+      const token = { cancelado: false, path: null as string | null }
+      uploadTokens.current.push(token)
       const promise = comprimirFoto(file)
         .then(async (blob) => {
           const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
           const { error } = await supabase.storage.from('classificados-fotos').upload(path, blob, { contentType: 'image/jpeg' })
           if (error) throw error
+          if (token.cancelado) {
+            // Foto removida enquanto esse upload ainda rodava — só terminou
+            // agora, mas ninguém vai usar o resultado.
+            limparFotoOrfa(path)
+            return null
+          }
+          token.path = path
           return supabase.storage.from('classificados-fotos').getPublicUrl(path).data.publicUrl
         })
-        .catch((err: any) => { setErroFoto(`Erro ao enviar foto: ${err?.message || 'falha no upload'}`); return null })
+        .catch((err: unknown) => { setErroFoto(`Erro ao enviar foto: ${err instanceof Error ? err.message : 'falha no upload'}`); return null })
         .finally(() => setUploadandoFotos(n => n - 1))
       uploadPromises.current.push(promise)
     })
@@ -111,7 +132,24 @@ export function FormClassificado({
   function removerFoto(i: number) {
     setPreviews(prev => prev.filter((_, idx) => idx !== i))
     const jaPublicadas = editando?.fotos?.length ?? 0
-    if (i >= jaPublicadas) uploadPromises.current.splice(i - jaPublicadas, 1)
+    if (i >= jaPublicadas) {
+      const idx = i - jaPublicadas
+      const token = uploadTokens.current[idx]
+      if (token) {
+        token.cancelado = true
+        limparFotoOrfa(token.path) // se o upload já tinha terminado, apaga agora; senão, ele se limpa sozinho ao completar
+      }
+      uploadPromises.current.splice(idx, 1)
+      uploadTokens.current.splice(idx, 1)
+    }
+  }
+
+  /** Limpa do Storage todo upload desta sessão que já tinha terminado, e
+   * esvazia os rastreadores — usado quando o envio não vai mais prosseguir. */
+  function limparTodosUploadsPendentes() {
+    for (const token of uploadTokens.current) limparFotoOrfa(token.path)
+    uploadTokens.current = []
+    uploadPromises.current = []
   }
 
   async function enviar() {
@@ -137,7 +175,14 @@ export function FormClassificado({
     if (uploadPromises.current.length > 0) {
       const resultados = await Promise.all(uploadPromises.current)
       for (const url of resultados) {
-        if (url === null) { mostrarErro(erroFoto || 'Erro ao enviar uma das fotos.'); setEnviando(false); return }
+        if (url === null) {
+          // Uma das fotos do lote falhou — as outras que deram certo não
+          // vão ser usadas, então limpa todo mundo do Storage.
+          limparTodosUploadsPendentes()
+          mostrarErro(erroFoto || 'Erro ao enviar uma das fotos.')
+          setEnviando(false)
+          return
+        }
         urls.push(url)
       }
     }
@@ -156,14 +201,22 @@ export function FormClassificado({
       cor: cor.trim() || null, preco: preco ? Number(preco) : null,
       aceita_troca: aceitaTroca, descricao: descricao.trim(),
       lat: ponto.lat, lng: ponto.lng,
-      bairro_label: bairro.trim() || coordenadas.label,
+      bairro_label: coordenadas.label,
       fotos: urls, contato: contato.trim(),
     }
 
     const { erro, protocolo: prot } = await salvarCamada({ camada: 'classificados', editando, dados: registro, turnstileToken, supabase })
 
     setEnviando(false)
-    if (erro) { mostrarErro(erro); return }
+    if (erro) {
+      // As fotos já tinham sido enviadas com sucesso antes desse passo
+      // falhar — sem isso, ficavam órfãs no Storage pra sempre.
+      limparTodosUploadsPendentes()
+      mostrarErro(erro)
+      return
+    }
+    uploadTokens.current = []
+    uploadPromises.current = []
     if (editando) { aoSalvar(); aoFechar(); return }
     if (prot) setProtocolo(prot)
     setSucesso(true)

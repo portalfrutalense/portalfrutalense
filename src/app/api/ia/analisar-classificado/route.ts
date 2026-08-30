@@ -82,13 +82,19 @@ Não inclua nada além do JSON.`
     const geminiData = await geminiRes.json()
     const texto = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || ''
 
-    let decisao = 'aprovada'
-    let motivo = 'Análise automática concluída.'
+    // Falha fechado: se a resposta da IA não puder ser interpretada, o
+    // anúncio fica pendente de revisão manual em vez de ser aprovado
+    // automaticamente — igual a /api/ia/analisar (demandas) e
+    // /api/ia/analisar-pet. Antes o padrão aqui era 'aprovada', com um
+    // motivo ("Análise automática concluída.") que soava como sucesso
+    // mesmo quando o parse da resposta da IA tinha falhado silenciosamente.
+    let decisao = 'rejeitada'
+    let motivo = 'Não foi possível analisar o anúncio.'
     try {
       const jsonMatch = texto.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0])
-        decisao = parsed.decisao === 'rejeitada' ? 'rejeitada' : 'aprovada'
+        decisao = parsed.decisao === 'aprovada' ? 'aprovada' : 'rejeitada'
         motivo = parsed.motivo || motivo
       }
     } catch {

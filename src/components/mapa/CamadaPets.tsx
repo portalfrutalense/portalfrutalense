@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '../AuthProvider'
 import { Pet, EspeciePet, PortePet, CamadaConfig } from '@/types'
+import { escapeHtml } from '@/lib/escapeHtml'
 // Só o tipo — o leaflet em si continua carregado dinamicamente por
 // useMapaBase (import type é apagado na compilação, não força o bundle).
 import type { Map as LeafletMap, Marker } from 'leaflet'
@@ -64,11 +65,6 @@ const ROTULO_FILTRO: Record<string, string> = {
 function sentenceCase(str?: string) {
   if (!str) return ''
   return str.charAt(0).toUpperCase() + str.slice(1)
-}
-
-function escapeHtml(s?: string) {
-  if (!s) return ''
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
 /* ================================================================= dados = */
