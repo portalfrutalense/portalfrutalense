@@ -158,7 +158,6 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
         leafletObj.current = null
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -354,15 +353,35 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
             <button type="button" onClick={() => mapaObj.current?.zoomIn()} title="Aumentar zoom"
               style={{ ...botaoFlutuante, width: '26px', height: '26px', fontSize: '15px', fontWeight: 700 }}>+</button>
             <button type="button" onClick={alternarCamada} title="Alternar mapa/satélite"
-              style={{ ...botaoFlutuante, height: '26px', padding: '0 8px', fontSize: '11px', fontWeight: 600 }}>
-              {satelite ? '🗺' : '🛰'}
+              style={{ ...botaoFlutuante, width: '26px', height: '26px' }}>
+              {satelite ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+                  <line x1="8" y1="2" x2="8" y2="18" />
+                  <line x1="16" y1="6" x2="16" y2="22" />
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
             </button>
           </div>
 
           {/* Localização atual, canto inferior direito */}
           <button type="button" onClick={usarLocalizacaoAtual} disabled={obtendoGps} title="Usar minha localização atual"
             style={{ ...botaoFlutuante, position: 'absolute', bottom: '10px', right: '10px', zIndex: 1000, width: '26px', height: '26px', fontSize: '13px', cursor: obtendoGps ? 'wait' : 'pointer' }}>
-            {obtendoGps ? '...' : '📍'}
+            {obtendoGps ? '...' : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="8" />
+                <line x1="12" y1="2" x2="12" y2="5" />
+                <line x1="12" y1="19" x2="12" y2="22" />
+                <line x1="2" y1="12" x2="5" y2="12" />
+                <line x1="19" y1="12" x2="22" y2="12" />
+                <circle cx="12" cy="12" r="2.2" fill="#111827" stroke="none" />
+              </svg>
+            )}
           </button>
 
           {/* Selecionar, centralizado embaixo */}

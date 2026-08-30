@@ -10,7 +10,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   const isMaster = pathname.startsWith('/master')
   const isLanding = pathname === '/'
   const isMapa = pathname === '/mapa'
-  const isLucas = pathname === '/assistenteia'
+  const isAssistenteIA = pathname === '/assistenteia'
 
   // Trava html/body de verdade no /mapa — evita scroll/rubber-band nativo do
   // navegador (que empurra a navbar pra trás da barra de endereço em mobile)
@@ -27,7 +27,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   }, [isMapa])
 
   // Master, landing e Lucas têm seu próprio layout
-  if (isMaster || isLanding || isLucas) return <>{children}</>
+  if (isMaster || isLanding || isAssistenteIA) return <>{children}</>
 
   if (isMapa) return (
     <div className="mapa-shell" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>

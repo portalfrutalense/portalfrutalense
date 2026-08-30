@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import type { Map as LeafletMap, TileLayer } from 'leaflet'
 
 export const FRUTAL_LAT = -20.02752
 export const FRUTAL_LNG = -48.92702
@@ -27,9 +28,9 @@ function snapZoom(z: number): number {
 export function useMapaBase() {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapaIniciado = useRef(false)
-  const mapaObj = useRef<any>(null)
-  const leafletObj = useRef<any>(null)
-  const tileAtual = useRef<any>(null)
+  const mapaObj = useRef<LeafletMap | null>(null)
+  const leafletObj = useRef<typeof import('leaflet') | null>(null)
+  const tileAtual = useRef<TileLayer | null>(null)
   const resizeObserverRef = useRef<ResizeObserver | null>(null)
 
   const [mapaCarregado, setMapaCarregado] = useState(false)
@@ -38,12 +39,18 @@ export function useMapaBase() {
     if (!mapRef.current || mapaIniciado.current) return
     mapaIniciado.current = true
 
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-    document.head.appendChild(link)
+    // Dedupe — sem isso, cada montagem deste hook (ex.: navegar pra fora do
+    // /mapa e voltar) empilhava uma nova tag <link> igual no <head>.
+    if (!document.querySelector('link[data-leaflet-css]')) {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+      link.setAttribute('data-leaflet-css', 'true')
+      document.head.appendChild(link)
+    }
 
     import('leaflet').then((L) => {
+      if (!mapRef.current) return
       delete (L.Icon.Default.prototype as any)._getIconUrl
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -94,6 +101,13 @@ export function useMapaBase() {
 
     return () => {
       resizeObserverRef.current?.disconnect()
+      // Sem isso, sair de /mapa e voltar deixava a instância antiga do
+      // Leaflet (e seus listeners internos) sem ser destruída — só o DOM que
+      // ela usava sumia, removido pelo React junto do componente.
+      mapaObj.current?.remove()
+      mapaObj.current = null
+      leafletObj.current = null
+      tileAtual.current = null
     }
   }, [])
 
