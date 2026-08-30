@@ -43,7 +43,13 @@ CREATE TRIGGER trg_restringir_status_demanda
 -- fallback pra created_at nos poucos registros antigos sem esse
 -- campo preenchido. cron.schedule com o mesmo nome substitui o job
 -- existente, então rodar isso de novo é seguro.
+--
+-- Precisa da extensão pg_cron — se o job original (sql/job_nao_resolvida.sql)
+-- nunca chegou a ser aplicado neste projeto, o schema "cron" ainda não existe;
+-- a linha abaixo garante que existe antes de tentar agendar.
 -- ────────────────────────────────────────────────────────────
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
 SELECT cron.schedule(
   'marcar_nao_resolvida',
   '0 3 * * *',
