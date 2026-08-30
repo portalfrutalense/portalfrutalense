@@ -104,7 +104,8 @@ Componente principal: `src/components/MapaDemandas.tsx` (878 linhas), que:
   sincronizada com a Navbar (que tem links diretos para cada camada).
 - Em mobile, a listagem lateral vira um **bottom sheet arrastável** com 3 posições
   (`peek` 20%, `half` 50%, `full` 75% da tela), controlado por um `SheetContext`
-  global (também usado pelo botão flutuante do chatbot, que "sobe" acompanhando o sheet).
+  global (também usado pelo botão flutuante do assistente de IA, que "sobe"
+  acompanhando o sheet e some quando o sheet está `full`).
 
 ### 5.1 Camada Demandas
 
@@ -124,7 +125,7 @@ Fluxo de criação de uma demanda (cidadão, pelo mapa ou pelo chatbot):
      demanda, envia ao Gemini, que retorna `{"decisao": "aprovada"|"rejeitada", "motivo": "..."}`.
    - **Aprovada**: status vira `aguardando_resposta`. Para cada autoridade vinculada,
      gera um token único (`magic_token`) e envia um e-mail via Resend com um link
-     `/responder/[token]` (sem expiração — `expiracao = null`).
+     `/responder/[token]`, que expira em 7 dias (ver seção 13.1).
    - **Rejeitada**: status vira `rejeitada_ia`, motivo salvo em `ia_motivo`, e-mail
      não é enviado.
 5. Autoridade responde: por e-mail (magic link, sem login) via `POST /api/responder`,
@@ -173,7 +174,17 @@ de vagas, requisitos, localização, logo, contato.
 Existem **duas superfícies** do mesmo assistente, com prompts parecidos mas
 adaptados ao canal:
 
-### 6.1 No site (`/assistenteia` e o `ChatBot` flutuante)
+### 6.1 No site (`/assistenteia`)
+
+A interface completa do chat — mensagens, fluxo de registro guiado, mini-mapa,
+upload de foto, captcha — vive inteiramente em `/assistenteia`
+(`src/app/assistenteia/page.tsx`). O componente `ChatBot.tsx`, renderizado em
+quase toda página logada via `PublicShell`, é hoje só um **botão flutuante**
+que navega para `/assistenteia` — não abre mais um painel de chat embutido.
+(Um painel inline existia antes, mas ficou inalcançável depois que o botão
+passou a navegar direto pra página cheia; foi removido na auditoria em blocos,
+Bloco 9, por ser ~200 linhas de código morto que ainda disparava consultas
+desnecessárias ao Supabase em toda página.)
 
 - `POST /api/chat`: recebe o histórico de mensagens e o nome do usuário, monta um
   system prompt com a base de conhecimento (tabela `chatbot_base`), lista de
@@ -241,13 +252,19 @@ de ficar público:
 ## 8. Painel Master (`/master`)
 
 Único acesso restrito a `role = 'master'`. Arquivo principal:
-`src/app/master/page.tsx` (1870 linhas). Seções (menu lateral):
+`src/app/master/page.tsx` (arquivo grande, ~1900 linhas — o número exato muda
+a cada edição, não vale a pena manter atualizado aqui). Seções (menu lateral):
 
 - **Demandas Municipais** — lista todas as demandas (todos os status), permite
   editar descrição, ver análise da IA, ver respostas de cada autoridade vinculada,
   moderar manualmente (aprovar/rejeitar), marcar como resolvida/não resolvida,
   reenviar o link de resposta por e-mail, ver status de entrega do e-mail
-  (via webhook do Resend).
+  (via webhook do Resend). Dois botões manuais no cabeçalho da seção, no lugar
+  de jobs automáticos (decisão do usuário — ver seção 13.2): "Reprocessar
+  pendentes travados" (`POST /api/master/reprocessar-pendentes`, reenvia pra
+  análise de IA tudo parado há mais de 10 minutos) e "Marcar paradas há 30+
+  dias" (`POST /api/master/marcar-nao-resolvidas`, marca como `nao_resolvida`
+  demandas em espera de resposta há mais de 30 dias desde a aprovação).
 - **Empregos / Classificados / Pets** — moderação equivalente para as outras 3 camadas.
 - **Chatbot** — configuração do assistente: nome do bot, descrição, tom de voz,
   responsabilidades, prompt extra, base de conhecimento (`chatbot_base`, textos
@@ -266,12 +283,13 @@ de ficar público:
 pets por tipo, classificados, empregos), usando `service_role` do Supabase para
 ignorar RLS e trazer números reais mesmo de registros ocultos/pendentes.
 
-`PATCH /api/master/camada` — moderação (ocultar/reexibir pet e classificado,
-encerrar vaga pelo master) passa por essa rota com `service_role`, em vez de
-escrever direto do navegador como fazia antes. Existe porque a política de RLS
-de `pets`/`classificados`/`empregos` restringe o autor comum a colunas de
-conteúdo (não pode mais mexer em `oculto` sozinho) — só o backend, verificado
-como master, pode.
+`PATCH` e `DELETE /api/master/camada` — moderação (ocultar/reexibir pet e
+classificado, encerrar vaga pelo master) e exclusão passam por essa rota com
+`service_role`, em vez de escrever/apagar direto do navegador como faziam
+antes. Existe porque a política de RLS de `pets`/`classificados`/`empregos`
+restringe o autor comum a colunas de conteúdo (não pode mais mexer em `oculto`
+sozinho) — só o backend, verificado como master, pode. O `DELETE` também limpa
+a foto correspondente no Storage antes de apagar a linha.
 
 ---
 

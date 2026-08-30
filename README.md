@@ -12,37 +12,37 @@ O CidadanIA Frutal é um portal público onde qualquer morador de Frutal pode re
 
 ## Funcionalidades
 
-### 📋 Demandas municipais
+### Demandas municipais
 - Registro com localização no mapa, foto, categoria e até 3 autoridades cobradas
 - Assistente de escrita com IA — melhora o texto antes de enviar
 - Análise automática por IA (Gemini) — aprova ou rejeita antes de notificar a autoridade
 - Protocolo único gerado para cada demanda
 - A autoridade recebe um link mágico por e-mail e publica a resposta oficial sem precisar de cadastro
-- Rastreio de entrega do e-mail em tempo real (enviado → entregue → bounce → spam)
+- Rastreio de entrega do e-mail em tempo real (enviado → entregue → atrasado → bounce → reclamado)
 - Registro também pelo **WhatsApp** — bot guia o fluxo completo
 
-### 🐾 Achei / Perdi um pet
+### Achei / Perdi um pet
 - Publicação com foto, espécie, raça, cor, porte e localização no mapa
 - Tipos: perdido, achado e reencontrado
 - Análise automática por IA antes de publicar
 - Contato direto com quem publicou
 
-### 🚗 Classificados
+### Classificados
 - Anúncios de veículos com múltiplas fotos, marca, modelo, ano, km, preço e localização
 - Aceita troca
 - Análise automática por IA antes de publicar
 - Contato direto com o anunciante
 
-### 💼 Empregos
+### Empregos
 - Vagas publicadas por empresas cadastradas
 - Campos: cargo, área, tipo de contrato, salário, requisitos, localização
 - Logo da empresa, contato direto
 
-### 🤖 Chatbot
+### Chatbot
 - Assistente virtual no portal para tirar dúvidas sobre como usar o sistema
 - Configurável pelo master (nome, tom de voz, base de conhecimento, prompt)
 
-### 🗺️ Mapa interativo
+### Mapa interativo
 - Todas as camadas visíveis em um mapa ao vivo: demandas, pets, classificados e empregos
 - Filtros por categoria, status e tipo
 
@@ -73,7 +73,7 @@ O CidadanIA Frutal é um portal público onde qualquer morador de Frutal pode re
 
 | Camada | Tecnologia |
 |---|---|
-| Frontend | Next.js 15 (App Router), React |
+| Frontend | Next.js 16 (App Router), React |
 | Banco de dados | Supabase (PostgreSQL + RLS) |
 | Autenticação | Supabase Auth (Google OAuth + e-mail/senha) |
 | Mapas | Mapbox GL JS + Leaflet |
@@ -101,7 +101,7 @@ O CidadanIA Frutal é um portal público onde qualquer morador de Frutal pode re
 ```
 src/
   app/
-    page.tsx              # Landing + mapa público
+    page.tsx              # Landing page (redireciona para /mapa se já logado)
     mapa/                 # Mapa interativo com camadas
     master/               # Painel administrativo
     responder/[token]/    # Página do link mágico (autoridade)
@@ -111,6 +111,7 @@ src/
       camadas/            # Criação de pets, classificados e empregos
       ia/                 # Moderação IA e melhoria de texto
       chat/               # Chatbot
+      cidadao/            # Cancelamento de cadastro, exclusão de conta, vínculo de WhatsApp
       whatsapp/           # Webhook do WhatsApp
       master/             # Rotas exclusivas do administrador
       autoridade/         # Rotas do painel de autoridade
