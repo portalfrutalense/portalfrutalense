@@ -368,10 +368,19 @@ async function processarMensagem(body: EvolutionWebhookBody) {
 
   if (!texto && !location && !temImagem && !temAudio) return
 
-  // Busca ou cria a conversa
+  // Busca ou cria a conversa. Upsert em vez de insert simples: duas mensagens
+  // genuinamente diferentes chegando quase juntas de um número novo faziam a
+  // segunda perder a corrida no insert (telefone é UNIQUE), o erro nunca era
+  // checado, e a mensagem sumia em silêncio. Upsert com onConflict resolve a
+  // corrida no próprio banco — quem perde recebe a linha já criada de volta.
   let { data: conversa } = await supabaseServer.from('whatsapp_conversas').select('*').eq('telefone', telefone).single()
   if (!conversa) {
-    const { data: nova } = await supabaseServer.from('whatsapp_conversas').insert({ telefone, ultima_mensagem_em: new Date().toISOString() }).select().single()
+    const { data: nova, error: erroConversa } = await supabaseServer
+      .from('whatsapp_conversas')
+      .upsert({ telefone, ultima_mensagem_em: new Date().toISOString() }, { onConflict: 'telefone' })
+      .select()
+      .single()
+    if (erroConversa) console.error('[webhook] falha ao criar/recuperar conversa:', erroConversa)
     conversa = nova
   }
   if (!conversa) return
@@ -395,6 +404,24 @@ async function processarMensagem(body: EvolutionWebhookBody) {
     }
   }
 
+  // Tudo daqui pra frente já reivindicou o messageId acima — se algo falhar no
+  // meio (timeout do Gemini, blip de rede, erro do banco), sem esse try/catch
+  // a mensagem simplesmente sumia: a reivindicação já tinha marcado o id como
+  // processado, então um reenvio do mesmo webhook pela Evolution API (comum,
+  // é por isso que o dedupe acima existe) caía direto no "já processada" e o
+  // cidadão nunca recebia resposta nem tinha chance de tentar de novo. Em
+  // caso de erro, desfaz a reivindicação (permite reprocessar) e avisa.
+  try {
+    await processarEtapa()
+  } catch (e) {
+    console.error('[webhook] falha ao processar etapa:', e)
+    if (messageId) {
+      await supabaseServer.from('whatsapp_conversas').update({ ultimo_message_id: null }).eq('id', conversa.id)
+    }
+    await enviarWhatsapp(telefone, 'Poxa, tive um problema aqui do meu lado. Pode mandar a mensagem de novo?')
+  }
+
+  async function processarEtapa() {
   let historico: { role: string; content: string }[] = conversa.historico || []
   let dados: DadosPendentes = conversa.dados_pendentes || {}
   let etapa: string = conversa.etapa || 'nenhuma'
@@ -595,10 +622,11 @@ async function processarMensagem(body: EvolutionWebhookBody) {
 
     if (jsonAction?.action === 'autoridade_escolhida') {
       const escolhidosIds = (jsonAction.entidade_ids as string[]) || []
-      const escolhidosNomes = (jsonAction.entidade_nomes as string[]) || []
       // Só aceita ids que realmente estão na lista oferecida — o modelo às
-      // vezes inventa um id ou repete um de outra categoria.
-      const validos = escolhidosIds.filter((id) => opcoes.some((o) => o.id === id))
+      // vezes inventa um id ou repete um de outra categoria. Limitado a 3,
+      // igual ao registro pelo site (/api/demandas) — sem isso o modelo podia
+      // aceitar todas as autoridades de uma categoria com 4+ cadastradas.
+      const validos = escolhidosIds.filter((id) => opcoes.some((o) => o.id === id)).slice(0, 3)
 
       if (validos.length > 0) {
         dados.entidades_ids = validos
@@ -806,6 +834,7 @@ async function processarMensagem(body: EvolutionWebhookBody) {
       ? `Prontinho, sua demanda foi registrada! 🎉\n\nProtocolo: *${demanda.protocolo}*\n\nEla vai passar por uma análise com o nosso Agente de IA, e se aprovada, aparece no mapa e a(as) autoridades são notificadas. Posso ajudar com mais alguma coisa?`
       : 'Prontinho, sua demanda foi registrada! Ela vai passar por uma análise com o nosso Agente de IA, e se aprovada, aparece no mapa e a(as) autoridades são notificadas. Posso ajudar com mais alguma coisa?'
     await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, msgConfirmacao)])
+  }
   }
 }
 
