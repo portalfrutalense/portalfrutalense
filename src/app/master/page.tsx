@@ -1165,51 +1165,51 @@ function MasterIAGenerico({ configId, textoAtivo, promptPadrao, descRigor }: {
     setSalvando(false)
   }
 
-  if (erro) return <p className="text-[13px] text-red-600">{erro}</p>
-  if (!config) return <p className="text-[13px] text-gray-500">Carregando...</p>
+  if (erro) return <p style={{ color: '#dc2626', fontSize: '13px' }}>{erro}</p>
+  if (!config) return <p style={{ color: '#6b7280', fontSize: '13px' }}>Carregando...</p>
 
   return (
-    <div className="flex flex-col gap-5">
-      {notif && <div className="bg-gray-50 border border-gray-200 rounded-lg px-3.5 py-2.5 text-[13px] text-green-800">{notif}</div>}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {notif && <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#166534' }}>{notif}</div>}
 
-      <div className="bg-white rounded-[10px] border border-gray-200 p-5">
-        <h2 className="font-bold text-gray-900 text-[15px] mb-5">Configurações da IA</h2>
-        <div className="flex flex-col gap-4">
+      <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '20px' }}>
+        <h2 style={{ fontWeight: 700, color: '#111827', fontSize: '15px', marginBottom: '20px' }}>Configurações da IA</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-          <div className="flex items-center justify-between px-4 py-3 bg-gray-50 rounded-lg border border-gray-200">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
             <div>
-              <p className="text-sm font-semibold text-gray-900 m-0">Análise automática ativa</p>
-              <p className="text-xs text-gray-500 mt-0.5 mb-0">{textoAtivo}</p>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#111827', margin: 0 }}>Análise automática ativa</p>
+              <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0' }}>{textoAtivo}</p>
             </div>
             <button onClick={() => setConfig({ ...config, ativo: !config.ativo })}
-              className={`w-11 h-6 rounded-xl border-none cursor-pointer relative transition-colors duration-200 shrink-0 ${config.ativo ? 'bg-[#4256c8]' : 'bg-gray-200'}`}>
-              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white block transition-[left] duration-200 ${config.ativo ? 'left-[22px]' : 'left-0.5'}`} />
+              style={{ width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: config.ativo ? '#4256c8' : '#e5e7eb', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+              <span style={{ position: 'absolute', top: '2px', left: config.ativo ? '22px' : '2px', width: '20px', height: '20px', borderRadius: '50%', background: 'white', transition: 'left 0.2s', display: 'block' }} />
             </button>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-900 mb-2">Nível de rigor</label>
-            <div className="flex gap-2">
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#111827', marginBottom: '8px' }}>Nível de rigor</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
               {['permissivo', 'moderado', 'rigoroso'].map(r => (
                 <button key={r} onClick={() => setConfig({ ...config, rigor: r })}
-                  className={`flex-1 p-2 rounded-lg border-[1.5px] text-[13px] capitalize cursor-pointer ${config.rigor === r ? 'border-[#4256c8] bg-gray-50 text-[#4256c8] font-semibold' : 'border-gray-200 bg-white text-gray-900 font-normal'}`}>
+                  style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1.5px solid', borderColor: config.rigor === r ? '#4256c8' : '#e5e7eb', background: config.rigor === r ? '#f9fafb' : 'white', color: config.rigor === r ? '#4256c8' : '#111827', fontSize: '13px', fontWeight: config.rigor === r ? 600 : 400, cursor: 'pointer', textTransform: 'capitalize' }}>
                   {r}
                 </button>
               ))}
             </div>
-            <p className="text-[11px] text-gray-500 mt-1.5 mb-0">
+            <p style={{ fontSize: '11px', color: '#6b7280', margin: '6px 0 0' }}>
               {descRigor[config.rigor] || ''}
             </p>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-900 mb-2">Prompt de análise</label>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#111827', marginBottom: '8px' }}>Prompt de análise</label>
             <textarea value={config.prompt} onChange={(e) => setConfig({ ...config, prompt: e.target.value })} rows={6}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-[13px] resize-y outline-none box-border leading-[1.6]" />
+              style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', lineHeight: 1.6 }} />
           </div>
 
           <button onClick={salvar} disabled={salvando}
-            className={`text-white font-semibold p-2.5 rounded-lg border-none text-sm ${salvando ? 'bg-gray-500 cursor-not-allowed' : 'bg-[#4256c8] cursor-pointer'}`}>
+            style={{ backgroundColor: salvando ? '#6b7280' : '#4256c8', color: 'white', fontWeight: 600, padding: '10px', borderRadius: '8px', border: 'none', cursor: salvando ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
             {salvando ? 'Salvando...' : 'Salvar configurações'}
           </button>
         </div>
