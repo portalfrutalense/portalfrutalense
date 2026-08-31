@@ -11,15 +11,10 @@ const TILE_SATELITE = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tile
 const TILE_SATELITE_RUAS = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
 
 const ZOOM_SATELITE_RUAS = 16 // exibe nomes de ruas no satélite apenas a partir deste zoom
-const ZOOM_NIVEIS = [13, 14, 15, 16, 18] // níveis permitidos — zoom salta direto entre eles
 
 // [oeste, sul], [leste, norte] — MapLibre usa [lng, lat], diferente do par
 // [lat, lng] que o Leaflet usava aqui antes.
 const LIMITES_FRUTAL: [[number, number], [number, number]] = [[-49.30, -20.1529], [-48.73, -19.8869]]
-
-function snapZoom(z: number): number {
-  return ZOOM_NIVEIS.reduce((prev, curr) => Math.abs(curr - z) < Math.abs(prev - z) ? curr : prev)
-}
 
 const FONTE_SATELITE = 'satelite'
 const CAMADA_SATELITE = 'satelite-camada'
@@ -90,14 +85,15 @@ export function useMapaBase() {
         setMapaCarregado(true)
       })
 
-      // Snap para níveis permitidos + entra/sai a variante com nomes de rua
+      // Entra/sai a variante com nomes de rua a partir do zoom certo. O
+      // Leaflet forçava o zoom a saltar pra níveis fixos (13/14/15/16/18) —
+      // fazia sentido lá porque o tile ficava borrado em zoom fracionário
+      // (DOM/CSS puro). O MapLibre renderiza os mesmos tiles raster via
+      // WebGL, com interpolação nativa — zoom fracionário fica nítido, e
+      // forçar o salto a cada scroll só deixava o gesto mais brusco/travado
+      // sem nenhum ganho real. O zoom agora fica livre e contínuo.
       mapa.on('zoomend', () => {
         const z = mapa.getZoom()
-        const snapped = snapZoom(z)
-        if (Math.abs(z - snapped) > 0.01) {
-          mapa.setZoom(snapped)
-          return // o próximo zoomend cuida do resto
-        }
         const fonte = mapa.getSource(FONTE_SATELITE) as RasterTileSource | undefined
         if (!fonte) return
         const precisaRuas = z >= ZOOM_SATELITE_RUAS
