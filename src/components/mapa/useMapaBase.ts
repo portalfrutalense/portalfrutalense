@@ -85,24 +85,32 @@ export function useMapaBase() {
         setMapaCarregado(true)
       })
 
-      // Assenta em zoom inteiro ao parar de mexer — tile de satélite é uma
-      // imagem de resolução fixa por nível de zoom; num zoom fracionário
-      // (ex: 16.7), o MapLibre pega o tile do nível inteiro mais próximo e
-      // estica ele via GPU pra caber, o que borra a imagem visivelmente,
-      // mesmo sem inclinação nenhuma. O Leaflet evitava isso saltando pra um
-      // grupo de só 5 níveis fixos (13/14/15/16/18, nem o 17 tinha) — só que
-      // isso deixava o gesto de zoom brusco/travado. Aqui assenta em
-      // QUALQUER zoom inteiro (granularidade bem mais fina), então o gesto
-      // continua suave enquanto o usuário mexe, e só "trava" pro nível
-      // inteiro mais próximo quando ele solta — sem o borrão de fractional
-      // zoom parado, sem o salto brusco de poucos níveis esparsos.
+      // Scroll do mouse pula direto de 1 nível inteiro por vez, sem posição
+      // fracionária no meio — o zoom "suave e contínuo" do MapLibre parece
+      // bom em vetor, mas em tile de satélite (imagem de resolução fixa por
+      // nível) qualquer zoom fracionário fica com a imagem esticada via GPU,
+      // borrada, mesmo sem inclinação nenhuma. Desliga o scroll-zoom nativo
+      // do MapLibre e assume o gesto na mão: cada "tique" de scroll soma ou
+      // subtrai 1 do zoom atual (arredondado), sempre pousando num inteiro.
+      mapa.scrollZoom.disable()
+      let animandoZoom = false
+      mapa.getContainer().addEventListener('wheel', (e: WheelEvent) => {
+        e.preventDefault()
+        if (animandoZoom) return
+        const atual = Math.round(mapa.getZoom())
+        const alvo = Math.max(13, Math.min(18, atual + (e.deltaY < 0 ? 1 : -1)))
+        if (alvo === atual) return
+        animandoZoom = true
+        mapa.easeTo({ zoom: alvo, duration: 150 })
+        mapa.once('moveend', () => { animandoZoom = false })
+      }, { passive: false })
+
+      // Entra/sai a variante com nomes de rua a partir do zoom certo — o
+      // pinça (touch) e os botões +/- do próprio app continuam livres pra
+      // fazer zoom fracionário; isso só garante que a troca de tile aconteça
+      // no nível certo quando (e enquanto) o zoom estiver assentado.
       mapa.on('zoomend', () => {
-        const z = mapa.getZoom()
-        const inteiro = Math.round(z)
-        if (Math.abs(z - inteiro) > 0.01) {
-          mapa.setZoom(inteiro)
-          return // o próximo zoomend cuida da troca satélite/ruas
-        }
+        const inteiro = Math.round(mapa.getZoom())
         const fonte = mapa.getSource(FONTE_SATELITE) as RasterTileSource | undefined
         if (!fonte) return
         const precisaRuas = inteiro >= ZOOM_SATELITE_RUAS
