@@ -19,7 +19,13 @@ const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 const TILE_SATELITE = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/512/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
 const TILE_SATELITE_RUAS = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/512/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
 
-const ZOOM_SATELITE_RUAS = 16 // exibe nomes de ruas no satélite apenas a partir deste zoom
+// Calibrado pra bater com a escala visual do Leaflet, que o site sempre usou
+// (confirmado comparando lado a lado: zoom "13" aqui = zoom "14" do Leaflet,
+// "17" aqui = "18" lá) — MapLibre GL usa 512px como referência interna de
+// zoom, o Leaflet usava 256px; a mesma cena que era "zoom N" no Leaflet vira
+// "zoom N-1" no MapLibre. Todo valor de zoom deste arquivo é 1 a menos do
+// que era na versão Leaflet, de propósito.
+const ZOOM_SATELITE_RUAS = 15 // exibe nomes de ruas no satélite apenas a partir deste zoom
 
 // [oeste, sul], [leste, norte] — MapLibre usa [lng, lat], diferente do par
 // [lat, lng] que o Leaflet usava aqui antes.
@@ -33,7 +39,7 @@ const CAMADA_SATELITE = 'satelite-camada'
  * classificados, empregos). O mapa é criado uma única vez: trocar de camada
  * apenas troca os markers, preservando posição, zoom e os tiles já baixados.
  *
- * O mapa é sempre satélite — a partir do zoom 16 entra a variante com nomes
+ * O mapa é sempre satélite — a partir do zoom 15 entra a variante com nomes
  * de rua. Não há modo de ruas puro nem alternância. Diferente do Leaflet (só
  * 2D), o MapLibre roda em WebGL com câmera 3D: inclinação (pitch) e rotação
  * (bearing) ficam livres para o usuário ajustar por gesto — arrastar com o
@@ -82,9 +88,9 @@ export function useMapaBase() {
           layers: [{ id: CAMADA_SATELITE, type: 'raster', source: FONTE_SATELITE }],
         },
         center: [FRUTAL_LNG, FRUTAL_LAT],
-        zoom: window.innerWidth < 768 ? 13 : 14,
-        minZoom: 13,
-        maxZoom: 18,
+        zoom: window.innerWidth < 768 ? 12 : 13,
+        minZoom: 12,
+        maxZoom: 17,
         maxBounds: LIMITES_FRUTAL,
         attributionControl: false,
       })
@@ -108,7 +114,7 @@ export function useMapaBase() {
         e.preventDefault()
         if (animandoZoom) return
         const atual = Math.round(mapa.getZoom())
-        const alvo = Math.max(13, Math.min(18, atual + (e.deltaY < 0 ? 1 : -1)))
+        const alvo = Math.max(12, Math.min(17, atual + (e.deltaY < 0 ? 1 : -1)))
         if (alvo === atual) return
         animandoZoom = true
         mapa.easeTo({ zoom: alvo, duration: 150 })
