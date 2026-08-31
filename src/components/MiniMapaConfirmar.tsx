@@ -3,6 +3,11 @@
 import { useEffect, useRef, useState } from 'react'
 import type * as Leaflet from 'leaflet'
 
+// Propriedade interna que o próprio Leaflet grava no elemento DOM ao montar
+// um mapa nele — não documentada/tipada publicamente, mas é a única forma de
+// checar "esse container já tem um mapa Leaflet montado" de fora da lib.
+type ElementoComLeafletId = HTMLDivElement & { _leaflet_id?: number }
+
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 const TILE_SATELITE = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
 const TILE_RUA = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`
@@ -70,6 +75,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
   const mapaObj = useRef<Leaflet.Map | null>(null)
   const tileAtual = useRef<Leaflet.TileLayer | null>(null)
   const leafletObj = useRef<typeof Leaflet | null>(null)
+  const resizeObserverRef = useRef<ResizeObserver | null>(null)
   const zoomAnterior = useRef<number | null>(null)
   const zoomAntesRevisao = useRef<number | null>(null)
   const sateliteAntesRevisao = useRef(false)
@@ -104,11 +110,12 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
       if (!mapRef.current) return
       // Se o container já tem _leaflet_id (cleanup assíncrono não terminou a tempo),
       // remove o mapa existente antes de criar um novo
-      if ((mapRef.current as any)._leaflet_id != null) {
+      const container = mapRef.current as ElementoComLeafletId
+      if (container._leaflet_id != null) {
         try {
           const mapaExistente = mapaObj.current
-          if (mapaExistente) { mapaExistente.remove() } else { delete (mapRef.current as any)._leaflet_id }
-        } catch { delete (mapRef.current as any)._leaflet_id }
+          if (mapaExistente) { mapaExistente.remove() } else { delete container._leaflet_id }
+        } catch { delete container._leaflet_id }
         mapaObj.current = null
       }
       mapa = L.map(mapRef.current, { zoomControl: false }).setView([FRUTAL_LAT, FRUTAL_LNG], ZOOM_CIDADE)
@@ -129,8 +136,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
       if (mapRef.current && typeof ResizeObserver !== 'undefined') {
         const ro = new ResizeObserver(() => { try { mapa?.invalidateSize() } catch { /* ignora se o mapa ainda não teve layout */ } })
         ro.observe(mapRef.current)
-        // Limpar no cleanup via variável local
-        ;(mapa as any)._ro = ro
+        resizeObserverRef.current = ro
       }
 
       mapa.on('zoomend', () => {
@@ -149,8 +155,9 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
     })
 
     return () => {
+      resizeObserverRef.current?.disconnect()
+      resizeObserverRef.current = null
       if (mapa) {
-        ;(mapa as any)._ro?.disconnect()
         mapa.remove()
         mapa = null
         mapaObj.current = null
