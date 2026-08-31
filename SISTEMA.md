@@ -577,14 +577,14 @@ três leituras independentes. Corrigido:
   WhatsApp (o mesmo registro já tinha sido buscado no início do processamento
   da mesma mensagem) — removida, reaproveitando o resultado já em memória.
 
-**Pendência SQL** (não aplicável pelo código — precisa rodar manualmente):
-`demandas.protocolo`, `demandas.email_resend_id` e `demandas.email_status`
-são usadas ativamente pelo app e por `fix_rls_seguranca_2026-08-30.sql` /
-`fix_bloco14_2026-08-30.sql`, mas **nenhum arquivo SQL versionado as cria** —
-reconstruir o banco do zero só com os arquivos do repositório deixaria essas
-3 colunas faltando. Rode **`supabase/fix_colunas_faltantes_2026-08-30.sql`**
-no SQL Editor do Supabase (idempotente — seguro rodar mesmo que as colunas já
-existam em produção).
+**Pendência SQL — resolvida em 2026-08-30**: `demandas.protocolo`,
+`demandas.email_resend_id` e `demandas.email_status` são usadas ativamente
+pelo app e por `fix_rls_seguranca_2026-08-30.sql` / `fix_bloco14_2026-08-30.sql`,
+mas nenhum arquivo SQL versionado as criava — reconstruir o banco do zero só
+com os arquivos do repositório deixaria essas 3 colunas faltando.
+`supabase/fix_colunas_faltantes_2026-08-30.sql` foi executado no SQL Editor
+do Supabase e as 3 colunas foram confirmadas (`text`, nullable) via
+`information_schema.columns`.
 
 **Achado novo, não corrigido nesta sessão** — fora do escopo desta rodada:
 rodar `npx eslint` direto (fora do `next build`) nos arquivos de `src/app/`
