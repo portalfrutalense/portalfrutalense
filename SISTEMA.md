@@ -618,12 +618,15 @@ corrigido em `/perfil` (§13.4), só que numa segunda tela que passou batido
 naquela correção. Migrado pra `POST /api/cidadao/marcar-resolvida`, igual
 ao `/perfil`.
 
-**Pendência SQL**: rode `supabase/fix_update_demandas_2026-08-30.sql` no
-SQL Editor do Supabase — restringe `UPDATE` de `demandas` pra só a coluna
-`status` (o único campo que a policy de RLS ainda precisa liberar pro
-próprio cidadão, já limitado em valor pelo gatilho `restringir_status_demanda`)
-e revoga `UPDATE` de `demanda_entidades` pra `anon`/`authenticated` por
-completo (nenhum fluxo do app escreve ali fora do backend).
+**Pendência SQL — resolvida em 2026-08-30**: `supabase/fix_update_demandas_2026-08-30.sql`
+foi executado no SQL Editor do Supabase — restringe `UPDATE` de `demandas`
+pra só a coluna `status` (o único campo que a policy de RLS ainda precisa
+liberar pro próprio cidadão, já limitado em valor pelo gatilho
+`restringir_status_demanda`) e revoga `UPDATE` de `demanda_entidades` pra
+`anon`/`authenticated` por completo (nenhum fluxo do app escreve ali fora
+do backend). Confirmado via `information_schema.column_privileges`: só
+`demandas.status` para `authenticated` restou com `UPDATE` — nada em
+`magic_token`/`resposta_ip`/`email_status`/`demanda_entidades`.
 
 **Achado novo, não corrigido nesta sessão** — fora do escopo desta rodada:
 rodar `npx eslint` direto (fora do `next build`) nos arquivos de `src/app/`
