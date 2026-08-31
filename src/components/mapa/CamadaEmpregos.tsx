@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import type { Map as LeafletMap, Marker } from 'leaflet'
+import type { Map as MapLibreMap, Marker, Popup } from 'maplibre-gl'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '../AuthProvider'
 import MiniMapaConfirmar from '../MiniMapaConfirmar'
@@ -82,22 +82,23 @@ export function useEmpregos() {
 /* =============================================================== markers = */
 
 export function useMarkersEmpregos({
-  ativo, empregos, config, filtro, mapaObj, leafletObj, mapaCarregado, aoSelecionar,
+  ativo, empregos, config, filtro, mapaObj, maplibreObj, mapaCarregado, aoSelecionar,
 }: {
   ativo: boolean
   empregos: Emprego[]
   config: CamadaConfig | null
   filtro: string
-  mapaObj: React.MutableRefObject<LeafletMap | null>
-  leafletObj: React.MutableRefObject<typeof import('leaflet') | null>
+  mapaObj: React.MutableRefObject<MapLibreMap | null>
+  maplibreObj: React.MutableRefObject<typeof import('maplibre-gl') | null>
   mapaCarregado: boolean
   aoSelecionar: (e: Emprego) => void
 }) {
   const markersRef = useRef<Marker[]>([])
+  const popupAbertoRef = useRef<Popup | null>(null)
 
   useEffect(() => {
-    if (!mapaCarregado || !mapaObj.current || !leafletObj.current) return
-    const L = leafletObj.current
+    if (!mapaCarregado || !mapaObj.current || !maplibreObj.current) return
+    const maplibregl = maplibreObj.current
     const mapa = mapaObj.current
 
     markersRef.current.forEach(m => m.remove())
@@ -113,19 +114,17 @@ export function useMarkersEmpregos({
         ? `<img src="${escapeHtml(e.logo_url)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />`
         : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${PATH_MALA}"/></svg>`
 
-      const icon = L.divIcon({
-        className: 'pin-emprego',
-        html: `<div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 2px 5px rgba(0,0,0,.35))">
-          <div style="width:32px;height:32px;border-radius:50%;border:2px solid white;background:${cor};display:flex;align-items:center;justify-content:center;overflow:hidden;">
-            ${miolo}
-          </div>
-          <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid white;margin-top:-1px;"></div>
-        </div>`,
-        iconSize: [32, 41], iconAnchor: [16, 41],
-      })
+      const el = document.createElement('div')
+      el.className = 'pin-emprego'
+      el.style.filter = 'drop-shadow(0 2px 5px rgba(0,0,0,.35))'
+      el.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;">
+        <div style="width:32px;height:32px;border-radius:50%;border:2px solid white;background:${cor};display:flex;align-items:center;justify-content:center;overflow:hidden;">
+          ${miolo}
+        </div>
+        <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid white;margin-top:-1px;"></div>
+      </div>`
 
-      const marker = L.marker([e.lat, e.lng], { icon }).addTo(mapa)
-      marker.bindPopup(`
+      const popup = new maplibregl.Popup({ maxWidth: '260px', closeButton: true }).setHTML(`
         <div style="min-width:200px;max-width:230px;font-family:Inter,sans-serif;">
           <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:.03em;">${ROTULO_CONTRATO[e.contrato]}</p>
           <p style="margin:0 0 2px;font-size:14px;font-weight:700;color:#111827;">${escapeHtml(e.cargo)}</p>
@@ -136,7 +135,13 @@ export function useMarkersEmpregos({
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4256c8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
         </div>
-      `, { maxWidth: 260, closeButton: true })
+      `)
+      popup.on('open', () => { popupAbertoRef.current = popup })
+
+      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+        .setLngLat([e.lng, e.lat])
+        .setPopup(popup)
+        .addTo(mapa)
 
       markersRef.current.push(marker)
     })
@@ -147,7 +152,7 @@ export function useMarkersEmpregos({
       if (!alvo) return
       const vaga = porId.get(alvo.getAttribute('data-ver-emprego') || '')
       if (!vaga) return
-      mapa.closePopup()
+      popupAbertoRef.current?.remove()
       aoSelecionar(vaga)
     }
     container.addEventListener('click', aoClicar)

@@ -97,9 +97,16 @@ estatísticas) mas **foi removida** — hoje o login redireciona direto para `/m
 
 ## 5. O Mapa (`/mapa`) — núcleo do sistema
 
-Componente principal: `src/components/MapaDemandas.tsx` (878 linhas), que:
-- Cria um único mapa Leaflet compartilhado (`useMapaBase`) e desenha por cima dele
-  os pins da camada ativa.
+Componente principal: `src/components/MapaDemandas.tsx`, que:
+- Cria um único mapa **MapLibre GL** compartilhado (`useMapaBase`) e desenha por cima
+  dele os pins da camada ativa. Diferente do Leaflet (2D puro, ainda usado só no
+  mini-mapa de confirmar endereço — `MiniMapaConfirmar.tsx`), o MapLibre roda em
+  WebGL com câmera 3D: inclinação (pitch) e rotação (bearing) ficam livres pro
+  usuário ajustar por gesto (botão direito/Ctrl+arrastar no desktop, dois dedos no
+  touch) — trocado em 2026-08-30 exatamente por causa disso, o Leaflet não tem
+  como inclinar a câmera de jeito nenhum. Continua usando as mesmas imagens de
+  satélite do Mapbox de sempre (`satellite-v9`/`satellite-streets-v12`, trocadas
+  por zoom); só quem desenha essas imagens na tela mudou.
 - A camada ativa é controlada pela query string `?camada=demandas|pets|classificados|empregos`,
   sincronizada com a Navbar (que tem links diretos para cada camada).
 - Em mobile, a listagem lateral vira um **bottom sheet arrastável** com 3 posições

@@ -13,9 +13,9 @@ import { useEmpregos, useMarkersEmpregos, SidebarEmpregos, FormularioEmprego } f
 import { FormDemanda } from './mapa/FormDemanda'
 import { Demanda, CategoriaMapa, Entidade, DemandaEntidade, Camada, Pet, Classificado, Emprego } from '@/types'
 import { escapeHtml } from '@/lib/escapeHtml'
-// Só o tipo — o leaflet em si continua carregado dinamicamente por
+// Só o tipo — o maplibre-gl em si continua carregado dinamicamente por
 // useMapaBase (import type é apagado na compilação, não força o bundle).
-import type { Marker } from 'leaflet'
+import type { Marker, Popup } from 'maplibre-gl'
 
 function titleCase(str?: string) {
   if (!str) return ''
@@ -35,9 +35,10 @@ export default function MapaDemandas() {
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
 
   // Mapa base compartilhado por todas as camadas — criado uma única vez
-  const { mapRef, mapaObj, leafletObj, mapaCarregado } = useMapaBase()
+  const { mapRef, mapaObj, maplibreObj, mapaCarregado } = useMapaBase()
 
   const markersRef = useRef<Marker[]>([])
+  const popupAbertoRef = useRef<Popup | null>(null)
   const sidebarRef = useRef<HTMLDivElement>(null)
 
   // Camada ativa — sincroniza com ?camada= da URL
@@ -153,8 +154,8 @@ export default function MapaDemandas() {
 
   // Markers de demandas — inalterados; só não são desenhados quando outra camada está ativa
   useEffect(() => {
-    if (!mapaCarregado || !mapaObj.current || !leafletObj.current) return
-    const L = leafletObj.current
+    if (!mapaCarregado || !mapaObj.current || !maplibreObj.current) return
+    const maplibregl = maplibreObj.current
     const mapa = mapaObj.current
 
     // Limpa markers anteriores
@@ -169,7 +170,7 @@ export default function MapaDemandas() {
       return true
     })
 
-    function criarIcone(d: typeof filtradas[0]) {
+    function criarElementoPin(d: typeof filtradas[0]) {
       const cor = d.categoria?.cor || '#4256c8'
       const iconeUrl = d.categoria?.icone_url
 
@@ -188,23 +189,22 @@ export default function MapaDemandas() {
 
       const fundoExtra = d.foto_url ? `background:transparent;` : `background:white;`
 
-      return L.divIcon({
-        className: 'pin-demanda',
-        html: `<div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 2px 5px rgba(0,0,0,.35))">
-          <div style="width:32px;height:32px;border-radius:50%;border:2px solid white;overflow:hidden;position:relative;${fundoExtra}">
-            ${miolo}
-          </div>
-          <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid white;margin-top:-1px;"></div>
-        </div>`,
-        iconSize: [32, 41], iconAnchor: [16, 41],
-      })
+      const el = document.createElement('div')
+      el.className = 'pin-demanda'
+      el.style.filter = 'drop-shadow(0 2px 5px rgba(0,0,0,.35))'
+      el.style.cursor = 'pointer'
+      el.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;">
+        <div style="width:32px;height:32px;border-radius:50%;border:2px solid white;overflow:hidden;position:relative;${fundoExtra}">
+          ${miolo}
+        </div>
+        <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid white;margin-top:-1px;"></div>
+      </div>`
+      return el
     }
 
     const demandaPorId = new Map(filtradas.map(d => [d.id, d]))
 
     filtradas.forEach((d) => {
-      const marker = L.marker([d.lat, d.lng], { icon: criarIcone(d) }).addTo(mapa)
-
       const popupHtml = `
         <div style="min-width:200px;max-width:230px;font-family:Inter,sans-serif;">
           ${d.foto_url ? `<img src="${escapeHtml(d.foto_url)}" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin-bottom:8px;display:block;" />` : ''}
@@ -218,11 +218,23 @@ export default function MapaDemandas() {
         </div>
       `
 
-      marker.bindPopup(popupHtml, { maxWidth: 260, closeButton: true })
-      marker.on('click', () => {
+      const popup = new maplibregl.Popup({ maxWidth: '260px', closeButton: true }).setHTML(popupHtml)
+      popup.on('open', () => { popupAbertoRef.current = popup })
+
+      const el = criarElementoPin(d)
+      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+        .setLngLat([d.lng, d.lat])
+        .addTo(mapa)
+
+      // Diferente das outras 3 camadas: aqui o popup só abre depois de checar
+      // login — por isso não usa marker.setPopup() (que abriria direto no
+      // clique), o clique é interceptado à mão.
+      el.addEventListener('click', (ev) => {
+        ev.stopPropagation()
         if (!user) { setModalAuth(true); return }
-        marker.openPopup()
+        popup.setLngLat([d.lng, d.lat]).addTo(mapa)
       })
+
       markersRef.current.push(marker)
     })
 
@@ -236,14 +248,14 @@ export default function MapaDemandas() {
       if (!demanda) return
 
       // Voo: o popup "voa" da posição atual até o sidebar, onde o card completo assenta
-      const popupEl = alvo.closest('.leaflet-popup-content-wrapper') as HTMLElement | null
+      const popupEl = alvo.closest('.maplibregl-popup-content') as HTMLElement | null
       const fromRect = (popupEl || alvo).getBoundingClientRect()
       const toRect = sidebarRef.current?.getBoundingClientRect()
 
       if (!toRect) {
         setDemandaSelecionada(demanda)
         setSheetState('full')
-        mapa.closePopup()
+        popupAbertoRef.current?.remove()
         return
       }
 
@@ -252,7 +264,7 @@ export default function MapaDemandas() {
         toX: toRect.left, toY: toRect.top, toW: toRect.width, toH: toRect.height,
         animando: false,
       })
-      mapa.closePopup()
+      popupAbertoRef.current?.remove()
 
       requestAnimationFrame(() => requestAnimationFrame(() => {
         setVoo(prev => prev ? { ...prev, animando: true } : null)
@@ -275,21 +287,21 @@ export default function MapaDemandas() {
   useMarkersPets({
     ativo: camada === 'pets',
     pets, cores: coresPets, filtro: filtroPet,
-    mapaObj, leafletObj, mapaCarregado,
+    mapaObj, maplibreObj, mapaCarregado,
     aoSelecionar: (p) => { setPetSelecionado(p); setSheetState('full') },
   })
 
   useMarkersClassificados({
     ativo: camada === 'classificados',
     classificados, config: configClassificados, filtro: filtroClassificado,
-    mapaObj, leafletObj, mapaCarregado,
+    mapaObj, maplibreObj, mapaCarregado,
     aoSelecionar: (c) => { setClassificadoSelecionado(c); setSheetState('full') },
   })
 
   useMarkersEmpregos({
     ativo: camada === 'empregos',
     empregos, config: configEmpregos, filtro: filtroEmprego,
-    mapaObj, leafletObj, mapaCarregado,
+    mapaObj, maplibreObj, mapaCarregado,
     aoSelecionar: (e) => { setEmpregoSelecionado(e); setSheetState('full') },
   })
 

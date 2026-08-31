@@ -5,9 +5,9 @@ import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '../AuthProvider'
 import { Classificado, TipoVeiculo, CamadaConfig } from '@/types'
 import { escapeHtml } from '@/lib/escapeHtml'
-// Só o tipo — o leaflet em si continua carregado dinamicamente por
+// Só o tipo — o maplibre-gl em si continua carregado dinamicamente por
 // useMapaBase (import type é apagado na compilação, não força o bundle).
-import type { Map as LeafletMap, Marker } from 'leaflet'
+import type { Map as MapLibreMap, Marker, Popup } from 'maplibre-gl'
 
 /* ------------------------------------------------------------- ícones --- */
 
@@ -114,22 +114,23 @@ export function useClassificados() {
 /* =============================================================== markers = */
 
 export function useMarkersClassificados({
-  ativo, classificados, config, filtro, mapaObj, leafletObj, mapaCarregado, aoSelecionar,
+  ativo, classificados, config, filtro, mapaObj, maplibreObj, mapaCarregado, aoSelecionar,
 }: {
   ativo: boolean
   classificados: Classificado[]
   config: Record<string, CamadaConfig>
   filtro: string
-  mapaObj: React.MutableRefObject<LeafletMap | null>
-  leafletObj: React.MutableRefObject<typeof import('leaflet') | null>
+  mapaObj: React.MutableRefObject<MapLibreMap | null>
+  maplibreObj: React.MutableRefObject<typeof import('maplibre-gl') | null>
   mapaCarregado: boolean
   aoSelecionar: (c: Classificado) => void
 }) {
   const markersRef = useRef<Marker[]>([])
+  const popupAbertoRef = useRef<Popup | null>(null)
 
   useEffect(() => {
-    if (!mapaCarregado || !mapaObj.current || !leafletObj.current) return
-    const L = leafletObj.current
+    if (!mapaCarregado || !mapaObj.current || !maplibreObj.current) return
+    const maplibregl = maplibreObj.current
     const mapa = mapaObj.current
 
     markersRef.current.forEach(m => m.remove())
@@ -145,19 +146,17 @@ export function useMarkersClassificados({
       // Pin branco pede traço escuro para o ícone continuar legível
       const traco = fundo.toLowerCase() === '#ffffff' ? '#111827' : '#ffffff'
 
-      const icon = L.divIcon({
-        className: 'pin-classificado',
-        html: `<div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 2px 5px rgba(0,0,0,.35))">
-          <div style="width:32px;height:32px;border-radius:50%;border:2px solid white;background:${fundo};display:flex;align-items:center;justify-content:center;">
-            ${svgPinVeiculo(c.tipo_veiculo, cfg?.icone_url, traco)}
-          </div>
-          <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid white;margin-top:-1px;"></div>
-        </div>`,
-        iconSize: [32, 41], iconAnchor: [16, 41],
-      })
+      const el = document.createElement('div')
+      el.className = 'pin-classificado'
+      el.style.filter = 'drop-shadow(0 2px 5px rgba(0,0,0,.35))'
+      el.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;">
+        <div style="width:32px;height:32px;border-radius:50%;border:2px solid white;background:${fundo};display:flex;align-items:center;justify-content:center;">
+          ${svgPinVeiculo(c.tipo_veiculo, cfg?.icone_url, traco)}
+        </div>
+        <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid white;margin-top:-1px;"></div>
+      </div>`
 
-      const marker = L.marker([c.lat, c.lng], { icon }).addTo(mapa)
-      marker.bindPopup(`
+      const popup = new maplibregl.Popup({ maxWidth: '260px', closeButton: true }).setHTML(`
         <div style="min-width:200px;max-width:230px;font-family:Inter,sans-serif;">
           ${c.fotos?.[0] ? `<img src="${escapeHtml(c.fotos[0])}" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin-bottom:8px;display:block;" />` : ''}
           <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#4256c8;text-transform:uppercase;letter-spacing:.03em;">${ROTULO_VEICULO[c.tipo_veiculo]}</p>
@@ -169,7 +168,13 @@ export function useMarkersClassificados({
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4256c8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
         </div>
-      `, { maxWidth: 260, closeButton: true })
+      `)
+      popup.on('open', () => { popupAbertoRef.current = popup })
+
+      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+        .setLngLat([c.lng, c.lat])
+        .setPopup(popup)
+        .addTo(mapa)
 
       markersRef.current.push(marker)
     })
@@ -180,7 +185,7 @@ export function useMarkersClassificados({
       if (!alvo) return
       const item = porId.get(alvo.getAttribute('data-ver-classificado') || '')
       if (!item) return
-      mapa.closePopup()
+      popupAbertoRef.current?.remove()
       aoSelecionar(item)
     }
     container.addEventListener('click', aoClicar)

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import type { Map as LeafletMap, TileLayer } from 'leaflet'
+import type { Map as MapLibreMap, RasterTileSource } from 'maplibre-gl'
 
 export const FRUTAL_LAT = -20.02752
 export const FRUTAL_LNG = -48.92702
@@ -13,24 +13,34 @@ const TILE_SATELITE_RUAS = `https://api.mapbox.com/styles/v1/mapbox/satellite-st
 const ZOOM_SATELITE_RUAS = 16 // exibe nomes de ruas no satélite apenas a partir deste zoom
 const ZOOM_NIVEIS = [13, 14, 15, 16, 18] // níveis permitidos — zoom salta direto entre eles
 
+// [oeste, sul], [leste, norte] — MapLibre usa [lng, lat], diferente do par
+// [lat, lng] que o Leaflet usava aqui antes.
+const LIMITES_FRUTAL: [[number, number], [number, number]] = [[-49.30, -20.1529], [-48.73, -19.8869]]
+
 function snapZoom(z: number): number {
   return ZOOM_NIVEIS.reduce((prev, curr) => Math.abs(curr - z) < Math.abs(prev - z) ? curr : prev)
 }
 
+const FONTE_SATELITE = 'satelite'
+const CAMADA_SATELITE = 'satelite-camada'
+
 /**
- * Mapa Leaflet base, compartilhado por todas as camadas (demandas, pets,
+ * Mapa MapLibre GL base, compartilhado por todas as camadas (demandas, pets,
  * classificados, empregos). O mapa é criado uma única vez: trocar de camada
  * apenas troca os markers, preservando posição, zoom e os tiles já baixados.
  *
  * O mapa é sempre satélite — a partir do zoom 16 entra a variante com nomes
- * de rua. Não há modo de ruas puro nem alternância.
+ * de rua. Não há modo de ruas puro nem alternância. Diferente do Leaflet (só
+ * 2D), o MapLibre roda em WebGL com câmera 3D: inclinação (pitch) e rotação
+ * (bearing) ficam livres para o usuário ajustar por gesto — arrastar com o
+ * botão direito (ou Ctrl+arrastar) no desktop, girar/deslizar com dois dedos
+ * no touch — sem nenhum controle extra de UI adicionado aqui.
  */
 export function useMapaBase() {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapaIniciado = useRef(false)
-  const mapaObj = useRef<LeafletMap | null>(null)
-  const leafletObj = useRef<typeof import('leaflet') | null>(null)
-  const tileAtual = useRef<TileLayer | null>(null)
+  const mapaObj = useRef<MapLibreMap | null>(null)
+  const maplibreObj = useRef<typeof import('maplibre-gl') | null>(null)
   const resizeObserverRef = useRef<ResizeObserver | null>(null)
 
   const [mapaCarregado, setMapaCarregado] = useState(false)
@@ -41,75 +51,77 @@ export function useMapaBase() {
 
     // Dedupe — sem isso, cada montagem deste hook (ex.: navegar pra fora do
     // /mapa e voltar) empilhava uma nova tag <link> igual no <head>.
-    if (!document.querySelector('link[data-leaflet-css]')) {
+    if (!document.querySelector('link[data-maplibre-css]')) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-      link.setAttribute('data-leaflet-css', 'true')
+      link.href = 'https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css'
+      link.setAttribute('data-maplibre-css', 'true')
       document.head.appendChild(link)
     }
 
-    import('leaflet').then((L) => {
+    import('maplibre-gl').then((maplibregl) => {
       if (!mapRef.current) return
-      delete (L.Icon.Default.prototype as any)._getIconUrl
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        shadowUrl: '',
-      })
 
-      const mapa = L.map(mapRef.current!, {
-        zoomControl: false,
-        maxBounds: [[-20.1529, -49.30], [-19.8869, -48.73]],
-        maxBoundsViscosity: 1.0,
+      const mapa = new maplibregl.Map({
+        container: mapRef.current,
+        style: {
+          version: 8,
+          sources: {
+            [FONTE_SATELITE]: {
+              type: 'raster',
+              tiles: [TILE_SATELITE],
+              tileSize: 256,
+              attribution: '© Mapbox',
+            },
+          },
+          layers: [{ id: CAMADA_SATELITE, type: 'raster', source: FONTE_SATELITE }],
+        },
+        center: [FRUTAL_LNG, FRUTAL_LAT],
+        zoom: window.innerWidth < 768 ? 13 : 14,
         minZoom: 13,
         maxZoom: 18,
-      }).setView([FRUTAL_LAT, FRUTAL_LNG], window.innerWidth < 768 ? 13 : 14)
+        maxBounds: LIMITES_FRUTAL,
+        attributionControl: false,
+      })
 
-      const tile = L.tileLayer(TILE_SATELITE, { attribution: '© Mapbox', maxZoom: 18 })
-      tile.addTo(mapa)
-      tileAtual.current = tile
-      mapaObj.current = mapa
-      leafletObj.current = L
-      setMapaCarregado(true)
+      mapa.on('load', () => {
+        mapaObj.current = mapa
+        maplibreObj.current = maplibregl
+        setMapaCarregado(true)
+      })
 
       // Snap para níveis permitidos + entra/sai a variante com nomes de rua
       mapa.on('zoomend', () => {
         const z = mapa.getZoom()
         const snapped = snapZoom(z)
-        if (z !== snapped) {
-          mapa.setZoom(snapped, { animate: false })
+        if (Math.abs(z - snapped) > 0.01) {
+          mapa.setZoom(snapped)
           return // o próximo zoomend cuida do resto
         }
-        const urlAtual = (tileAtual.current as any)?._url as string | undefined
+        const fonte = mapa.getSource(FONTE_SATELITE) as RasterTileSource | undefined
+        if (!fonte) return
         const precisaRuas = z >= ZOOM_SATELITE_RUAS
-        const temRuas = urlAtual?.includes('satellite-streets')
-        if (precisaRuas === !!temRuas) return
-        tileAtual.current?.remove()
-        const novoTile = L.tileLayer(precisaRuas ? TILE_SATELITE_RUAS : TILE_SATELITE, {
-          attribution: '© Mapbox', maxZoom: 18,
-        })
-        novoTile.addTo(mapa)
-        tileAtual.current = novoTile
+        const temRuas = (fonte.tiles?.[0] || '').includes('satellite-streets')
+        if (precisaRuas === temRuas) return
+        fonte.setTiles([precisaRuas ? TILE_SATELITE_RUAS : TILE_SATELITE])
       })
 
       // Corrige o mapa esticando quando o tamanho do container muda
-      const resizeObserver = new ResizeObserver(() => mapa.invalidateSize())
-      resizeObserver.observe(mapRef.current!)
+      const resizeObserver = new ResizeObserver(() => mapa.resize())
+      resizeObserver.observe(mapRef.current)
       resizeObserverRef.current = resizeObserver
     })
 
     return () => {
       resizeObserverRef.current?.disconnect()
       // Sem isso, sair de /mapa e voltar deixava a instância antiga do
-      // Leaflet (e seus listeners internos) sem ser destruída — só o DOM que
-      // ela usava sumia, removido pelo React junto do componente.
+      // MapLibre (e seus listeners internos) sem ser destruída — só o DOM
+      // que ela usava sumia, removido pelo React junto do componente.
       mapaObj.current?.remove()
       mapaObj.current = null
-      leafletObj.current = null
-      tileAtual.current = null
+      maplibreObj.current = null
     }
   }, [])
 
-  return { mapRef, mapaObj, leafletObj, mapaCarregado }
+  return { mapRef, mapaObj, maplibreObj, mapaCarregado }
 }

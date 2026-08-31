@@ -5,9 +5,9 @@ import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '../AuthProvider'
 import { Pet, EspeciePet, PortePet, CamadaConfig } from '@/types'
 import { escapeHtml } from '@/lib/escapeHtml'
-// Só o tipo — o leaflet em si continua carregado dinamicamente por
+// Só o tipo — o maplibre-gl em si continua carregado dinamicamente por
 // useMapaBase (import type é apagado na compilação, não força o bundle).
-import type { Map as LeafletMap, Marker } from 'leaflet'
+import type { Map as MapLibreMap, Marker, Popup } from 'maplibre-gl'
 
 /* ------------------------------------------------------------- ícones --- */
 
@@ -30,7 +30,7 @@ export function IconeEspecie({ especie, size = 18, cor = 'currentColor' }: { esp
   )
 }
 
-/** Mesma silhueta, como string, para o divIcon do Leaflet. */
+/** Mesma silhueta, como string, para o HTML do pin no mapa. */
 function svgPinEspecie(especie: EspeciePet, cor: string) {
   if (especie === 'gato') {
     return `<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="${cor}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${PATH_GATO}"/></svg>`
@@ -108,22 +108,23 @@ export function usePets() {
 /* =============================================================== markers = */
 
 export function useMarkersPets({
-  ativo, pets, cores, filtro, mapaObj, leafletObj, mapaCarregado, aoSelecionar,
+  ativo, pets, cores, filtro, mapaObj, maplibreObj, mapaCarregado, aoSelecionar,
 }: {
   ativo: boolean
   pets: Pet[]
   cores: Record<string, string>
   filtro: string
-  mapaObj: React.MutableRefObject<LeafletMap | null>
-  leafletObj: React.MutableRefObject<typeof import('leaflet') | null>
+  mapaObj: React.MutableRefObject<MapLibreMap | null>
+  maplibreObj: React.MutableRefObject<typeof import('maplibre-gl') | null>
   mapaCarregado: boolean
   aoSelecionar: (p: Pet) => void
 }) {
   const markersRef = useRef<Marker[]>([])
+  const popupAbertoRef = useRef<Popup | null>(null)
 
   useEffect(() => {
-    if (!mapaCarregado || !mapaObj.current || !leafletObj.current) return
-    const L = leafletObj.current
+    if (!mapaCarregado || !mapaObj.current || !maplibreObj.current) return
+    const maplibregl = maplibreObj.current
     const mapa = mapaObj.current
 
     markersRef.current.forEach(m => m.remove())
@@ -135,25 +136,23 @@ export function useMarkersPets({
 
     visiveis.forEach((p) => {
       const cor = cores[chaveCorPet(p)] || '#4256c8'
-      const icon = L.divIcon({
-        className: 'pin-pet',
-        html: `<div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 2px 5px rgba(0,0,0,.35))">
-          <div style="width:32px;height:32px;border-radius:50%;border:2px solid white;background:${cor};display:flex;align-items:center;justify-content:center;">
-            ${svgPinEspecie(p.especie, '#ffffff')}
-          </div>
-          <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid white;margin-top:-1px;"></div>
-        </div>`,
-        iconSize: [32, 41], iconAnchor: [16, 41],
-      })
+      const el = document.createElement('div')
+      el.className = 'pin-pet'
+      el.style.filter = 'drop-shadow(0 2px 5px rgba(0,0,0,.35))'
+      el.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;">
+        <div style="width:32px;height:32px;border-radius:50%;border:2px solid white;background:${cor};display:flex;align-items:center;justify-content:center;">
+          ${svgPinEspecie(p.especie, '#ffffff')}
+        </div>
+        <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid white;margin-top:-1px;"></div>
+      </div>`
 
-      const marker = L.marker([p.lat, p.lng], { icon }).addTo(mapa)
       const titulo = p.reencontrado
         ? 'Reencontrado'
         : p.tipo === 'perdido' ? 'Perdi meu Pet'
         : p.tipo === 'adocao' ? 'Adotar um Pet'
         : 'Achei um Pet'
 
-      marker.bindPopup(`
+      const popup = new maplibregl.Popup({ maxWidth: '260px', closeButton: true }).setHTML(`
         <div style="min-width:200px;max-width:230px;font-family:Inter,sans-serif;">
           ${p.foto_url ? `<img src="${escapeHtml(p.foto_url)}" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin-bottom:8px;display:block;" />` : ''}
           <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:.03em;">${titulo}</p>
@@ -165,7 +164,13 @@ export function useMarkersPets({
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4256c8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
         </div>
-      `, { maxWidth: 260, closeButton: true })
+      `)
+      popup.on('open', () => { popupAbertoRef.current = popup })
+
+      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+        .setLngLat([p.lng, p.lat])
+        .setPopup(popup)
+        .addTo(mapa)
 
       markersRef.current.push(marker)
     })
@@ -176,7 +181,7 @@ export function useMarkersPets({
       if (!alvo) return
       const pet = porId.get(alvo.getAttribute('data-ver-pet') || '')
       if (!pet) return
-      mapa.closePopup()
+      popupAbertoRef.current?.remove()
       aoSelecionar(pet)
     }
     container.addEventListener('click', aoClicar)
