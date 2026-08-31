@@ -146,12 +146,16 @@ export function useMarkersClassificados({
       // Pin branco pede traço escuro para o ícone continuar legível
       const traco = fundo.toLowerCase() === '#ffffff' ? '#111827' : '#ffffff'
 
+      const miolo = c.fotos?.[0]
+        ? `<img src="${escapeHtml(c.fotos[0])}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />`
+        : svgPinVeiculo(c.tipo_veiculo, cfg?.icone_url, traco)
+
       const el = document.createElement('div')
       el.className = 'pin-classificado'
       el.style.filter = 'drop-shadow(0 2px 5px rgba(0,0,0,.35))'
       el.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;">
-        <div style="width:32px;height:32px;border-radius:50%;border:2px solid white;background:${fundo};display:flex;align-items:center;justify-content:center;">
-          ${svgPinVeiculo(c.tipo_veiculo, cfg?.icone_url, traco)}
+        <div style="width:32px;height:32px;border-radius:50%;border:2px solid white;background:${fundo};display:flex;align-items:center;justify-content:center;overflow:hidden;">
+          ${miolo}
         </div>
         <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid white;margin-top:-1px;"></div>
       </div>`

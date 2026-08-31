@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase-browser'
 import { CamadaConfig } from '@/types'
 
 const GRUPOS: { camada: string; titulo: string; descricao: string }[] = [
-  { camada: 'pets', titulo: 'Pets', descricao: 'Cor do pin de cada situação. Perdidos, Abandonados, Adoção e Reencontrados são registros independentes.' },
+  { camada: 'pets', titulo: 'Pets', descricao: 'Cor e ícone do pin de cada situação. O ícone enviado substitui a silhueta padrão. Perdidos, Abandonados, Adoção e Reencontrados são registros independentes.' },
   { camada: 'classificados', titulo: 'Classificados', descricao: 'Cor e ícone do pin por tipo de veículo. O ícone enviado substitui a silhueta padrão.' },
   { camada: 'empregos', titulo: 'Empregos', descricao: 'Cor do pin das vagas. A logo da empresa, quando houver, ocupa o miolo do pin.' },
 ]
@@ -62,8 +62,9 @@ export default function MasterCamadas({ camada: camadaFiltro }: { camada?: strin
       // sem isso cada troca deixava um arquivo órfão no bucket pra sempre.
       const caminhoAntigo = iconeAnterior && caminhoNoBucket(iconeAnterior, 'categoria-icones')
       if (caminhoAntigo) client.storage.from('categoria-icones').remove([caminhoAntigo]).catch(() => {})
-    } catch (e: any) {
-      setErro(`Falha ao enviar o ícone: ${e?.message || 'erro no upload'}`)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'erro no upload'
+      setErro(`Falha ao enviar o ícone: ${msg}`)
     } finally {
       setSalvando(null)
     }
@@ -129,7 +130,7 @@ export default function MasterCamadas({ camada: camadaFiltro }: { camada?: strin
                     style={{ width: '42px', height: '34px', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '2px', cursor: 'pointer', background: 'white' }}
                   />
 
-                  {camada === 'classificados' && (
+                  {(camada === 'classificados' || camada === 'pets') && (
                     <>
                       <label style={{ fontSize: '12px', fontWeight: 600, color: '#4256c8', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                         <input type="file" accept="image/*" style={{ display: 'none' }}

@@ -30,8 +30,13 @@ export function IconeEspecie({ especie, size = 18, cor = 'currentColor' }: { esp
   )
 }
 
-/** Mesma silhueta, como string, para o HTML do pin no mapa. */
-function svgPinEspecie(especie: EspeciePet, cor: string) {
+/** Mesma silhueta, como string, para o HTML do pin no mapa — ou o ícone que
+ * o master enviou pra essa situação (perdido/achado/adoção/reencontrado),
+ * se houver, no mesmo padrão de `svgPinVeiculo` em CamadaClassificados. */
+function svgPinEspecie(especie: EspeciePet, cor: string, iconeUrl?: string) {
+  if (iconeUrl) {
+    return `<img src="${escapeHtml(iconeUrl)}" style="width:19px;height:19px;object-fit:contain;" />`
+  }
   if (especie === 'gato') {
     return `<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="${cor}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${PATH_GATO}"/></svg>`
   }
@@ -40,7 +45,8 @@ function svgPinEspecie(especie: EspeciePet, cor: string) {
 
 /* ------------------------------------------------------------ helpers --- */
 
-/** Chave de configuração (cor do pin) correspondente ao registro. */
+/** Chave de agrupamento (situação) — usada só pro filtro da barra lateral,
+ * que continua agrupando por situação, sem separar espécie. */
 export function chaveCorPet(p: Pet): string {
   if (p.reencontrado) return 'pet_reencontrado'
   if (p.tipo === 'perdido') return 'pet_perdido'
@@ -48,11 +54,23 @@ export function chaveCorPet(p: Pet): string {
   return 'pet_achado'
 }
 
+/** Chave de configuração de verdade (situação + espécie) — é essa que
+ * indexa cor e ícone em `camadas_config`, pra cachorro e gato poderem ter
+ * cor/ícone independentes dentro da mesma situação (ex: "Perdido" tem uma
+ * config pra cachorro e outra pra gato). */
+export function chaveConfigPet(p: Pet): string {
+  return `${chaveCorPet(p)}_${p.especie}`
+}
+
 const COR_PADRAO: Record<string, string> = {
-  pet_perdido: '#dc2626',
-  pet_achado: '#16a34a',
-  pet_adocao: '#7c3aed',
-  pet_reencontrado: '#2563eb',
+  pet_perdido_cachorro: '#dc2626',
+  pet_perdido_gato: '#dc2626',
+  pet_achado_cachorro: '#16a34a',
+  pet_achado_gato: '#16a34a',
+  pet_adocao_cachorro: '#7c3aed',
+  pet_adocao_gato: '#7c3aed',
+  pet_reencontrado_cachorro: '#2563eb',
+  pet_reencontrado_gato: '#2563eb',
 }
 
 const ROTULO_FILTRO: Record<string, string> = {
@@ -73,6 +91,7 @@ export function usePets() {
   const supabase = createClient()
   const [pets, setPets] = useState<Pet[]>([])
   const [cores, setCores] = useState<Record<string, string>>(COR_PADRAO)
+  const [icones, setIcones] = useState<Record<string, string>>({})
 
   async function recarregar() {
     const { data } = await supabase
@@ -96,23 +115,29 @@ export function usePets() {
       .then(({ data }) => setPets((data || []) as Pet[]))
     supabase.from('camadas_config').select('*').eq('camada', 'pets').then(({ data }) => {
       if (!data) return
-      const mapa = { ...COR_PADRAO }
-      for (const c of data as CamadaConfig[]) mapa[c.chave] = c.cor
-      setCores(mapa)
+      const mapaCores = { ...COR_PADRAO }
+      const mapaIcones: Record<string, string> = {}
+      for (const c of data as CamadaConfig[]) {
+        mapaCores[c.chave] = c.cor
+        if (c.icone_url) mapaIcones[c.chave] = c.icone_url
+      }
+      setCores(mapaCores)
+      setIcones(mapaIcones)
     })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { pets, cores, recarregar }
+  return { pets, cores, icones, recarregar }
 }
 
 /* =============================================================== markers = */
 
 export function useMarkersPets({
-  ativo, pets, cores, filtro, mapaObj, maplibreObj, mapaCarregado, aoSelecionar,
+  ativo, pets, cores, icones, filtro, mapaObj, maplibreObj, mapaCarregado, aoSelecionar,
 }: {
   ativo: boolean
   pets: Pet[]
   cores: Record<string, string>
+  icones: Record<string, string>
   filtro: string
   mapaObj: React.MutableRefObject<MapLibreMap | null>
   maplibreObj: React.MutableRefObject<typeof import('maplibre-gl') | null>
@@ -135,13 +160,19 @@ export function useMarkersPets({
     const porId = new Map(visiveis.map(p => [p.id, p]))
 
     visiveis.forEach((p) => {
-      const cor = cores[chaveCorPet(p)] || '#4256c8'
+      const cor = cores[chaveConfigPet(p)] || '#4256c8'
+      // Prioridade: foto do próprio registro > ícone que o master enviou
+      // pra essa situação+espécie > silhueta padrão embutida.
+      const miolo = p.foto_url
+        ? `<img src="${escapeHtml(p.foto_url)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />`
+        : svgPinEspecie(p.especie, '#ffffff', icones[chaveConfigPet(p)])
+
       const el = document.createElement('div')
       el.className = 'pin-pet'
       el.style.filter = 'drop-shadow(0 2px 5px rgba(0,0,0,.35))'
       el.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;">
-        <div style="width:32px;height:32px;border-radius:50%;border:2px solid white;background:${cor};display:flex;align-items:center;justify-content:center;">
-          ${svgPinEspecie(p.especie, '#ffffff')}
+        <div style="width:32px;height:32px;border-radius:50%;border:2px solid white;background:${cor};display:flex;align-items:center;justify-content:center;overflow:hidden;">
+          ${miolo}
         </div>
         <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid white;margin-top:-1px;"></div>
       </div>`
@@ -186,7 +217,7 @@ export function useMarkersPets({
     }
     container.addEventListener('click', aoClicar)
     return () => { container.removeEventListener('click', aoClicar) }
-  }, [ativo, pets, cores, filtro, mapaCarregado]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ativo, pets, cores, icones, filtro, mapaCarregado]) // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /* =============================================================== sidebar = */
@@ -214,7 +245,7 @@ export function SidebarPets({
   const visiveis = pets.filter(p => !filtro || chaveCorPet(p) === filtro)
 
   if (selecionado) {
-    const cor = cores[chaveCorPet(selecionado)] || '#4256c8'
+    const cor = cores[chaveConfigPet(selecionado)] || '#4256c8'
     const meu = user?.id === selecionado.user_id
     const ehMaster = perfil?.role === 'master'
     const titulo = selecionado.reencontrado

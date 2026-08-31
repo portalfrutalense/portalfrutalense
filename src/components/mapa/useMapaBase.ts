@@ -43,10 +43,10 @@ const ZOOM_LABELS_MAX = 17
 // zoom, o Leaflet usava 256px; a mesma cena que era "zoom N" no Leaflet vira
 // "zoom N-1" no MapLibre. Todo valor de zoom deste arquivo é 1 a menos do
 // que era na versão Leaflet, de propósito.
-const ZOOM_SATELITE_RUAS = 15 // trava rotação/inclinação a partir deste zoom (independente do nome de rua)
-const PITCH_PADRAO = 65 // inclinação inicial e a que o mapa retoma ao sair da zona de ruas
-const PITCH_MIN = 45 // faixa de inclinação livre por gesto, fora da zona de ruas
-const PITCH_MAX = 65
+const ZOOM_SATELITE_RUAS = 16 // trava rotação/inclinação a partir deste zoom — mesmo zoom em que o nome de rua aparece (ZOOM_LABELS_MIN)
+const PITCH_PADRAO = 70 // inclinação inicial e a que o mapa retoma ao sair da zona de ruas
+const PITCH_MIN = 50 // faixa de inclinação livre por gesto, fora da zona de ruas
+const PITCH_MAX = 70
 
 // [oeste, sul], [leste, norte] — MapLibre usa [lng, lat], diferente do par
 // [lat, lng] que o Leaflet usava aqui antes.
@@ -70,8 +70,9 @@ function suavizar(t: number): number {
  * classificados, empregos). O mapa é criado uma única vez: trocar de camada
  * apenas troca os markers, preservando posição, zoom e os tiles já baixados.
  *
- * O mapa é sempre satélite — a partir do zoom 15 entra a variante com nomes
- * de rua. Não há modo de ruas puro nem alternância. Diferente do Leaflet (só
+ * O mapa é sempre satélite — a partir do zoom 16 entra a camada com nomes
+ * de rua, e rotação/inclinação travam junto (mesmo zoom). Não há modo de
+ * ruas puro nem alternância. Diferente do Leaflet (só
  * 2D), o MapLibre roda em WebGL com câmera 3D: inclinação (pitch) e rotação
  * (bearing) ficam livres para o usuário ajustar por gesto — arrastar com o
  * botão direito (ou Ctrl+arrastar) no desktop, girar/deslizar com dois dedos
@@ -193,7 +194,11 @@ export function useMapaBase() {
           ...(camadaDeRotulos?.sprite ? { sprite: camadaDeRotulos.sprite } : {}),
         },
         center: [FRUTAL_LNG, FRUTAL_LAT],
-        zoom: window.innerWidth < 768 ? 12 : 13,
+        // Zoom inicial fracionário de propósito — enquadra melhor de cara do
+        // que um valor inteiro daria. O primeiro scroll já "arruma" pro
+        // inteiro mais próximo na direção rolada (ver zoomPassoRef, fórmula
+        // piso/teto), e dali em diante segue sempre em inteiro normal.
+        zoom: window.innerWidth < 768 ? 12.5 : 13.5,
         pitch: PITCH_PADRAO,
         // Fixo em [0, 65] — nunca muda em runtime. A faixa de 0 (zona de
         // ruas) até 65 (padrão) cobre tanto o travado quanto o livre; a
@@ -236,7 +241,7 @@ export function useMapaBase() {
       // Aplica um passo de zoom (+1 ou -1, vindo do scroll ou dos botões
       // +/-), decidindo se é só zoom (dentro da mesma zona) ou se precisa
       // animar zoom + inclinação juntos (cruzando a fronteira da zona de
-      // ruas, zoom 15).
+      // ruas, zoom 16 — ZOOM_SATELITE_RUAS).
       function aplicarPassoDeZoom(alvo: number) {
         if (emTransicaoDeZona) return
         const atual = Math.round(mapa.getZoom())
@@ -269,8 +274,15 @@ export function useMapaBase() {
         }
       }
       zoomPassoRef.current = (direcao: 1 | -1) => {
-        const atual = Math.round(mapa.getZoom())
-        aplicarPassoDeZoom(Math.max(12, Math.min(17, atual + direcao)))
+        // Piso+1 (subindo) / teto-1 (descendo) em vez de arredondar+direção:
+        // pra um zoom já inteiro dá exatamente o mesmo resultado de sempre
+        // (+1/-1), mas cobre também os dois pontos de partida fracionários
+        // (12.5 mobile, 13.5 desktop) sem pular nenhum nível — de 12.5,
+        // subir vai pro 13 (não pro 14, que seria o resultado de arredondar
+        // 12.5 pra 13 e somar mais 1 depois).
+        const zoomAtual = mapa.getZoom()
+        const alvo = direcao > 0 ? Math.floor(zoomAtual) + 1 : Math.ceil(zoomAtual) - 1
+        aplicarPassoDeZoom(Math.max(12, Math.min(17, alvo)))
       }
 
       // Scroll do mouse pula direto de 1 nível inteiro por vez, sem posição
@@ -322,6 +334,19 @@ export function useMapaBase() {
           mapa.touchZoomRotate.enableRotation()
           mapa.easeTo({ pitch: PITCH_PADRAO, duration: 400, easing: suavizar })
           travadoNaZonaDeRuas = false
+        }
+
+        // Pinça (touch) é o único gesto que ainda deixa o zoom pousar num
+        // valor fracionário — diferente do scroll/botões, que já pousam
+        // sempre num inteiro por construção (então esse ajuste é um no-op
+        // pra eles). Deixa o dedo mover livre durante o gesto (sem travar
+        // nada em tempo real) e só assenta suave no inteiro mais próximo
+        // quando o usuário solta, evitando o efeito de imagem borrada de
+        // tile de satélite em zoom fracionário.
+        const zoomAtual = mapa.getZoom()
+        const zoomArredondado = Math.round(zoomAtual)
+        if (Math.abs(zoomAtual - zoomArredondado) > 0.01) {
+          mapa.easeTo({ zoom: zoomArredondado, duration: 200 })
         }
       })
 

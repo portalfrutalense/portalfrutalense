@@ -53,7 +53,7 @@ export default function MapaDemandas() {
   // mais atual do componente conforme ele muda.
 
   // Estado da camada de pets
-  const { pets, cores: coresPets, recarregar: recarregarPets } = usePets()
+  const { pets, cores: coresPets, icones: iconesPets, recarregar: recarregarPets } = usePets()
   const [filtroPet, setFiltroPet] = useState('')
   const [petSelecionado, setPetSelecionado] = useState<Pet | null>(null)
   const [formPet, setFormPet] = useState<{ aberto: boolean; editando: Pet | null }>({ aberto: false, editando: null })
@@ -286,7 +286,7 @@ export default function MapaDemandas() {
   // Markers da camada de pets — desenhados só quando ela está ativa
   useMarkersPets({
     ativo: camada === 'pets',
-    pets, cores: coresPets, filtro: filtroPet,
+    pets, cores: coresPets, icones: iconesPets, filtro: filtroPet,
     mapaObj, maplibreObj, mapaCarregado,
     aoSelecionar: (p) => { setPetSelecionado(p); setSheetState('full') },
   })
