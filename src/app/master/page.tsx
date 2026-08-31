@@ -1305,7 +1305,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
     setCarregando(false)
   }
 
-  useEffect(() => { if (token) carregar() }, [token])
+  useEffect(() => { if (token) { const id = setTimeout(() => carregar(), 0); return () => clearTimeout(id) } }, [token])
 
   async function salvarEdicao(id: string) {
     const t = await getToken()
@@ -1668,7 +1668,10 @@ function MasterChatbot() {
     carregarSemResposta()
   }
 
-  useEffect(() => { carregar(); carregarConfig(); carregarSemResposta() }, [])
+  useEffect(() => {
+    const id = setTimeout(() => { carregar(); carregarConfig(); carregarSemResposta() }, 0)
+    return () => clearTimeout(id)
+  }, [])
 
   function mostrarNotif(msg: string, erro = false) { setNotif(msg); setNotifErro(erro); setTimeout(() => setNotif(''), 5000) }
 
