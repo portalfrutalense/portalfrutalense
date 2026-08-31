@@ -106,7 +106,6 @@ export async function DELETE(req: NextRequest) {
 
   const ehAutoridade = perfil?.role === 'autoridade' || !!entidade
   const temPerfil = !!perfil
-  const temAuth = temPerfil // só tem auth user se tem perfil (novo fluxo)
 
   // Remover categorias e entidade se for autoridade (novo ou legado)
   if (ehAutoridade) {
@@ -143,12 +142,14 @@ export async function DELETE(req: NextRequest) {
     caminhosEmpregos.length > 0 ? supabaseServer.storage.from('empregos-fotos').remove(caminhosEmpregos) : null,
   ].filter(Boolean)).catch(e => console.error('[master/perfis] falha ao limpar fotos do storage:', e))
 
-  await supabaseServer.from('perfis').delete().eq('id', id)
-
-  if (temAuth) {
-    const { error } = await supabaseServer.auth.admin.deleteUser(id)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  // perfis.id tem ON DELETE CASCADE pra auth.users — apagar a conta do Auth
+  // já apaga o perfil na mesma operação (chegou até aqui só quando temPerfil
+  // é true, e temAuth === temPerfil). Um delete manual de "perfis" ANTES
+  // desta chamada existia aqui, sem checar erro nenhum, e deixava a conta do
+  // Auth órfã (sem perfil) se a chamada seguinte falhasse — só dava pra
+  // limpar depois manual no painel do Supabase.
+  const { error } = await supabaseServer.auth.admin.deleteUser(id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ ok: true })
 }

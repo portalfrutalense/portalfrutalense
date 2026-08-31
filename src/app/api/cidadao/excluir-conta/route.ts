@@ -61,16 +61,14 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Não foi possível concluir a exclusão. Tente novamente.' }, { status: 500 })
   }
 
-  // 4. Apagar perfil — redundante com o ON DELETE CASCADE de perfis.id, mas
-  // mantido explícito por segurança; erro aqui também aborta.
-  const { error: erroPerfil } = await supabaseServer.from('perfis').delete().eq('id', user.id)
-  if (erroPerfil) {
-    console.error('[excluir-conta] falha ao apagar perfil, abortando antes de tocar na conta:', erroPerfil)
-    return NextResponse.json({ error: 'Não foi possível concluir a exclusão. Tente novamente.' }, { status: 500 })
-  }
-
-  // 5. Por último, a conta do Auth — pets/classificados/empregos do usuário
-  // são apagados em cascata neste passo.
+  // 4. Por último, a conta do Auth — perfis.id tem ON DELETE CASCADE pra
+  // auth.users, então apagar a conta do Auth já apaga o perfil (e
+  // pets/classificados/empregos do usuário) na mesma operação. Um passo
+  // manual "apagar perfil" ANTES deste existia aqui, mas deixava a conta
+  // do Auth órfã (sem perfil) se essa chamada seguinte falhasse — a conta
+  // ficava presa num estado inconsistente que só dava pra limpar manual
+  // no painel do Supabase. Com um único passo, ou os dois somem juntos
+  // (sucesso), ou nenhum some (falha) — nunca um estado parcial.
   const { error } = await supabaseServer.auth.admin.deleteUser(user.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
