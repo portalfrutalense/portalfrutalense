@@ -66,6 +66,7 @@ export function useMapaBase() {
   const maplibreObj = useRef<typeof import('maplibre-gl') | null>(null)
   const resizeObserverRef = useRef<ResizeObserver | null>(null)
   const containerWheelHandlerRef = useRef<((e: WheelEvent) => void) | null>(null)
+  const zoomPassoRef = useRef<(direcao: 1 | -1) => void>(() => {})
 
   const [mapaCarregado, setMapaCarregado] = useState(false)
 
@@ -103,7 +104,15 @@ export function useMapaBase() {
         center: [FRUTAL_LNG, FRUTAL_LAT],
         zoom: window.innerWidth < 768 ? 12 : 13,
         pitch: PITCH_PADRAO,
-        minPitch: PITCH_MIN,
+        // Fixo em [0, 65] — nunca muda em runtime. A faixa de 0 (zona de
+        // ruas) até 65 (padrão) cobre tanto o travado quanto o livre; a
+        // restrição inferior de 45° fora da zona de ruas é imposta à mão
+        // (ver 'pitchend' abaixo), não por minPitch dinâmico. minPitch/
+        // maxPitch mudando em runtime (tentativa anterior) causava clamp
+        // instantâneo do pitch atual sempre que uma nova animação de
+        // transição começava antes da anterior terminar — a fonte da
+        // instabilidade "ora anima, ora não" relatada em teste.
+        minPitch: 0,
         maxPitch: PITCH_MAX,
         minZoom: 12,
         maxZoom: 17,
@@ -117,6 +126,65 @@ export function useMapaBase() {
         setMapaCarregado(true)
       })
 
+      // Zona de ruas: entrar/sair trava e destrava rotação/inclinação, com
+      // uma única animação de câmera que move zoom + inclinação (+ direção,
+      // ao entrar) juntos — não duas fases (zoom assenta, só depois inclina)
+      // como numa tentativa anterior, que ficava com a sensação de "travado
+      // e só depois anima".
+      let travadoNaZonaDeRuas = false
+      let emTransicaoDeZona = false
+
+      function trocarTileSeNecessario() {
+        const inteiro = Math.round(mapa.getZoom())
+        const fonte = mapa.getSource(FONTE_SATELITE) as RasterTileSource | undefined
+        if (!fonte) return
+        const precisaRuas = inteiro >= ZOOM_SATELITE_RUAS
+        const temRuas = (fonte.tiles?.[0] || '').includes('satellite-streets')
+        if (precisaRuas !== temRuas) fonte.setTiles([precisaRuas ? TILE_SATELITE_RUAS : TILE_SATELITE])
+      }
+
+      // Aplica um passo de zoom (+1 ou -1, vindo do scroll ou dos botões
+      // +/-), decidindo se é só zoom (dentro da mesma zona) ou se precisa
+      // animar zoom + inclinação juntos (cruzando a fronteira da zona de
+      // ruas, zoom 15).
+      function aplicarPassoDeZoom(alvo: number) {
+        if (emTransicaoDeZona) return
+        const atual = Math.round(mapa.getZoom())
+        if (alvo === atual) return
+
+        const alvoNaZona = alvo >= ZOOM_SATELITE_RUAS
+        const atualNaZona = atual >= ZOOM_SATELITE_RUAS
+
+        if (alvoNaZona !== atualNaZona) {
+          emTransicaoDeZona = true
+          mapa.dragRotate.disable()
+          mapa.touchPitch.disable()
+          mapa.touchZoomRotate.disableRotation()
+          if (alvoNaZona) {
+            mapa.easeTo({ zoom: alvo, pitch: 0, bearing: 0, duration: 650, easing: suavizar })
+          } else {
+            mapa.easeTo({ zoom: alvo, pitch: PITCH_PADRAO, duration: 650, easing: suavizar })
+          }
+          mapa.once('moveend', () => {
+            trocarTileSeNecessario()
+            travadoNaZonaDeRuas = alvoNaZona
+            emTransicaoDeZona = false
+            if (!alvoNaZona) {
+              mapa.dragRotate.enable()
+              mapa.touchPitch.enable()
+              mapa.touchZoomRotate.enableRotation()
+            }
+          })
+        } else {
+          mapa.easeTo({ zoom: alvo, duration: 150 })
+          mapa.once('moveend', trocarTileSeNecessario)
+        }
+      }
+      zoomPassoRef.current = (direcao: 1 | -1) => {
+        const atual = Math.round(mapa.getZoom())
+        aplicarPassoDeZoom(Math.max(12, Math.min(17, atual + direcao)))
+      }
+
       // Scroll do mouse pula direto de 1 nível inteiro por vez, sem posição
       // fracionária no meio — o zoom "suave e contínuo" do MapLibre parece
       // bom em vetor, mas em tile de satélite (imagem de resolução fixa por
@@ -125,16 +193,9 @@ export function useMapaBase() {
       // do MapLibre e assume o gesto na mão: cada "tique" de scroll soma ou
       // subtrai 1 do zoom atual (arredondado), sempre pousando num inteiro.
       mapa.scrollZoom.disable()
-      let animandoZoom = false
       function aoRolarScroll(e: WheelEvent) {
         e.preventDefault()
-        if (animandoZoom) return
-        const atual = Math.round(mapa.getZoom())
-        const alvo = Math.max(12, Math.min(17, atual + (e.deltaY < 0 ? 1 : -1)))
-        if (alvo === atual) return
-        animandoZoom = true
-        mapa.easeTo({ zoom: alvo, duration: 150 })
-        mapa.once('moveend', () => { animandoZoom = false })
+        zoomPassoRef.current(e.deltaY < 0 ? 1 : -1)
       }
       // Guardado numa variável nomeada (em vez de um arrow function inline)
       // de propósito: mapa.remove() no cleanup abaixo destrói o mapa, mas
@@ -148,80 +209,41 @@ export function useMapaBase() {
       containerWheelHandlerRef.current = aoRolarScroll
       mapa.getContainer().addEventListener('wheel', aoRolarScroll, { passive: false })
 
-      // Entra/sai a variante com nomes de rua a partir do zoom certo — o
-      // pinça (touch) e os botões +/- do próprio app continuam livres pra
-      // fazer zoom fracionário; isso só garante que a troca de tile aconteça
-      // no nível certo quando (e enquanto) o zoom estiver assentado.
-      //
-      // A partir daí, inclinação e rotação ficam travadas (e animam de volta
-      // pra reto/norte, se estiverem fora disso): os nomes de rua dessa
-      // variante vêm desenhados dentro da própria imagem do tile, não são
-      // uma camada de texto que se mantém sempre reta — inclinado ou girado,
-      // o texto fica ilegível (de lado, de cabeça pra baixo). Abaixo do
-      // zoom de ruas (só satélite puro, sem texto nenhum), pitch e bearing
-      // continuam livres por gesto, sem essa restrição.
-      let travadoNaZonaDeRuas = false
-      // Trava separada da animação em si: sem isso, cada scroll adicional
-      // dentro da mesma zona (comum — o usuário raramente dá só 1 tique)
-      // dispara outro 'zoomend', que via mapa.getPitch() !== 0 reavaliava
-      // "ainda não chegou no alvo" (verdade, a animação anterior nem tinha
-      // terminado) e iniciava outra easeTo por cima da que já estava
-      // rodando — cada nova animação cortava a anterior no meio, dando
-      // exatamente a sensação de "quebrada"/brusca que motivou este ajuste.
-      let animandoTransicaoPitch = false
+      // Rede de segurança para zoom que NÃO passou por aplicarPassoDeZoom —
+      // pinça (touch), que continua com zoom fracionário livre: garante que
+      // o tile de ruas troque no nível certo, e força (sem animação, é
+      // gesto contínuo do usuário) o travamento de rotação/inclinação se o
+      // dedo já cruzou pra dentro da zona de ruas.
       mapa.on('zoomend', () => {
-        const inteiro = Math.round(mapa.getZoom())
-        const fonte = mapa.getSource(FONTE_SATELITE) as RasterTileSource | undefined
-        if (fonte) {
-          const precisaRuas = inteiro >= ZOOM_SATELITE_RUAS
-          const temRuas = (fonte.tiles?.[0] || '').includes('satellite-streets')
-          if (precisaRuas !== temRuas) fonte.setTiles([precisaRuas ? TILE_SATELITE_RUAS : TILE_SATELITE])
-        }
-
-        const zonaDeRuas = inteiro >= ZOOM_SATELITE_RUAS
-        if (zonaDeRuas) {
+        if (emTransicaoDeZona) return
+        trocarTileSeNecessario()
+        const zonaDeRuas = Math.round(mapa.getZoom()) >= ZOOM_SATELITE_RUAS
+        if (zonaDeRuas && !travadoNaZonaDeRuas) {
           mapa.dragRotate.disable()
           mapa.touchPitch.disable()
           mapa.touchZoomRotate.disableRotation()
-          if (!travadoNaZonaDeRuas && !animandoTransicaoPitch && (mapa.getPitch() !== 0 || mapa.getBearing() !== 0)) {
-            // A faixa normal (45–65°) não inclui 0 — setMinPitch/setMaxPitch
-            // clampa o pitch ATUAL na hora se ele ficar fora do novo
-            // intervalo, então apertar pra [0,0] de uma vez só faria pular
-            // pra 0 sem animação nenhuma. Alarga só o mínimo pra 0 primeiro
-            // (intervalo [0,65] cobre tanto o valor atual quanto o alvo),
-            // deixa o easeTo animar suave até 0, e só fecha o intervalo de
-            // vez (maxPitch:0 também) quando a animação termina.
-            animandoTransicaoPitch = true
-            mapa.setMinPitch(0)
-            mapa.easeTo({ pitch: 0, bearing: 0, duration: 600, easing: suavizar })
-            mapa.once('moveend', () => {
-              mapa.setMaxPitch(0)
-              animandoTransicaoPitch = false
-            })
+          if (mapa.getPitch() !== 0 || mapa.getBearing() !== 0) {
+            mapa.easeTo({ pitch: 0, bearing: 0, duration: 400, easing: suavizar })
           }
           travadoNaZonaDeRuas = true
-        } else {
+        } else if (!zonaDeRuas && travadoNaZonaDeRuas) {
           mapa.dragRotate.enable()
           mapa.touchPitch.enable()
           mapa.touchZoomRotate.enableRotation()
-          // Saiu da zona de ruas — se a inclinação tinha sido zerada à força
-          // por causa da trava (não porque o usuário pediu), volta a
-          // inclinar sozinho, em vez de só destravar e deixar reto esperando
-          // o usuário mexer de novo. Mesma lógica de alargar-anima-fecha do
-          // lado de entrar na zona, só que na direção contrária.
-          if (travadoNaZonaDeRuas && !animandoTransicaoPitch) {
-            animandoTransicaoPitch = true
-            mapa.setMaxPitch(PITCH_PADRAO)
-            mapa.easeTo({ pitch: PITCH_PADRAO, duration: 600, easing: suavizar })
-            mapa.once('moveend', () => {
-              mapa.setMinPitch(PITCH_MIN)
-              animandoTransicaoPitch = false
-            })
-          } else if (!travadoNaZonaDeRuas && !animandoTransicaoPitch) {
-            mapa.setMinPitch(PITCH_MIN)
-            mapa.setMaxPitch(PITCH_MAX)
-          }
+          mapa.easeTo({ pitch: PITCH_PADRAO, duration: 400, easing: suavizar })
           travadoNaZonaDeRuas = false
+        }
+      })
+
+      // Fora da zona de ruas, a inclinação livre por gesto (arrastar/pinça)
+      // fica restrita a 45–65°, mesmo com minPitch fixo em 0 — 0 só é
+      // permitido quando é ESTA lógica de zona quem está pilotando. Ao
+      // soltar o gesto, se ficou abaixo de 45 (e não é o caso de estar
+      // travado na zona de ruas), volta suave pra 45.
+      mapa.on('pitchend', () => {
+        if (emTransicaoDeZona || travadoNaZonaDeRuas) return
+        if (mapa.getPitch() < PITCH_MIN) {
+          mapa.easeTo({ pitch: PITCH_MIN, duration: 300, easing: suavizar })
         }
       })
 
@@ -250,5 +272,7 @@ export function useMapaBase() {
     }
   }, [])
 
-  return { mapRef, mapaObj, maplibreObj, mapaCarregado }
+  const zoomPasso = (direcao: 1 | -1) => zoomPassoRef.current(direcao)
+
+  return { mapRef, mapaObj, maplibreObj, mapaCarregado, zoomPasso }
 }

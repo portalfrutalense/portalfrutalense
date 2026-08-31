@@ -35,7 +35,7 @@ export default function MapaDemandas() {
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
 
   // Mapa base compartilhado por todas as camadas — criado uma única vez
-  const { mapRef, mapaObj, maplibreObj, mapaCarregado } = useMapaBase()
+  const { mapRef, mapaObj, maplibreObj, mapaCarregado, zoomPasso } = useMapaBase()
 
   const markersRef = useRef<Marker[]>([])
   const popupAbertoRef = useRef<Popup | null>(null)
@@ -762,12 +762,12 @@ export default function MapaDemandas() {
                 <span style={{ fontSize: '11px', color: '#6b7280' }}>{demandasVisiveis.length} demanda{demandasVisiveis.length !== 1 ? 's' : ''}</span>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   <button
-                    onClick={() => mapaObj.current?.zoomIn()}
+                    onClick={() => zoomPasso(1)}
                     style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', fontSize: '16px', fontWeight: 600, color: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
                     +
                   </button>
                   <button
-                    onClick={() => mapaObj.current?.zoomOut()}
+                    onClick={() => zoomPasso(-1)}
                     style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', fontSize: '16px', fontWeight: 600, color: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
                     −
                   </button>
