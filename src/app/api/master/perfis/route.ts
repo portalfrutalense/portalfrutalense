@@ -116,16 +116,22 @@ export async function DELETE(req: NextRequest) {
   // Se não tem perfil (autoridade legada), encerra aqui
   if (!temPerfil) return NextResponse.json({ ok: true })
 
-  // Levanta as fotos de pets/classificados/empregos do usuário ANTES de
-  // apagar a conta do Auth — essas tabelas usam ON DELETE CASCADE, então
-  // depois disso não teríamos mais como saber quais arquivos eram delas.
+  // Levanta as fotos de tudo que o usuário publicou ANTES de apagar
+  // qualquer linha — pets/classificados/empregos são apagados em cascata
+  // quando a conta do Auth é removida (ON DELETE CASCADE), então depois
+  // disso não teríamos mais como saber quais arquivos eram delas.
   // Mesma limpeza já feita em /api/cidadao/excluir-conta (Bloco 1); faltava
-  // aqui, no caminho em que é o master quem exclui a conta de outra pessoa.
-  const [{ data: pets }, { data: classificados }, { data: empregos }] = await Promise.all([
+  // aqui, no caminho em que é o master quem exclui a conta de outra pessoa
+  // — inclusive demandas, que este caminho nunca chegou a tocar (ver abaixo).
+  const [{ data: demandas }, { data: pets }, { data: classificados }, { data: empregos }] = await Promise.all([
+    supabaseServer.from('demandas').select('foto_url').eq('user_id', id),
     supabaseServer.from('pets').select('foto_url').eq('user_id', id),
     supabaseServer.from('classificados').select('fotos').eq('user_id', id),
     supabaseServer.from('empregos').select('logo_url').eq('user_id', id),
   ])
+  const caminhosDemandas = (demandas || [])
+    .map(d => d.foto_url && caminhoNoBucket(d.foto_url, 'demandas-fotos'))
+    .filter((p): p is string => !!p)
   const caminhosPets = (pets || [])
     .map(p => p.foto_url && caminhoNoBucket(p.foto_url, 'pets-fotos'))
     .filter((p): p is string => !!p)
@@ -137,10 +143,24 @@ export async function DELETE(req: NextRequest) {
     .map(e => e.logo_url && caminhoNoBucket(e.logo_url, 'empregos-fotos'))
     .filter((p): p is string => !!p)
   await Promise.all([
+    caminhosDemandas.length > 0 ? supabaseServer.storage.from('demandas-fotos').remove(caminhosDemandas) : null,
     caminhosPets.length > 0 ? supabaseServer.storage.from('pets-fotos').remove(caminhosPets) : null,
     caminhosClassificados.length > 0 ? supabaseServer.storage.from('classificados-fotos').remove(caminhosClassificados) : null,
     caminhosEmpregos.length > 0 ? supabaseServer.storage.from('empregos-fotos').remove(caminhosEmpregos) : null,
   ].filter(Boolean)).catch(e => console.error('[master/perfis] falha ao limpar fotos do storage:', e))
+
+  // demandas.user_id é ON DELETE SET NULL (não cascade) — diferente de
+  // pets/classificados/empregos, a demanda NÃO some sozinha quando a conta
+  // do Auth é apagada, só perde o vínculo com ela. Sem apagar aqui, a
+  // demanda ficava no banco pra sempre com nome e CPF do cidadão presos
+  // nela, sem dono, sem ninguém mais poder pedir pra apagar depois — exatamente
+  // o mesmo problema que /api/cidadao/excluir-conta já trata (Bloco 1),
+  // nunca replicado neste caminho, em que é o master quem exclui a conta.
+  const { error: erroDemandas } = await supabaseServer.from('demandas').delete().eq('user_id', id)
+  if (erroDemandas) {
+    console.error('[master/perfis] falha ao apagar demandas, abortando antes de tocar na conta:', erroDemandas)
+    return NextResponse.json({ error: 'Não foi possível concluir a exclusão. Tente novamente.' }, { status: 500 })
+  }
 
   // perfis.id tem ON DELETE CASCADE pra auth.users — apagar a conta do Auth
   // já apaga o perfil na mesma operação (chegou até aqui só quando temPerfil

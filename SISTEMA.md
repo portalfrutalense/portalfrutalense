@@ -642,3 +642,37 @@ um padrão só de calling setState/lendo refs dentro do corpo de efeitos — nã
 um bug de comportamento confirmado — e o volume é grande (dezenas de pontos
 em muitos arquivos), corrigir tudo exige sua própria auditoria dedicada, não
 uma correção pontual dentro desta.
+
+### 13.6 Exclusão de conta — ordem insegura e cobertura incompleta (2026-08-30)
+
+Achado ao vivo (não veio de auditoria de bloco): o usuário excluiu um
+cidadão pela tela `/perfil` e o perfil sumiu de `perfis`, mas o e-mail
+continuou em `auth.users`. Causa: tanto `/api/cidadao/excluir-conta`
+quanto `/api/master/perfis` (DELETE) apagavam a linha de `perfis`
+**antes** de chamar `auth.admin.deleteUser()` — se essa chamada seguinte
+falhasse por qualquer motivo, o perfil já tinha sumido e a conta do Auth
+ficava órfã, presa num estado que só dava pra limpar manual no painel do
+Supabase. Corrigido nos dois arquivos: o delete manual de `perfis` foi
+removido (é redundante mesmo — `perfis.id` já tem `ON DELETE CASCADE` pra
+`auth.users`), sobrando só a chamada a `auth.admin.deleteUser()`, que
+apaga os dois juntos ou nenhum dos dois, nunca um estado parcial.
+`perfil/page.tsx` também ganhou um alerta de erro nessa tela — antes uma
+falha na exclusão não mostrava nada, silêncio total.
+
+A mesma investigação revelou que o caminho do **master** excluir a conta
+de um cidadão nunca cobria demandas: como `demandas.user_id` é
+`ON DELETE SET NULL` (não cascade, diferente de pets/classificados/
+empregos), a demanda nunca desaparecia sozinha — ficava no banco pra
+sempre com nome e CPF do cidadão presos nela, sem dono, sem ninguém mais
+poder pedir pra apagar depois. O caminho do próprio cidadão (Bloco 1) já
+tratava isso corretamente; faltava só no caminho do master. Corrigido:
+`/api/master/perfis` agora também apaga as fotos de demandas do Storage e
+as próprias demandas antes de excluir a conta, mesmo padrão do outro
+caminho.
+
+Deixado como está, por decisão do usuário: `whatsapp_conversas` (telefone
++ histórico de mensagens) e `chatbot_sem_resposta` (perguntas enviadas ao
+bot) não são apagadas em nenhum dos dois caminhos — o `user_id` vira nulo,
+mas a linha permanece. Se precisar mudar isso no futuro, ambas usam
+`ON DELETE SET NULL`, então precisariam do mesmo tratamento manual (buscar
+antes, apagar explicitamente) já aplicado a demandas.
