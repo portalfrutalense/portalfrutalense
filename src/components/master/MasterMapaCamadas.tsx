@@ -91,7 +91,7 @@ function ListaModeracao({
   function toggleExpandido(id: string) {
     setExpandidos(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) next.delete(id); else next.add(id)
       return next
     })
   }
@@ -342,6 +342,26 @@ export function MasterPets() {
       cor: !p.ia_decisao ? '#b45309' : p.ia_decisao === 'rejeitada' ? '#dc2626' : '#6b7280',
     },
     acoes: [
+      // Só aparece se ainda não estiver aprovada — cobre tanto "pendente"
+      // (IA nunca analisou, ex: desativada no momento do cadastro) quanto
+      // "rejeitada" (IA analisou e recusou, mas o master discorda). Sem
+      // isso, um registro rejeitado não tinha como voltar a aparecer no
+      // mapa: "Reexibir" só mexe em `oculto`, e o mapa público exige
+      // `oculto = false` E `ia_decisao = 'aprovada'` juntos.
+      ...(p.ia_decisao !== 'aprovada' ? [{
+        rotulo: 'Aprovar',
+        cor: '#166534',
+        executar: async () => {
+          await moderarCamada(client, 'pets', p.id, {
+            oculto: false,
+            ia_decisao: 'aprovada',
+            ia_motivo: 'Aprovada manualmente pelo administrador.',
+            ia_analisado_em: new Date().toISOString(),
+          })
+          avisar('Registro aprovado.')
+          carregar()
+        },
+      }] : []),
       {
         rotulo: p.oculto ? 'Reexibir' : 'Ocultar',
         cor: p.oculto ? '#166534' : '#92400e',
@@ -460,6 +480,20 @@ export function MasterClassificados() {
       cor: !c.ia_decisao ? '#b45309' : c.ia_decisao === 'rejeitada' ? '#dc2626' : '#6b7280',
     },
     acoes: [
+      ...(c.ia_decisao !== 'aprovada' ? [{
+        rotulo: 'Aprovar',
+        cor: '#166534',
+        executar: async () => {
+          await moderarCamada(client, 'classificados', c.id, {
+            oculto: false,
+            ia_decisao: 'aprovada',
+            ia_motivo: 'Aprovada manualmente pelo administrador.',
+            ia_analisado_em: new Date().toISOString(),
+          })
+          avisar('Anúncio aprovado.')
+          carregar()
+        },
+      }] : []),
       {
         rotulo: c.oculto ? 'Reexibir' : 'Ocultar',
         cor: c.oculto ? '#166534' : '#92400e',

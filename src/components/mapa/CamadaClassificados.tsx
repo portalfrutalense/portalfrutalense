@@ -146,9 +146,10 @@ export function useMarkersClassificados({
       // Pin branco pede traço escuro para o ícone continuar legível
       const traco = fundo.toLowerCase() === '#ffffff' ? '#111827' : '#ffffff'
 
-      const miolo = c.fotos?.[0]
-        ? `<img src="${escapeHtml(c.fotos[0])}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />`
-        : svgPinVeiculo(c.tipo_veiculo, cfg?.icone_url, traco)
+      // Por decisão explícita: pin de classificado NUNCA mostra a foto do
+      // veículo — só o ícone configurado pelo master (com fallback pra
+      // silhueta padrão). A foto continua aparecendo no popup, ao clicar.
+      const miolo = svgPinVeiculo(c.tipo_veiculo, cfg?.icone_url, traco)
 
       const el = document.createElement('div')
       el.className = 'pin-classificado'

@@ -161,11 +161,10 @@ export function useMarkersPets({
 
     visiveis.forEach((p) => {
       const cor = cores[chaveConfigPet(p)] || '#4256c8'
-      // Prioridade: foto do próprio registro > ícone que o master enviou
-      // pra essa situação+espécie > silhueta padrão embutida.
-      const miolo = p.foto_url
-        ? `<img src="${escapeHtml(p.foto_url)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />`
-        : svgPinEspecie(p.especie, '#ffffff', icones[chaveConfigPet(p)])
+      // Por decisão explícita: pin de pet NUNCA mostra a foto do registro —
+      // só o ícone configurado pelo master (com fallback pra silhueta
+      // padrão). A foto continua aparecendo no popup, ao clicar.
+      const miolo = svgPinEspecie(p.especie, '#ffffff', icones[chaveConfigPet(p)])
 
       const el = document.createElement('div')
       el.className = 'pin-pet'
@@ -216,7 +215,98 @@ export function useMarkersPets({
       aoSelecionar(pet)
     }
     container.addEventListener('click', aoClicar)
-    return () => { container.removeEventListener('click', aoClicar) }
+
+    // Efeito radar: só perdido/achado (não adoção, não já reencontrado) —
+    // um anel geográfico de verdade (polígono com coordenadas reais, não um
+    // círculo "de tela"), pra ele deitar e acompanhar a perspectiva quando
+    // o mapa inclina/gira, igual qualquer outra geometria do mapa. Um
+    // círculo comum do MapLibre (camada 'circle') NÃO faz isso — o raio
+    // dele é sempre em pixels de tela, sempre "de pé" pra câmera, então
+    // precisa ser desenhado como polígono em vez disso.
+    let animId: number | null = null
+    if (mapaCarregado) {
+      const comRadar = visiveis.filter((p) => !p.reencontrado && (p.tipo === 'perdido' || p.tipo === 'achado'))
+
+      if (comRadar.length > 0) {
+        const CICLO_MS = 2200
+        const RAIO_MIN_M = 150
+        const RAIO_MAX_M = 600
+        // Desfasagem por pet (baseada no id) — evita todos pulsando em
+        // uníssono, fica com cara mais orgânica de radar de verdade.
+        const faseInicial = new Map(comRadar.map((p) => [p.id, [...p.id].reduce((s, c) => s + c.charCodeAt(0), 0) % CICLO_MS]))
+
+        // 32 pontos em vez de 48 — corta um quarto do trabalho de recriar o
+        // polígono a cada quadro, sem diferença visível num anel desse
+        // tamanho na tela.
+        function circuloGeoJSON(lat: number, lng: number, raioMetros: number, pontos = 32): [number, number][] {
+          const coords: [number, number][] = []
+          const distRad = raioMetros / 6371000
+          const latRad = (lat * Math.PI) / 180
+          for (let i = 0; i <= pontos; i++) {
+            const angulo = (i / pontos) * 2 * Math.PI
+            const dLat = distRad * Math.cos(angulo)
+            const dLng = (distRad * Math.sin(angulo)) / Math.cos(latRad)
+            coords.push([lng + (dLng * 180) / Math.PI, lat + (dLat * 180) / Math.PI])
+          }
+          return coords
+        }
+
+        function construirFeatures() {
+          const agora = performance.now()
+          return comRadar.map((p) => {
+            const fase = ((agora + (faseInicial.get(p.id) || 0)) % CICLO_MS) / CICLO_MS
+            const raio = RAIO_MIN_M + (RAIO_MAX_M - RAIO_MIN_M) * fase
+            return {
+              type: 'Feature' as const,
+              properties: { cor: cores[chaveConfigPet(p)] || '#4256c8', opacidade: 1 - fase },
+              geometry: { type: 'Polygon' as const, coordinates: [circuloGeoJSON(p.lat, p.lng, raio)] },
+            }
+          })
+        }
+
+        if (!mapa.getSource('radar-pets')) {
+          mapa.addSource('radar-pets', { type: 'geojson', data: { type: 'FeatureCollection', features: construirFeatures() } })
+          mapa.addLayer({
+            id: 'radar-pets-linha',
+            type: 'line',
+            source: 'radar-pets',
+            paint: {
+              'line-color': ['get', 'cor'],
+              'line-width': 4,
+              'line-opacity': ['get', 'opacidade'],
+            },
+          })
+        }
+
+        // Atualiza no máximo ~15x/s — suave o bastante pro pulso (ciclo de
+        // 2.2s, não precisa de mais que isso), sem pesar no mapa 3D já
+        // carregado. Também não empilha requestAnimationFrame durante a
+        // pausa entre atualizações — só agenda o próximo quando realmente
+        // vai atualizar, em vez de rodar a 60fps só checando o relógio.
+        const INTERVALO_MS = 65
+        function agendar() {
+          animId = window.setTimeout(() => {
+            try {
+              const fonte = mapa.getSource('radar-pets') as import('maplibre-gl').GeoJSONSource | undefined
+              fonte?.setData({ type: 'FeatureCollection', features: construirFeatures() })
+            } catch (erro) {
+              // Nunca deixa uma exceção aqui matar o loop de animação em
+              // silêncio pra sempre — loga e tenta de novo no próximo ciclo.
+              console.error('[radar-pets] erro ao atualizar anel:', erro)
+            }
+            agendar()
+          }, INTERVALO_MS)
+        }
+        agendar()
+      }
+    }
+
+    return () => {
+      container.removeEventListener('click', aoClicar)
+      if (animId !== null) window.clearTimeout(animId)
+      if (mapa.getLayer('radar-pets-linha')) mapa.removeLayer('radar-pets-linha')
+      if (mapa.getSource('radar-pets')) mapa.removeSource('radar-pets')
+    }
   }, [ativo, pets, cores, icones, filtro, mapaCarregado]) // eslint-disable-line react-hooks/exhaustive-deps
 }
 

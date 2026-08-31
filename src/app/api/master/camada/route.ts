@@ -21,8 +21,8 @@ const BUCKETS: Record<Camada, string> = { pets: 'pets-fotos', classificados: 'cl
 
 /** Só o que a moderação do master de fato precisa mexer — nada de conteúdo aqui. */
 const CAMPOS_PERMITIDOS: Record<Camada, string[]> = {
-  pets: ['oculto'],
-  classificados: ['oculto'],
+  pets: ['oculto', 'ia_decisao', 'ia_motivo', 'ia_analisado_em'],
+  classificados: ['oculto', 'ia_decisao', 'ia_motivo', 'ia_analisado_em'],
   empregos: ['oculto', 'encerrada'],
 }
 

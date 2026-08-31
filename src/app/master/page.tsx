@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '@/components/AuthProvider'
 import MasterCamadas from '@/components/master/MasterCamadas'
 import { MasterPets, MasterClassificados, MasterEmpregos } from '@/components/master/MasterMapaCamadas'
-import { CategoriaMapa } from '@/types'
+import { CategoriaMapa, Demanda, DemandaEntidade } from '@/types'
 
 type SecaoMaster = 'dashboard' | 'demandas' | 'pets' | 'classificados' | 'empregos' | 'chatbot' | 'perfis'
 type SubSecaoPerfis = 'cidadao' | 'autoridade' | 'empresa'
@@ -440,10 +440,26 @@ export default function MasterPage() {
                   <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>{configurandoPets ? 'Configurações' : 'Achei/Perdi um Pet'}</h1>
                   <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>{configurandoPets ? 'Cores dos pins e análise automática.' : 'Registros de pets perdidos e encontrados.'}</p>
                 </div>
-                <button onClick={() => { setConfigurandoPets(v => !v); setAbaConfigPets('pins') }}
-                  style={{ fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer' }}>
-                  {configurandoPets ? 'Voltar' : 'Configurar'}
-                </button>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {!configurandoPets && (
+                    <>
+                      {avisoReprocessar && (
+                        <span style={{ fontSize: '12px', color: '#6b7280' }}>{avisoReprocessar}</span>
+                      )}
+                      <button
+                        onClick={reprocessarPendentes}
+                        disabled={reprocessando}
+                        title="Demanda/pet/classificado às vezes fica preso em 'pendente' se a análise de IA falhar ao ser criado. Isso reenvia tudo que está travado há mais de 10 minutos."
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: reprocessando ? 'wait' : 'pointer', opacity: reprocessando ? 0.6 : 1 }}>
+                        {reprocessando ? 'Reprocessando...' : 'Reprocessar pendentes travados'}
+                      </button>
+                    </>
+                  )}
+                  <button onClick={() => { setConfigurandoPets(v => !v); setAbaConfigPets('pins') }}
+                    style={{ fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer' }}>
+                    {configurandoPets ? 'Voltar' : 'Configurar'}
+                  </button>
+                </div>
               </div>
               {!configurandoPets && <MasterPets />}
               {configurandoPets && (
@@ -474,10 +490,26 @@ export default function MasterPage() {
                   <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>{configurandoClassificados ? 'Configurações' : 'Classificados'}</h1>
                   <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>{configurandoClassificados ? 'Pins por tipo de veículo e análise automática.' : 'Anúncios de veículos publicados pelos cidadãos.'}</p>
                 </div>
-                <button onClick={() => { setConfigurandoClassificados(v => !v); setAbaConfigClassificados('pins') }}
-                  style={{ fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer' }}>
-                  {configurandoClassificados ? 'Voltar' : 'Configurar'}
-                </button>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {!configurandoClassificados && (
+                    <>
+                      {avisoReprocessar && (
+                        <span style={{ fontSize: '12px', color: '#6b7280' }}>{avisoReprocessar}</span>
+                      )}
+                      <button
+                        onClick={reprocessarPendentes}
+                        disabled={reprocessando}
+                        title="Demanda/pet/classificado às vezes fica preso em 'pendente' se a análise de IA falhar ao ser criado. Isso reenvia tudo que está travado há mais de 10 minutos."
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: reprocessando ? 'wait' : 'pointer', opacity: reprocessando ? 0.6 : 1 }}>
+                        {reprocessando ? 'Reprocessando...' : 'Reprocessar pendentes travados'}
+                      </button>
+                    </>
+                  )}
+                  <button onClick={() => { setConfigurandoClassificados(v => !v); setAbaConfigClassificados('pins') }}
+                    style={{ fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer' }}>
+                    {configurandoClassificados ? 'Voltar' : 'Configurar'}
+                  </button>
+                </div>
               </div>
               {!configurandoClassificados && <MasterClassificados />}
               {configurandoClassificados && (
@@ -627,7 +659,8 @@ export default function MasterPage() {
                                   </label>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     {categorias.find(x => x.id === editandoCat)?.icone_url && (
-                                      <img src={categorias.find(x => x.id === editandoCat)!.icone_url} style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      <img src={categorias.find(x => x.id === editandoCat)!.icone_url} alt="" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
                                     )}
                                     <input type="file" accept="image/png,image/webp,image/svg+xml" onChange={(e) => setEditCatIcone(e.target.files?.[0] || null)} style={{ fontSize: '13px' }} />
                                   </div>
@@ -698,9 +731,16 @@ function sentenceCase(str: string | null | undefined): string {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
+// Vínculos e demandas trazidos por /api/master/demanda têm alguns campos a
+// mais que o tipo compartilhado (@/types) não modela — rastreio de e-mail
+// por vínculo e da própria demanda. Extensão local em vez de mexer no tipo
+// compartilhado, que outras telas (fora do painel master) também usam.
+type VinculoAdmin = DemandaEntidade & { resposta_ip?: string; email_resend_id?: string; email_status?: string }
+type DemandaAdmin = Omit<Demanda, 'vinculos'> & { email_resend_id?: string; email_status?: string; morador_email?: string; vinculos?: VinculoAdmin[] }
+
 function MasterDemandas({ token }: { token: string | null }) {
   const sbClient = createClient()
-  const [demandas, setDemandas] = useState<any[]>([])
+  const [demandas, setDemandas] = useState<DemandaAdmin[]>([])
   const [carregandoDemandas, setCarregandoDemandas] = useState(true)
   const [filtro, setFiltro] = useState('todos')
   const [notif, setNotif] = useState('')
@@ -709,7 +749,7 @@ function MasterDemandas({ token }: { token: string | null }) {
   function toggleExpandida(id: string) {
     setExpandidas(prev => {
       const novo = new Set(prev)
-      novo.has(id) ? novo.delete(id) : novo.add(id)
+      if (novo.has(id)) novo.delete(id); else novo.add(id)
       return novo
     })
   }
@@ -735,7 +775,6 @@ function MasterDemandas({ token }: { token: string | null }) {
         if (res.ok) setDemandas(await res.json())
         setCarregandoDemandas(false)
       })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
   function mostrarNotif(msg: string, erro = false) {
@@ -751,7 +790,7 @@ function MasterDemandas({ token }: { token: string | null }) {
       body: JSON.stringify({ demanda_id: id }),
     })
     const d = await res.json()
-    d.ok ? mostrarNotif('Link reenviado com sucesso.') : mostrarNotif(d.error, true)
+    if (d.ok) mostrarNotif('Link reenviado com sucesso.'); else mostrarNotif(d.error, true)
   }
 
   async function moderarDemanda(id: string, acao: 'aprovar' | 'rejeitar' | 'ocultar' | 'reexibir' | 'reaprovar') {
@@ -892,7 +931,7 @@ function MasterDemandas({ token }: { token: string | null }) {
         </div>
       )}
 
-      {filtradas.map((d: any) => {
+      {filtradas.map((d) => {
         const cor = statusCor[d.status] || { bg: '#f9fafb', color: '#6b7280' }
         const editando = editandoId === d.id
         const menuAberto = menuAbertoDemandaId === d.id
@@ -1078,8 +1117,8 @@ function MasterDemandas({ token }: { token: string | null }) {
               </div>
 
               {/* Respostas das autoridades (novo sistema multi-entidade) */}
-              {(d.vinculos?.filter((v: any) => v.resposta) ?? []).length > 0 ? (
-                d.vinculos.filter((v: any) => v.resposta).map((v: any) => (
+              {(d.vinculos?.filter((v) => v.resposta) ?? []).length > 0 ? (
+                d.vinculos!.filter((v) => v.resposta).map((v) => (
                   <div key={v.id} style={{ fontSize: '12px', color: '#166534', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 10px', lineHeight: 1.5 }}>
                     <strong>{v.entidade?.nome || 'Autoridade'}:</strong> {v.resposta}
                     <div style={{ marginTop: '4px', fontSize: '11px', color: '#9ca3af', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -1111,7 +1150,7 @@ function MasterDemandas({ token }: { token: string | null }) {
                 // Pega o melhor status dos vínculos (prioriza entregue > atrasado > bounce > reclamado > enviado)
                 const prioridade = ['entregue', 'bounce', 'reclamado', 'atrasado', 'enviado']
                 const statusVinculo = d.vinculos?.length
-                  ? prioridade.find(p => d.vinculos.some((v: any) => v.email_resend_id && v.email_status === p)) ?? null
+                  ? prioridade.find(p => d.vinculos!.some((v) => v.email_resend_id && v.email_status === p)) ?? null
                   : null
                 const status = statusDemanda ?? statusVinculo
                 if (!status) return null
@@ -1143,13 +1182,13 @@ function MasterIAGenerico({ configId, textoAtivo, promptPadrao, descRigor }: {
   descRigor: Record<string, string>
 }) {
   const sbClient = createClient()
-  const [config, setConfig] = useState<any>(null)
+  const [config, setConfig] = useState<{ ativo: boolean; rigor: string; prompt: string } | null>(null)
   const [salvando, setSalvando] = useState(false)
   const [notif, setNotif] = useState('')
   const [erro, setErro] = useState('')
 
   useEffect(() => {
-    sbClient.from('ia_config').select('*').eq('id', configId).maybeSingle().then(({ data, error }: any) => {
+    sbClient.from('ia_config').select('*').eq('id', configId).maybeSingle().then(({ data, error }) => {
       if (error) { setErro('Erro ao carregar configurações da IA.'); return }
       setConfig(data || { ativo: true, rigor: 'moderado', prompt: promptPadrao })
     })
@@ -1225,9 +1264,24 @@ const LABEL_PERFIS: Record<SubSecaoPerfis, string> = {
   empresa:    'Empresas',
 }
 
+// Mistura perfis de verdade (tabela perfis) com autoridades legadas (só em
+// entidades, sem perfil ainda) — por isso os campos opcionais e o `_legado`.
+interface PerfilLinha {
+  id: string
+  nome?: string
+  cpf?: string
+  role?: string
+  email?: string
+  whatsapp?: string
+  cargo?: string
+  data_nascimento?: string
+  bloqueado?: boolean
+  _legado?: boolean
+}
+
 function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: SubSecaoPerfis | null }) {
   const sbClient = createClient()
-  const [perfis, setPerfis] = useState<any[]>([])
+  const [perfis, setPerfis] = useState<PerfilLinha[]>([])
   const [carregando, setCarregando] = useState(true)
   const [busca, setBusca] = useState('')
   const [menuAbertoId, setMenuAbertoId] = useState<string | null>(null)
@@ -1247,7 +1301,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
   const [novoCargo, setNovoCargo] = useState('')
   const [novasCats, setNovasCats] = useState<string[]>([])
   const [salvandoNovo, setSalvandoNovo] = useState(false)
-  const [categorias, setCategorias] = useState<any[]>([])
+  const [categorias, setCategorias] = useState<{ id: string; nome: string }[]>([])
   const [catEntidades, setCatEntidades] = useState<Record<string, string[]>>({})
 
   async function getToken() {
@@ -1274,19 +1328,19 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
     const dataE = resE.ok ? await resE.json() : []
     if (resP.ok) {
       // Mesclar: autoridades antigas (só em entidades, sem perfil com role=autoridade)
-      const perfisIds = new Set(dataP.map((p: any) => p.id))
+      const perfisIds = new Set(dataP.map((p: { id: string }) => p.id))
       const entidadesOrfas = (dataE || [])
-        .filter((e: any) => !perfisIds.has(e.id))
-        .map((e: any) => ({ ...e, role: 'autoridade', _legado: true }))
+        .filter((e: { id: string }) => !perfisIds.has(e.id))
+        .map((e: { id: string }) => ({ ...e, role: 'autoridade', _legado: true }))
       setPerfis([...dataP, ...entidadesOrfas])
 
       // Carregar categorias de todas as autoridades
       const todasAuts = [
-        ...dataP.filter((p: any) => p.role === 'autoridade'),
+        ...dataP.filter((p: { role?: string }) => p.role === 'autoridade'),
         ...entidadesOrfas,
       ]
       if (todasAuts.length > 0) {
-        const ids = todasAuts.map((a: any) => a.id)
+        const ids = todasAuts.map((a: { id: string }) => a.id)
         const { data: catEnt } = await sbClient
           .from('categoria_entidades')
           .select('entidade_id, categoria_id')
@@ -1305,7 +1359,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
     setCarregando(false)
   }
 
-  useEffect(() => { if (token) { const id = setTimeout(() => carregar(), 0); return () => clearTimeout(id) } }, [token])
+  useEffect(() => { if (token) { const id = setTimeout(() => carregar(), 0); return () => clearTimeout(id) } }, [token]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function salvarEdicao(id: string) {
     const t = await getToken()
@@ -1355,8 +1409,9 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
       if (!res.ok || !d.ok) { mostrarNotif(d.error || `Erro ${res.status}`, true); return }
       mostrarNotif('Excluído com sucesso.')
       carregar()
-    } catch (e: any) {
-      mostrarNotif('Erro inesperado: ' + e.message, true)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'erro desconhecido'
+      mostrarNotif('Erro inesperado: ' + msg, true)
     }
   }
 
@@ -1490,7 +1545,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
                           Editar
                         </button>
                         {!p._legado && (
-                          <button onClick={() => { bloquear(p.id, p.bloqueado); setMenuAbertoId(null) }}
+                          <button onClick={() => { bloquear(p.id, !!p.bloqueado); setMenuAbertoId(null) }}
                             style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: p.bloqueado ? '#166534' : '#92400e', background: 'none', border: 'none', cursor: 'pointer' }}>
                             {p.bloqueado ? 'Liberar acesso' : 'Bloquear acesso'}
                           </button>
@@ -1599,7 +1654,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
 function MasterChatbot() {
   const sbClient = createClient()
   const [aba, setAba] = useState<'base' | 'config' | 'sem_resposta'>('base')
-  const [entradas, setEntradas] = useState<any[]>([])
+  const [entradas, setEntradas] = useState<{ id: string; titulo: string; conteudo: string; ativo?: boolean }[]>([])
   const [novoTitulo, setNovoTitulo] = useState('')
   const [novoConteudo, setNovoConteudo] = useState('')
   const [editandoId, setEditandoId] = useState<string | null>(null)
@@ -1617,15 +1672,17 @@ function MasterChatbot() {
   const [cfgPromptExtra, setCfgPromptExtra] = useState('')
   const [salvandoConfig, setSalvandoConfig] = useState(false)
   // Sem resposta
-  const [semResposta, setSemResposta] = useState<any[]>([])
+  const [semResposta, setSemResposta] = useState<{ id: string; pergunta: string; resposta_bot: string; created_at: string }[]>([])
 
   function toggleExpandir(id: string) {
     setExpandidos(prev => {
       const novo = new Set(prev)
-      novo.has(id) ? novo.delete(id) : novo.add(id)
+      if (novo.has(id)) novo.delete(id); else novo.add(id)
       return novo
     })
   }
+
+  function mostrarNotif(msg: string, erro = false) { setNotif(msg); setNotifErro(erro); setTimeout(() => setNotif(''), 5000) }
 
   async function carregar() {
     const { data, error } = await sbClient.from('chatbot_base').select('*').order('created_at', { ascending: false })
@@ -1671,9 +1728,7 @@ function MasterChatbot() {
   useEffect(() => {
     const id = setTimeout(() => { carregar(); carregarConfig(); carregarSemResposta() }, 0)
     return () => clearTimeout(id)
-  }, [])
-
-  function mostrarNotif(msg: string, erro = false) { setNotif(msg); setNotifErro(erro); setTimeout(() => setNotif(''), 5000) }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function adicionar(e: React.FormEvent) {
     e.preventDefault()
@@ -1771,7 +1826,7 @@ function MasterChatbot() {
             Nenhuma entrada cadastrada ainda.
           </div>
         )}
-        {entradas.map((e: any) => (
+        {entradas.map((e) => (
           <div key={e.id} style={{ background: 'white', borderRadius: '10px', border: `1px solid ${e.ativo ? '#e5e7eb' : '#f9fafb'}`, padding: '16px', opacity: e.ativo ? 1 : 0.55 }}>
             {editandoId === e.id ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1797,7 +1852,7 @@ function MasterChatbot() {
                     <span style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>{e.titulo}</span>
                   </button>
                   <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-                    <button onClick={() => toggleAtivo(e.id, e.ativo)}
+                    <button onClick={() => toggleAtivo(e.id, !!e.ativo)}
                       style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', border: 'none', cursor: 'pointer', background: e.ativo ? '#f9fafb' : '#f9fafb', color: e.ativo ? '#166534' : '#6b7280' }}>
                       {e.ativo ? 'Ativo' : 'Inativo'}
                     </button>
@@ -1861,11 +1916,11 @@ function MasterChatbot() {
               Nenhuma pergunta sem resposta registrada.
             </div>
           )}
-          {semResposta.map((r: any) => (
+          {semResposta.map((r) => (
             <div key={r.id} style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>"{r.pergunta}"</span>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>&quot;{r.pergunta}&quot;</span>
                   <span style={{ fontSize: '11px', color: '#6b7280' }}>{new Date(r.created_at).toLocaleString('pt-BR')}</span>
                 </div>
                 <button onClick={() => excluirSemResposta(r.id)}

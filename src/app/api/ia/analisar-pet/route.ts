@@ -42,6 +42,20 @@ export async function POST(req: NextRequest) {
 
     const tipoRotulo = pet.tipo === 'perdido' ? 'Pet perdido' : pet.tipo === 'adocao' ? 'Pet para adoção' : 'Pet achado na rua'
 
+    // Contato é opcional pra "achado na rua" — o formulário já não exige
+    // (FormPet.tsx só exige contato quando tipo !== 'achado'), porque um
+    // "achado" pode ser só um aviso de avistamento ("vi um cachorro
+    // abandonado na esquina tal"), sem o autor estar se oferecendo pra
+    // cuidar do animal ou ser procurado por ninguém. Sem deixar isso
+    // explícito aqui, a IA concluía sozinha que falta contato é motivo de
+    // rejeição — rejeitando um caso que o próprio sistema já considera
+    // válido sem contato.
+    const contatoTexto = pet.contato
+      ? pet.contato
+      : pet.tipo === 'achado'
+        ? 'Não informado (opcional pra "achado na rua" — pode ser só um aviso de avistamento, sem o autor se responsabilizar pelo animal)'
+        : 'Não informado'
+
     const prompt = `${promptBase}
 
 ${instrucaoRigor}
@@ -54,7 +68,10 @@ Registro recebido:
 - Cor: ${pet.cor || 'Não informada'}
 - Porte: ${pet.porte || 'Não informado'}
 - Descrição: ${pet.descricao}
-- Contato: ${pet.contato}
+- Contato: ${contatoTexto}
+
+IMPORTANTE: contato é opcional quando o tipo é "Pet achado na rua" — não
+rejeite um registro desse tipo só por falta de contato.
 
 Responda APENAS com um JSON no formato:
 {"decisao": "aprovada" ou "rejeitada", "motivo": "motivo breve em português"}

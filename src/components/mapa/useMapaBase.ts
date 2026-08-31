@@ -260,7 +260,18 @@ export function useMapaBase() {
           } else {
             mapa.easeTo({ zoom: alvo, pitch: PITCH_PADRAO, duration: 650, easing: suavizar })
           }
-          mapa.once('moveend', () => {
+          // Sem isso, se por qualquer motivo o 'moveend' dessa animação
+          // nunca disparar (ex.: interrompida por outra easeTo antes de
+          // terminar, num caso não previsto), emTransicaoDeZona fica preso
+          // em true pra sempre — todo zoom novo passa a ser ignorado no
+          // "if (emTransicaoDeZona) return" lá em cima, o mapa parece
+          // travado. destravar() roda uma vez só (por qualquer um dos dois
+          // gatilhos que chegar primeiro) e cancela o outro.
+          let destravou = false
+          function destravar() {
+            if (destravou) return
+            destravou = true
+            window.clearTimeout(timeoutSeguranca)
             travadoNaZonaDeRuas = alvoNaZona
             emTransicaoDeZona = false
             if (!alvoNaZona) {
@@ -268,7 +279,9 @@ export function useMapaBase() {
               mapa.touchPitch.enable()
               mapa.touchZoomRotate.enableRotation()
             }
-          })
+          }
+          mapa.once('moveend', destravar)
+          const timeoutSeguranca = window.setTimeout(destravar, 1500)
         } else {
           mapa.easeTo({ zoom: alvo, duration: 150 })
         }
