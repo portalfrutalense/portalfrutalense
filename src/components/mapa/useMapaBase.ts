@@ -91,7 +91,7 @@ export function useMapaBase() {
         zoom: window.innerWidth < 768 ? 12 : 13,
         pitch: 55,
         minZoom: 12,
-        maxZoom: 18,
+        maxZoom: 17,
         maxBounds: LIMITES_FRUTAL,
         attributionControl: false,
       })
@@ -115,7 +115,7 @@ export function useMapaBase() {
         e.preventDefault()
         if (animandoZoom) return
         const atual = Math.round(mapa.getZoom())
-        const alvo = Math.max(12, Math.min(18, atual + (e.deltaY < 0 ? 1 : -1)))
+        const alvo = Math.max(12, Math.min(17, atual + (e.deltaY < 0 ? 1 : -1)))
         if (alvo === atual) return
         animandoZoom = true
         mapa.easeTo({ zoom: alvo, duration: 150 })
