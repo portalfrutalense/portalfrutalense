@@ -655,7 +655,13 @@ export default function MapaDemandas() {
                       <button
                         onClick={async () => {
                           if (!confirm('Marcar esta demanda como resolvida?')) return
-                          await supabase.from('demandas').update({ status: 'resolvida' }).eq('id', demandaSelecionada.id)
+                          const { data: { session } } = await supabase.auth.getSession()
+                          const res = await fetch('/api/cidadao/marcar-resolvida', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+                            body: JSON.stringify({ demanda_id: demandaSelecionada.id }),
+                          })
+                          if (!res.ok) return
                           setDemandas(prev => prev.map(d => d.id === demandaSelecionada.id ? { ...d, status: 'resolvida' } : d))
                           setDemandaSelecionada(prev => prev ? { ...prev, status: 'resolvida' } : null)
                         }}

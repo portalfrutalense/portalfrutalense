@@ -586,6 +586,45 @@ com os arquivos do repositório deixaria essas 3 colunas faltando.
 do Supabase e as 3 colunas foram confirmadas (`text`, nullable) via
 `information_schema.columns`.
 
+### 13.5 Conferência do `fix_rls_seguranca_2026-08-30.sql` (§13) — achado adicional
+
+O usuário rodou uma query pra confirmar se as duas correções críticas de
+`fix_rls_seguranca_2026-08-30.sql` estavam de pé em produção. Confirmado
+que **estão** (nenhum `SELECT` liberado em `morador_cpf`/`magic_token`/
+`resposta_ip`/`email_resend_id`/`email_status`/`entidades.email` pra
+`anon`/`authenticated`; nenhum `UPDATE` liberado em `oculto`/`ia_decisao`/
+`ia_motivo`/`ia_analisado_em`/`expira_em` de pets/classificados/empregos
+pra `authenticated`).
+
+A mesma conferência revelou um achado novo, fora do escopo do que aquele
+arquivo corrige: **`demandas` e `demanda_entidades` nunca tiveram o `UPDATE`
+restringido por coluna** — só o `SELECT` (§13) e o `UPDATE` de
+pets/classificados/empregos (§13, CRÍTICO 2) foram tratados. O GRANT de
+coluna ainda liberava `UPDATE` em `magic_token`, `magic_token_expira_em`,
+`resposta_ip`, `email_resend_id` e `email_status` de `demandas` pra
+`anon`/`authenticated`, e o mesmo conjunto em `demanda_entidades`. Pra
+`demanda_entidades` isso já era inofensivo na prática (a única policy de
+RLS que permite `UPDATE` ali exige `service_role` — nenhuma linha é
+alterável por `authenticated`/`anon` de qualquer forma), mas pra
+`demandas` a policy `"Usuário resolve própria demanda"` permite `UPDATE`
+por `auth.uid() = user_id` sem restringir qual coluna — um cidadão logado
+podia, via chamada direta à API do Supabase, sobrescrever o
+`magic_token`/`resposta_ip`/`email_status` da própria demanda.
+
+Também encontrado, mesma auditoria: `MapaDemandas.tsx` (popup do mapa,
+botão "Marcar como resolvida") ainda escrevia direto do client
+(`supabase.from('demandas').update({status:'resolvida'})`) — mesmo bug já
+corrigido em `/perfil` (§13.4), só que numa segunda tela que passou batido
+naquela correção. Migrado pra `POST /api/cidadao/marcar-resolvida`, igual
+ao `/perfil`.
+
+**Pendência SQL**: rode `supabase/fix_update_demandas_2026-08-30.sql` no
+SQL Editor do Supabase — restringe `UPDATE` de `demandas` pra só a coluna
+`status` (o único campo que a policy de RLS ainda precisa liberar pro
+próprio cidadão, já limitado em valor pelo gatilho `restringir_status_demanda`)
+e revoga `UPDATE` de `demanda_entidades` pra `anon`/`authenticated` por
+completo (nenhum fluxo do app escreve ali fora do backend).
+
 **Achado novo, não corrigido nesta sessão** — fora do escopo desta rodada:
 rodar `npx eslint` direto (fora do `next build`) nos arquivos de `src/app/`
 revela dezenas de erros reais de regras `react-hooks` mais rígidas
