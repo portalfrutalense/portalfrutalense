@@ -85,18 +85,27 @@ export function useMapaBase() {
         setMapaCarregado(true)
       })
 
-      // Entra/sai a variante com nomes de rua a partir do zoom certo. O
-      // Leaflet forçava o zoom a saltar pra níveis fixos (13/14/15/16/18) —
-      // fazia sentido lá porque o tile ficava borrado em zoom fracionário
-      // (DOM/CSS puro). O MapLibre renderiza os mesmos tiles raster via
-      // WebGL, com interpolação nativa — zoom fracionário fica nítido, e
-      // forçar o salto a cada scroll só deixava o gesto mais brusco/travado
-      // sem nenhum ganho real. O zoom agora fica livre e contínuo.
+      // Assenta em zoom inteiro ao parar de mexer — tile de satélite é uma
+      // imagem de resolução fixa por nível de zoom; num zoom fracionário
+      // (ex: 16.7), o MapLibre pega o tile do nível inteiro mais próximo e
+      // estica ele via GPU pra caber, o que borra a imagem visivelmente,
+      // mesmo sem inclinação nenhuma. O Leaflet evitava isso saltando pra um
+      // grupo de só 5 níveis fixos (13/14/15/16/18, nem o 17 tinha) — só que
+      // isso deixava o gesto de zoom brusco/travado. Aqui assenta em
+      // QUALQUER zoom inteiro (granularidade bem mais fina), então o gesto
+      // continua suave enquanto o usuário mexe, e só "trava" pro nível
+      // inteiro mais próximo quando ele solta — sem o borrão de fractional
+      // zoom parado, sem o salto brusco de poucos níveis esparsos.
       mapa.on('zoomend', () => {
         const z = mapa.getZoom()
+        const inteiro = Math.round(z)
+        if (Math.abs(z - inteiro) > 0.01) {
+          mapa.setZoom(inteiro)
+          return // o próximo zoomend cuida da troca satélite/ruas
+        }
         const fonte = mapa.getSource(FONTE_SATELITE) as RasterTileSource | undefined
         if (!fonte) return
-        const precisaRuas = z >= ZOOM_SATELITE_RUAS
+        const precisaRuas = inteiro >= ZOOM_SATELITE_RUAS
         const temRuas = (fonte.tiles?.[0] || '').includes('satellite-streets')
         if (precisaRuas === temRuas) return
         fonte.setTiles([precisaRuas ? TILE_SATELITE_RUAS : TILE_SATELITE])
