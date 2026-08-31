@@ -65,7 +65,13 @@ export function useEmpregos() {
   }
 
   useEffect(() => {
-    recarregar()
+    supabase
+      .from('empregos')
+      .select('*')
+      .eq('oculto', false)
+      .eq('encerrada', false)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setEmpregos((data || []) as Emprego[]))
     supabase.from('camadas_config').select('*').eq('chave', CHAVE_VAGA).maybeSingle()
       .then(({ data }) => { if (data) setConfig(data as CamadaConfig) })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps

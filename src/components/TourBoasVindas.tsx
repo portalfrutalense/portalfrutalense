@@ -14,9 +14,11 @@ export default function TourBoasVindas() {
   const [visivel, setVisivel] = useState(false)
 
   useEffect(() => {
-    try {
-      if (!localStorage.getItem('tour_visto')) setVisivel(true)
-    } catch {}
+    Promise.resolve().then(() => {
+      try {
+        if (!localStorage.getItem('tour_visto')) setVisivel(true)
+      } catch {}
+    })
   }, [])
 
   function fechar() {

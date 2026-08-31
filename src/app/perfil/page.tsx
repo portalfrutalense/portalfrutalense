@@ -44,17 +44,16 @@ export default function PerfilPage() {
 
   useEffect(() => {
     if (!user || ehAutoridade) return
-    async function buscar() {
-      setCarregandoDemandas(true)
-      const { data } = await supabase
-        .from('demandas')
-        .select('id, user_id, morador_nome, lat, lng, categoria_id, entidade_id, descricao, endereco_label, status, resposta, ia_motivo, created_at, protocolo, categoria:categorias_mapa(*), entidade:entidades(nome, cargo), vinculos:demanda_entidades(id, status, resposta, respondida_em, entidade:entidades(nome, cargo))')
-        .eq('user_id', user!.id)
-        .order('created_at', { ascending: false })
-      setDemandas((data || []) as unknown as Demanda[])
-      setCarregandoDemandas(false)
-    }
-    buscar()
+    Promise.resolve().then(() => setCarregandoDemandas(true))
+    supabase
+      .from('demandas')
+      .select('id, user_id, morador_nome, lat, lng, categoria_id, entidade_id, descricao, endereco_label, status, resposta, ia_motivo, created_at, protocolo, categoria:categorias_mapa(*), entidade:entidades(nome, cargo), vinculos:demanda_entidades(id, status, resposta, respondida_em, entidade:entidades(nome, cargo))')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setDemandas((data || []) as unknown as Demanda[])
+        setCarregandoDemandas(false)
+      })
   }, [user, ehAutoridade])
 
   async function marcarResolvida(id: string) {
@@ -322,7 +321,16 @@ function AtividadesAutoridade() {
     setCarregando(false)
   }
 
-  useEffect(() => { buscar() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) =>
+      fetch('/api/autoridade/demandas', { headers: { 'Authorization': `Bearer ${session?.access_token}` } })
+        .then(async (res) => {
+          if (res.ok) setVinculos(await res.json())
+          setCarregando(false)
+        })
+    )
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function responder(vinculoId: string) {
     const texto = (respostaTexto[vinculoId] || '').trim()

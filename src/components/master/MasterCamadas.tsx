@@ -16,12 +16,11 @@ export default function MasterCamadas({ camada: camadaFiltro }: { camada?: strin
   const [salvando, setSalvando] = useState<string | null>(null)
   const [erro, setErro] = useState('')
 
-  useEffect(() => { carregar() }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  function carregar() {
+  useEffect(() => {
     client.from('camadas_config').select('*').order('camada').order('ordem')
       .then(({ data }) => setItens((data as CamadaConfig[]) || []))
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function alterarLocal<K extends keyof CamadaConfig>(chave: string, campo: K, valor: CamadaConfig[K]) {
     setItens(prev => prev.map(i => i.chave === chave ? { ...i, [campo]: valor } : i))

@@ -9,6 +9,14 @@ import MiniMapaConfirmar from '@/components/MiniMapaConfirmar'
 
 export default function AssistenteIAPage() {
   const bot = useChatBot()
+  // Extraída à parte: o hook mistura uma ref de verdade (useRef) no meio do
+  // objeto de retorno junto com estado normal. O analisador de regras dos
+  // hooks trata qualquer "bot.algumaCoisa" como suspeito assim que vê
+  // "fotoInputRef" (uma ref real) sendo lida no JSX — daí as dezenas de
+  // falsos positivos de "Cannot access refs during render" no resto do
+  // arquivo. Usar a ref como identificador solto em vez de acesso a
+  // propriedade evita a análise contaminar o restante do componente.
+  const { fotoInputRef } = bot
   const [modalAuth, setModalAuth] = useState(false)
   const [nomeBot, setNomeBot] = useState('Assistente')
 
@@ -266,7 +274,7 @@ export default function AssistenteIAPage() {
                   style={{ background: '#166534', color: 'white', border: 'none', borderRadius: '10px', padding: '10px 22px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
                   Tirar foto
                 </button>
-                <button onClick={() => bot.fotoInputRef.current?.click()}
+                <button onClick={() => fotoInputRef.current?.click()}
                   style={{ background: 'white', color: '#4256c8', border: '1px solid #4256c8', borderRadius: '10px', padding: '10px 22px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
                   Galeria
                 </button>
@@ -275,7 +283,7 @@ export default function AssistenteIAPage() {
                   Sem foto
                 </button>
                 <input ref={camInputRef} type="file" accept="image/*" capture="environment" onChange={bot.selecionarFoto} style={{ display: 'none' }} />
-                <input ref={bot.fotoInputRef} type="file" accept="image/*" onChange={bot.selecionarFoto} style={{ display: 'none' }} />
+                <input ref={fotoInputRef} type="file" accept="image/*" onChange={bot.selecionarFoto} style={{ display: 'none' }} />
               </div>
             )}
 

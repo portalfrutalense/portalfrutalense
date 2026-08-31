@@ -86,7 +86,14 @@ export function usePets() {
   }
 
   useEffect(() => {
-    recarregar()
+    supabase
+      .from('pets')
+      .select('*')
+      .eq('oculto', false)
+      .eq('ia_decisao', 'aprovada')
+      .gt('expira_em', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setPets((data || []) as Pet[]))
     supabase.from('camadas_config').select('*').eq('camada', 'pets').then(({ data }) => {
       if (!data) return
       const mapa = { ...COR_PADRAO }

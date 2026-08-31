@@ -278,7 +278,11 @@ export function MasterPets() {
     setPets((data as Pet[]) || [])
     setCarregando(false)
   }
-  useEffect(() => { carregar() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    client.from('pets').select('*').order('created_at', { ascending: false })
+      .then(({ data }) => { setPets((data as Pet[]) || []); setCarregando(false) })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const filtrados = pets.filter(p => {
     if (filtro === 'todos') return true
@@ -400,7 +404,11 @@ export function MasterClassificados() {
     setItensBanco((data as Classificado[]) || [])
     setCarregando(false)
   }
-  useEffect(() => { carregar() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    client.from('classificados').select('*').order('created_at', { ascending: false })
+      .then(({ data }) => { setItensBanco((data as Classificado[]) || []); setCarregando(false) })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const filtrados = itensBanco.filter(c => {
     if (filtro === 'todos') return true
@@ -515,7 +523,11 @@ export function MasterEmpregos() {
     setVagas((data as Emprego[]) || [])
     setCarregando(false)
   }
-  useEffect(() => { carregar() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    client.from('empregos').select('*').order('created_at', { ascending: false })
+      .then(({ data }) => { setVagas((data as Emprego[]) || []); setCarregando(false) })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const filtrados = vagas.filter(v => {
     if (filtro === 'todos') return !v.encerrada

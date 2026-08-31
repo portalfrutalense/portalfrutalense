@@ -729,7 +729,12 @@ function MasterDemandas({ token }: { token: string | null }) {
   }
 
   useEffect(() => {
-    if (token) carregarDemandas()
+    if (!token) return
+    fetch('/api/master/demanda', { headers: { Authorization: `Bearer ${token}` } })
+      .then(async (res) => {
+        if (res.ok) setDemandas(await res.json())
+        setCarregandoDemandas(false)
+      })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 

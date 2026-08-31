@@ -676,3 +676,53 @@ bot) não são apagadas em nenhum dos dois caminhos — o `user_id` vira nulo,
 mas a linha permanece. Se precisar mudar isso no futuro, ambas usam
 `ON DELETE SET NULL`, então precisariam do mesmo tratamento manual (buscar
 antes, apagar explicitamente) já aplicado a demandas.
+
+### 13.7 Auditoria dedicada de `react-hooks/refs` / `react-hooks/set-state-in-effect` (2026-08-30)
+
+Retomando o achado do §13.4 (dezenas de erros pré-existentes dessas duas
+regras, invisíveis no `next build` porque ele usa `eslint-config-next`, sem
+essas regras — só `npx eslint` direto revela).
+
+**Causa raiz identificada pra quase todo `react-hooks/refs`**: vários hooks
+customizados (`useChatBot`, `useMapaBase`) retornam um único objeto
+misturando `useState` normal com `useRef` de verdade no mesmo objeto (ex:
+`return { ...estado, fotoInputRef }`). O analisador do React Compiler, ao
+ver `bot.fotoInputRef` (uma ref real) usada no JSX, passa a tratar
+`bot.qualquerCoisa` inteiro como suspeito pro resto do componente — daí as
+dezenas de falsos positivos em cascata a partir de uma única ref mal
+exposta. Fix, sem mudar nenhum comportamento: extrair a ref à parte logo
+após chamar o hook (`const { fotoInputRef } = bot`) e usar o identificador
+solto no JSX, em vez de acesso a propriedade (`bot.fotoInputRef`) — isso
+some com a contaminação. Aplicado em `assistenteia/page.tsx` (23 erros
+de `react-hooks/refs` resolvidos com uma única linha).
+
+**Causa raiz pro `react-hooks/set-state-in-effect`**: `useEffect(() => {
+funcaoQueSetaEstado() }, [])`, onde a função (às vezes reusada em outros
+lugares do mesmo componente, tipo "recarregar após aprovar/excluir") é
+assíncrona e chama `setState` depois de um `await`. O analisador não
+consegue provar que é seguro através da indireção da chamada por nome —
+nem `void`, nem `.catch()` na chamada resolvem. O único padrão que
+convenceu o analisador foi inlinar a consulta direto no efeito com
+`.then()` visível ali (sem passar por uma função nomeada) — e, quando a
+função original também fazia `setCarregando(true)` de forma síncrona no
+início, envolver essa chamada específica em `Promise.resolve().then(() =>
+...)` (ou remover, quando o estado inicial já nascia `true` e o efeito só
+roda uma vez). Aplicado em: `CamadaPets.tsx`, `CamadaClassificados.tsx`,
+`CamadaEmpregos.tsx`, `MasterCamadas.tsx`, `MasterMapaCamadas.tsx` (3
+ocorrências), `MapaDemandas.tsx` (3 ocorrências), `perfil/page.tsx` (2
+ocorrências), `TourBoasVindas.tsx`, `master/page.tsx` (1 de 3 — ver
+pendência abaixo).
+
+**Resultado**: `react-hooks/refs` zerado em todo o projeto (era ~23,
+concentrado quase todo em `assistenteia/page.tsx`). `react-hooks/set-state-in-effect`
+caiu de ~14 para 2, ambas em `master/page.tsx`.
+
+**Pendência, deixada de propósito**: as 2 ocorrências restantes em
+`master/page.tsx` (a função `carregar()` da seção Perfis — múltiplas
+consultas em `Promise.all`, mesclagem de autoridades legadas, busca de
+categorias — e o trio `carregar()`/`carregarConfig()`/`carregarSemResposta()`
+da seção Chatbot) são reusadas em 4-5 lugares cada e fazem várias etapas
+sequenciais. Inlinar essa lógica direto no efeito exigiria duplicá-la
+(risco de as duas cópias divergirem com o tempo) só pra silenciar o lint —
+não valeu o risco numa correção que promete não quebrar nada. Fica pra uma
+sessão dedicada, se algum dia for necessário.

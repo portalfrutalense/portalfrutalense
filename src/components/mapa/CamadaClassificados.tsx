@@ -92,7 +92,14 @@ export function useClassificados() {
   }
 
   useEffect(() => {
-    recarregar()
+    supabase
+      .from('classificados')
+      .select('*')
+      .eq('oculto', false)
+      .eq('vendido', false)
+      .eq('ia_decisao', 'aprovada')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setClassificados((data || []) as Classificado[]))
     supabase.from('camadas_config').select('*').eq('camada', 'classificados').then(({ data }) => {
       if (!data) return
       const mapa: Record<string, CamadaConfig> = {}

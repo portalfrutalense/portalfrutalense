@@ -106,7 +106,7 @@ export default function MapaDemandas() {
 
   // Busca vínculos de autoridade e protocolo quando uma demanda é selecionada
   useEffect(() => {
-    if (!demandaSelecionada) { setVinculosDemanda([]); return }
+    if (!demandaSelecionada) { Promise.resolve().then(() => setVinculosDemanda([])); return }
     supabase
       .from('demanda_entidades')
       .select('id, demanda_id, entidade_id, status, resposta, respondida_em, entidade:entidades(nome, cargo)')
@@ -306,7 +306,7 @@ export default function MapaDemandas() {
 
   useEffect(() => {
     const c = (searchParams.get('camada') as Camada) || 'demandas'
-    if (c !== camada) trocarCamada(c)
+    if (c !== camada) Promise.resolve().then(() => trocarCamada(c))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
 
@@ -372,7 +372,7 @@ export default function MapaDemandas() {
   // Detecta mobile (mesmo breakpoint do resto do layout)
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 640px)')
-    setIsMobile(mq.matches)  // lê valor real após hidratação
+    Promise.resolve().then(() => setIsMobile(mq.matches))  // lê valor real após hidratação
     const aoMudar = (e: MediaQueryListEvent) => setIsMobile(e.matches)
     mq.addEventListener('change', aoMudar)
     return () => mq.removeEventListener('change', aoMudar)
