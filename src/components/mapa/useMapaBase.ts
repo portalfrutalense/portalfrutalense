@@ -26,6 +26,9 @@ const TILE_SATELITE_RUAS = `https://api.mapbox.com/styles/v1/mapbox/satellite-st
 // "zoom N-1" no MapLibre. Todo valor de zoom deste arquivo é 1 a menos do
 // que era na versão Leaflet, de propósito.
 const ZOOM_SATELITE_RUAS = 15 // exibe nomes de ruas no satélite apenas a partir deste zoom
+const PITCH_PADRAO = 65 // inclinação inicial e a que o mapa retoma ao sair da zona de ruas
+const PITCH_MIN = 45 // faixa de inclinação livre por gesto, fora da zona de ruas
+const PITCH_MAX = 65
 
 // [oeste, sul], [leste, norte] — MapLibre usa [lng, lat], diferente do par
 // [lat, lng] que o Leaflet usava aqui antes.
@@ -33,6 +36,16 @@ const LIMITES_FRUTAL: [[number, number], [number, number]] = [[-49.30, -20.1529]
 
 const FONTE_SATELITE = 'satelite'
 const CAMADA_SATELITE = 'satelite-camada'
+
+// Ease-in-out cúbica — mesma curva usada pelo easeTo do MapLibre por padrão em
+// outros métodos, mas precisa ser passada explicitamente aqui porque a
+// animação de pitch/bearing ao entrar/sair da zona de ruas soava "brusca" com
+// a curva padrão do easeTo (praticamente linear) numa duração tão longa.
+// Começa e termina devagar, acelera no meio — sensação de câmera suave, não
+// de corte.
+function suavizar(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+}
 
 /**
  * Mapa MapLibre GL base, compartilhado por todas as camadas (demandas, pets,
@@ -89,7 +102,9 @@ export function useMapaBase() {
         },
         center: [FRUTAL_LNG, FRUTAL_LAT],
         zoom: window.innerWidth < 768 ? 12 : 13,
-        pitch: 55,
+        pitch: PITCH_PADRAO,
+        minPitch: PITCH_MIN,
+        maxPitch: PITCH_MAX,
         minZoom: 12,
         maxZoom: 17,
         maxBounds: LIMITES_FRUTAL,
@@ -137,14 +152,61 @@ export function useMapaBase() {
       // pinça (touch) e os botões +/- do próprio app continuam livres pra
       // fazer zoom fracionário; isso só garante que a troca de tile aconteça
       // no nível certo quando (e enquanto) o zoom estiver assentado.
+      //
+      // A partir daí, inclinação e rotação ficam travadas (e animam de volta
+      // pra reto/norte, se estiverem fora disso): os nomes de rua dessa
+      // variante vêm desenhados dentro da própria imagem do tile, não são
+      // uma camada de texto que se mantém sempre reta — inclinado ou girado,
+      // o texto fica ilegível (de lado, de cabeça pra baixo). Abaixo do
+      // zoom de ruas (só satélite puro, sem texto nenhum), pitch e bearing
+      // continuam livres por gesto, sem essa restrição.
+      let travadoNaZonaDeRuas = false
       mapa.on('zoomend', () => {
         const inteiro = Math.round(mapa.getZoom())
         const fonte = mapa.getSource(FONTE_SATELITE) as RasterTileSource | undefined
-        if (!fonte) return
-        const precisaRuas = inteiro >= ZOOM_SATELITE_RUAS
-        const temRuas = (fonte.tiles?.[0] || '').includes('satellite-streets')
-        if (precisaRuas === temRuas) return
-        fonte.setTiles([precisaRuas ? TILE_SATELITE_RUAS : TILE_SATELITE])
+        if (fonte) {
+          const precisaRuas = inteiro >= ZOOM_SATELITE_RUAS
+          const temRuas = (fonte.tiles?.[0] || '').includes('satellite-streets')
+          if (precisaRuas !== temRuas) fonte.setTiles([precisaRuas ? TILE_SATELITE_RUAS : TILE_SATELITE])
+        }
+
+        const zonaDeRuas = inteiro >= ZOOM_SATELITE_RUAS
+        if (zonaDeRuas) {
+          mapa.dragRotate.disable()
+          mapa.touchPitch.disable()
+          mapa.touchZoomRotate.disableRotation()
+          if (mapa.getPitch() !== 0 || mapa.getBearing() !== 0) {
+            // A faixa normal (45–65°) não inclui 0 — setMinPitch/setMaxPitch
+            // clampa o pitch ATUAL na hora se ele ficar fora do novo
+            // intervalo, então apertar pra [0,0] de uma vez só faria pular
+            // pra 0 sem animação nenhuma. Alarga só o mínimo pra 0 primeiro
+            // (intervalo [0,65] cobre tanto o valor atual quanto o alvo),
+            // deixa o easeTo animar suave até 0, e só fecha o intervalo de
+            // vez (maxPitch:0 também) quando a animação termina.
+            mapa.setMinPitch(0)
+            mapa.easeTo({ pitch: 0, bearing: 0, duration: 900, easing: suavizar })
+            mapa.once('moveend', () => mapa.setMaxPitch(0))
+          }
+          travadoNaZonaDeRuas = true
+        } else {
+          mapa.dragRotate.enable()
+          mapa.touchPitch.enable()
+          mapa.touchZoomRotate.enableRotation()
+          // Saiu da zona de ruas — se a inclinação tinha sido zerada à força
+          // por causa da trava (não porque o usuário pediu), volta a
+          // inclinar sozinho, em vez de só destravar e deixar reto esperando
+          // o usuário mexer de novo. Mesma lógica de alargar-anima-fecha do
+          // lado de entrar na zona, só que na direção contrária.
+          if (travadoNaZonaDeRuas) {
+            mapa.setMaxPitch(PITCH_PADRAO)
+            mapa.easeTo({ pitch: PITCH_PADRAO, duration: 900, easing: suavizar })
+            mapa.once('moveend', () => mapa.setMinPitch(PITCH_MIN))
+          } else {
+            mapa.setMinPitch(PITCH_MIN)
+            mapa.setMaxPitch(PITCH_MAX)
+          }
+          travadoNaZonaDeRuas = false
+        }
       })
 
       // Corrige o mapa esticando quando o tamanho do container muda
