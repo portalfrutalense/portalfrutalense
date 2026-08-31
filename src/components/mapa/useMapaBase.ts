@@ -161,6 +161,14 @@ export function useMapaBase() {
       // zoom de ruas (só satélite puro, sem texto nenhum), pitch e bearing
       // continuam livres por gesto, sem essa restrição.
       let travadoNaZonaDeRuas = false
+      // Trava separada da animação em si: sem isso, cada scroll adicional
+      // dentro da mesma zona (comum — o usuário raramente dá só 1 tique)
+      // dispara outro 'zoomend', que via mapa.getPitch() !== 0 reavaliava
+      // "ainda não chegou no alvo" (verdade, a animação anterior nem tinha
+      // terminado) e iniciava outra easeTo por cima da que já estava
+      // rodando — cada nova animação cortava a anterior no meio, dando
+      // exatamente a sensação de "quebrada"/brusca que motivou este ajuste.
+      let animandoTransicaoPitch = false
       mapa.on('zoomend', () => {
         const inteiro = Math.round(mapa.getZoom())
         const fonte = mapa.getSource(FONTE_SATELITE) as RasterTileSource | undefined
@@ -175,7 +183,7 @@ export function useMapaBase() {
           mapa.dragRotate.disable()
           mapa.touchPitch.disable()
           mapa.touchZoomRotate.disableRotation()
-          if (mapa.getPitch() !== 0 || mapa.getBearing() !== 0) {
+          if (!travadoNaZonaDeRuas && !animandoTransicaoPitch && (mapa.getPitch() !== 0 || mapa.getBearing() !== 0)) {
             // A faixa normal (45–65°) não inclui 0 — setMinPitch/setMaxPitch
             // clampa o pitch ATUAL na hora se ele ficar fora do novo
             // intervalo, então apertar pra [0,0] de uma vez só faria pular
@@ -183,9 +191,13 @@ export function useMapaBase() {
             // (intervalo [0,65] cobre tanto o valor atual quanto o alvo),
             // deixa o easeTo animar suave até 0, e só fecha o intervalo de
             // vez (maxPitch:0 também) quando a animação termina.
+            animandoTransicaoPitch = true
             mapa.setMinPitch(0)
-            mapa.easeTo({ pitch: 0, bearing: 0, duration: 900, easing: suavizar })
-            mapa.once('moveend', () => mapa.setMaxPitch(0))
+            mapa.easeTo({ pitch: 0, bearing: 0, duration: 600, easing: suavizar })
+            mapa.once('moveend', () => {
+              mapa.setMaxPitch(0)
+              animandoTransicaoPitch = false
+            })
           }
           travadoNaZonaDeRuas = true
         } else {
@@ -197,11 +209,15 @@ export function useMapaBase() {
           // inclinar sozinho, em vez de só destravar e deixar reto esperando
           // o usuário mexer de novo. Mesma lógica de alargar-anima-fecha do
           // lado de entrar na zona, só que na direção contrária.
-          if (travadoNaZonaDeRuas) {
+          if (travadoNaZonaDeRuas && !animandoTransicaoPitch) {
+            animandoTransicaoPitch = true
             mapa.setMaxPitch(PITCH_PADRAO)
-            mapa.easeTo({ pitch: PITCH_PADRAO, duration: 900, easing: suavizar })
-            mapa.once('moveend', () => mapa.setMinPitch(PITCH_MIN))
-          } else {
+            mapa.easeTo({ pitch: PITCH_PADRAO, duration: 600, easing: suavizar })
+            mapa.once('moveend', () => {
+              mapa.setMinPitch(PITCH_MIN)
+              animandoTransicaoPitch = false
+            })
+          } else if (!travadoNaZonaDeRuas && !animandoTransicaoPitch) {
             mapa.setMinPitch(PITCH_MIN)
             mapa.setMaxPitch(PITCH_MAX)
           }
