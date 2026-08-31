@@ -237,6 +237,7 @@ export function useMapaBase() {
       // e só depois anima".
       let travadoNaZonaDeRuas = false
       let emTransicaoDeZona = false
+      let corrigindoZoomFracionario = false
 
       // Aplica um passo de zoom (+1 ou -1, vindo do scroll ou dos botões
       // +/-), decidindo se é só zoom (dentro da mesma zona) ou se precisa
@@ -331,7 +332,7 @@ export function useMapaBase() {
       // o MapLibre já resolve isso sozinho a cada frame, sem depender de
       // 'zoomend'.
       mapa.on('zoomend', () => {
-        if (emTransicaoDeZona) return
+        if (emTransicaoDeZona || corrigindoZoomFracionario) return
         const zonaDeRuas = Math.round(mapa.getZoom()) >= ZOOM_SATELITE_RUAS
         if (zonaDeRuas && !travadoNaZonaDeRuas) {
           mapa.dragRotate.disable()
@@ -356,10 +357,33 @@ export function useMapaBase() {
         // nada em tempo real) e só assenta suave no inteiro mais próximo
         // quando o usuário solta, evitando o efeito de imagem borrada de
         // tile de satélite em zoom fracionário.
+        //
+        // BUG CORRIGIDO (2026-08-31): sem a trava `corrigindoZoomFracionario`,
+        // essa mesma easeTo(...) terminando gera outro 'zoomend' — e se a
+        // câmera assentar com imprecisão de ponto flutuante (ex.: 16.0000003
+        // em vez de 16 exato, comum em animação), a checagem abaixo achava
+        // "ainda não é inteiro" de novo e disparava outra correção, que
+        // terminando gerava outro 'zoomend', em ciclo — consumindo a thread
+        // principal sem parar (zoom travava, a animação do radar de pets
+        // também travava, tudo no mapa ficava sem resposta). A tolerância
+        // de 0.01 raramente é passada por imprecisão genuína de ponto
+        // flutuante (erro típico é ~1e-10), então na prática só um ciclo de
+        // correção deveria mesmo acontecer — mas a trava garante isso mesmo
+        // que a tolerância um dia precise ficar mais apertada.
         const zoomAtual = mapa.getZoom()
         const zoomArredondado = Math.round(zoomAtual)
-        if (Math.abs(zoomAtual - zoomArredondado) > 0.01) {
+        if (!corrigindoZoomFracionario && Math.abs(zoomAtual - zoomArredondado) > 0.01) {
+          corrigindoZoomFracionario = true
           mapa.easeTo({ zoom: zoomArredondado, duration: 200 })
+          let destravouCorrecao = false
+          function destravarCorrecao() {
+            if (destravouCorrecao) return
+            destravouCorrecao = true
+            window.clearTimeout(timeoutCorrecao)
+            corrigindoZoomFracionario = false
+          }
+          mapa.once('moveend', destravarCorrecao)
+          const timeoutCorrecao = window.setTimeout(destravarCorrecao, 800)
         }
       })
 
