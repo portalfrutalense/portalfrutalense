@@ -67,8 +67,13 @@ export function useMapaBase() {
   const resizeObserverRef = useRef<ResizeObserver | null>(null)
   const containerWheelHandlerRef = useRef<((e: WheelEvent) => void) | null>(null)
   const zoomPassoRef = useRef<(direcao: 1 | -1) => void>(() => {})
+  // DEBUG TEMPORÁRIO — remover junto do resto marcado como debug
+  const observadorRedeRef = useRef<PerformanceObserver | null>(null)
 
   const [mapaCarregado, setMapaCarregado] = useState(false)
+  // DEBUG TEMPORÁRIO — contador de tiles pedidos ao Mapbox, só pra medir
+  // consumo real da Static Tiles API. Remover depois (ver MapaDemandas.tsx).
+  const [tilesPedidos, setTilesPedidos] = useState(0)
 
   useEffect(() => {
     if (!mapRef.current || mapaIniciado.current) return
@@ -125,6 +130,25 @@ export function useMapaBase() {
         maplibreObj.current = maplibregl
         setMapaCarregado(true)
       })
+
+      // DEBUG TEMPORÁRIO — conta toda vez que o navegador tenta carregar um
+      // tile (via Resource Timing API, mais confiável que o evento interno
+      // 'dataloading' do MapLibre). NÃO separa "veio da rede" de "veio do
+      // cache" — o Mapbox não manda o header Timing-Allow-Origin nas
+      // respostas, e sem ele o navegador zera esses detalhes pra qualquer
+      // recurso de outra origem (proteção de privacidade padrão, fora do
+      // nosso controle). Pra saber quanto disso é rede de verdade, é preciso
+      // olhar a aba Network do DevTools (coluna "Size" mostra "(disk cache)"
+      // ou "(memory cache)" quando não é rede real).
+      const observadorRede = new PerformanceObserver((lista) => {
+        for (const entrada of lista.getEntries()) {
+          if (entrada.name.includes('api.mapbox.com/styles') && entrada.name.includes('/tiles/')) {
+            setTilesPedidos((n) => n + 1)
+          }
+        }
+      })
+      observadorRede.observe({ type: 'resource', buffered: true })
+      observadorRedeRef.current = observadorRede
 
       // Zona de ruas: entrar/sair trava e destrava rotação/inclinação, com
       // uma única animação de câmera que move zoom + inclinação (+ direção,
@@ -255,6 +279,7 @@ export function useMapaBase() {
 
     return () => {
       resizeObserverRef.current?.disconnect()
+      observadorRedeRef.current?.disconnect() // DEBUG TEMPORÁRIO
       // Tira o listener de scroll da div do container ANTES de mapa.remove()
       // — a div é do React (mapRef.current), não é destruída junto com o
       // mapa, então o listener ficaria pra sempre sem isso (ver comentário
@@ -274,5 +299,5 @@ export function useMapaBase() {
 
   const zoomPasso = (direcao: 1 | -1) => zoomPassoRef.current(direcao)
 
-  return { mapRef, mapaObj, maplibreObj, mapaCarregado, zoomPasso }
+  return { mapRef, mapaObj, maplibreObj, mapaCarregado, zoomPasso, tilesPedidos }
 }

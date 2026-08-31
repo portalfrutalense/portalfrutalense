@@ -35,7 +35,7 @@ export default function MapaDemandas() {
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
 
   // Mapa base compartilhado por todas as camadas — criado uma única vez
-  const { mapRef, mapaObj, maplibreObj, mapaCarregado, zoomPasso } = useMapaBase()
+  const { mapRef, mapaObj, maplibreObj, mapaCarregado, zoomPasso, tilesPedidos } = useMapaBase()
 
   const markersRef = useRef<Marker[]>([])
   const popupAbertoRef = useRef<Popup | null>(null)
@@ -783,6 +783,11 @@ export default function MapaDemandas() {
         {/* MAPA */}
         <div style={isMobile ? { position: 'absolute', inset: 0 } : { flex: 1, position: 'relative', minWidth: 0 }}>
           <div ref={mapRef} className="mapa-map-div" style={{ width: '100%', height: '100%', minHeight: 'clamp(300px, 55vw, 500px)' }} />
+
+          {/* DEBUG TEMPORARIO — contador de tiles pedidos ao Mapbox, remover depois */}
+          <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 20, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '12px', fontFamily: 'monospace', padding: '4px 8px', borderRadius: '4px', pointerEvents: 'none' }}>
+            tiles: {tilesPedidos}
+          </div>
 
           {/* Banner de login */}
           {!user && (
