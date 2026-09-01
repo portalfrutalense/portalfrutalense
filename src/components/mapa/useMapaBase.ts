@@ -50,9 +50,9 @@ const ZOOM_LABELS_MAX = 17
 // "zoom N-1" no MapLibre. Todo valor de zoom deste arquivo é 1 a menos do
 // que era na versão Leaflet, de propósito.
 const ZOOM_SATELITE_RUAS = 16 // trava rotação/inclinação a partir deste zoom — mesmo zoom em que o nome de rua aparece (ZOOM_LABELS_MIN)
-const PITCH_PADRAO = 70 // inclinação inicial e a que o mapa retoma ao sair da zona de ruas
+const PITCH_PADRAO = 65 // inclinação inicial e a que o mapa retoma ao sair da zona de ruas
 const PITCH_MIN = 50 // faixa de inclinação livre por gesto, fora da zona de ruas
-const PITCH_MAX = 70
+const PITCH_MAX = 65
 
 // [oeste, sul], [leste, norte] — MapLibre usa [lng, lat], diferente do par
 // [lat, lng] que o Leaflet usava aqui antes.
@@ -431,10 +431,10 @@ export function useMapaBase() {
       })
 
       // Fora da zona de ruas, a inclinação livre por gesto (arrastar/pinça)
-      // fica restrita a 45–65°, mesmo com minPitch fixo em 0 — 0 só é
-      // permitido quando é ESTA lógica de zona quem está pilotando. Ao
-      // soltar o gesto, se ficou abaixo de 45 (e não é o caso de estar
-      // travado na zona de ruas), volta suave pra 45.
+      // fica restrita a PITCH_MIN–PITCH_MAX (50–65°), mesmo com minPitch
+      // fixo em 0 — 0 só é permitido quando é ESTA lógica de zona quem está
+      // pilotando. Ao soltar o gesto, se ficou abaixo do mínimo (e não é o
+      // caso de estar travado na zona de ruas), volta suave pro mínimo.
       mapa.on('pitchend', () => {
         if (emTransicaoDeZona || travadoNaZonaDeRuas) return
         if (mapa.getPitch() < PITCH_MIN) {
