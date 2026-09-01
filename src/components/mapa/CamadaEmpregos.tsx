@@ -137,6 +137,7 @@ export function useMarkersEmpregos({
         </div>
       `)
       popup.on('open', () => { popupAbertoRef.current = popup })
+      popup.on('close', () => { if (popupAbertoRef.current === popup) popupAbertoRef.current = null })
 
       const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([e.lng, e.lat])

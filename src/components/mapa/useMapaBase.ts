@@ -2,6 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { Map as MapLibreMap } from 'maplibre-gl'
+// Versão real do pacote instalado — usada pra montar a URL do CSS via CDN
+// abaixo, em vez de um número fixo escrito à mão. Antes JS (package.json) e
+// CSS (link do CDN) podiam ficar de versões diferentes se só um dos dois
+// fosse atualizado — foi exatamente essa combinação que causou o bug
+// histórico dos nomes de rua não aparecerem (2026-08-30/31).
+import { version as MAPLIBRE_VERSION } from 'maplibre-gl/package.json'
 
 export const FRUTAL_LAT = -20.02752
 export const FRUTAL_LNG = -48.92702
@@ -83,7 +89,6 @@ export function useMapaBase() {
   const mapaIniciado = useRef(false)
   const mapaObj = useRef<MapLibreMap | null>(null)
   const maplibreObj = useRef<typeof import('maplibre-gl') | null>(null)
-  const resizeObserverRef = useRef<ResizeObserver | null>(null)
   const containerWheelHandlerRef = useRef<((e: WheelEvent) => void) | null>(null)
   const zoomPassoRef = useRef<(direcao: 1 | -1) => void>(() => {})
 
@@ -93,12 +98,24 @@ export function useMapaBase() {
     if (!mapRef.current || mapaIniciado.current) return
     mapaIniciado.current = true
 
+    // Guardada à parte de mapaObj.current (só preenchido no 'load', mais
+    // abaixo) — é essa variável local que o cleanup usa pra garantir que a
+    // instância seja sempre destruída, mesmo se o componente desmontar
+    // antes do mapa terminar de carregar. Sem ela, desmontar durante essa
+    // janela (ex.: sair de /mapa rápido, ainda buscando os rótulos do Esri)
+    // deixava mapaObj.current em null pra sempre — o cleanup não tinha como
+    // saber que existia uma instância pra remover, e ela ficava órfã
+    // (contexto WebGL, tiles em voo, listeners) sem nunca ser destruída.
+    // Mesmo padrão já usado em MiniMapaConfirmar.tsx.
+    let mapaInstancia: MapLibreMap | null = null
+    let desmontado = false
+
     // Dedupe — sem isso, cada montagem deste hook (ex.: navegar pra fora do
     // /mapa e voltar) empilhava uma nova tag <link> igual no <head>.
     if (!document.querySelector('link[data-maplibre-css]')) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
-      link.href = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css'
+      link.href = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css`
       link.setAttribute('data-maplibre-css', 'true')
       document.head.appendChild(link)
     }
@@ -168,10 +185,10 @@ export function useMapaBase() {
     }
 
     import('maplibre-gl').then(async (maplibregl) => {
-      if (!mapRef.current) return
+      if (!mapRef.current || desmontado) return
 
       const camadaDeRotulos = await buscarCamadaDeRotulos()
-      if (!mapRef.current) return // pode ter desmontado durante o fetch
+      if (!mapRef.current || desmontado) return // pode ter desmontado durante o fetch
 
       const mapa = new maplibregl.Map({
         container: mapRef.current,
@@ -215,6 +232,7 @@ export function useMapaBase() {
         maxBounds: LIMITES_FRUTAL,
         attributionControl: false,
       })
+      mapaInstancia = mapa
 
       mapa.on('load', () => {
         mapaObj.current = mapa
@@ -245,8 +263,21 @@ export function useMapaBase() {
       // ruas, zoom 16 — ZOOM_SATELITE_RUAS).
       function aplicarPassoDeZoom(alvo: number) {
         if (emTransicaoDeZona) return
-        const atual = Math.round(mapa.getZoom())
-        if (alvo === atual) return
+        // BUG CORRIGIDO (2026-08-31): comparar 'alvo' com Math.round(zoom)
+        // aqui — em vez do zoom bruto — colidia com a conta de piso/teto
+        // que zoomPassoRef usa pra calcular 'alvo'. Nos dois pontos de
+        // partida fracionários (12.5 mobile, 13.5 desktop), piso(12.5)+1=13
+        // E Math.round(12.5)=13 batem no mesmo número — o primeiro zoom pra
+        // frente virava um no-op silencioso (alvo === atual), sem nunca
+        // mover a câmera. Zoom pra trás usa teto(12.5)-1=12, que não bate
+        // com Math.round(12.5)=13, por isso só ele funcionava — e ao pousar
+        // num inteiro de verdade, o problema sumia até esbarrar em outro
+        // ponto ",5" por algum motivo. Comparando contra o zoom BRUTO (sem
+        // arredondar) com tolerância pequena, os dois lados da conta usam a
+        // mesma referência e nunca mais colidem.
+        const zoomBruto = mapa.getZoom()
+        if (Math.abs(zoomBruto - alvo) < 0.001) return
+        const atual = Math.round(zoomBruto)
 
         const alvoNaZona = alvo >= ZOOM_SATELITE_RUAS
         const atualNaZona = atual >= ZOOM_SATELITE_RUAS
@@ -399,28 +430,82 @@ export function useMapaBase() {
         }
       })
 
-      // Corrige o mapa esticando quando o tamanho do container muda
-      const resizeObserver = new ResizeObserver(() => mapa.resize())
-      resizeObserver.observe(mapRef.current)
-      resizeObserverRef.current = resizeObserver
+      // O próprio MapLibre já observa o container e chama resize()/redraw()
+      // internamente (com throttle) quando o tamanho muda — não precisa de
+      // um ResizeObserver nosso aqui também (removido nesta auditoria).
+      //
+      // CAUSA RAIZ do travamento permanente do mapa (2026-08-31), confirmada
+      // com logs ao vivo (3 rodadas de diagnóstico — não foi chute): qualquer
+      // reflow de página, mesmo mudanças de fração de pixel no container
+      // (comum durante qualquer animação de câmera), faz o ResizeObserver
+      // interno do MapLibre chamar redraw()→_render() de novo. Se isso
+      // acontece enquanto OUTRO _render() já está em andamento (nosso easeTo
+      // de zoom/inclinação deixa o render ocupado por várias centenas de
+      // ms), o TaskQueue interno da lib lança "Attempting to run(), but is
+      // already running." — sem tratamento, dentro do próprio loop de
+      // requestAnimationFrame do MapLibre.
+      //
+      // Uma primeira tentativa de correção (ignorar a chamada reentrante e
+      // seguir) tirou o crash visível, mas não resolveu de verdade: o
+      // requestAnimationFrame continuava rodando normal (por isso o resto do
+      // mapa parecia "vivo"), só que a fila de tarefas ficava com
+      // `_currentlyRunning` preso em true PRA SEMPRE — e é essa fila que
+      // executa o passo de animação da câmera a cada frame. Resultado: zoom
+      // travado num valor exato, indefinidamente, mesmo com o mapa
+      // "respondendo" por fora (confirmado com log mostrando o mesmo valor
+      // de zoom se repetindo a cada frame, com isMoving/isZooming sempre
+      // true, e a reentrância dessa vez disparando a cada ~16ms sem parar).
+      //
+      // Corrigido de vez direto na biblioteca via patch-package
+      // (`patches/maplibre-gl+4.7.1.patch`): ao detectar a fila presa, força
+      // `_currentlyRunning = false` antes de seguir, em vez de só ignorar —
+      // isso deixa a chamada atual assumir a fila e destravar o que tiver
+      // pendente (inclusive o passo de animação da câmera), recuperando
+      // sozinho em vez de ficar preso. Testado ao vivo: o mapa não trava
+      // mais permanentemente — pode ter uma engasgada breve e curta em
+      // momentos de reentrância, mas se recupera sozinha em seguida. Sem
+      // esse patch, não tem correção possível só no nosso código, já que o
+      // problema é uma race condition dentro da própria lib (confirmado
+      // olhando o código-fonte publicado — o bug existe até na versão mais
+      // recente do MapLibre).
     })
 
     return () => {
-      resizeObserverRef.current?.disconnect()
+      desmontado = true
       // Tira o listener de scroll da div do container ANTES de mapa.remove()
       // — a div é do React (mapRef.current), não é destruída junto com o
       // mapa, então o listener ficaria pra sempre sem isso (ver comentário
-      // onde ele é registrado, acima).
+      // onde ele é registrado, acima). Usa mapaInstancia (não mapaObj.current)
+      // porque ela já existe desde a criação do mapa, não só a partir do
+      // 'load' — ver comentário dela acima.
       if (containerWheelHandlerRef.current) {
-        mapaObj.current?.getContainer().removeEventListener('wheel', containerWheelHandlerRef.current)
+        mapaInstancia?.getContainer().removeEventListener('wheel', containerWheelHandlerRef.current)
         containerWheelHandlerRef.current = null
       }
       // Sem isso, sair de /mapa e voltar deixava a instância antiga do
       // MapLibre (e seus listeners internos) sem ser destruída — só o DOM
-      // que ela usava sumia, removido pelo React junto do componente.
-      mapaObj.current?.remove()
+      // que ela usava sumia, removido pelo React junto do componente. Usa
+      // mapaInstancia em vez de mapaObj.current pelo mesmo motivo acima —
+      // garante a destruição mesmo se desmontar antes do 'load'.
+      mapaInstancia?.remove()
       mapaObj.current = null
       maplibreObj.current = null
+      // BUG CORRIGIDO (2026-08-31): sem isso, o mapa nunca mais aparecia em
+      // dev — mapaIniciado é um guard "só uma vez", mas o Strict Mode do
+      // React roda todo efeito duas vezes ao montar (monta → limpa → monta
+      // de novo), de propósito, pra pegar exatamente esse tipo de bug. Antes
+      // da correção acima (destruir mapaInstancia mesmo antes do 'load'),
+      // essa primeira limpeza "fake" do Strict Mode era inofensiva (não
+      // tinha nada pra destruir ainda) — a segunda montagem real ficava
+      // bloqueada pelo guard, mas não tinha problema, porque a cadeia
+      // assíncrona da PRIMEIRA montagem seguia rodando sozinha e virava o
+      // mapa de verdade. Agora que a limpeza destrói de verdade a instância
+      // em andamento, sem resetar o guard aqui a segunda montagem (a real)
+      // nunca mais criava um mapa novo — tela em branco, sem nenhum erro no
+      // console. Resetar aqui permite qualquer montagem seguinte (a segunda
+      // do Strict Mode, ou uma remontagem de verdade ao voltar pra /mapa)
+      // criar sua própria instância normalmente.
+      mapaIniciado.current = false
     }
   }, [])
 

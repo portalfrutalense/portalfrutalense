@@ -32,7 +32,8 @@ img, iframe, video {
   max-width: 100%;
 }
 
-/* Remove fundo branco padrão do Leaflet nos markers customizados */
+/* Remove fundo branco padrão do marker do MapLibre no mapa principal (o
+   pin-demanda em si já desenha o próprio círculo/foto por dentro) */
 .pin-demanda {
   background: transparent !important;
   border: none !important;

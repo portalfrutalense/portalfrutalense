@@ -35,7 +35,7 @@ export default function MapaDemandas() {
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
 
   // Mapa base compartilhado por todas as camadas — criado uma única vez
-  const { mapRef, mapaObj, maplibreObj, mapaCarregado, zoomPasso } = useMapaBase()
+  const { mapRef, mapaObj, maplibreObj, mapaCarregado } = useMapaBase()
 
   const markersRef = useRef<Marker[]>([])
   const popupAbertoRef = useRef<Popup | null>(null)
@@ -220,6 +220,7 @@ export default function MapaDemandas() {
 
       const popup = new maplibregl.Popup({ maxWidth: '260px', closeButton: true }).setHTML(popupHtml)
       popup.on('open', () => { popupAbertoRef.current = popup })
+      popup.on('close', () => { if (popupAbertoRef.current === popup) popupAbertoRef.current = null })
 
       const el = criarElementoPin(d)
       const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
@@ -280,6 +281,12 @@ export default function MapaDemandas() {
 
     return () => {
       container.removeEventListener('click', aoClicarNoContainer)
+      // Sem isso, um popup aberto (não anexado ao marker — ver comentário
+      // acima) sobrevivia a esse efeito rerodar (nova demanda chegou, filtro
+      // mudou): os markers somem, mas o popup solto continuava na tela,
+      // "grudado", apontando pra um clique que não existe mais.
+      popupAbertoRef.current?.remove()
+      popupAbertoRef.current = null
     }
   }, [demandas, user, mapaCarregado, filtroStatus, filtroCategoria, camada]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -757,21 +764,9 @@ export default function MapaDemandas() {
                 </div>
               </div>
 
-              {/* Contador + Zoom */}
-              <div style={{ padding: '10px 14px', borderTop: '1px solid #f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              {/* Contador */}
+              <div style={{ padding: '10px 14px', borderTop: '1px solid #f9fafb' }}>
                 <span style={{ fontSize: '11px', color: '#6b7280' }}>{demandasVisiveis.length} demanda{demandasVisiveis.length !== 1 ? 's' : ''}</span>
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  <button
-                    onClick={() => zoomPasso(1)}
-                    style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', fontSize: '16px', fontWeight: 600, color: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
-                    +
-                  </button>
-                  <button
-                    onClick={() => zoomPasso(-1)}
-                    style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', fontSize: '16px', fontWeight: 600, color: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
-                    −
-                  </button>
-                </div>
               </div>
 
             </>

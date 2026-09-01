@@ -196,6 +196,7 @@ export function useMarkersPets({
         </div>
       `)
       popup.on('open', () => { popupAbertoRef.current = popup })
+      popup.on('close', () => { if (popupAbertoRef.current === popup) popupAbertoRef.current = null })
 
       const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([p.lng, p.lat])
@@ -266,13 +267,29 @@ export function useMarkersPets({
 
         if (!mapa.getSource('radar-pets')) {
           mapa.addSource('radar-pets', { type: 'geojson', data: { type: 'FeatureCollection', features: construirFeatures() } })
+          // Halo branco por baixo da linha colorida — sem isso, o anel some
+          // visualmente sempre que a cor configurada no master é parecida
+          // com o fundo do satélite embaixo dele (grama, telhado, terra...).
+          // Mesma técnica já usada no halo do texto dos nomes de rua do
+          // mapa: uma linha mais grossa e neutra por baixo garante contraste
+          // em cima de qualquer fundo.
+          mapa.addLayer({
+            id: 'radar-pets-halo',
+            type: 'line',
+            source: 'radar-pets',
+            paint: {
+              'line-color': '#ffffff',
+              'line-width': 7,
+              'line-opacity': ['*', ['get', 'opacidade'], 0.7],
+            },
+          })
           mapa.addLayer({
             id: 'radar-pets-linha',
             type: 'line',
             source: 'radar-pets',
             paint: {
               'line-color': ['get', 'cor'],
-              'line-width': 4,
+              'line-width': 5,
               'line-opacity': ['get', 'opacidade'],
             },
           })
@@ -283,12 +300,26 @@ export function useMarkersPets({
         // carregado. Também não empilha requestAnimationFrame durante a
         // pausa entre atualizações — só agenda o próximo quando realmente
         // vai atualizar, em vez de rodar a 60fps só checando o relógio.
+        //
+        // PAUSA DURANTE MOVIMENTO (2026-08-31): sem isso, o radar continuava
+        // chamando setData() a cada 65ms mesmo bem no meio de uma animação
+        // de zoom/inclinação — nesse momento o mapa já está ocupado
+        // processando a própria transição, e as atualizações do radar
+        // competiam pelo mesmo pipeline. Se elas chegassem mais rápido do
+        // que o mapa conseguia absorver durante esse pico, empilhavam numa
+        // fila que só crescia, e o mapa nunca mais alcançava — travava de
+        // vez (zoom parava de responder, e a própria animação do radar
+        // parecia travada junto, já que o quadro nunca mais era repintado).
+        // mapa.isMoving() cobre pan, zoom, rotação e inclinação — qualquer
+        // um em andamento pausa a atualização até o próximo 'idle'.
         const INTERVALO_MS = 65
         function agendar() {
           animId = window.setTimeout(() => {
             try {
-              const fonte = mapa.getSource('radar-pets') as import('maplibre-gl').GeoJSONSource | undefined
-              fonte?.setData({ type: 'FeatureCollection', features: construirFeatures() })
+              if (!mapa.isMoving()) {
+                const fonte = mapa.getSource('radar-pets') as import('maplibre-gl').GeoJSONSource | undefined
+                fonte?.setData({ type: 'FeatureCollection', features: construirFeatures() })
+              }
             } catch (erro) {
               // Nunca deixa uma exceção aqui matar o loop de animação em
               // silêncio pra sempre — loga e tenta de novo no próximo ciclo.
@@ -305,6 +336,7 @@ export function useMarkersPets({
       container.removeEventListener('click', aoClicar)
       if (animId !== null) window.clearTimeout(animId)
       if (mapa.getLayer('radar-pets-linha')) mapa.removeLayer('radar-pets-linha')
+      if (mapa.getLayer('radar-pets-halo')) mapa.removeLayer('radar-pets-halo')
       if (mapa.getSource('radar-pets')) mapa.removeSource('radar-pets')
     }
   }, [ativo, pets, cores, icones, filtro, mapaCarregado]) // eslint-disable-line react-hooks/exhaustive-deps
