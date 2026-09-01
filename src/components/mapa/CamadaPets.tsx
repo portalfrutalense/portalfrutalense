@@ -435,6 +435,12 @@ export function SidebarPets({
                 </div>
               )}
             </div>
+            {selecionado.data_hora_aproximada && (
+              <div>
+                <p style={rotuloEstilo}>{selecionado.tipo === 'perdido' ? 'Quando sumiu' : 'Quando foi encontrado'}</p>
+                <p style={valorEstilo}>{new Date(selecionado.data_hora_aproximada).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
+              </div>
+            )}
             {selecionado.endereco_label && (
               <div>
                 <p style={rotuloEstilo}>{selecionado.tipo === 'perdido' ? 'Sumiu perto de' : selecionado.tipo === 'adocao' ? 'Localização' : 'Encontrado em'}</p>
@@ -449,7 +455,12 @@ export function SidebarPets({
 
           {meu && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {(selecionado.tipo === 'perdido' || selecionado.tipo === 'adocao') && !selecionado.reencontrado && (
+              {/* BUG CORRIGIDO: aparecia também pra 'adocao', mas o banco só
+                  permite reencontrado=true quando tipo='perdido'
+                  (CHECK pets_reencontrado_so_perdido) — pro dono de um pet em
+                  adoção, o botão clicava e nada acontecia, pra sempre, sem
+                  nenhuma mensagem. */}
+              {selecionado.tipo === 'perdido' && !selecionado.reencontrado && (
                 <button onClick={() => onMarcarReencontrado(selecionado)}
                   style={{ ...botaoAcao, color: '#166534', fontWeight: 600 }}>
                   Marcar como reencontrado

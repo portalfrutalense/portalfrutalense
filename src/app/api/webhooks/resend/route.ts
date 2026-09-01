@@ -22,7 +22,13 @@ const RESEND_STATUS: Record<string, string> = {
 // Ordem de "quão definitivo" cada status é — um evento atrasado na entrega
 // (webhooks não garantem ordem) não deve regredir um status já mais final.
 // Índice maior = mais definitivo.
-const PRIORIDADE_STATUS = ['enviado', 'atrasado', 'reclamado', 'bounce', 'entregue']
+// BUG CORRIGIDO: 'entregue' estava ACIMA de 'bounce' — um evento
+// `delivered` chegando atrasado sobrescrevia um `bounce` já registrado,
+// mesmo bounce sendo terminal (o e-mail definitivamente não foi entregue).
+// O master passava a ver "entregue" pra um endereço que voltou. Bounce e
+// reclamado (os dois desfechos que realmente pedem atenção) agora ficam no
+// topo — nada os sobrescreve depois.
+const PRIORIDADE_STATUS = ['enviado', 'atrasado', 'entregue', 'reclamado', 'bounce']
 
 interface EventoResend {
   type?: string
@@ -46,6 +52,17 @@ export async function POST(req: NextRequest) {
 
     if (!svixId || !svixTimestamp || !svixSignature) {
       return NextResponse.json({ error: 'Assinatura ausente.' }, { status: 401 })
+    }
+
+    // BUG CORRIGIDO: `svix-timestamp` entrava na mensagem assinada mas
+    // nunca era comparado com a hora atual — sem janela de validade, um
+    // webhook capturado (assinatura válida, mas antigo) podia ser
+    // reenviado indefinidamente (replay). Tolerância de 5 minutos, mesmo
+    // padrão recomendado pela própria Svix.
+    const timestampSegundos = Number(svixTimestamp)
+    const agoraSegundos = Math.floor(Date.now() / 1000)
+    if (!Number.isFinite(timestampSegundos) || Math.abs(agoraSegundos - timestampSegundos) > 5 * 60) {
+      return NextResponse.json({ error: 'Timestamp inválido ou expirado.' }, { status: 401 })
     }
 
     // Verificação manual da assinatura HMAC (sem dependência extra)

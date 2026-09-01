@@ -291,10 +291,11 @@ export default function AssistenteIAPage() {
             {bot.etapaDemanda === 'resumo' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingLeft: '46px' }}>
                 {bot.fotoPreview && (
+                  // eslint-disable-next-line @next/next/no-img-element -- blob: URL local (preview de upload), next/image não serve
                   <img src={bot.fotoPreview} alt="Foto anexada" style={{ width: '84px', height: '84px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #e5e7eb' }} />
                 )}
                 {bot.captchaVisivel && (
-                  <Turnstile size="flexible" onVerify={bot.aoVerificarCaptcha} onExpire={() => {/* token expira, usuário recarrega */}} />
+                  <Turnstile size="flexible" onVerify={bot.aoVerificarCaptcha} onExpire={bot.aoExpirarCaptcha} />
                 )}
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button onClick={bot.aoClicarConfirmar} disabled={bot.criando || bot.captchaVisivel}

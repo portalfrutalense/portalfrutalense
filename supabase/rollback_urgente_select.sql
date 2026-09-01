@@ -1,5 +1,5 @@
 -- ============================================================
--- ⚠️  HISTÓRICO — NÃO RODE ISTO DEPOIS DE fix_rls_seguranca_2026-08.sql
+-- HISTÓRICO — NÃO RODE ISTO DEPOIS DE fix_rls_seguranca_2026-08.sql
 -- OU fix_rls_seguranca_2026-08-30.sql. Este arquivo reabre a exposição
 -- pública de CPF, magic_token e e-mail de autoridade que esses dois
 -- corrigiram — ele só existe como registro do que foi rodado numa

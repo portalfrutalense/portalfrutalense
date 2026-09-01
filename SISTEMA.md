@@ -30,6 +30,7 @@ cidadão pelo fluxo de registro de demandas por conversa natural.
 - Evolution API (self-hosted) como gateway do WhatsApp
 - Cloudflare Turnstile como anti-bot em formulários públicos
 - Mapbox (Geocoding API + Static Images API) para geocodificação e miniaturas de mapa
+- Esri/ArcGIS (World Imagery + basemap styles) para as imagens de satélite do mapa principal (desde 2026-08-31)
 - Deploy: Vercel (presumido pelas referências a `SITE_URL`, `maxDuration` etc.)
 
 ---
@@ -104,9 +105,24 @@ Componente principal: `src/components/MapaDemandas.tsx`, que:
   WebGL com câmera 3D: inclinação (pitch) e rotação (bearing) ficam livres pro
   usuário ajustar por gesto (botão direito/Ctrl+arrastar no desktop, dois dedos no
   touch) — trocado em 2026-08-30 exatamente por causa disso, o Leaflet não tem
-  como inclinar a câmera de jeito nenhum. Continua usando as mesmas imagens de
-  satélite do Mapbox de sempre (`satellite-v9`/`satellite-streets-v12`, trocadas
-  por zoom); só quem desenha essas imagens na tela mudou.
+  como inclinar a câmera de jeito nenhum. As imagens de satélite passaram a
+  vir da **Esri/ArcGIS** (`ibasemaps-api.arcgis.com/.../World_Imagery`,
+  desde 2026-08-31 — não é mais Mapbox), com labels via
+  `basemapstyles-api.arcgis.com`; o navegador do cidadão se conecta direto
+  aos servidores da Esri pra carregar os tiles (`NEXT_PUBLIC_ARCGIS_API_KEY`).
+  Mapbox continua em uso só no fluxo do WhatsApp (geocodificação de texto +
+  miniatura estática, seção 6.2) — não mais no mapa principal. Inclinação padrão e
+  máxima em 65° (`PITCH_PADRAO`/`PITCH_MAX`, `useMapaBase.ts`); sem botões
+  +/− de zoom na tela (removidos — o gesto de pinça/scroll já cobre isso).
+- **Patch obrigatório do MapLibre** (`patches/maplibre-gl+4.7.1.patch`,
+  aplicado via `patch-package` no `postinstall`): corrige uma race condition
+  no `TaskQueue` interno da biblioteca — um `redraw()` disparado por
+  `ResizeObserver` colidindo com um `_render()` já em andamento (comum
+  durante as animações de pitch/zoom deste mapa, que rodam 400–650ms) fazia
+  o mapa travar de vez, exigindo recarregar a página. Sem esse patch
+  instalado, o bug volta. Se o mapa recomeçar a travar depois de um
+  `npm install` limpo, o primeiro lugar a checar é se o patch foi aplicado
+  (`node_modules/maplibre-gl` deveria ter o patch refletido).
 - A camada ativa é controlada pela query string `?camada=demandas|pets|classificados|empregos`,
   sincronizada com a Navbar (que tem links diretos para cada camada).
 - Em mobile, a listagem lateral vira um **bottom sheet arrastável** com 3 posições
@@ -307,6 +323,23 @@ a foto correspondente no Storage antes de apagar a linha.
 > no código atual. O esquema real e vigente foi reconstruído por migrações
 > incrementais na pasta `sql/` e no arquivo `migration_demanda_entidades.sql`.
 > As tabelas efetivamente em uso, inferidas do código:
+>
+> **Pendência conhecida (auditoria de 2026-09-01, B24-1):** `entidades`,
+> `categorias_mapa`, `categoria_entidades` e `chatbot_base` nunca tiveram
+> `CREATE TABLE` em nenhum arquivo versionado fora do `schema.sql` legado —
+> reconstruir o banco do zero só com os arquivos de `sql/` falhava, porque
+> `sql/migration-demandas.sql` referencia `categorias_mapa(id)`/`entidades(id)`
+> por FK antes de essas tabelas existirem em qualquer lugar. Corrigido em
+> `supabase/fix_tabelas_faltantes_2026-09-01.sql` (cria as 4 tabelas + RLS
+> versionada — `chatbot_base` não tinha NENHUMA policy de RLS, apesar de seu
+> conteúdo ser injetado na íntegra no prompt dos dois bots) — **status de
+> execução no banco real não confirmado nesta sessão.**
+>
+> **Outra pendência (R2-37):** mesmo com todas as tabelas criadas, um banco
+> reconstruído do zero nasce **sem nenhuma conta master** — só o master cria
+> autoridade/empresa, e não existe caminho automático de bootstrap (de
+> propósito: um UUID de produção real hardcoded no repositório seria pior).
+> Passo manual obrigatório documentado em `sql/role_master.sql`.
 
 | Tabela | Descrição |
 |---|---|
@@ -325,6 +358,16 @@ a foto correspondente no Storage antes de apagar a linha.
 | `chatbot_base` | Base de conhecimento do assistente (títulos + conteúdo) |
 | `chatbot_sem_resposta` | Perguntas que a IA não soube responder, para revisão |
 | `whatsapp_conversas` | Histórico de conversas do WhatsApp, vinculável a um `user_id` |
+| `chat_conversas` | Histórico real do chat do site, guardado no servidor (chaveado por `user_id`) — criada em 2026-09-01 pra corrigir um bug de injeção onde o cliente mandava (e podia forjar) o histórico inteiro a cada mensagem; ver `supabase/fix_chat_conversas_2026-09-01.sql` |
+
+**Pendências de SQL não confirmadas como executadas** (auditoria de
+2026-09-01): `fix_bloco11_2026-08-30.sql`, `fix_bloco14_2026-08-30.sql`,
+`fix_perfis_unique_2026-08-30.sql` (este nem chegou a ser mencionado neste
+documento antes), `fix_classificados_onibus_2026-08-30.sql`,
+`sql/migration-pets-config-por-especie.sql`, e os arquivos novos desta
+sessão (`fix_tabelas_faltantes`, `fix_chat_conversas`, `fix_pets_data_hora`,
+`fix_demanda_entidades_unique`, todos `_2026-09-01`). Lista completa de
+pendências, com o que cada uma corrige, em `AUDITORIA_FINAL.md`.
 
 Todas essas tabelas usam **Row Level Security (RLS)** do Supabase — as rotas de
 API usam o cliente `service_role` (`supabaseServer`) para ignorar RLS quando
@@ -343,6 +386,7 @@ normalmente para leitura pública.
 | **Resend** | Envio de e-mails transacionais (notificação de nova demanda para autoridades) |
 | **Evolution API** | Gateway self-hosted para integração com WhatsApp (webhook de mensagens, envio de texto/mídia) |
 | **Mapbox** | Geocoding API (converter endereço em coordenadas, usado no fluxo do WhatsApp) e Static Images API (gerar miniatura de satélite com pin) |
+| **Esri/ArcGIS** | Imagens de satélite do mapa principal (`/mapa`) — o navegador do cidadão se conecta direto aos servidores da Esri pra carregar os tiles, não passa pelo backend |
 | **Cloudflare Turnstile** | Anti-bot nos formulários públicos (registro de demanda) |
 
 ---

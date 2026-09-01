@@ -13,7 +13,7 @@ type SubSecaoPerfis = 'cidadao' | 'autoridade' | 'empresa'
 type AbaConfig = 'categorias' | 'ia'
 
 export default function MasterPage() {
-  const { user, perfil, carregando: carregandoAuth } = useAuth()
+  const { user, perfil, carregando: carregandoAuth, sair } = useAuth()
   const router = useRouter()
   const [tokenSessao, setTokenSessao] = useState<string | null>(null)
   const [reprocessando, setReprocessando] = useState(false)
@@ -21,16 +21,26 @@ export default function MasterPage() {
   const [marcandoNaoResolvidas, setMarcandoNaoResolvidas] = useState(false)
   const [avisoNaoResolvidas, setAvisoNaoResolvidas] = useState('')
 
+  // BUG CORRIGIDO (V-4/B21-1): usava `tokenSessao` cacheado direto — o resto
+  // do arquivo já busca sessão fresca antes de cada requisição (padrão
+  // seguido em MasterDemandas/MasterPerfis); estas duas funções ficaram pra
+  // trás. A atualização periódica de `tokenSessao` (10 em 10 min, ver o
+  // useEffect logo acima) já reduzia bastante o risco, mas buscar fresco
+  // aqui também fecha a inconsistência de vez.
   async function reprocessarPendentes() {
-    if (!tokenSessao) return
+    const t = (await client.auth.getSession()).data.session?.access_token ?? tokenSessao
+    if (!t) return
     setReprocessando(true)
     setAvisoReprocessar('')
     try {
       const res = await fetch('/api/master/reprocessar-pendentes', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${tokenSessao}` },
+        headers: { Authorization: `Bearer ${t}` },
       })
-      const d = await res.json()
+      // BUG CORRIGIDO: sem `.catch()`, uma resposta não-JSON (ex: página de
+    // erro HTML de um 500 do Next) fazia `res.json()` rejeitar sem
+    // tratamento — a função para em silêncio, nenhuma mensagem aparece.
+    const d = await res.json().catch(() => ({}))
       if (!res.ok) { setAvisoReprocessar(d.error || 'Erro ao reprocessar.'); return }
       const { demandas, pets, classificados } = d.reprocessadas
       const total = demandas + pets + classificados
@@ -50,15 +60,19 @@ export default function MasterPage() {
   // Botão manual, não job de cron — demandas em aguardando_resposta/respondida
   // há mais de 30 dias (contando da aprovação, não da criação) viram nao_resolvida.
   async function marcarNaoResolvidas() {
-    if (!tokenSessao) return
+    const t = (await client.auth.getSession()).data.session?.access_token ?? tokenSessao
+    if (!t) return
     setMarcandoNaoResolvidas(true)
     setAvisoNaoResolvidas('')
     try {
       const res = await fetch('/api/master/marcar-nao-resolvidas', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${tokenSessao}` },
+        headers: { Authorization: `Bearer ${t}` },
       })
-      const d = await res.json()
+      // BUG CORRIGIDO: sem `.catch()`, uma resposta não-JSON (ex: página de
+    // erro HTML de um 500 do Next) fazia `res.json()` rejeitar sem
+    // tratamento — a função para em silêncio, nenhuma mensagem aparece.
+    const d = await res.json().catch(() => ({}))
       if (!res.ok) { setAvisoNaoResolvidas(d.error || 'Erro ao marcar.'); return }
       setAvisoNaoResolvidas(
         d.marcadas === 0
@@ -93,11 +107,12 @@ export default function MasterPage() {
   const [editCatNome, setEditCatNome] = useState('')
   const [editCatCor, setEditCatCor] = useState('#dc2626')
   const [editCatIcone, setEditCatIcone] = useState<File | null>(null)
+  const [erroCategoria, setErroCategoria] = useState('')
 
   // Stats dashboard
-  const [stats, setStats] = useState({ total: 0, pendente: 0, aguardando: 0, respondida: 0, resolvida: 0, nao_resolvida: 0, denunciada: 0 })
-  const [statsPets, setStatsPets] = useState({ total: 0, perdidos: 0, achados: 0, reencontrados: 0, ocultos: 0, pendente_ia: 0 })
-  const [statsClass, setStatsClass] = useState({ total: 0, ativos: 0, vendidos: 0, ocultos: 0, pendente_ia: 0 })
+  const [stats, setStats] = useState({ total: 0, pendente: 0, aguardando: 0, respondida: 0, resolvida: 0, nao_resolvida: 0, denunciada: 0, rejeitada_ia: 0 })
+  const [statsPets, setStatsPets] = useState({ total: 0, perdidos: 0, achados: 0, reencontrados: 0, ocultos: 0, pendente_ia: 0, rejeitada_ia: 0 })
+  const [statsClass, setStatsClass] = useState({ total: 0, ativos: 0, vendidos: 0, ocultos: 0, pendente_ia: 0, rejeitada_ia: 0 })
   const [statsEmp, setStatsEmp] = useState({ total: 0, ativas: 0, encerradas: 0, ocultas: 0 })
 
   const client = createClient()
@@ -112,6 +127,22 @@ export default function MasterPage() {
       setTokenSessao(data.session?.access_token || null)
       carregarDados()
     })
+
+    // BUG CORRIGIDO: o token era capturado só uma vez na montagem — o access
+    // token do Supabase expira em 1h por padrão, e a partir daí toda ação do
+    // painel devolvia 401 em silêncio, só descoberto recarregando a página.
+    // Todo o resto do sistema busca a sessão fresca antes de cada
+    // requisição; aqui, em vez de reescrever os +10 pontos que usam
+    // `tokenSessao` (inclusive passado como prop pra componentes filhos),
+    // mantém o valor renovado periodicamente — bem abaixo da janela de
+    // expiração, então o token em cache nunca fica velho o bastante pra
+    // expirar entre uma renovação e a próxima.
+    const intervalo = setInterval(() => {
+      client.auth.getSession().then(({ data }) => {
+        setTokenSessao(data.session?.access_token || null)
+      })
+    }, 10 * 60 * 1000)
+    return () => clearInterval(intervalo)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [carregandoAuth, user, perfil])
 
@@ -136,6 +167,7 @@ export default function MasterPage() {
       resolvida:     s.demandas.resolvida,
       nao_resolvida: s.demandas.nao_resolvida,
       denunciada:    s.demandas.denunciada,
+      rejeitada_ia:  s.demandas.rejeitada_ia,
     })
     setStatsPets({
       total:         s.pets.total,
@@ -144,6 +176,7 @@ export default function MasterPage() {
       reencontrados: s.pets.reencontrados,
       ocultos:       s.pets.ocultos,
       pendente_ia:   s.pets.pendente_ia,
+      rejeitada_ia:  s.pets.rejeitada_ia,
     })
     setStatsClass({
       total:       s.classificados.total,
@@ -151,6 +184,7 @@ export default function MasterPage() {
       vendidos:    s.classificados.vendidos,
       ocultos:     s.classificados.ocultos,
       pendente_ia: s.classificados.pendente_ia,
+      rejeitada_ia: s.classificados.rejeitada_ia,
     })
     setStatsEmp({
       total:      s.empregos.total,
@@ -160,11 +194,24 @@ export default function MasterPage() {
     })
   }
 
+  // BUG CORRIGIDO: sem `img.onerror`, um arquivo escolhido que não fosse uma
+  // imagem válida deixava essa Promise pendurada pra sempre — `salvarCategoria`
+  // ficava esperando sem nunca resolver, sem erro nem feedback nenhum pro
+  // master. Mesmo tratamento que `comprimirFoto` (FormPet.tsx) já tem.
   async function comprimirIcone(file: File, maxSize = 64): Promise<Blob> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const img = new Image()
       const url = URL.createObjectURL(file)
       img.onload = () => {
+        // BUG CORRIGIDO: um SVG sem dimensão intrínseca (sem width/height
+        // nem viewBox que dê pra derivar um tamanho) carrega com
+        // img.width/height = 0 — a divisão maxSize/0 vira Infinity, o
+        // canvas nasce 0x0 e sobe um PNG vazio pro Storage, sem erro nenhum.
+        if (!img.width || !img.height) {
+          URL.revokeObjectURL(url)
+          reject(new Error('Essa imagem não tem dimensões válidas (SVG precisa de width/height ou viewBox).'))
+          return
+        }
         const canvas = document.createElement('canvas')
         const scale = Math.min(maxSize / img.width, maxSize / img.height, 1)
         canvas.width = Math.round(img.width * scale)
@@ -172,8 +219,9 @@ export default function MasterPage() {
         const ctx = canvas.getContext('2d')!
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
         URL.revokeObjectURL(url)
-        canvas.toBlob((blob) => resolve(blob!), 'image/png', 0.9)
+        canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Falha ao gerar o ícone.')), 'image/png', 0.9)
       }
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Arquivo de imagem inválido.')) }
       img.src = url
     })
   }
@@ -185,28 +233,81 @@ export default function MasterPage() {
     const { data } = client.storage.from('categoria-icones').getPublicUrl(path)
     return data.publicUrl
   }
+  // BUG CORRIGIDO: escritas em `categorias_mapa` não checavam `error` — se o
+  // RLS recusasse, a operação simplesmente não acontecia e a tela se
+  // comportava como se tivesse dado certo (nenhum aviso). `salvarCategoria`
+  // também não validava nome vazio antes de tentar salvar.
   async function salvarCategoria(e: React.FormEvent) {
     e.preventDefault()
-    const { data: nova } = await client.from('categorias_mapa').insert({ nome: novaCatNome, cor: novaCatCor, ativo: true }).select().single()
-    if (nova && novaCatIcone) {
-      const url = await uploadIconeCategoria(novaCatIcone, nova.id)
-      if (url) await client.from('categorias_mapa').update({ icone_url: url }).eq('id', nova.id)
+    setErroCategoria('')
+    if (!novaCatNome.trim()) { setErroCategoria('Informe o nome da categoria.'); return }
+    const { data: nova, error } = await client.from('categorias_mapa').insert({ nome: novaCatNome.trim(), cor: novaCatCor, ativo: true }).select().single()
+    if (error || !nova) { setErroCategoria(`Erro ao salvar: ${error?.message || 'tente novamente.'}`); return }
+    if (novaCatIcone) {
+      // BUG CORRIGIDO: sem try/catch, um ícone inválido (SVG sem dimensão,
+      // arquivo corrompido) agora que comprimirIcone rejeita (Erros #38/#68)
+      // faria essa promise rejeitar sem tratamento nenhum — a categoria já
+      // tinha sido criada, mas nada avisava e a tela não recarregava.
+      try {
+        const url = await uploadIconeCategoria(novaCatIcone, nova.id)
+        if (url) {
+          const { error: erroIcone } = await client.from('categorias_mapa').update({ icone_url: url }).eq('id', nova.id)
+          if (erroIcone) { setErroCategoria(`Categoria salva, mas o ícone falhou: ${erroIcone.message}`); carregarDados(); return }
+        }
+      } catch (e) {
+        setErroCategoria(`Categoria salva, mas o ícone falhou: ${e instanceof Error ? e.message : 'tente novamente'}`)
+        carregarDados()
+        return
+      }
     }
     setNovaCatNome(''); setNovaCatCor('#dc2626'); setNovaCatIcone(null)
     carregarDados()
   }
   async function excluirCategoria(id: string) {
-    if (!confirm('Excluir esta categoria?')) return
-    await client.from('categorias_mapa').delete().eq('id', id)
+    // BUG CORRIGIDO: o aviso não dizia o impacto real. `categoria_id` em
+    // `demandas` referencia `categorias_mapa(id)` sem ON DELETE (RESTRICT
+    // por padrão) — qualquer categoria que já tenha uma demanda vinculada
+    // NUNCA pode ser excluída, o banco sempre recusa. Isso é bom (não perde
+    // dado), mas o aviso agora deixa isso claro antes de tentar.
+    if (!confirm('Excluir esta categoria? Isso só é possível se nenhuma demanda já tiver usado essa categoria — caso contrário, a exclusão será recusada.')) return
+    setErroCategoria('')
+    const { error } = await client.from('categorias_mapa').delete().eq('id', id)
+    if (error) {
+      // 23503 = foreign_key_violation — mensagem amigável em vez do texto
+      // cru do Postgres ("update or delete on table... violates foreign
+      // key constraint...").
+      setErroCategoria(
+        error.code === '23503'
+          ? 'Não é possível excluir: já existem demandas registradas com essa categoria.'
+          : `Erro ao excluir: ${error.message}`
+      )
+      return
+    }
+    // BUG CORRIGIDO: o ícone (sempre salvo como `${id}.png`, ver
+    // uploadIconeCategoria) nunca era removido do Storage ao excluir a
+    // categoria — ficava órfão no bucket categoria-icones pra sempre.
+    // Best-effort: a categoria já foi excluída, então isso aqui não pode
+    // bloquear nem reverter a exclusão se falhar.
+    client.storage.from('categoria-icones').remove([`${id}.png`]).catch(() => {})
     carregarDados()
   }
   async function salvarEdicaoCategoria(id: string) {
+    setErroCategoria('')
+    if (!editCatNome.trim()) { setErroCategoria('Informe o nome da categoria.'); return }
     let icone_url: string | undefined = undefined
     if (editCatIcone) {
-      const url = await uploadIconeCategoria(editCatIcone, id)
-      if (url) icone_url = url
+      // Mesma correção de salvarCategoria — sem isso, um ícone inválido
+      // rejeitaria sem tratamento nenhum.
+      try {
+        const url = await uploadIconeCategoria(editCatIcone, id)
+        if (url) icone_url = url
+      } catch (e) {
+        setErroCategoria(`Ícone inválido: ${e instanceof Error ? e.message : 'tente novamente'}`)
+        return
+      }
     }
-    await client.from('categorias_mapa').update({ nome: editCatNome, cor: editCatCor, ...(icone_url ? { icone_url } : {}) }).eq('id', id)
+    const { error } = await client.from('categorias_mapa').update({ nome: editCatNome.trim(), cor: editCatCor, ...(icone_url ? { icone_url } : {}) }).eq('id', id)
+    if (error) { setErroCategoria(`Erro ao salvar: ${error.message}`); return }
     setEditandoCat(null); setEditCatIcone(null)
     carregarDados()
   }
@@ -333,7 +434,11 @@ export default function MasterPage() {
 
         {/* Sair */}
         <div style={{ padding: '12px 10px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-          <button onClick={() => client.auth.signOut()} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'transparent', color: 'rgba(255,255,255,0.4)', fontSize: '13px', fontWeight: 500 }}>
+          {/* BUG CORRIGIDO: chamava client.auth.signOut() direto — único
+              ponto do sistema que não usava o sair() do AuthProvider, que
+              também limpa user/perfil/ultimoUserIdCarregado imediatamente,
+              em vez de depender só do onAuthStateChange eventualmente disparar. */}
+          <button onClick={() => sair()} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'transparent', color: 'rgba(255,255,255,0.4)', fontSize: '13px', fontWeight: 500 }}>
             Sair
           </button>
         </div>
@@ -389,6 +494,9 @@ export default function MasterPage() {
                       { label: 'Resolvidas', valor: stats.resolvida },
                       { label: 'Não resolvidas', valor: stats.nao_resolvida },
                       { label: 'Denunciadas', valor: stats.denunciada, destaque: stats.denunciada > 0 },
+                      // BUG CORRIGIDO (R2-5): não existia nenhuma visibilidade
+                      // de quantas demandas a IA rejeitou automaticamente.
+                      { label: 'Rejeitadas (IA)', valor: stats.rejeitada_ia, destaque: stats.rejeitada_ia > 0 },
                     ]} />
                     <CardStats titulo="Achei/Perdi um Pet" linhas={[
                       { label: 'Total', valor: statsPets.total },
@@ -397,6 +505,7 @@ export default function MasterPage() {
                       { label: 'Reencontrados', valor: statsPets.reencontrados },
                       { label: 'Ocultos', valor: statsPets.ocultos },
                       { label: 'Pendente IA', valor: statsPets.pendente_ia, destaque: statsPets.pendente_ia > 0 },
+                      { label: 'Rejeitado IA', valor: statsPets.rejeitada_ia, destaque: statsPets.rejeitada_ia > 0 },
                     ]} />
                     <CardStats titulo="Classificados" linhas={[
                       { label: 'Total', valor: statsClass.total },
@@ -404,6 +513,7 @@ export default function MasterPage() {
                       { label: 'Vendidos', valor: statsClass.vendidos },
                       { label: 'Ocultos', valor: statsClass.ocultos },
                       { label: 'Pendente IA', valor: statsClass.pendente_ia, destaque: statsClass.pendente_ia > 0 },
+                      { label: 'Rejeitado IA', valor: statsClass.rejeitada_ia, destaque: statsClass.rejeitada_ia > 0 },
                     ]} />
                     <CardStats titulo="Empregos" linhas={[
                       { label: 'Total', valor: statsEmp.total },
@@ -638,6 +748,7 @@ export default function MasterPage() {
                             </div>
                           </div>
                           <button type="submit" style={{ alignSelf: 'flex-start', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '9px 18px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px' }}>Salvar</button>
+                          {erroCategoria && <p style={{ color: '#dc2626', fontSize: '13px', margin: 0 }}>{erroCategoria}</p>}
                         </form>
                       </div>
                       <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
@@ -718,10 +829,17 @@ export default function MasterPage() {
 }
 
 // ── Sub-componente: Demandas ───────────────────────────────
-// Capitaliza a primeira letra de cada palavra
+// Capitaliza a primeira letra de cada palavra.
+// BUG CORRIGIDO: a versão anterior usava `\w\S*` — `\w` é ASCII-only em
+// JS, não casa letra acentuada (Â, Á, É...). Num nome que COMEÇA com uma
+// dessas, o replace começava a capitalizar na 2ª letra: "Ângela" virava
+// "ÂNgela", "Álvaro" virava "ÁLvaro" — sistema municipal brasileiro, isso
+// aparece em nome de cidadão e de autoridade. Corrigido evitando `\w`
+// inteiramente: separa por espaço e capitaliza cada palavra com métodos de
+// string puros (charAt/slice), que não têm esse problema de Unicode.
 function titleCase(str: string | null | undefined): string {
   if (!str) return '—'
-  return str.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+  return str.split(' ').map((w) => w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w).join(' ')
 }
 
 // Capitaliza apenas a primeira letra da frase
@@ -757,14 +875,20 @@ function MasterDemandas({ token }: { token: string | null }) {
   const [editDescricao, setEditDescricao] = useState('')
   const [menuAbertoDemandaId, setMenuAbertoDemandaId] = useState<string | null>(null)
 
+  // BUG CORRIGIDO (V-4/B21-1): buscava sessão fresca só como fallback do
+  // `token` (prop cacheada, vinda de master/page.tsx) — depois de ~1h de
+  // sessão, essa prop pode estar velha, mas como nunca é `null`/`undefined`
+  // (só troca de valor), o fallback nunca era acionado. Inverte a
+  // prioridade: sessão fresca primeiro, prop só como último recurso se a
+  // busca falhar.
   async function carregarDemandas() {
-    const t = token ?? (await sbClient.auth.getSession()).data.session?.access_token
+    const t = (await sbClient.auth.getSession()).data.session?.access_token ?? token
     if (!t || t === 'undefined' || t === 'null') return
     setCarregandoDemandas(true)
     const res = await fetch('/api/master/demanda', {
       headers: { 'Authorization': `Bearer ${t}` },
     })
-    if (res.ok) setDemandas(await res.json())
+    if (res.ok) setDemandas(await res.json().catch(() => []))
     setCarregandoDemandas(false)
   }
 
@@ -772,7 +896,7 @@ function MasterDemandas({ token }: { token: string | null }) {
     if (!token) return
     fetch('/api/master/demanda', { headers: { Authorization: `Bearer ${token}` } })
       .then(async (res) => {
-        if (res.ok) setDemandas(await res.json())
+        if (res.ok) setDemandas(await res.json().catch(() => []))
         setCarregandoDemandas(false)
       })
   }, [token])
@@ -789,7 +913,10 @@ function MasterDemandas({ token }: { token: string | null }) {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
       body: JSON.stringify({ demanda_id: id }),
     })
-    const d = await res.json()
+    // BUG CORRIGIDO: sem `.catch()`, uma resposta não-JSON (ex: página de
+    // erro HTML de um 500 do Next) fazia `res.json()` rejeitar sem
+    // tratamento — a função para em silêncio, nenhuma mensagem aparece.
+    const d = await res.json().catch(() => ({}))
     if (d.ok) mostrarNotif('Link reenviado com sucesso.'); else mostrarNotif(d.error, true)
   }
 
@@ -800,17 +927,21 @@ function MasterDemandas({ token }: { token: string | null }) {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
       body: JSON.stringify({ demanda_id: id, acao }),
     })
-    const d = await res.json()
+    // BUG CORRIGIDO: sem `.catch()`, uma resposta não-JSON (ex: página de
+    // erro HTML de um 500 do Next) fazia `res.json()` rejeitar sem
+    // tratamento — a função para em silêncio, nenhuma mensagem aparece.
+    const d = await res.json().catch(() => ({}))
     if (!d.ok) { mostrarNotif(d.error, true); return }
     const msg = { aprovar: 'Demanda aprovada e autoridades notificadas.', rejeitar: 'Demanda rejeitada.', ocultar: 'Demanda ocultada do mapa.', reexibir: 'Demanda reexibida no mapa.', reaprovar: 'Demanda reaprovada — volta a circular normalmente.' }[acao]
     mostrarNotif(msg)
     carregarDemandas()
   }
 
+  // Mesma correção de prioridade que carregarDemandas — sessão fresca
+  // primeiro, prop só como último recurso.
   async function getToken() {
-    if (token) return token
     const { data: { session } } = await sbClient.auth.getSession()
-    return session?.access_token
+    return session?.access_token ?? token
   }
 
   async function excluirDemanda(id: string) {
@@ -821,7 +952,10 @@ function MasterDemandas({ token }: { token: string | null }) {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ demanda_id: id }),
     })
-    const d = await res.json()
+    // BUG CORRIGIDO: sem `.catch()`, uma resposta não-JSON (ex: página de
+    // erro HTML de um 500 do Next) fazia `res.json()` rejeitar sem
+    // tratamento — a função para em silêncio, nenhuma mensagem aparece.
+    const d = await res.json().catch(() => ({}))
     if (!d.ok) { mostrarNotif(d.error, true); return }
     mostrarNotif('Demanda excluída.')
     carregarDemandas()
@@ -835,7 +969,10 @@ function MasterDemandas({ token }: { token: string | null }) {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ demanda_id: id, descricao: editDescricao.trim() }),
     })
-    const d = await res.json()
+    // BUG CORRIGIDO: sem `.catch()`, uma resposta não-JSON (ex: página de
+    // erro HTML de um 500 do Next) fazia `res.json()` rejeitar sem
+    // tratamento — a função para em silêncio, nenhuma mensagem aparece.
+    const d = await res.json().catch(() => ({}))
     if (!d.ok) { mostrarNotif(d.error, true); return }
     setEditandoId(null)
     mostrarNotif('Demanda atualizada.')
@@ -853,7 +990,10 @@ function MasterDemandas({ token }: { token: string | null }) {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ demanda_id: id, status: 'resolvida' }),
     })
-    const d = await res.json()
+    // BUG CORRIGIDO: sem `.catch()`, uma resposta não-JSON (ex: página de
+    // erro HTML de um 500 do Next) fazia `res.json()` rejeitar sem
+    // tratamento — a função para em silêncio, nenhuma mensagem aparece.
+    const d = await res.json().catch(() => ({}))
     if (!d.ok) { mostrarNotif(d.error, true); return }
     setDemandas(prev => prev.map(x => x.id === id ? { ...x, status: 'resolvida' } : x))
     mostrarNotif('Demanda marcada como resolvida.')
@@ -886,8 +1026,11 @@ function MasterDemandas({ token }: { token: string | null }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* BUG CORRIGIDO: mostrarNotif prefixa "Erro: " na mensagem, mas isso
+          aqui renderizava sempre na cor verde de sucesso — mesmo padrão já
+          usado corretamente logo abaixo em MasterPerfis (notif.startsWith). */}
       {notif && (
-        <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#166534' }}>
+        <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: notif.startsWith('Erro') ? '#dc2626' : '#166534' }}>
           {notif}
         </div>
       )}
@@ -899,7 +1042,7 @@ function MasterDemandas({ token }: { token: string | null }) {
           { chave: 'pendente',            rotulo: 'Pendente IA',        contagem: demandas.filter(d => d.status === 'pendente').length },
           { chave: 'aguardando_resposta', rotulo: 'Aguardando resposta',contagem: demandas.filter(d => d.status === 'aguardando_resposta').length },
           { chave: 'respondida',          rotulo: 'Respondida',         contagem: demandas.filter(d => d.status === 'respondida').length },
-          { chave: 'nao_resolvida',       rotulo: 'Não respondida',     contagem: demandas.filter(d => d.status === 'nao_resolvida').length },
+          { chave: 'nao_resolvida',       rotulo: 'Não resolvida',      contagem: demandas.filter(d => d.status === 'nao_resolvida').length },
           { chave: 'resolvida',           rotulo: 'Resolvida',          contagem: demandas.filter(d => d.status === 'resolvida').length },
           { chave: 'rejeitada_ia',        rotulo: 'Rejeitada pela IA',  contagem: demandas.filter(d => d.status === 'rejeitada_ia').length },
           { chave: 'denunciada',          rotulo: 'Denunciada',         contagem: demandas.filter(d => d.status === 'denunciada').length },
@@ -1144,13 +1287,26 @@ function MasterDemandas({ token }: { token: string | null }) {
                   atrasado:  { texto: 'Entrega atrasada',   cor: '#92400e', bg: '#fffbeb' },
                   bounce:    { texto: 'Email bounced',      cor: '#dc2626', bg: '#fef2f2' },
                   reclamado: { texto: 'Marcado como spam',  cor: '#dc2626', bg: '#fef2f2' },
+                  // BUG CORRIGIDO: um envio que falhou na hora da chamada à
+                  // Resend (erro de rede, chave inválida etc.) nunca ganha
+                  // email_resend_id — ficava invisível aqui porque a checagem
+                  // abaixo só olhava o status quando havia id de rastreio.
+                  falhou:    { texto: 'Falha ao enviar',    cor: '#dc2626', bg: '#fef2f2' },
                 }
-                // Usa status da demanda só se tiver id de rastreio real
-                const statusDemanda = d.email_resend_id ? d.email_status : null
-                // Pega o melhor status dos vínculos (prioriza entregue > atrasado > bounce > reclamado > enviado)
-                const prioridade = ['entregue', 'bounce', 'reclamado', 'atrasado', 'enviado']
+                // Usa status da demanda só se tiver id de rastreio real — exceto
+                // 'falhou', que por definição nunca tem (a chamada nem chegou a
+                // gerar um id na Resend).
+                const statusDemanda = (d.email_resend_id || d.email_status === 'falhou') ? d.email_status : null
+                // BUG CORRIGIDO: a prioridade tinha 'entregue' em primeiro —
+                // numa demanda com 3 autoridades onde 2 deram bounce e 1 foi
+                // entregue, o selo mostrava só "Email entregue", escondendo
+                // que 2 autoridades nunca receberam nada. Pra um painel de
+                // administração, o que importa mostrar primeiro é o PIOR
+                // desfecho entre os vínculos (o que precisa de atenção), não
+                // o melhor — só mostra "entregue" quando nada deu errado.
+                const prioridade = ['bounce', 'reclamado', 'falhou', 'atrasado', 'enviado', 'entregue']
                 const statusVinculo = d.vinculos?.length
-                  ? prioridade.find(p => d.vinculos!.some((v) => v.email_resend_id && v.email_status === p)) ?? null
+                  ? prioridade.find(p => d.vinculos!.some((v) => (v.email_resend_id || v.email_status === 'falhou') && v.email_status === p)) ?? null
                   : null
                 const status = statusDemanda ?? statusVinculo
                 if (!status) return null
@@ -1209,7 +1365,9 @@ function MasterIAGenerico({ configId, textoAtivo, promptPadrao, descRigor }: {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {notif && <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#166534' }}>{notif}</div>}
+      {/* BUG CORRIGIDO: salvar() já escreve "Erro ao salvar: ..." em notif no
+          caminho de falha, mas renderizava sempre em verde de sucesso. */}
+      {notif && <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: notif.startsWith('Erro') ? '#dc2626' : '#166534' }}>{notif}</div>}
 
       <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '20px' }}>
         <h2 style={{ fontWeight: 700, color: '#111827', fontSize: '15px', marginBottom: '20px' }}>Configurações da IA</h2>
@@ -1374,11 +1532,21 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
       // um valor que o usuário nunca viu nem editou nesta tela.
       body.cpf = editCpf
     }
-    await fetch('/api/master/perfis', {
+    // BUG CORRIGIDO: descartava a resposta do fetch e mostrava "Perfil
+    // atualizado." incondicionalmente — se o PATCH falhasse (token
+    // expirado, 500, RLS), o master recebia confirmação de sucesso de uma
+    // edição que não aconteceu. Mesmo padrão de checagem já usado em
+    // excluir() logo abaixo.
+    const res = await fetch('/api/master/perfis', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
       body: JSON.stringify(body),
     })
+    // BUG CORRIGIDO: sem `.catch()`, uma resposta não-JSON (ex: página de
+    // erro HTML de um 500 do Next) fazia `res.json()` rejeitar sem
+    // tratamento — a função para em silêncio, nenhuma mensagem aparece.
+    const d = await res.json().catch(() => ({})).catch(() => ({}))
+    if (!res.ok || !d.ok) { mostrarNotif(d.error || 'Não foi possível atualizar o perfil.', true); return }
     setEditandoId(null)
     mostrarNotif('Perfil atualizado.')
     carregar()
@@ -1386,17 +1554,30 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
 
   async function bloquear(id: string, bloqueado: boolean) {
     const t = await getToken()
-    await fetch('/api/master/perfis', {
+    // BUG CORRIGIDO: mesmo problema de salvarEdicao — e bloquear conta é
+    // justamente uma ação de segurança, ainda mais grave fingir sucesso.
+    const res = await fetch('/api/master/perfis', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
       body: JSON.stringify({ id, bloqueado: !bloqueado }),
     })
+    // BUG CORRIGIDO: sem `.catch()`, uma resposta não-JSON (ex: página de
+    // erro HTML de um 500 do Next) fazia `res.json()` rejeitar sem
+    // tratamento — a função para em silêncio, nenhuma mensagem aparece.
+    const d = await res.json().catch(() => ({})).catch(() => ({}))
+    if (!res.ok || !d.ok) { mostrarNotif(d.error || 'Não foi possível concluir a ação.', true); return }
     mostrarNotif(bloqueado ? 'Acesso liberado.' : 'Acesso bloqueado.')
     carregar()
   }
 
   async function excluir(id: string) {
-    if (!confirm('Excluir esta autoridade? Esta ação não pode ser desfeita.')) return
+    // BUG CORRIGIDO: a confirmação dizia sempre "autoridade", mas este
+    // mesmo botão exclui cidadão e empresa também (a seção Perfis tem as
+    // três sub-abas) — texto errado numa ação destrutiva e irreversível.
+    const rotuloPapel: Record<string, string> = { cidadao: 'cidadão', autoridade: 'autoridade', empresa: 'empresa' }
+    const papel = perfis.find(p => p.id === id)?.role
+    const rotulo = (papel && rotuloPapel[papel]) || 'perfil'
+    if (!confirm(`Excluir este(a) ${rotulo}? Esta ação não pode ser desfeita.`)) return
     const t = await getToken()
     if (!t) { mostrarNotif('Sem autenticação. Faça login novamente.', true); return }
     try {
@@ -1405,9 +1586,12 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
         body: JSON.stringify({ id }),
       })
-      const d = await res.json()
+      // BUG CORRIGIDO: sem `.catch()`, uma resposta não-JSON (ex: página de
+    // erro HTML de um 500 do Next) fazia `res.json()` rejeitar sem
+    // tratamento — a função para em silêncio, nenhuma mensagem aparece.
+    const d = await res.json().catch(() => ({}))
       if (!res.ok || !d.ok) { mostrarNotif(d.error || `Erro ${res.status}`, true); return }
-      mostrarNotif('Excluído com sucesso.')
+      mostrarNotif(d.aviso || 'Excluído com sucesso.')
       carregar()
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'erro desconhecido'
@@ -1427,7 +1611,10 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
       body: JSON.stringify({ nome: novoNome, email: novoEmail, senha: novaSenha, role: subSecao, cargo: novoCargo, categorias: novasCats }),
     })
-    const d = await res.json()
+    // BUG CORRIGIDO: sem `.catch()`, uma resposta não-JSON (ex: página de
+    // erro HTML de um 500 do Next) fazia `res.json()` rejeitar sem
+    // tratamento — a função para em silêncio, nenhuma mensagem aparece.
+    const d = await res.json().catch(() => ({}))
     setSalvandoNovo(false)
     if (!d.ok) { mostrarNotif(d.error || 'Erro ao criar conta.'); return }
     setNovoNome(''); setNovoEmail(''); setNovaSenha(''); setNovoCargo(''); setNovasCats([]); setCriando(false)
@@ -1673,6 +1860,8 @@ function MasterChatbot() {
   const [salvandoConfig, setSalvandoConfig] = useState(false)
   // Sem resposta
   const [semResposta, setSemResposta] = useState<{ id: string; pergunta: string; resposta_bot: string; created_at: string }[]>([])
+  const [limiteSemResposta, setLimiteSemResposta] = useState(100)
+  const [temMaisSemResposta, setTemMaisSemResposta] = useState(false)
 
   function toggleExpandir(id: string) {
     setExpandidos(prev => {
@@ -1715,20 +1904,35 @@ function MasterChatbot() {
     mostrarNotif('Configurações salvas.')
   }
 
+  // BUG CORRIGIDO: `.limit(100)` sem paginação — passando de 100 perguntas
+  // sem resposta, as mais antigas ficavam inalcançáveis pra sempre pelo
+  // painel, justo a fila que existe pra alimentar a base de conhecimento.
+  // Busca `limite + 1` pra saber se tem mais sem precisar de outra
+  // consulta (count exato é mais caro) — o "+1" nunca é exibido.
   async function carregarSemResposta() {
-    const { data } = await sbClient.from('chatbot_sem_resposta').select('*').order('created_at', { ascending: false }).limit(100)
-    setSemResposta(data || [])
+    const { data } = await sbClient.from('chatbot_sem_resposta').select('*').order('created_at', { ascending: false }).limit(limiteSemResposta + 1)
+    setTemMaisSemResposta((data || []).length > limiteSemResposta)
+    setSemResposta((data || []).slice(0, limiteSemResposta))
   }
 
   async function excluirSemResposta(id: string) {
-    await sbClient.from('chatbot_sem_resposta').delete().eq('id', id)
+    const { error } = await sbClient.from('chatbot_sem_resposta').delete().eq('id', id)
+    if (error) { mostrarNotif(`Erro ao excluir: ${error.message}`, true); return }
     carregarSemResposta()
   }
 
   useEffect(() => {
-    const id = setTimeout(() => { carregar(); carregarConfig(); carregarSemResposta() }, 0)
+    const id = setTimeout(() => { carregar(); carregarConfig() }, 0)
     return () => clearTimeout(id)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Efeito próprio pra "sem resposta", separado do de cima: também dispara
+  // de novo quando `limiteSemResposta` aumenta (botão "Carregar mais").
+  useEffect(() => {
+    const id = setTimeout(() => carregarSemResposta(), 0)
+    return () => clearTimeout(id)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [limiteSemResposta])
 
   async function adicionar(e: React.FormEvent) {
     e.preventDefault()
@@ -1933,6 +2137,12 @@ function MasterChatbot() {
               </p>
             </div>
           ))}
+          {temMaisSemResposta && (
+            <button onClick={() => setLimiteSemResposta(l => l + 100)}
+              style={{ alignSelf: 'center', fontSize: '13px', fontWeight: 600, padding: '8px 20px', borderRadius: '8px', border: '1px solid #e5e7eb', cursor: 'pointer', background: 'white', color: '#4256c8' }}>
+              Carregar mais
+            </button>
+          )}
         </div>
       )}
     </div>

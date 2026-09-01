@@ -76,7 +76,7 @@ O CidadanIA Frutal é um portal público onde qualquer morador de Frutal pode re
 | Frontend | Next.js 16 (App Router), React |
 | Banco de dados | Supabase (PostgreSQL + RLS) |
 | Autenticação | Supabase Auth (Google OAuth + e-mail/senha) |
-| Mapas | Mapbox GL JS + Leaflet |
+| Mapas | MapLibre GL JS (mapa principal, imagens de satélite Esri/ArcGIS) + Leaflet (mini-mapa de confirmar endereço) |
 | Inteligência Artificial | Google Gemini Flash Lite |
 | E-mail | Resend (com rastreio de entrega via webhook Svix) |
 | WhatsApp | Evolution API |

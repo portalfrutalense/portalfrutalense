@@ -1,17 +1,24 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useAuth } from './AuthProvider'
 
-const ITENS = [
+const ITENS_BASE = [
   { label: 'Demandas municipais', desc: 'Registre problemas da cidade e acompanhe respostas da prefeitura.' },
   { label: 'Empregos', desc: 'Veja vagas disponíveis em Frutal e região.' },
   { label: 'Classificados', desc: 'Compre, venda ou anuncie serviços locais.' },
   { label: 'Achei/perdi um pet', desc: 'Ajude a reunir pets perdidos com seus donos.' },
-  { label: 'Olá, seu nome (canto superior direito)', desc: 'Acesse suas atividades, demandas registradas e informações da conta.' },
 ]
 
+// BUG CORRIGIDO: /mapa é página pública (mostra banner de "Faça login...")
+// e o tour aparecia também pra quem não está logado — o último item
+// ("Olá, seu nome") descreve um elemento que só existe depois do login.
+const ITEM_LOGADO = { label: 'Olá, seu nome (canto superior direito)', desc: 'Acesse suas atividades, demandas registradas e informações da conta.' }
+
 export default function TourBoasVindas() {
+  const { user } = useAuth()
   const [visivel, setVisivel] = useState(false)
+  const itens = user ? [...ITENS_BASE, ITEM_LOGADO] : ITENS_BASE
 
   useEffect(() => {
     Promise.resolve().then(() => {
@@ -47,7 +54,7 @@ export default function TourBoasVindas() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '22px' }}>
-          {ITENS.map(({ label, desc }) => (
+          {itens.map(({ label, desc }) => (
             <div key={label} style={{
               background: '#f9fafb', borderRadius: '10px', padding: '12px',
             }}>

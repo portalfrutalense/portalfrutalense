@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Script from 'next/script'
 
 declare global {
@@ -22,6 +22,7 @@ interface Props {
 export default function Turnstile({ onVerify, onExpire, size = 'compact' }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetId = useRef<string | null>(null)
+  const [falhouCarregar, setFalhouCarregar] = useState(false)
 
   // O widget é registrado uma única vez (efeito com deps []) — sem essas refs,
   // o callback ficaria preso na função onVerify/onExpire de quando o widget
@@ -54,6 +55,15 @@ export default function Turnstile({ onVerify, onExpire, size = 'compact' }: Prop
       })
     }
 
+    // BUG CORRIGIDO: sem limite, este setInterval rodava pra sempre se o
+    // script da Cloudflare não carregasse (bloqueado por extensão, rede,
+    // CSP futura) — o widget nunca aparecia, sem token o formulário nunca
+    // podia ser enviado, sem timeout, sem mensagem, sem alternativa nenhuma
+    // (vale pra demanda, pet, classificado e vaga — todo formulário que usa
+    // este componente). Agora desiste depois de ~15s e mostra um aviso.
+    let tentativas = 0
+    const MAX_TENTATIVAS = 75 // 75 × 200ms = 15s
+
     if (window.turnstile) {
       renderWidget()
     } else {
@@ -61,6 +71,12 @@ export default function Turnstile({ onVerify, onExpire, size = 'compact' }: Prop
         if (window.turnstile) {
           renderWidget()
           if (intervalId) clearInterval(intervalId)
+          return
+        }
+        tentativas++
+        if (tentativas >= MAX_TENTATIVAS) {
+          if (intervalId) clearInterval(intervalId)
+          setFalhouCarregar(true)
         }
       }, 200)
     }
@@ -78,7 +94,16 @@ export default function Turnstile({ onVerify, onExpire, size = 'compact' }: Prop
   return (
     <>
       <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="lazyOnload" />
-      <div ref={containerRef} />
+      {falhouCarregar ? (
+        <div style={{ fontSize: '13px', color: '#dc2626', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <span>Não foi possível carregar a verificação de segurança. Verifique sua conexão ou desative bloqueadores de script.</span>
+          <button type="button" onClick={() => window.location.reload()} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#4256c8', textDecoration: 'underline', cursor: 'pointer', fontSize: '13px', padding: 0 }}>
+            Tentar novamente
+          </button>
+        </div>
+      ) : (
+        <div ref={containerRef} />
+      )}
     </>
   )
 }

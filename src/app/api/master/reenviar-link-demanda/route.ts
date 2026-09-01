@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     // a 2ª e 3ª autoridade de fora do reenvio.
     const { data: vinculos } = await supabaseServer
       .from('demanda_entidades')
-      .select('id, entidade:entidades(nome, cargo, email)')
+      .select('id, status, entidade:entidades(nome, cargo, email)')
       .eq('demanda_id', demanda_id)
 
     let algumEmailEnviado = false
@@ -65,8 +65,16 @@ export async function POST(req: NextRequest) {
     if (vinculos?.length) {
       for (const vinculo of vinculos) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const ent = vinculo.entidade as any
+        const v = vinculo as any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const ent = v.entidade as any
         if (!ent?.email) continue
+        // BUG CORRIGIDO: o loop não filtrava vínculos já respondidos —
+        // reenviar link regredia o vínculo pra 'aguardando_resposta' e gerava
+        // um magic_token novo e válido mesmo pra quem já tinha publicado
+        // resposta, deixando o vínculo aceitar uma segunda resposta por cima
+        // da antiga (que continuava salva, mas sem valer mais nada).
+        if (v.status === 'respondida') continue
 
         const novoToken = gerarToken()
         await supabaseServer.from('demanda_entidades').update({
@@ -91,7 +99,12 @@ export async function POST(req: NextRequest) {
           algumEmailEnviado = true
         }
       }
-      await supabaseServer.from('demandas').update({ status: 'aguardando_resposta' }).eq('id', demanda_id)
+      // BUG CORRIGIDO: faltavam os mesmos guardas que /api/autoridade/responder
+      // já usa — sem eles, reenviar link numa demanda 'resolvida' ou
+      // 'denunciada' (em moderação do master) tirava ela desses estados sem
+      // querer, só por causa do reenvio.
+      await supabaseServer.from('demandas').update({ status: 'aguardando_resposta' })
+        .eq('id', demanda_id).neq('status', 'resolvida').neq('status', 'denunciada')
     }
 
     if (!algumEmailEnviado) return NextResponse.json({ error: 'Nenhuma autoridade vinculada tem e-mail cadastrado.' }, { status: 400 })

@@ -1,5 +1,5 @@
 -- ============================================================
--- ⚠️  ARQUIVO OBSOLETO — NÃO REFLETE O BANCO ATUAL. NÃO EXECUTE.
+-- ARQUIVO OBSOLETO — NÃO REFLETE O BANCO ATUAL. NÃO EXECUTE.
 -- ============================================================
 -- Este arquivo descreve o schema ORIGINAL do projeto (tabelas "denuncias"
 -- e "ocorrencias"), de antes da tabela "demandas" existir. Ficou aqui só

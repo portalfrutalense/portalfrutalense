@@ -25,7 +25,10 @@ export async function POST(req: NextRequest) {
   }
 
   const { error } = await supabaseServer.from('demandas').update({ status: 'resolvida' }).eq('id', demanda_id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[cidadao/marcar-resolvida]', error)
+    return NextResponse.json({ error: 'Não foi possível marcar como resolvida.' }, { status: 500 })
+  }
 
   return NextResponse.json({ ok: true })
 }

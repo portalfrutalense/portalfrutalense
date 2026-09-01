@@ -79,6 +79,13 @@ export function FormClassificado({
   // final falhar depois de várias fotos já terem subido, deixava cada
   // arquivo órfão no Storage pra sempre (até 4 por vez, o máximo permitido).
   const uploadTokens = useRef<{ cancelado: boolean; path: string | null }[]>([])
+  // BUG CORRIGIDO: ao editar um anúncio e remover uma foto JÁ PUBLICADA
+  // (não desta sessão), ela só saía do array local — o arquivo nunca era
+  // apagado do Storage, ficava órfão pra sempre. Guarda as URLs removidas
+  // aqui e só limpa do Storage DEPOIS de salvar com sucesso — nunca antes,
+  // porque se o usuário fechar sem salvar, a demanda no banco ainda
+  // referencia essas fotos.
+  const fotosOriginaisRemovidas = useRef<string[]>([])
   const [uploadandoFotos, setUploadandoFotos] = useState(0)
   const [erroFoto, setErroFoto] = useState('')
   const [turnstileToken, setTurnstileToken] = useState('')
@@ -129,9 +136,24 @@ export function FormClassificado({
     })
   }
 
+  function caminhoNoBucket(fotoUrl: string): string | null {
+    try {
+      const url = new URL(fotoUrl)
+      const parts = url.pathname.split('/classificados-fotos/')
+      return parts[1] || null
+    } catch {
+      return null
+    }
+  }
+
   function removerFoto(i: number) {
-    setPreviews(prev => prev.filter((_, idx) => idx !== i))
     const jaPublicadas = editando?.fotos?.length ?? 0
+    if (i < jaPublicadas) {
+      // Foto já publicada (não desta sessão) — guarda a URL pra limpar do
+      // Storage só depois de salvar com sucesso (ver fotosOriginaisRemovidas).
+      fotosOriginaisRemovidas.current.push(previews[i])
+    }
+    setPreviews(prev => prev.filter((_, idx) => idx !== i))
     if (i >= jaPublicadas) {
       const idx = i - jaPublicadas
       const token = uploadTokens.current[idx]
@@ -228,6 +250,13 @@ export function FormClassificado({
     }
     uploadTokens.current = []
     uploadPromises.current = []
+    // Só agora, com o save confirmado (a demanda no banco não referencia
+    // mais essas fotos), é seguro apagar do Storage.
+    for (const fotoUrl of fotosOriginaisRemovidas.current) {
+      const caminho = caminhoNoBucket(fotoUrl)
+      if (caminho) limparFotoOrfa(caminho)
+    }
+    fotosOriginaisRemovidas.current = []
     if (editando) { aoSalvar(); aoFechar(); return }
     if (prot) setProtocolo(prot)
     setSucesso(true)

@@ -31,10 +31,16 @@ function capitalizarEndereco(texto: string): string {
 }
 
 // Verifica se coordenadas estão dentro de ~15km de Frutal-MG
+// BUG CORRIGIDO (B09-1): tratava grau de latitude e de longitude como
+// equivalentes — na latitude de Frutal, 0,15° de longitude é ~15,7km mas
+// 0,15° de latitude é ~16,6km, então a área aceita era uma elipse, não o
+// círculo de 15km que a intenção sempre foi. Converte pra km reais,
+// compensando a longitude por cos(latitude) — mesmo ajuste duplicado no
+// webhook do WhatsApp e em api/camadas/route.ts (mesma correção nos dois).
 function dentroFrutal(lat: number, lng: number): boolean {
-  const dlat = lat - FRUTAL_LAT
-  const dlng = lng - FRUTAL_LNG
-  return Math.sqrt(dlat * dlat + dlng * dlng) < 0.15
+  const dlatKm = (lat - FRUTAL_LAT) * 111.32
+  const dlngKm = (lng - FRUTAL_LNG) * 111.32 * Math.cos(FRUTAL_LAT * Math.PI / 180)
+  return Math.sqrt(dlatKm * dlatKm + dlngKm * dlngKm) < 15
 }
 
 interface Props {

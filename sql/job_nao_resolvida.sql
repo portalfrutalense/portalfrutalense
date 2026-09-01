@@ -1,4 +1,4 @@
--- ⚠️  SUBSTITUÍDO — não use mais este job de cron. Virou um botão manual no
+-- SUBSTITUÍDO — não use mais este job de cron. Virou um botão manual no
 -- painel master (POST /api/master/marcar-nao-resolvidas), decisão do usuário
 -- de não depender de pg_cron/job automático pra isso (mesmo padrão já usado
 -- em "reprocessar pendentes"). Se este job chegou a ser agendado, remova com:

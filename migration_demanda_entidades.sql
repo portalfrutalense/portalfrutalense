@@ -19,6 +19,16 @@ CREATE INDEX IF NOT EXISTS demanda_entidades_demanda_id_idx ON demanda_entidades
 CREATE INDEX IF NOT EXISTS demanda_entidades_magic_token_idx ON demanda_entidades(magic_token);
 
 -- RLS: leitura pública (respostas são públicas no mapa)
+--
+-- ATENÇÃO (R2-42, auditoria 2026-09-01): esta policy sozinha é leitura
+-- TOTALMENTE aberta — `magic_token`/`resposta_ip`/`email_resend_id`/
+-- `email_status` só ficam protegidos por causa do GRANT por coluna feito
+-- separadamente em supabase/fix_rls_seguranca_2026-08-30.sql (confirmado
+-- em produção no §13.5 do SISTEMA.md). Se algum dia alguém rodar
+-- `GRANT SELECT ON demanda_entidades TO authenticated` sem lista de
+-- colunas (exatamente o que supabase/rollback_urgente_select.sql fez uma
+-- vez, em emergência), essa proteção inteira volta a ficar aberta — NUNCA
+-- rode um GRANT SELECT sem colunas nesta tabela.
 ALTER TABLE demanda_entidades ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "leitura_publica" ON demanda_entidades

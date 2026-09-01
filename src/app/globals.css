@@ -40,24 +40,11 @@ img, iframe, video {
 }
 
 
-/* Responsivo: grid 2 colunas → 1 coluna no mobile */
+/* BUG CORRIGIDO (código morto): .grid-2col, .grid-3col, .btn-full-mobile,
+   .hide-mobile e .stack-mobile eram classes utilitárias nunca usadas em
+   nenhum arquivo do projeto (restos de uma fase anterior de layout) —
+   removidas. */
 @media (max-width: 768px) {
-  .grid-2col {
-    grid-template-columns: 1fr !important;
-  }
-  .grid-3col {
-    grid-template-columns: 1fr !important;
-  }
-  .btn-full-mobile {
-    width: 100% !important;
-    align-self: stretch !important;
-  }
-  .hide-mobile {
-    display: none !important;
-  }
-  .stack-mobile {
-    flex-direction: column !important;
-  }
   /* Tabelas com scroll horizontal */
   table {
     display: block;

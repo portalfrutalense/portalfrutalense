@@ -31,13 +31,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Esta demanda está em análise pela administração e não pode ser excluída no momento.' }, { status: 403 })
   }
 
+  // BUG CORRIGIDO: a foto era apagada do Storage ANTES da linha — se o
+  // delete da linha falhasse depois, a demanda continuava existindo com a
+  // foto já destruída (imagem quebrada pra sempre). Ordem invertida: se o
+  // delete da linha falhar, nada foi destruído ainda; se sobrar como órfã
+  // no Storage por falha nesse segundo passo, é só um arquivo sem dono, não
+  // uma demanda quebrada visível pro público.
+  const { error } = await supabaseServer.from('demandas').delete().eq('id', demanda_id)
+  if (error) {
+    console.error('[demandas/excluir]', error)
+    return NextResponse.json({ error: 'Não foi possível excluir a demanda.' }, { status: 500 })
+  }
+
   if (demanda.foto_url) {
     const caminho = pathDaFoto(demanda.foto_url)
     if (caminho) await supabaseServer.storage.from('demandas-fotos').remove([caminho])
   }
-
-  const { error } = await supabaseServer.from('demandas').delete().eq('id', demanda_id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ ok: true })
 }

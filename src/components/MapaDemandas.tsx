@@ -17,9 +17,17 @@ import { escapeHtml } from '@/lib/escapeHtml'
 // useMapaBase (import type é apagado na compilação, não força o bundle).
 import type { Marker, Popup } from 'maplibre-gl'
 
+// BUG CORRIGIDO: `\b\w` é ASCII-only em JS — não reconhece letra acentuada
+// como caractere de palavra, então o "limite de palavra" (\b) aparecia
+// DEPOIS da primeira letra acentuada, não antes: "Ângela" (após o
+// toLowerCase) virava "âNgela" (a 2ª letra que ganhava maiúscula, não a
+// 1ª). Mesma classe de bug documentada como corrigida no webhook do
+// WhatsApp (falta da flag `u`), não replicada aqui. Corrigido evitando
+// `\w`/`\b` inteiramente: separa por espaço e capitaliza com métodos de
+// string puros.
 function titleCase(str?: string) {
   if (!str) return ''
-  return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
+  return str.toLowerCase().split(' ').map((w) => w ? w.charAt(0).toUpperCase() + w.slice(1) : w).join(' ')
 }
 
 function sentenceCase(str?: string) {
@@ -333,6 +341,8 @@ export default function MapaDemandas() {
   // client: só assim dá pra limpar a foto do Storage antes de excluir —
   // apagar via RLS comum nunca teve acesso pra isso, e a linha ficava
   // apagada mas o arquivo continuava órfão no bucket pra sempre.
+  // BUG CORRIGIDO: devolvia só `res.ok` — quando a exclusão falhava, o item
+  // simplesmente continuava na tela sem nenhuma mensagem ao usuário.
   async function excluirViaApi(camada: 'pets' | 'classificados' | 'empregos', id: string) {
     const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch('/api/camadas/excluir', {
@@ -340,7 +350,12 @@ export default function MapaDemandas() {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
       body: JSON.stringify({ camada, id }),
     })
-    return res.ok
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}))
+      alert(d.error || 'Não foi possível excluir. Tente novamente.')
+      return false
+    }
+    return true
   }
 
   async function excluirPet(p: Pet) {
@@ -355,7 +370,9 @@ export default function MapaDemandas() {
       .from('pets')
       .update({ reencontrado: true, reencontrado_em: new Date().toISOString() })
       .eq('id', p.id)
-    if (error) return
+    // BUG CORRIGIDO: `if (error) return` engolia a falha em silêncio — o
+    // botão parecia simplesmente não fazer nada.
+    if (error) { alert('Não foi possível marcar como reencontrado. Tente novamente.'); return }
     setPetSelecionado(null)
     recarregarPets()
   }
@@ -369,7 +386,8 @@ export default function MapaDemandas() {
 
   async function marcarClassificadoVendido(c: Classificado) {
     const { error } = await supabase.from('classificados').update({ vendido: true }).eq('id', c.id)
-    if (error) return
+    // BUG CORRIGIDO: `if (error) return` engolia a falha em silêncio.
+    if (error) { alert('Não foi possível marcar como vendido. Tente novamente.'); return }
     setClassificadoSelecionado(null)
     recarregarClassificados()
   }
@@ -383,7 +401,8 @@ export default function MapaDemandas() {
 
   async function encerrarEmprego(e: Emprego) {
     const { error } = await supabase.from('empregos').update({ encerrada: true }).eq('id', e.id)
-    if (error) return
+    // BUG CORRIGIDO: `if (error) return` engolia a falha em silêncio.
+    if (error) { alert('Não foi possível encerrar a vaga. Tente novamente.'); return }
     setEmpregoSelecionado(null)
     recarregarEmpregos()
   }
@@ -642,7 +661,10 @@ export default function MapaDemandas() {
                     {vinculosDemanda.map(v => (
                       <div key={v.id} style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 10px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: v.resposta ? '4px' : 0 }}>
-                          <span style={{ fontSize: '11px' }}>{v.status === 'respondida' ? '✅' : '⏳'}</span>
+                          {/* BUG CORRIGIDO: emojis (✅/⏳) violavam a regra do projeto de nunca usar emoji */}
+                          <span style={{ fontSize: '11px', fontWeight: 600, color: v.status === 'respondida' ? '#166534' : '#92400e' }}>
+                            {v.status === 'respondida' ? 'Respondida' : 'Pendente'}
+                          </span>
                           <span style={{ fontSize: '12px', fontWeight: 600, color: '#111827' }}>
                             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                             {(v.entidade as any)?.nome}
@@ -660,12 +682,11 @@ export default function MapaDemandas() {
                       </div>
                     ))}
                   </div>
-                ) : demandaSelecionada.resposta ? (
-                  // Fallback legado: demanda antiga com resposta única
-                  <div style={{ fontSize: '12px', color: '#6b7280', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 10px', lineHeight: 1.5 }}>
-                    <strong>Resposta:</strong> {demandaSelecionada.resposta}
-                  </div>
                 ) : null}
+                {/* BUG CORRIGIDO (código morto): fallback legado de "resposta
+                    única" — o caminho legado (demanda sem demanda_entidades)
+                    foi removido do sistema em 2026-08-30 (SISTEMA.md §12);
+                    nenhuma demanda nova preenche demandas.resposta. */}
 
                 {/* Ações do próprio usuário */}
                 {user && demandaSelecionada.user_id === user.id && (

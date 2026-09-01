@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase-browser'
+import { useAuth } from './AuthProvider'
 
 interface Props {
   onFechar: () => void
@@ -31,6 +32,7 @@ type Tela = 'inicial' | 'email' | 'esqueci'
 
 export default function ModalAuth({ onFechar }: Props) {
   const supabase = createClient()
+  const { user } = useAuth()
   const [tela, setTela] = useState<Tela>('inicial')
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
@@ -40,6 +42,18 @@ export default function ModalAuth({ onFechar }: Props) {
   const [carregandoGoogle, setCarregandoGoogle] = useState(false)
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState('')
+
+  // BUG CORRIGIDO: signInWithPassword bem-sucedido só atualiza o estado de
+  // auth (via onAuthStateChange, no AuthProvider) — não fecha este modal
+  // sozinho. Sem isso, `submeter()` retorna cedo (linha abaixo) sem nunca
+  // chamar setCarregando(false) nem onFechar(), e a tela ficava presa em
+  // "Aguarde..." pra sempre, mesmo com o login já concluído. Fecha assim
+  // que o AuthProvider confirma que existe um usuário logado — cobre login
+  // por e-mail/senha e também o retorno do Google, caso o modal de alguma
+  // forma continue montado nesse momento.
+  useEffect(() => {
+    if (user) onFechar()
+  }, [user, onFechar])
 
   async function entrarComGoogle() {
     setCarregandoGoogle(true); setErro('')

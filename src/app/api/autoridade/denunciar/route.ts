@@ -27,7 +27,10 @@ export async function POST(req: NextRequest) {
     ia_motivo: motivo?.trim() || 'Denunciada por uma autoridade.',
   }).eq('id', demanda_id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[autoridade/denunciar]', error)
+    return NextResponse.json({ error: 'Não foi possível registrar a denúncia.' }, { status: 500 })
+  }
 
   return NextResponse.json({ ok: true })
 }

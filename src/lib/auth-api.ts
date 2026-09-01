@@ -3,7 +3,18 @@ import { createClient } from '@supabase/supabase-js'
 import { timingSafeEqual } from 'node:crypto'
 import { supabaseServer } from '@/lib/supabase-server'
 
-/** Usuário autenticado a partir do Bearer token, ou null. */
+/**
+ * Usuário autenticado a partir do Bearer token, ou null.
+ *
+ * Também recusa (retorna null) quando `perfis.bloqueado = true` — antes o
+ * bloqueio só existia no navegador (AuthProvider cobria a tela com um
+ * modal), e uma chamada direta à API contornava isso por completo: a conta
+ * bloqueada continuava lendo e escrevendo normalmente em qualquer rota.
+ * Checado aqui, uma vez, porque toda rota autenticada já passa por
+ * getUser() — não precisa duplicar em cada uma. Se o perfil ainda não
+ * existir (cadastro incompleto, antes do ModalCPF), a consulta não retorna
+ * `bloqueado`, então não tem efeito nesse caso.
+ */
 export async function getUser(req: NextRequest) {
   const token = req.headers.get('Authorization')?.replace('Bearer ', '')
   if (!token || token === 'undefined' || token === 'null') return null
@@ -12,7 +23,12 @@ export async function getUser(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
   const { data: { user } } = await supabase.auth.getUser(token)
-  return user || null
+  if (!user) return null
+
+  const { data: perfil } = await supabaseServer.from('perfis').select('bloqueado').eq('id', user.id).maybeSingle()
+  if (perfil?.bloqueado) return null
+
+  return user
 }
 
 /**

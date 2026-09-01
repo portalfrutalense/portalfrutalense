@@ -108,13 +108,36 @@ export async function DELETE(req: NextRequest) {
   const temPerfil = !!perfil
 
   // Remover categorias e entidade se for autoridade (novo ou legado)
+  let entidadeDesativadaEmVezDeExcluida = false
   if (ehAutoridade) {
     await supabaseServer.from('categoria_entidades').delete().eq('entidade_id', id)
-    await supabaseServer.from('entidades').delete().eq('id', id)
+    // BUG CORRIGIDO: `entidade_id` em `demanda_entidades` não tem ON DELETE
+    // (RESTRICT por padrão) — pra qualquer autoridade que já tenha recebido
+    // uma demanda, este delete falhava EM SILÊNCIO (erro nunca checado). O
+    // fluxo seguia, a conta (perfil + Auth) era excluída de qualquer jeito,
+    // e sobrava uma "autoridade fantasma": linha em `entidades` sem conta,
+    // sem categorias, mas ainda `ativo=true` — podendo continuar recebendo
+    // novas demandas, sem ninguém pra responder. O RESTRICT em si é
+    // desejável (protege respostas oficiais já publicadas de sumir); o
+    // problema era não fazer nada quando ele barra o delete. Agora: se o
+    // delete falhar, desativa a entidade em vez de deixá-la solta e ativa.
+    const { error: erroEntidade } = await supabaseServer.from('entidades').delete().eq('id', id)
+    if (erroEntidade) {
+      console.error('[master/perfis DELETE] Não foi possível excluir entidade (provável FK de demanda_entidades):', erroEntidade)
+      await supabaseServer.from('entidades').update({ ativo: false }).eq('id', id)
+      entidadeDesativadaEmVezDeExcluida = true
+    }
   }
 
   // Se não tem perfil (autoridade legada), encerra aqui
-  if (!temPerfil) return NextResponse.json({ ok: true })
+  if (!temPerfil) {
+    return NextResponse.json({
+      ok: true,
+      aviso: entidadeDesativadaEmVezDeExcluida
+        ? 'A conta foi excluída, mas a autoridade já tem demandas respondidas e não pôde ser removida — foi desativada em vez de excluída, pra preservar as respostas já publicadas.'
+        : undefined,
+    })
+  }
 
   // Levanta as fotos de tudo que o usuário publicou ANTES de apagar
   // qualquer linha — pets/classificados/empregos são apagados em cascata
@@ -171,5 +194,10 @@ export async function DELETE(req: NextRequest) {
   const { error } = await supabaseServer.auth.admin.deleteUser(id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({
+    ok: true,
+    aviso: entidadeDesativadaEmVezDeExcluida
+      ? 'A conta foi excluída, mas a autoridade já tem demandas respondidas e não pôde ser removida — foi desativada em vez de excluída, pra preservar as respostas já publicadas.'
+      : undefined,
+  })
 }

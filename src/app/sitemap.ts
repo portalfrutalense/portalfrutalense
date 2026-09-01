@@ -3,6 +3,12 @@ import type { MetadataRoute } from 'next'
 // Datas fixas de última alteração de conteúdo (não "agora" a cada geração —
 // senão o campo não serve pra nada: nunca informa ao buscador quando o
 // conteúdo de fato mudou, sempre diz "mudou agora mesmo").
+//
+// MANUTENÇÃO OBRIGATÓRIA: sendo constantes escritas à mão, elas envelhecem
+// em silêncio — nada aqui detecta ou avisa quando o texto de uma dessas
+// páginas muda de verdade. Toda vez que mexer no CONTEÚDO visível de
+// `app/page.tsx` (landing), `app/termos/page.tsx` ou `app/privacidade/page.tsx`,
+// atualize a data correspondente abaixo NA MESMA alteração — não depois.
 const ULTIMA_ATUALIZACAO_HOME = new Date('2026-08-30')
 const ULTIMA_ATUALIZACAO_TERMOS = new Date('2026-08-30')
 const ULTIMA_ATUALIZACAO_PRIVACIDADE = new Date('2026-08-30')

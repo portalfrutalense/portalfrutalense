@@ -9,12 +9,6 @@ export interface Mensagem {
   content: string
 }
 
-// Só as últimas N mensagens são mandadas pro servidor a cada requisição — a
-// tela continua mostrando a conversa inteira, mas o payload enviado (e o que o
-// Gemini recebe) fica limitado. O servidor (/api/chat) já corta de novo, isso
-// aqui só evita mandar um payload crescendo sem teto numa conversa longa.
-const MAX_HISTORICO_ENVIADO = 20
-
 export interface Entidade {
   id: string
   nome: string
@@ -86,7 +80,6 @@ export function useChatBot() {
   const [notif, setNotif] = useState('')
   const [fotoFile, setFotoFile] = useState<File | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
-  const [turnstileToken, setTurnstileToken] = useState('')
   const [captchaVisivel, setCaptchaVisivel] = useState(false)
   const [gravando, setGravando] = useState(false)
   const [micDisponivel, setMicDisponivel] = useState(() => {
@@ -102,7 +95,6 @@ export function useChatBot() {
   const [categoriaNomeDemanda, setCategoriaNomeDemanda] = useState('')
   const [entidadesIdsDemanda, setEntidadesIdsDemanda] = useState<string[]>([])
   const [entidadesNomesDemanda, setEntidadesNomesDemanda] = useState<string[]>([])
-  const [dropdownAutoridade, setDropdownAutoridade] = useState(false)
   const [coordDemanda, setCoordDemanda] = useState<{ lat: number; lng: number; label: string } | null>(null)
   const [opcoesAutoridade, setOpcoesAutoridade] = useState<Entidade[]>([])
   const [entidades, setEntidades] = useState<Entidade[]>([])
@@ -111,6 +103,14 @@ export function useChatBot() {
   const fotoInputRef = useRef<HTMLInputElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null)
+  // BUG CORRIGIDO: quando a IA não identifica nenhuma categoria, o prompt
+  // manda ela usar categoria_id:"" (vazio) — sem isso, `enviar()` usava
+  // esse ID vazio direto, `catEntidades['']` nunca achava autoridade
+  // nenhuma, e o cidadão caía num beco sem saída mesmo quando uma
+  // categoria "Outros" de verdade (com autoridade vinculada) já existisse
+  // no painel master. Guardado numa ref (não state) porque só é lido
+  // dentro de `enviar()`, nunca precisa causar re-render.
+  const categoriaOutrosIdRef = useRef('')
 
   // Carrega autoridades e vínculos com categorias (usado para escolher autoridade sem precisar da IA)
   useEffect(() => {
@@ -122,6 +122,9 @@ export function useChatBot() {
         mapa[row.categoria_id].push(row.entidade_id)
       }
       setCatEntidades(mapa)
+    })
+    supabase.from('categorias_mapa').select('id, nome').eq('nome', 'Outros').maybeSingle().then(({ data }) => {
+      if (data) categoriaOutrosIdRef.current = data.id
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -145,9 +148,8 @@ export function useChatBot() {
     setEtapaDemanda('nenhuma')
     setDescricaoDemanda(''); setCategoriaIdDemanda(''); setCategoriaNomeDemanda('')
     setEntidadesIdsDemanda([]); setEntidadesNomesDemanda([])
-    setDropdownAutoridade(false)
     setCoordDemanda(null); setOpcoesAutoridade([])
-    removerFoto(); setTurnstileToken(''); setCaptchaVisivel(false)
+    removerFoto(); setCaptchaVisivel(false)
   }
 
   // irParaResumo usa os valores das closures do render atual — correto porque é sempre chamada
@@ -206,26 +208,35 @@ export function useChatBot() {
   async function enviar() {
     if (!input.trim() || enviando) return
     const texto = input.trim()
+    // Antes de virar a tela vazia (mensagens[]) num novo carregamento de
+    // página, o array de contexto que ia pro Gemini também nascia vazio —
+    // agora que o histórico vive no servidor, uma nova aba/recarregamento
+    // precisa avisar a API pra começar do zero, senão a IA continuaria
+    // "lembrando" de uma conversa que o cidadão nem vê mais na tela.
+    const novaConversa = mensagens.length === 0
     setMensagens(prev => [...prev, { role: 'user', content: texto }])
     setInput('')
-
-    const historico = [...mensagens, { role: 'user' as const, content: texto }]
     setEnviando(true)
 
     try {
       const { data: { session } } = await supabase.auth.getSession()
+      // BUG CORRIGIDO (B18-2): antes mandava o histórico inteiro da conversa
+      // a cada mensagem — dava pra editar esse array no DevTools e forjar
+      // falas do próprio assistente. Agora o servidor guarda a conversa real
+      // (chat_conversas) e o cliente manda só a mensagem nova.
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ mensagens: historico.slice(-MAX_HISTORICO_ENVIADO), nomeUsuario }),
+        body: JSON.stringify({ mensagem: texto, novaConversa }),
       })
       const data = await res.json()
       const resposta: string = data.resposta || 'Erro ao processar mensagem.'
 
       const acao = extrairAcao(resposta)
       if (acao?.action === 'detectar_demanda') {
+        const categoriaIdBruta = (acao.categoria_id as string) || ''
         setDescricaoDemanda((acao.descricao as string) || texto)
-        setCategoriaIdDemanda((acao.categoria_id as string) || '')
+        setCategoriaIdDemanda(categoriaIdBruta || categoriaOutrosIdRef.current)
         setCategoriaNomeDemanda((acao.categoria_nome as string) || 'Outros')
         setMensagens(prev => [...prev, { role: 'assistant', content: 'O CidadanIA Frutal pode tentar dar voz à sua reclamação! Podemos registrar uma demanda sobre isso, e ela ficará visível para todos. Seus dados são preservados, apenas o seu nome é publicado. Você escolhe uma autoridade para que seja enviada automaticamente, e tentaremos obter uma resposta sobre. Quer registrar?' }])
         setEtapaDemanda('perguntar_registrar')
@@ -234,25 +245,6 @@ export function useChatBot() {
       }
     } catch {
       setMensagens(prev => [...prev, { role: 'assistant', content: 'Erro de conexão. Tente novamente.' }])
-    } finally {
-      setEnviando(false)
-    }
-  }
-
-  async function enviarSaudacaoInicial() {
-    setEnviando(true)
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ mensagens: [{ role: 'user', content: 'Oi' }], nomeUsuario }),
-      })
-      const data = await res.json()
-      const resposta: string = data.resposta || `Olá, ${nomeUsuario}! Como posso ajudar?`
-      setMensagens([{ role: 'assistant', content: resposta }])
-    } catch {
-      setMensagens([{ role: 'assistant', content: `Olá, ${nomeUsuario}! Como posso ajudar?` }])
     } finally {
       setEnviando(false)
     }
@@ -305,7 +297,6 @@ export function useChatBot() {
 
   function aoConfirmarAutoridades() {
     if (entidadesIdsDemanda.length === 0) return
-    setDropdownAutoridade(false)
     const nomes = entidadesNomesDemanda.join(', ')
     setMensagens(prev => [...prev, { role: 'user', content: `Selecionado: ${nomes}` }])
     comDigitando(() => {
@@ -334,14 +325,29 @@ export function useChatBot() {
   }
 
   function aoVerificarCaptcha(token: string) {
-    setTurnstileToken(token)
     confirmarDemanda(token)
+  }
+
+  // BUG CORRIGIDO: onExpire do Turnstile era uma função vazia — quando o
+  // token expirava (usuário demorou pra concluir), `captchaVisivel`
+  // continuava `true`, o botão "Confirmar" ficava travado em
+  // "Verificando..." pra sempre, sem nenhuma saída a não ser cancelar o
+  // fluxo inteiro. Volta o widget pro estado inicial: o cidadão clica
+  // "Confirmar" de novo e um captcha novo aparece.
+  function aoExpirarCaptcha() {
+    setCaptchaVisivel(false)
   }
 
   async function confirmarDemanda(token: string) {
     if (etapaDemanda !== 'resumo' || criando || !coordDemanda) return
     setCriando(true)
 
+    // BUG CORRIGIDO: a foto subia pro Storage antes do POST em
+    // /api/demandas, mas nada rastreava o caminho fora do try local — se a
+    // criação da demanda falhasse depois, o arquivo já enviado ficava
+    // órfão pra sempre. Mesma classe de bug já corrigida em FormDemanda.tsx
+    // (fotoPath) e no webhook do WhatsApp (B19-5).
+    let fotoPath: string | null = null
     try {
       let foto_url: string | null = null
       if (fotoFile) {
@@ -350,6 +356,7 @@ export function useChatBot() {
           const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
           const { error: uploadError } = await supabase.storage.from('demandas-fotos').upload(path, blob, { contentType: 'image/jpeg' })
           if (uploadError) throw uploadError
+          fotoPath = path
           foto_url = supabase.storage.from('demandas-fotos').getPublicUrl(path).data.publicUrl
         } catch {
           setMensagens(prev => [...prev, { role: 'assistant', content: 'Não consegui enviar a foto, mas vou registrar a demanda sem ela.' }])
@@ -380,10 +387,12 @@ export function useChatBot() {
         setNotif('Demanda registrada!')
         setTimeout(() => setNotif(''), 4000)
       } else {
-        const err = await res.json()
+        const err = await res.json().catch(() => ({}))
+        if (fotoPath) supabase.storage.from('demandas-fotos').remove([fotoPath]).catch(() => {})
         setMensagens(prev => [...prev, { role: 'assistant', content: `Erro ao registrar: ${err.error || 'tente novamente.'}` }])
       }
     } catch {
+      if (fotoPath) supabase.storage.from('demandas-fotos').remove([fotoPath]).catch(() => {})
       setMensagens(prev => [...prev, { role: 'assistant', content: 'Erro ao registrar a demanda. Tente novamente.' }])
     } finally {
       setCriando(false)
@@ -397,47 +406,40 @@ export function useChatBot() {
 
   const inputDesabilitado = enviando || etapaDemanda !== 'nenhuma'
 
+  // BUG CORRIGIDO (código morto): 14 valores exportados aqui nunca eram
+  // consumidos pelo único chamador (assistenteia/page.tsx) — sobra da
+  // remoção do painel de chat embutido, que usava mais coisas deste hook
+  // do que a página cheia usa hoje. `enviarSaudacaoInicial` (função
+  // inteira) e os states `turnstileToken`/`dropdownAutoridade` (write-only,
+  // nunca lidos nem dentro do hook) foram removidos por completo — o
+  // resto só parou de ser exportado.
   return {
     // Auth
     user,
-    perfil,
     nomeUsuario,
-    supabase,
 
     // Estado de UI
     mensagens,
-    setMensagens,
     input,
     setInput,
     enviando,
     criando,
     notif,
-    fotoFile,
     fotoPreview,
-    turnstileToken,
     captchaVisivel,
     gravando,
     micDisponivel,
 
     // Fluxo de demanda
     etapaDemanda,
-    descricaoDemanda,
-    categoriaIdDemanda,
-    categoriaNomeDemanda,
     entidadesIdsDemanda,
-    entidadesNomesDemanda,
-    dropdownAutoridade,
-    setDropdownAutoridade,
-    coordDemanda,
     opcoesAutoridade,
 
     // Refs
     fotoInputRef,
-    recognitionRef,
 
     // Ações
     enviar,
-    enviarSaudacaoInicial,
     alternarGravacao,
     aoConfirmarQuerRegistrar,
     aoRecusarRegistrar,
@@ -448,6 +450,7 @@ export function useChatBot() {
     aoClicarSemFoto,
     aoClicarConfirmar,
     aoVerificarCaptcha,
+    aoExpirarCaptcha,
     cancelarDemanda,
 
     // Derivado

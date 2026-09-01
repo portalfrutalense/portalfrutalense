@@ -54,6 +54,11 @@ export default function PerfilPage() {
         setDemandas((data || []) as unknown as Demanda[])
         setCarregandoDemandas(false)
       })
+  // `supabase` fica de fora de propósito: createClient() gera uma instância
+  // nova a cada render (sem memoização interna), então incluí-la faria o
+  // efeito refazer a consulta em todo re-render, não só quando user/ehAutoridade
+  // mudam — mesmo padrão já usado no resto do arquivo (ex: master/page.tsx).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, ehAutoridade])
 
   async function marcarResolvida(id: string) {
@@ -259,7 +264,7 @@ export default function PerfilPage() {
             <Campo label="Nome" valor={perfil?.nome || '—'} />
             <Campo label="CPF" valor={perfil?.cpf ? perfil.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '—'} />
             <Campo label="Data de nascimento" valor={perfil?.data_nascimento ? new Date((perfil.data_nascimento as string) + 'T12:00:00').toLocaleDateString('pt-BR') : '—'} />
-            <Campo label="WhatsApp" valor={(perfil as any)?.whatsapp || '—'} />
+            <Campo label="WhatsApp" valor={perfil?.whatsapp || '—'} />
           </div>
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -271,7 +276,7 @@ export default function PerfilPage() {
                   method: 'DELETE',
                   headers: { 'Authorization': `Bearer ${session?.access_token}` },
                 })
-                if (res.ok) { await supabase.auth.signOut(); window.location.href = '/'; return }
+                if (res.ok) { await supabase.auth.signOut(); router.push('/'); return }
                 const d = await res.json().catch(() => ({}))
                 alert(d.error || 'Erro ao excluir conta. Tente novamente.')
               }}

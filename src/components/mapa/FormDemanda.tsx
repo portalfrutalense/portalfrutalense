@@ -112,10 +112,20 @@ export function FormDemanda({
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
         body: JSON.stringify({ texto: descricao }),
       })
-      const data = await res.json()
-      if (res.ok && data.texto) setDescricao(data.texto)
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.texto) {
+        setDescricao(data.texto)
+        return
+      }
+      // BUG CORRIGIDO: engolia qualquer falha em silêncio — clicava,
+      // o spinner rodava, o texto continuava igual, sem o cidadão saber
+      // por quê (podia ser rate limit, erro do servidor, etc.). O texto
+      // original permanece intacto nos dois casos; só passa a avisar.
+      mostrarErro(res.status === 429
+        ? 'Muitos pedidos em pouco tempo. Aguarde um instante e tente de novo.'
+        : 'Não foi possível melhorar o texto agora. Tente de novo.')
     } catch {
-      // silencioso — o texto original permanece se algo falhar
+      mostrarErro('Erro de conexão. Tente de novo.')
     } finally {
       setMelhorandoTexto(false)
     }

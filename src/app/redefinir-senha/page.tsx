@@ -20,6 +20,11 @@ export default function PageRedefinirSenha() {
       if (data.session) setSessaoOk(true)
       else setErro('Link inválido ou expirado. Solicite um novo link de redefinição.')
     })
+  // `supabase` fica de fora de propósito — createClient() gera uma instância
+  // nova a cada render (sem memoização interna); incluí-la faria este efeito
+  // (que só deve rodar uma vez, ao processar o hash da URL) refazer a
+  // consulta a cada re-render. Mesmo padrão já usado em perfil/page.tsx.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {

@@ -68,12 +68,8 @@ CREATE TABLE IF NOT EXISTS ia_config (
 );
 INSERT INTO ia_config (id) VALUES (1) ON CONFLICT DO NOTHING;
 
--- 4. Histórico de análises da IA
-CREATE TABLE IF NOT EXISTS ia_historico (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  demanda_id UUID REFERENCES demandas(id) ON DELETE CASCADE,
-  decisao TEXT NOT NULL, -- 'aprovada' | 'rejeitada'
-  motivo TEXT,
-  modelo TEXT DEFAULT 'gemini-1.5-flash',
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- BUG CORRIGIDO (B24-6): esta migração recriava `ia_historico`, tabela que
+-- `supabase/fix_bloco11_2026-08-30.sql` já remove por nunca ter sido usada
+-- em lugar nenhum do código (confirmado por busca em todo `src/`) — numa
+-- reconstrução do banco do zero rodando os arquivos fora de ordem, ela
+-- voltava a existir. Removida daqui pra não reintroduzir uma tabela morta.

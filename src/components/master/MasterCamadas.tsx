@@ -36,6 +36,40 @@ export default function MasterCamadas({ camada: camadaFiltro }: { camada?: strin
     if (error) setErro(`Não foi possível salvar "${item.rotulo}": ${error.message}`)
   }
 
+  // BUG CORRIGIDO: `enviarIcone` subia o arquivo cru — sem compressão, sem
+  // limite de tamanho, sem validar que era mesmo uma imagem, e com a
+  // extensão vinda do nome do arquivo escolhido pelo usuário (nada garante
+  // que bate com o conteúdo real). O caminho equivalente de categorias
+  // (master/page.tsx, comprimirIcone) já comprime pra PNG 64px — mesmo
+  // tratamento aqui, fechando a divergência entre as duas portas de upload.
+  async function comprimirIcone(file: File, maxSize = 64): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        // BUG CORRIGIDO (R2-10, mesmo problema do comprimirIcone de
+        // categorias): um SVG sem dimensão intrínseca carrega com
+        // img.width/height = 0 — o canvas nasce 0x0 e sobe um PNG vazio,
+        // sem erro nenhum. `accept="image/*"` aceita SVG também.
+        if (!img.width || !img.height) {
+          URL.revokeObjectURL(url)
+          reject(new Error('Essa imagem não tem dimensões válidas (SVG precisa de width/height ou viewBox).'))
+          return
+        }
+        const canvas = document.createElement('canvas')
+        const scale = Math.min(maxSize / img.width, maxSize / img.height, 1)
+        canvas.width = Math.round(img.width * scale)
+        canvas.height = Math.round(img.height * scale)
+        const ctx = canvas.getContext('2d')!
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        URL.revokeObjectURL(url)
+        canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Falha ao gerar o ícone.')), 'image/png', 0.9)
+      }
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Arquivo de imagem inválido.')) }
+      img.src = url
+    })
+  }
+
   /** Extrai o caminho do arquivo dentro do bucket a partir da URL pública completa. */
   function caminhoNoBucket(fotoUrl: string, bucket: string): string | null {
     try {
@@ -49,10 +83,16 @@ export default function MasterCamadas({ camada: camadaFiltro }: { camada?: strin
 
   async function enviarIcone(item: CamadaConfig, file: File) {
     setSalvando(item.chave); setErro('')
+    if (file.size > 20 * 1024 * 1024) {
+      setErro('Ícone muito grande (máx. 20 MB).')
+      setSalvando(null)
+      return
+    }
     const iconeAnterior = item.icone_url
     try {
-      const path = `camadas/${item.chave}-${Date.now()}.${file.name.split('.').pop()}`
-      const { error: upErro } = await client.storage.from('categoria-icones').upload(path, file, { upsert: true })
+      const blob = await comprimirIcone(file)
+      const path = `camadas/${item.chave}-${Date.now()}.png`
+      const { error: upErro } = await client.storage.from('categoria-icones').upload(path, blob, { upsert: true, contentType: 'image/png' })
       if (upErro) throw upErro
       const url = client.storage.from('categoria-icones').getPublicUrl(path).data.publicUrl
       const { error } = await client.from('camadas_config').update({ icone_url: url }).eq('chave', item.chave)

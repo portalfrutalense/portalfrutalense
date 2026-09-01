@@ -10,7 +10,7 @@
 -- ============================================================
 
 -- ────────────────────────────────────────────────────────────
--- 🔴 CRÍTICO 1 — demanda podia nascer já "aprovada", pulando IA e
+-- CRÍTICO 1 — demanda podia nascer já "aprovada", pulando IA e
 -- master por completo.
 -- (O gatilho do Bloco 11, restringir_status_demanda, só protege
 -- UPDATE — nunca foi testado o caminho de INSERT. Os GRANTs por
@@ -51,7 +51,7 @@ CREATE TRIGGER trg_forcar_demanda_pendente_ao_criar
   FOR EACH ROW EXECUTE FUNCTION public.forcar_demanda_pendente_ao_criar();
 
 -- ────────────────────────────────────────────────────────────
--- 🔴 CRÍTICO 1b — mesma classe de problema em pets e classificados:
+-- CRÍTICO 1b — mesma classe de problema em pets e classificados:
 -- um registro podia nascer já com ia_decisao='aprovada', disfarçando
 -- que já passou pela moderação (sai da fila "Pendente IA" do painel
 -- master sem ter sido revisado de verdade).
@@ -93,7 +93,7 @@ CREATE TRIGGER trg_forcar_classificado_pendente_ao_criar
   FOR EACH ROW EXECUTE FUNCTION public.forcar_classificado_pendente_ao_criar();
 
 -- ────────────────────────────────────────────────────────────
--- 🔴 CRÍTICO 2 — demandas "não resolvida" são invisíveis no mapa
+-- CRÍTICO 2 — demandas "não resolvida" são invisíveis no mapa
 -- público: nenhuma das duas policies de SELECT público incluía
 -- 'nao_resolvida' na lista de status permitidos — bug que já vinha
 -- do schema original (migration-demandas.sql), nunca corrigido.

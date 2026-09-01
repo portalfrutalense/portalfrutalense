@@ -11,10 +11,13 @@ export function mascaraTelefone(valor: string): string {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
 }
 
-/** Retorna true se o número tem 10 ou 11 dígitos e, se 11, o 3º dígito é 9 */
+// BUG CORRIGIDO: os 3 usos desta função (ModalCPF, FormPet, FormClassificado)
+// rotulam o campo como WhatsApp ("Informe um WhatsApp válido: (XX) 9XXXX-XXXX")
+// mas aceitavam também 10 dígitos (telefone fixo) — um fixo passava na
+// validação, era salvo como se fosse WhatsApp e ganhava o prefixo 55 em
+// `whatsappParaSalvar`. WhatsApp é sempre celular: 11 dígitos com 9 na 3ª posição.
+/** Retorna true se o número tem 11 dígitos (DDD + 9 + 8 dígitos) */
 export function telefoneValido(valor: string): boolean {
   const digits = valor.replace(/\D/g, '')
-  if (digits.length === 10) return true
-  if (digits.length === 11 && digits[2] === '9') return true
-  return false
+  return digits.length === 11 && digits[2] === '9'
 }

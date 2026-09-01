@@ -12,6 +12,15 @@ import { mascaraTelefone, telefoneValido } from '@/lib/mascaraTelefone'
 
 /* ------------------------------------------------------------ helpers --- */
 
+// Converte um timestamp ISO (banco) pro formato que <input type="datetime-local">
+// espera (YYYY-MM-DDTHH:mm, hora local, sem segundos nem timezone).
+function isoParaDatetimeLocal(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 async function comprimirFoto(file: File): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image()
@@ -69,7 +78,14 @@ export function FormPet({
   const [porte, setPorte] = useState<PortePet | ''>(editando?.porte ?? '')
   const [descricao, setDescricao] = useState(editando?.descricao ?? '')
   const [contato, setContato] = useState(editando?.contato ?? '')
-  const [dataHora, setDataHora] = useState('')
+  // BUG CORRIGIDO: nascia sempre vazio (mesmo editando um pet que já tinha
+  // esse dado), o que fazia editar um pet perdido/achado sempre falhar na
+  // validação até o usuário redigitar a data. Agora pré-preenche a partir
+  // do valor salvo, convertendo de ISO (banco) pro formato que o input
+  // datetime-local espera (sem segundos/timezone).
+  const [dataHora, setDataHora] = useState(
+    editando?.data_hora_aproximada ? isoParaDatetimeLocal(editando.data_hora_aproximada) : ''
+  )
   const [coordenadas, setCoordenadas] = useState<{ lat: number; lng: number; label: string } | null>(
     editando ? { lat: editando.lat, lng: editando.lng, label: editando.endereco_label ?? '' } : null
   )
@@ -190,6 +206,9 @@ export function FormPet({
       cor: exibeCor ? (cor.trim() || null) : null,
       porte: porte || null,
       descricao: descricao.trim(),
+      // BUG CORRIGIDO: campo obrigatório na tela (linha de validação acima)
+      // nunca entrava aqui — o cidadão preenchia e o dado era descartado.
+      data_hora_aproximada: exibeDataHora && dataHora ? new Date(dataHora).toISOString() : null,
       lat: coordenadas.lat, lng: coordenadas.lng,
       endereco_label: coordenadas.label,
       foto_url, contato: contato.trim(),

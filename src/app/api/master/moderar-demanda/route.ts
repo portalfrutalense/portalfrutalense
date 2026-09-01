@@ -93,7 +93,12 @@ export async function POST(req: NextRequest) {
         const ent = vinculo.entidade as any
         if (ent?.email) {
           const linkResposta = `${process.env.SITE_URL}/responder/${token}`
-          const { data: emailEnviado } = await resend.emails.send({
+          // BUG CORRIGIDO: o retorno de resend.emails.send() era desestruturado
+          // só como `{ data }` — o campo `error` era descartado. Se o envio
+          // falhasse, `email_status` nunca era gravado, nada era logado, e a
+          // rota respondia `ok: true` — o master aprova, vê sucesso, e a
+          // autoridade nunca recebe nada, sem nenhum sinal de que algo deu errado.
+          const { data: emailEnviado, error: erroEmail } = await resend.emails.send({
             from: 'CidadanIA Frutal <noreply@cidadaniafrutal.com.br>',
             to: ent.email,
             subject: `Nova demanda para ${ent.nome} — CidadanIA Frutal`,
@@ -123,6 +128,11 @@ export async function POST(req: NextRequest) {
             await supabaseServer.from('demanda_entidades').update({
               email_resend_id: emailEnviado.id,
               email_status: 'enviado',
+            }).eq('id', vinculo.id)
+          } else {
+            console.error(`[moderar-demanda] Falha ao enviar e-mail para ${ent.email} (demanda ${demanda_id}):`, erroEmail)
+            await supabaseServer.from('demanda_entidades').update({
+              email_status: 'falhou',
             }).eq('id', vinculo.id)
           }
         }

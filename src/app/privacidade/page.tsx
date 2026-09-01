@@ -66,10 +66,12 @@ export default function PoliticaPrivacidade() {
           Para a prestação do serviço e garantia da segurança da plataforma, dados estritamente necessários são processados por provedores de infraestrutura parceiros:
         </p>
         <ul style={{ margin: '0 0 12px', paddingLeft: '20px', fontSize: '15px', color: '#111827', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <li><strong>Google OAuth e Google Gemini API</strong> — autenticação segura do usuário e moderação automatizada de textos.</li>
+          <li><strong>Google OAuth e Google Gemini API</strong> — autenticação segura do usuário, moderação automatizada de textos e conversas com o assistente de IA (o texto integral de demandas, pets e classificados enviados é processado pelo Gemini para essa moderação).</li>
           <li><strong>Supabase</strong> — armazenamento seguro de banco de dados e gestão de sessões.</li>
           <li><strong>Resend</strong> — envio de notificações operacionais por e-mail para as autoridades públicas.</li>
-          <li><strong>Mapbox e Leaflet</strong> — renderização de mapas e geocodificação de endereços.</li>
+          <li><strong>Esri/ArcGIS</strong> — imagens de satélite do mapa principal (seu navegador se conecta diretamente aos servidores da Esri para carregar as imagens do mapa).</li>
+          <li><strong>Mapbox</strong> — geocodificação de endereços (conversão de texto em coordenadas) e miniaturas de mapa no fluxo de registro por WhatsApp.</li>
+          <li><strong>Evolution API</strong> (gateway de WhatsApp, operado pela própria administração da plataforma) — intermedia as mensagens trocadas com o assistente de IA pelo WhatsApp.</li>
           <li><strong>Cloudflare Turnstile</strong> — proteção anti-spam e validação de requisições humanas.</li>
         </ul>
         <p style={{ margin: 0, fontSize: '15px', color: '#111827' }}>
@@ -88,7 +90,7 @@ export default function PoliticaPrivacidade() {
         <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#4256c8', marginBottom: '8px' }}>7. Seus Direitos e Exclusão de Dados (LGPD)</h2>
         <p style={{ margin: '0 0 12px', fontSize: '15px', color: '#111827' }}>Você possui total controle sobre suas informações:</p>
         <ul style={{ margin: '0 0 12px', paddingLeft: '20px', fontSize: '15px', color: '#111827', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <li><strong>Exclusão Automatizada:</strong> A qualquer momento, você pode acessar a seção &ldquo;Minha Conta&rdquo; (<a href="/perfil" style={{ color: '#4256c8' }}>/perfil</a>) e utilizar o botão &ldquo;Excluir Minha Conta&rdquo; para apagar permanentemente seu perfil e dados dos nossos servidores.</li>
+          <li><strong>Exclusão Automatizada:</strong> A qualquer momento, você pode acessar a seção &ldquo;Minha Conta&rdquo; (<a href="/perfil" style={{ color: '#4256c8' }}>/perfil</a>) e utilizar o botão &ldquo;Excluir Minha Conta&rdquo; para apagar permanentemente sua conta, perfil e demandas registradas. O histórico de conversa com o assistente (site e WhatsApp) e perguntas sem resposta enviadas ao bot são desvinculados da sua identidade (deixam de estar associados à sua conta), mas as mensagens em si podem ser retidas de forma anonimizada, sem te identificar, para fins de manutenção e melhoria do assistente.</li>
           <li><strong>Solicitações Diretas:</strong> Para exercer seus direitos de acesso, correção ou eliminação de dados, entre em contato pelo e-mail abaixo. Atenderemos no prazo de até 15 dias úteis.</li>
         </ul>
       </section>

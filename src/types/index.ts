@@ -97,6 +97,9 @@ export interface Pet {
   cor?: string
   porte?: PortePet
   descricao: string
+  /** Data/hora aproximada de quando sumiu ('perdido') ou foi encontrado
+   * ('achado') — obrigatório só nesses dois tipos (ver FormPet.tsx). */
+  data_hora_aproximada?: string
   lat: number
   lng: number
   endereco_label?: string

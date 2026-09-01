@@ -5,7 +5,7 @@
 -- ============================================================
 
 -- ────────────────────────────────────────────────────────────
--- 🔴 CRÍTICO 1 — Usuário conseguia se autopromover a master
+-- CRÍTICO 1 — Usuário conseguia se autopromover a master
 -- (UPDATE em perfis não tinha with_check, e nenhum controle de
 -- coluna: qualquer um podia mandar {"role":"master"} pro próprio id)
 --
@@ -38,7 +38,7 @@ CREATE TRIGGER trg_bloquear_autopromocao_perfil
   FOR EACH ROW EXECUTE FUNCTION public.bloquear_autopromocao_perfil();
 
 -- ────────────────────────────────────────────────────────────
--- 🔴 CRÍTICO 2 — magic_token de demanda_entidades público pra todo mundo
+-- CRÍTICO 2 — magic_token de demanda_entidades público pra todo mundo
 -- (SELECT com qual=true, sem filtro nenhum, expunha a coluna
 -- magic_token — o segredo do link /responder/{token})
 -- Fix: restringe por GRANT de coluna — remove magic_token,
@@ -51,7 +51,7 @@ GRANT SELECT (id, demanda_id, entidade_id, status, resposta, respondida_em, crea
   ON public.demanda_entidades TO anon, authenticated;
 
 -- ────────────────────────────────────────────────────────────
--- 🔴 CRÍTICO 2b — CPF do cidadão exposto publicamente via demandas
+-- CRÍTICO 2b — CPF do cidadão exposto publicamente via demandas
 -- (a tela do /mapa faz select('*') em demandas; a policy de leitura
 -- pública não restringe coluna nenhuma, então morador_cpf também
 -- vaza pra qualquer um — logado ou não — que consulte a API direto)
@@ -67,7 +67,7 @@ GRANT SELECT (
 ) ON public.demandas TO anon, authenticated;
 
 -- ────────────────────────────────────────────────────────────
--- 🟡 MÉDIO 3 — e-mail de autoridade público via entidades
+-- MÉDIO 3 — e-mail de autoridade público via entidades
 -- (a tabela entidades não restringe coluna nenhuma na leitura
 -- pública — nome/cargo devem ser públicos, mas o e-mail direto
 -- da autoridade não precisa ser; o app nunca renderiza esse campo
@@ -77,7 +77,7 @@ REVOKE SELECT ON public.entidades FROM anon, authenticated;
 GRANT SELECT (id, nome, cargo, foto_url, ativo, created_at) ON public.entidades TO anon, authenticated;
 
 -- ────────────────────────────────────────────────────────────
--- 🔴 CRÍTICO 3 — entidades e categorias_mapa: "admin_*" sem checar master
+-- CRÍTICO 3 — entidades e categorias_mapa: "admin_*" sem checar master
 -- (políticas chamadas admin_* mas com qual/with_check = true,
 -- liberado pra {public} — inclusive visitante anônimo)
 -- Fix: exige perfis.role = 'master' de verdade.
@@ -116,7 +116,7 @@ CREATE POLICY "admin_atualizar_categorias" ON public.categorias_mapa
   USING (EXISTS (SELECT 1 FROM public.perfis WHERE perfis.id = auth.uid() AND perfis.role = 'master'));
 
 -- ────────────────────────────────────────────────────────────
--- 🟡 MÉDIO 1 — categoria_entidades liberado pra qualquer autenticado
+-- MÉDIO 1 — categoria_entidades liberado pra qualquer autenticado
 -- (devia ser só master, igual entidades/categorias_mapa)
 -- ────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "escrita autenticada categoria_entidades" ON public.categoria_entidades;
@@ -126,7 +126,7 @@ CREATE POLICY "escrita master categoria_entidades" ON public.categoria_entidades
   WITH CHECK (EXISTS (SELECT 1 FROM public.perfis WHERE perfis.id = auth.uid() AND perfis.role = 'master'));
 
 -- ────────────────────────────────────────────────────────────
--- 🟡 MÉDIO 2 — dono da demanda podia alterar qualquer coluna via API direta
+-- MÉDIO 2 — dono da demanda podia alterar qualquer coluna via API direta
 -- (UPDATE só filtra por auth.uid() = user_id, sem restringir QUAL coluna
 -- pode mudar — a UI só chama update({status:'resolvida'}), mas a API
 -- crua permitiria alterar ia_decisao, ia_motivo, magic_token, etc.)
@@ -136,7 +136,7 @@ REVOKE UPDATE ON public.demandas FROM authenticated;
 GRANT UPDATE (status) ON public.demandas TO authenticated;
 
 -- ────────────────────────────────────────────────────────────
--- ⚪ BAIXO — chatbot_sem_resposta aceitava INSERT de visitante anônimo
+-- BAIXO — chatbot_sem_resposta aceitava INSERT de visitante anônimo
 -- (só cidadão logado usa o ChatBot, não precisa ser público)
 -- ────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "insere_sem_resposta" ON public.chatbot_sem_resposta;

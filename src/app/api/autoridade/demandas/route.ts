@@ -16,7 +16,10 @@ export async function GET(req: NextRequest) {
     .eq('entidade_id', user.id)
     .order('created_at', { ascending: false })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[autoridade/demandas]', error)
+    return NextResponse.json({ error: 'Não foi possível carregar as demandas.' }, { status: 500 })
+  }
 
   // Só mostra vínculos cuja demanda já passou pela análise (não mostra pendente/rejeitada_ia)
   // O tipo que o cliente do Supabase infere pro relacionamento aninhado

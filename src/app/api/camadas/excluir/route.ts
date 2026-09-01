@@ -58,7 +58,10 @@ export async function POST(req: NextRequest) {
   }
 
   const { error } = await supabaseServer.from(TABELAS[c]).delete().eq('id', id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[camadas/excluir]', error)
+    return NextResponse.json({ error: 'Não foi possível excluir.' }, { status: 500 })
+  }
 
   return NextResponse.json({ ok: true })
 }

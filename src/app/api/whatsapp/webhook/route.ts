@@ -39,10 +39,16 @@ interface DadosPendentes {
   foto_url?: string | null
 }
 
+// BUG CORRIGIDO (B09-1): tratava grau de latitude e de longitude como
+// equivalentes — na latitude de Frutal, 0,15° de longitude é ~15,7km mas
+// 0,15° de latitude é ~16,6km, então a área aceita era uma elipse, não o
+// círculo de 15km que a intenção sempre foi. Converte pra km reais,
+// compensando a longitude por cos(latitude) — mesmo ajuste duplicado em
+// MiniMapaConfirmar.tsx e api/camadas/route.ts (mesma correção nos dois).
 function dentroFrutal(lat: number, lng: number) {
-  const dlat = lat - FRUTAL_LAT
-  const dlng = lng - FRUTAL_LNG
-  return Math.sqrt(dlat * dlat + dlng * dlng) < 0.15
+  const dlatKm = (lat - FRUTAL_LAT) * 111.32
+  const dlngKm = (lng - FRUTAL_LNG) * 111.32 * Math.cos(FRUTAL_LAT * Math.PI / 180)
+  return Math.sqrt(dlatKm * dlatKm + dlngKm * dlngKm) < 15
 }
 
 async function geocodificar(endereco: string): Promise<{ lat: number; lng: number; label: string } | null> {
@@ -69,7 +75,18 @@ function urlMapaSatelite(lat: number, lng: number): string {
 }
 
 // Cache em memória para dados estáticos do Supabase (TTL: 5 minutos)
-let _cacheConfigs: { base: string; categorias: string; cfg: Record<string, string>; ts: number } | null = null
+let _cacheConfigs: {
+  base: string
+  categorias: string
+  // Lista crua (id + nome), guardada à parte do texto formatado pro
+  // prompt — precisa dela pra resolver "Outros" por nome (ver
+  // idDaCategoriaOutros abaixo). Antes só o texto formatado era guardado
+  // e o array cru era descartado, sem jeito de achar o id de uma
+  // categoria pelo nome depois.
+  categoriasRaw: { id: string; nome: string }[]
+  cfg: Record<string, string>
+  ts: number
+} | null = null
 
 async function carregarConfigs() {
   const agora = Date.now()
@@ -83,10 +100,26 @@ async function carregarConfigs() {
   _cacheConfigs = {
     base: (base || []).map((e) => `### ${e.titulo}\n${e.conteudo}`).join('\n\n'),
     categorias: (categorias || []).map((c) => `- ${c.nome} (id: ${c.id})`).join('\n'),
+    categoriasRaw: categorias || [],
     cfg: (chatConfig || {}) as Record<string, string>,
     ts: agora,
   }
   return _cacheConfigs
+}
+
+/**
+ * BUG CORRIGIDO: quando a IA não identifica nenhuma categoria adequada, o
+ * prompt manda ela usar categoria_nome:"Outros" e categoria_id:"" — um ID
+ * vazio, sem categoria real por trás. O código então buscava autoridade
+ * pra esse ID vazio, nunca achava nenhuma, e o cidadão caía num beco sem
+ * saída ("não há autoridade cadastrada pra essa categoria"), mesmo quando
+ * uma categoria "Outros" de verdade (com autoridade vinculada) existisse
+ * no painel master. Resolve pelo NOME em vez de aceitar o ID vazio — se
+ * não existir uma categoria chamada "Outros" cadastrada ainda, devolve ''
+ * (mesmo comportamento de antes, degradação graciosa).
+ */
+function idDaCategoriaOutros(categoriasRaw: { id: string; nome: string }[]): string {
+  return categoriasRaw.find((c) => c.nome.trim().toLowerCase() === 'outros')?.id || ''
 }
 
 async function montarSystemPrompt(nomeUsuario: string, contexto?: {
@@ -506,9 +539,13 @@ async function processarMensagem(body: EvolutionWebhookBody) {
     // e também perderia o JSON se o modelo adicionar texto antes dele.
     const acaoDetectada = extrairAcao(resposta)
     if (acaoDetectada?.action === 'detectar_demanda') {
+      const categoriaIdBruta = (acaoDetectada.categoria_id as string) || ''
+      // Já buscado (e cacheado) por montarSystemPrompt logo acima — não é
+      // uma segunda consulta ao banco.
+      const { categoriasRaw } = await carregarConfigs()
       const novosDados: DadosPendentes = {
         descricao: (acaoDetectada.descricao as string) || texto || 'Problema relatado por áudio',
-        categoria_id: (acaoDetectada.categoria_id as string) || '',
+        categoria_id: categoriaIdBruta || idDaCategoriaOutros(categoriasRaw),
         categoria_nome: (acaoDetectada.categoria_nome as string) || 'Outros',
       }
 
@@ -643,7 +680,12 @@ async function processarMensagem(body: EvolutionWebhookBody) {
       // vezes inventa um id ou repete um de outra categoria. Limitado a 3,
       // igual ao registro pelo site (/api/demandas) — sem isso o modelo podia
       // aceitar todas as autoridades de uma categoria com 4+ cadastradas.
-      const validos = escolhidosIds.filter((id) => opcoes.some((o) => o.id === id)).slice(0, 3)
+      // BUG CORRIGIDO (mesma causa de B24-3 em /api/demandas): sem
+      // deduplicar, o modelo repetindo o mesmo id duas vezes criava dois
+      // vínculos e dois e-mails pra mesma autoridade, e a partir daí
+      // /api/autoridade/denunciar e /api/autoridade/marcar-resolvida (que
+      // usam .single()) passavam a falhar sempre pra ela.
+      const validos = [...new Set(escolhidosIds.filter((id) => opcoes.some((o) => o.id === id)))].slice(0, 3)
 
       if (validos.length > 0) {
         dados.entidades_ids = validos
@@ -675,7 +717,15 @@ async function processarMensagem(body: EvolutionWebhookBody) {
     let lng: number | null = null
     let label: string | null = null
 
+    // BUG CORRIGIDO: o caminho de texto já valida com dentroFrutal() dentro
+    // de geocodificar() (linha 57) — este aqui (localização compartilhada
+    // direto pelo WhatsApp) não tinha nenhuma checagem, dava pra registrar
+    // uma demanda em qualquer lugar do mundo.
     if (location?.degreesLatitude && location?.degreesLongitude) {
+      if (!dentroFrutal(location.degreesLatitude, location.degreesLongitude)) {
+        await enviarWhatsapp(telefone, 'Essa localização está fora de Frutal. Manda um endereço ou localização dentro da cidade.')
+        return
+      }
       lat = location.degreesLatitude
       lng = location.degreesLongitude
       label = 'Localização compartilhada pelo WhatsApp'
@@ -773,7 +823,11 @@ async function processarMensagem(body: EvolutionWebhookBody) {
         }
       }
       if (!dados.foto_url) await enviarWhatsapp(telefone, 'Não consegui processar essa foto, mas sem problema, vou seguir sem ela.')
-    } else if (/^(sem foto|pular|n[aã]o)/i.test(texto)) {
+    // BUG CORRIGIDO: sem a trava FIM (mesma classe já corrigida em
+    // RE_POSITIVO/RE_NEGATIVO/RE_CANCELAR — ver comentário na declaração
+    // de FIM), esse regex casava com o começo de qualquer palavra que
+    // começasse com "não" mesmo sem ser a palavra inteira.
+    } else if (new RegExp(`^(sem foto|pular|n[aã]o)${FIM}`, 'iu').test(texto)) {
       dados.foto_url = null
     } else {
       await enviarWhatsapp(telefone, 'Pode mandar uma foto, ou só responder "sem foto" se preferir seguir sem ela.')
@@ -802,11 +856,19 @@ async function processarMensagem(body: EvolutionWebhookBody) {
 
   // ── Etapa: resumo / confirmação final ──
   if (etapa === 'resumo') {
-    if (/^cancelar/i.test(texto)) {
+    // BUG CORRIGIDO: os dois regexes abaixo não tinham a trava FIM — sem
+    // fronteira de palavra, "confirmar"/"sim"/"pode"/"vai" casavam com o
+    // COMEÇO de qualquer palavra maior. Na prática: "simplesmente não"
+    // começa com "sim" e virava confirmação de registro contra a vontade
+    // do cidadão; "poderia esperar?" (começa com "pode") e "vai que não dá"
+    // (começa com "vai") tinham o mesmo problema. Mesma classe de bug já
+    // documentada e corrigida em RE_POSITIVO/RE_NEGATIVO/RE_CANCELAR (ver
+    // declaração de FIM), só não tinha sido replicada aqui.
+    if (new RegExp(`^cancelar${FIM}`, 'iu').test(texto)) {
       await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, 'Beleza, cancelei o registro. Posso ajudar com mais alguma coisa?')])
       return
     }
-    if (!/^(confirmar|confirmo|sim|pode|ok|vai|registra|registrar)/i.test(texto)) {
+    if (!new RegExp(`^(confirmar|confirmo|sim|pode|ok|vai|registra|registrar)${FIM}`, 'iu').test(texto)) {
       await enviarWhatsapp(telefone, 'Responde "confirmar" pra eu registrar, ou "cancelar" se quiser desistir.')
       return
     }
@@ -835,6 +897,7 @@ async function processarMensagem(body: EvolutionWebhookBody) {
       foto_url: dados.foto_url || null,
       endereco_label: dados.endereco_label,
       status: 'pendente',
+      via_chatbot: true, // mesmo campo do chat do site (Erro #92) — WhatsApp também é registro via assistente de IA
     }).select().single()
 
     if (error || !demanda) {
@@ -862,8 +925,11 @@ async function processarMensagem(body: EvolutionWebhookBody) {
       console.error('[ia/analisar] falhou:', e)
     }
 
+    // BUG CORRIGIDO: emoji na mensagem que todo cidadão recebe ao registrar
+    // uma demanda — contraria a regra do projeto ("nunca usar emojis") e a
+    // própria instrução que este arquivo dá ao modelo (linha 152).
     const msgConfirmacao = demanda.protocolo
-      ? `Prontinho, sua demanda foi registrada! 🎉\n\nProtocolo: *${demanda.protocolo}*\n\nEla vai passar por uma análise com o nosso Agente de IA, e se aprovada, aparece no mapa e a(as) autoridades são notificadas. Posso ajudar com mais alguma coisa?`
+      ? `Prontinho, sua demanda foi registrada!\n\nProtocolo: *${demanda.protocolo}*\n\nEla vai passar por uma análise com o nosso Agente de IA, e se aprovada, aparece no mapa e a(as) autoridades são notificadas. Posso ajudar com mais alguma coisa?`
       : 'Prontinho, sua demanda foi registrada! Ela vai passar por uma análise com o nosso Agente de IA, e se aprovada, aparece no mapa e a(as) autoridades são notificadas. Posso ajudar com mais alguma coisa?'
     await Promise.all([salvarHistorico(conversa.id, historico, 'nenhuma', null), enviarWhatsapp(telefone, msgConfirmacao)])
   }

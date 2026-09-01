@@ -128,7 +128,12 @@ export function useMapaBase() {
     // em vez de quebrar o mapa inteiro.
     async function buscarCamadaDeRotulos(): Promise<{ sources: Record<string, unknown>; layers: unknown[]; glyphs?: string; sprite?: string } | null> {
       try {
-        const resposta = await fetch(ESRI_LABELS_STYLE_URL)
+        // BUG CORRIGIDO: sem timeout, se o endpoint do Esri ficasse
+        // pendurado, o `await` na criação do mapa nunca resolvia — tela
+        // vazia pra sempre, sem erro nem fallback. Mesmo padrão de
+        // AbortSignal.timeout já usado em todas as outras chamadas
+        // externas do projeto.
+        const resposta = await fetch(ESRI_LABELS_STYLE_URL, { signal: AbortSignal.timeout(8000) })
         if (!resposta.ok) return null
         const estilo = await resposta.json()
         if (!estilo?.sources || !Array.isArray(estilo?.layers)) return null

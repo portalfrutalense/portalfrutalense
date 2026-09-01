@@ -5,22 +5,45 @@ import { createClient } from '@/lib/supabase-browser'
 import { Pet, Classificado, Emprego } from '@/types'
 
 /**
+ * BUG CORRIGIDO: este painel tratava só `ia_decisao == null` como "ainda não
+ * analisado" — mas existem DUAS convenções reais no banco pra isso. O
+ * gatilho `forcar_pet/classificado_pendente_ao_criar` (supabase/
+ * fix_bloco14_2026-08-30.sql) grava NULL, só quando o insert NÃO vem do
+ * backend; `POST /api/camadas` (o caminho normal de criação, que roda com
+ * service_role) grava a STRING 'pendente'. Como o gatilho só age fora do
+ * service_role, um registro criado pelo site normalmente sempre chega aqui
+ * com a string, nunca com NULL — e caía no "senão" dos três lugares abaixo
+ * que só olhavam pra 'aprovada'/'rejeitada', mostrando "Rejeitada pela IA"
+ * pra pets e classificados que a IA nunca analisou. `!ia_decisao` continua
+ * coberto (o outro caminho legítimo), só passa a reconhecer os dois.
+ */
+function estaPendenteDeIA(iaDecisao: string | null | undefined): boolean {
+  return !iaDecisao || iaDecisao === 'pendente'
+}
+
+/**
  * Moderação (oculto/encerrada) passa pela API com service_role, não mais
  * direto pelo cliente — RLS restringe o autor a colunas de conteúdo, então
  * só o backend pode mexer nessas flags agora. Ver src/app/api/master/camada.
  */
+// BUG CORRIGIDO: as duas funções abaixo descartavam a resposta do fetch —
+// nenhum `res.ok`. Toda ação de moderação de pet/classificado/vaga que
+// falhasse (401, 500) recarregava a lista sem mudança nenhuma, sem
+// nenhuma mensagem — o master não tinha como saber que a ação não
+// aconteceu. Agora devolvem se deu certo, e quem chama mostra o aviso certo.
 async function moderarCamada(
   client: ReturnType<typeof createClient>,
   camada: 'pets' | 'classificados' | 'empregos',
   id: string,
   campos: Record<string, unknown>
-) {
+): Promise<boolean> {
   const { data: { session } } = await client.auth.getSession()
-  await fetch('/api/master/camada', {
+  const res = await fetch('/api/master/camada', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
     body: JSON.stringify({ camada, id, campos }),
   })
+  return res.ok
 }
 
 /**
@@ -32,13 +55,14 @@ async function excluirCamada(
   client: ReturnType<typeof createClient>,
   camada: 'pets' | 'classificados' | 'empregos',
   id: string
-) {
+): Promise<boolean> {
   const { data: { session } } = await client.auth.getSession()
-  await fetch('/api/master/camada', {
+  const res = await fetch('/api/master/camada', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
     body: JSON.stringify({ camada, id }),
   })
+  return res.ok
 }
 
 /* ------------------------------------------------------------- shell --- */
@@ -72,7 +96,7 @@ function Etiqueta({ texto, cor }: { texto: string; cor: string }) {
 }
 
 function ListaModeracao({
-  titulo, descricao, carregando, itens, vazio, filtros, filtroAtivo, setFiltro, notif,
+  titulo, descricao, carregando, itens, vazio, filtros, filtroAtivo, setFiltro, notif, notifErro,
 }: {
   titulo?: string
   descricao?: string
@@ -83,6 +107,7 @@ function ListaModeracao({
   filtroAtivo: string
   setFiltro: (f: string) => void
   notif: string
+  notifErro?: boolean
 }) {
   const [ocupado, setOcupado] = useState<string | null>(null)
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set())
@@ -114,7 +139,9 @@ function ListaModeracao({
       )}
 
       {notif && (
-        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', marginBottom: '16px' }}>
+        <div style={notifErro
+          ? { background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', marginBottom: '16px' }
+          : { background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', marginBottom: '16px' }}>
           {notif}
         </div>
       )}
@@ -247,9 +274,11 @@ function ListaModeracao({
 
 function useNotif() {
   const [notif, setNotif] = useState('')
+  const [notifErro, setNotifErro] = useState(false)
   return {
     notif,
-    avisar: (msg: string) => { setNotif(msg); setTimeout(() => setNotif(''), 4000) },
+    notifErro,
+    avisar: (msg: string, erro = false) => { setNotif(msg); setNotifErro(erro); setTimeout(() => setNotif(''), 4000) },
   }
 }
 
@@ -270,7 +299,7 @@ export function MasterPets() {
   const [pets, setPets] = useState<Pet[]>([])
   const [carregando, setCarregando] = useState(true)
   const [filtro, setFiltro] = useState('todos')
-  const { notif, avisar } = useNotif()
+  const { notif, notifErro, avisar } = useNotif()
 
   async function carregar() {
     setCarregando(true)
@@ -288,7 +317,7 @@ export function MasterPets() {
     if (filtro === 'todos') return true
     if (filtro === 'ocultos') return p.oculto
     if (filtro === 'reencontrado') return p.reencontrado
-    if (filtro === 'pendente_ia') return !p.ia_decisao  // null = ainda não analisado
+    if (filtro === 'pendente_ia') return estaPendenteDeIA(p.ia_decisao)
     return p.tipo === filtro && !p.reencontrado
   })
 
@@ -313,7 +342,7 @@ export function MasterPets() {
           : p.tipo === 'adocao'
             ? { texto: 'Adoção',    cor: '#7c3aed' }
             : { texto: 'Achei um Pet', cor: '#166534' },
-      ...(!p.ia_decisao                ? [{ texto: 'Pendente IA',      cor: '#92400e' }] : []),
+      ...(estaPendenteDeIA(p.ia_decisao) ? [{ texto: 'Pendente IA',      cor: '#92400e' }] : []),
       ...(p.ia_decisao === 'aprovada'  ? [{ texto: 'Aprovada',          cor: '#166534' }] : []),
       ...(p.ia_decisao === 'rejeitada' ? [{ texto: 'Rejeitada pela IA', cor: '#dc2626' }] : []),
       ...(p.oculto                     ? [{ texto: 'Oculto',            cor: '#6b7280' }] : []),
@@ -334,12 +363,12 @@ export function MasterPets() {
     ],
     destaque: {
       rotulo: p.ia_decisao === 'rejeitada' ? 'Motivo IA:' : 'Análise IA:',
-      valor: !p.ia_decisao
+      valor: estaPendenteDeIA(p.ia_decisao)
         ? 'Aguardando análise automática'
         : p.ia_decisao === 'aprovada'
           ? (p.ia_motivo || 'Aprovada')
           : (p.ia_motivo || 'Rejeitada'),
-      cor: !p.ia_decisao ? '#b45309' : p.ia_decisao === 'rejeitada' ? '#dc2626' : '#6b7280',
+      cor: estaPendenteDeIA(p.ia_decisao) ? '#b45309' : p.ia_decisao === 'rejeitada' ? '#dc2626' : '#6b7280',
     },
     acoes: [
       // Só aparece se ainda não estiver aprovada — cobre tanto "pendente"
@@ -352,13 +381,13 @@ export function MasterPets() {
         rotulo: 'Aprovar',
         cor: '#166534',
         executar: async () => {
-          await moderarCamada(client, 'pets', p.id, {
+          const ok = await moderarCamada(client, 'pets', p.id, {
             oculto: false,
             ia_decisao: 'aprovada',
             ia_motivo: 'Aprovada manualmente pelo administrador.',
             ia_analisado_em: new Date().toISOString(),
           })
-          avisar('Registro aprovado.')
+          avisar(ok ? 'Registro aprovado.' : 'Não foi possível aprovar. Tente novamente.', !ok)
           carregar()
         },
       }] : []),
@@ -366,8 +395,8 @@ export function MasterPets() {
         rotulo: p.oculto ? 'Reexibir' : 'Ocultar',
         cor: p.oculto ? '#166534' : '#92400e',
         executar: async () => {
-          await moderarCamada(client, 'pets', p.id, { oculto: !p.oculto })
-          avisar(p.oculto ? 'Registro reexibido no mapa.' : 'Registro ocultado do mapa.')
+          const ok = await moderarCamada(client, 'pets', p.id, { oculto: !p.oculto })
+          avisar(ok ? (p.oculto ? 'Registro reexibido no mapa.' : 'Registro ocultado do mapa.') : 'Não foi possível concluir a ação. Tente novamente.', !ok)
           carregar()
         },
       },
@@ -376,8 +405,8 @@ export function MasterPets() {
         cor: '#dc2626',
         confirmar: 'Excluir este registro permanentemente? Esta ação não pode ser desfeita.',
         executar: async () => {
-          await excluirCamada(client, 'pets', p.id)
-          avisar('Registro excluído.')
+          const ok = await excluirCamada(client, 'pets', p.id)
+          avisar(ok ? 'Registro excluído.' : 'Não foi possível excluir. Tente novamente.', !ok)
           carregar()
         },
       },
@@ -395,12 +424,13 @@ export function MasterPets() {
         { chave: 'achado',      rotulo: 'Abandonados',   contagem: pets.filter(p => p.tipo === 'achado').length },
         { chave: 'adocao',      rotulo: 'Adoção',        contagem: pets.filter(p => p.tipo === 'adocao').length },
         { chave: 'reencontrado',rotulo: 'Reencontrados', contagem: pets.filter(p => p.reencontrado).length },
-        { chave: 'pendente_ia', rotulo: 'Pendente IA',   contagem: pets.filter(p => !p.ia_decisao).length },
+        { chave: 'pendente_ia', rotulo: 'Pendente IA',   contagem: pets.filter(p => estaPendenteDeIA(p.ia_decisao)).length },
         { chave: 'ocultos',     rotulo: 'Ocultos',       contagem: pets.filter(p => p.oculto).length },
       ]}
       filtroAtivo={filtro}
       setFiltro={setFiltro}
       notif={notif}
+      notifErro={notifErro}
     />
   )
 }
@@ -416,7 +446,7 @@ export function MasterClassificados() {
   const [itensBanco, setItensBanco] = useState<Classificado[]>([])
   const [carregando, setCarregando] = useState(true)
   const [filtro, setFiltro] = useState('todos')
-  const { notif, avisar } = useNotif()
+  const { notif, notifErro, avisar } = useNotif()
 
   async function carregar() {
     setCarregando(true)
@@ -434,7 +464,7 @@ export function MasterClassificados() {
     if (filtro === 'todos') return true
     if (filtro === 'ocultos') return c.oculto
     if (filtro === 'vendidos') return c.vendido
-    if (filtro === 'pendente_ia') return !c.ia_decisao  // null = ainda não analisado
+    if (filtro === 'pendente_ia') return estaPendenteDeIA(c.ia_decisao)
     return c.tipo_veiculo === filtro
   })
 
@@ -448,7 +478,7 @@ export function MasterClassificados() {
     oculto: !!c.oculto,
     etiquetas: [
       { texto: ROTULO_VEICULO[c.tipo_veiculo] || c.tipo_veiculo, cor: '#4256c8' },
-      ...(!c.ia_decisao                       ? [{ texto: 'Pendente IA',      cor: '#92400e' }] : []),
+      ...(estaPendenteDeIA(c.ia_decisao)       ? [{ texto: 'Pendente IA',      cor: '#92400e' }] : []),
       ...(c.ia_decisao === 'aprovada'         ? [{ texto: 'Aprovada',          cor: '#166534' }] : []),
       ...(c.ia_decisao === 'rejeitada'        ? [{ texto: 'Rejeitada pela IA', cor: '#dc2626' }] : []),
       ...(c.vendido                           ? [{ texto: 'Vendido',           cor: '#6b7280' }] : []),
@@ -472,25 +502,25 @@ export function MasterClassificados() {
     ],
     destaque: {
       rotulo: c.ia_decisao === 'rejeitada' ? 'Motivo IA:' : 'Análise IA:',
-      valor: !c.ia_decisao
+      valor: estaPendenteDeIA(c.ia_decisao)
         ? 'Aguardando análise automática'
         : c.ia_decisao === 'aprovada'
           ? (c.ia_motivo || 'Aprovada')
           : (c.ia_motivo || 'Rejeitada'),
-      cor: !c.ia_decisao ? '#b45309' : c.ia_decisao === 'rejeitada' ? '#dc2626' : '#6b7280',
+      cor: estaPendenteDeIA(c.ia_decisao) ? '#b45309' : c.ia_decisao === 'rejeitada' ? '#dc2626' : '#6b7280',
     },
     acoes: [
       ...(c.ia_decisao !== 'aprovada' ? [{
         rotulo: 'Aprovar',
         cor: '#166534',
         executar: async () => {
-          await moderarCamada(client, 'classificados', c.id, {
+          const ok = await moderarCamada(client, 'classificados', c.id, {
             oculto: false,
             ia_decisao: 'aprovada',
             ia_motivo: 'Aprovada manualmente pelo administrador.',
             ia_analisado_em: new Date().toISOString(),
           })
-          avisar('Anúncio aprovado.')
+          avisar(ok ? 'Anúncio aprovado.' : 'Não foi possível aprovar. Tente novamente.', !ok)
           carregar()
         },
       }] : []),
@@ -498,8 +528,8 @@ export function MasterClassificados() {
         rotulo: c.oculto ? 'Reexibir' : 'Ocultar',
         cor: c.oculto ? '#166534' : '#92400e',
         executar: async () => {
-          await moderarCamada(client, 'classificados', c.id, { oculto: !c.oculto })
-          avisar(c.oculto ? 'Anúncio reexibido no mapa.' : 'Anúncio ocultado do mapa.')
+          const ok = await moderarCamada(client, 'classificados', c.id, { oculto: !c.oculto })
+          avisar(ok ? (c.oculto ? 'Anúncio reexibido no mapa.' : 'Anúncio ocultado do mapa.') : 'Não foi possível concluir a ação. Tente novamente.', !ok)
           carregar()
         },
       },
@@ -508,8 +538,8 @@ export function MasterClassificados() {
         cor: '#dc2626',
         confirmar: 'Excluir este anúncio permanentemente? Esta ação não pode ser desfeita.',
         executar: async () => {
-          await excluirCamada(client, 'classificados', c.id)
-          avisar('Anúncio excluído.')
+          const ok = await excluirCamada(client, 'classificados', c.id)
+          avisar(ok ? 'Anúncio excluído.' : 'Não foi possível excluir. Tente novamente.', !ok)
           carregar()
         },
       },
@@ -523,7 +553,7 @@ export function MasterClassificados() {
       vazio="Nenhum anúncio nesse filtro."
       filtros={[
         { chave: 'todos',       rotulo: 'Todos',       contagem: itensBanco.length },
-        { chave: 'pendente_ia', rotulo: 'Pendente IA', contagem: itensBanco.filter(c => !c.ia_decisao).length },
+        { chave: 'pendente_ia', rotulo: 'Pendente IA', contagem: itensBanco.filter(c => estaPendenteDeIA(c.ia_decisao)).length },
         { chave: 'carro',       rotulo: 'Carros',      contagem: itensBanco.filter(c => c.tipo_veiculo === 'carro').length },
         { chave: 'moto',        rotulo: 'Motos',       contagem: itensBanco.filter(c => c.tipo_veiculo === 'moto').length },
         { chave: 'onibus',      rotulo: 'Ônibus',      contagem: itensBanco.filter(c => c.tipo_veiculo === 'onibus').length },
@@ -534,6 +564,7 @@ export function MasterClassificados() {
       filtroAtivo={filtro}
       setFiltro={setFiltro}
       notif={notif}
+      notifErro={notifErro}
     />
   )
 }
@@ -549,7 +580,7 @@ export function MasterEmpregos() {
   const [vagas, setVagas] = useState<Emprego[]>([])
   const [carregando, setCarregando] = useState(true)
   const [filtro, setFiltro] = useState('todos')
-  const { notif, avisar } = useNotif()
+  const { notif, notifErro, avisar } = useNotif()
 
   async function carregar() {
     setCarregando(true)
@@ -564,7 +595,10 @@ export function MasterEmpregos() {
   }, [])
 
   const filtrados = vagas.filter(v => {
-    if (filtro === 'todos') return !v.encerrada
+    // BUG CORRIGIDO: "Todas" aplicava `!v.encerrada`, escondendo justo as
+    // vagas encerradas — já existe um filtro "Encerradas" separado pra
+    // isso; "Todas" deveria mostrar literalmente todas, igual pets/classificados.
+    if (filtro === 'todos') return true
     if (filtro === 'ocultos') return v.oculto
     if (filtro === 'encerradas') return v.encerrada
     return true
@@ -596,8 +630,8 @@ export function MasterEmpregos() {
         rotulo: v.oculto ? 'Reexibir' : 'Ocultar',
         cor: v.oculto ? '#166534' : '#92400e',
         executar: async () => {
-          await moderarCamada(client, 'empregos', v.id, { oculto: !v.oculto })
-          avisar(v.oculto ? 'Vaga reexibida no mapa.' : 'Vaga ocultada do mapa.')
+          const ok = await moderarCamada(client, 'empregos', v.id, { oculto: !v.oculto })
+          avisar(ok ? (v.oculto ? 'Vaga reexibida no mapa.' : 'Vaga ocultada do mapa.') : 'Não foi possível concluir a ação. Tente novamente.', !ok)
           carregar()
         },
       },
@@ -605,8 +639,8 @@ export function MasterEmpregos() {
         rotulo: v.encerrada ? 'Reabrir' : 'Encerrar',
         cor: v.encerrada ? '#166534' : '#92400e',
         executar: async () => {
-          await moderarCamada(client, 'empregos', v.id, { encerrada: !v.encerrada })
-          avisar(v.encerrada ? 'Vaga reaberta.' : 'Vaga encerrada.')
+          const ok = await moderarCamada(client, 'empregos', v.id, { encerrada: !v.encerrada })
+          avisar(ok ? (v.encerrada ? 'Vaga reaberta.' : 'Vaga encerrada.') : 'Não foi possível concluir a ação. Tente novamente.', !ok)
           carregar()
         },
       },
@@ -615,8 +649,8 @@ export function MasterEmpregos() {
         cor: '#dc2626',
         confirmar: 'Excluir esta vaga permanentemente? Esta ação não pode ser desfeita.',
         executar: async () => {
-          await excluirCamada(client, 'empregos', v.id)
-          avisar('Vaga excluída.')
+          const ok = await excluirCamada(client, 'empregos', v.id)
+          avisar(ok ? 'Vaga excluída.' : 'Não foi possível excluir. Tente novamente.', !ok)
           carregar()
         },
       },
@@ -636,6 +670,7 @@ export function MasterEmpregos() {
       filtroAtivo={filtro}
       setFiltro={setFiltro}
       notif={notif}
+      notifErro={notifErro}
     />
   )
 }

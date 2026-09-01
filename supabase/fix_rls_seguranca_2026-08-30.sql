@@ -15,7 +15,7 @@
 -- ============================================================
 
 -- ────────────────────────────────────────────────────────────
--- 🔴 CRÍTICO 1 — CPF, magic_token e e-mail de autoridade expostos
+-- CRÍTICO 1 — CPF, magic_token e e-mail de autoridade expostos
 -- Reaplica a restrição por coluna, agora com a lista completa do que o
 -- app realmente usa (a tentativa de 2026-08 esqueceu "protocolo" e
 -- "ia_motivo", que o /perfil e o mapa usam — por isso incluí aqui).
@@ -35,7 +35,7 @@ REVOKE SELECT ON public.entidades FROM anon, authenticated;
 GRANT SELECT (id, nome, cargo, foto_url, ativo, created_at) ON public.entidades TO anon, authenticated;
 
 -- ────────────────────────────────────────────────────────────
--- 🔴 CRÍTICO 2 — pets/classificados/empregos podiam se auto-aprovar
+-- CRÍTICO 2 — pets/classificados/empregos podiam se auto-aprovar
 -- (o autor podia mudar oculto/ia_decisao/ia_motivo/expira_em do próprio
 -- registro via API direta do Supabase, revertendo moderação sozinho —
 -- a mesma falha que já tinha sido corrigida em "demandas", nunca

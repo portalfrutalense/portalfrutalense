@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from './AuthProvider'
 import { validarCPF, formatarCPF } from '@/lib/cpf'
@@ -30,16 +31,36 @@ function mascaraData(valor: string) {
   return d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4)
 }
 
-// Converte dd/mm/aaaa → aaaa-mm-dd para salvar no banco
+// Converte dd/mm/aaaa → aaaa-mm-dd para salvar no banco.
+// BUG CORRIGIDO: antes só conferia 3 partes e ano com 4 dígitos — uma data
+// que não existe (ex: 99/99/9999, 31/02/2020) passava e virava erro cru do
+// Postgres no insert. Agora confere se a data existe de verdade (dia/mês
+// válidos pro calendário, sem depender de conversão automática do JS) e
+// rejeita data de nascimento no futuro.
 function dataParaISO(valor: string) {
   const partes = valor.split('/')
   if (partes.length !== 3 || partes[2].length !== 4) return null
+  const dia = Number(partes[0])
+  const mes = Number(partes[1])
+  const ano = Number(partes[2])
+  if (!Number.isInteger(dia) || !Number.isInteger(mes) || !Number.isInteger(ano)) return null
+
+  const data = new Date(ano, mes - 1, dia)
+  // new Date com dia/mês fora do intervalo "rola" pro mês seguinte (ex: 31/02
+  // vira 03/03) em vez de dar erro — comparar os campos de volta detecta isso.
+  if (data.getFullYear() !== ano || data.getMonth() !== mes - 1 || data.getDate() !== dia) return null
+
+  const hoje = new Date()
+  hoje.setHours(0, 0, 0, 0)
+  if (data > hoje) return null
+
   return `${partes[2]}-${partes[1]}-${partes[0]}`
 }
 
 export default function ModalCPF() {
   const { user, setPerfil } = useAuth()
   const supabase = createClient()
+  const router = useRouter()
   const [cpf, setCpf] = useState('')
   const [nome, setNome] = useState(
     capitalizarNome(user?.user_metadata?.full_name || user?.user_metadata?.name || '')
@@ -68,36 +89,15 @@ export default function ModalCPF() {
     setEnviando(true)
     try {
       const cpfLimpo = cpf.replace(/\D/g, '')
-      const whatsappCompleto = whatsappParaSalvar(whatsapp)
 
-      // Verifica unicidade do email (outro usuário com o mesmo email)
-      if (user.email) {
-        const { data: emailDuplicado } = await supabase
-          .from('perfis').select('id').eq('email', user.email).neq('id', user.id).maybeSingle()
-        if (emailDuplicado) {
-          setErro('Este e-mail já está cadastrado em outra conta.')
-          setEnviando(false)
-          return
-        }
-      }
-
-      // Verifica unicidade do CPF (outro usuário com o mesmo CPF)
-      const { data: cpfDuplicado } = await supabase
-        .from('perfis').select('id').eq('cpf', cpfLimpo).neq('id', user.id).maybeSingle()
-      if (cpfDuplicado) {
-        setErro('Este CPF já está cadastrado em outra conta.')
-        setEnviando(false)
-        return
-      }
-
-      // Verifica unicidade do WhatsApp (outro usuário com o mesmo número)
-      const { data: whatsappDuplicado } = await supabase
-        .from('perfis').select('id').eq('whatsapp', whatsappCompleto).neq('id', user.id).maybeSingle()
-      if (whatsappDuplicado) {
-        setErro('Este número de WhatsApp já está cadastrado em outra conta.')
-        setEnviando(false)
-        return
-      }
+      // BUG CORRIGIDO: as pré-checagens de duplicidade de e-mail/CPF/WhatsApp
+      // que existiam aqui (SELECT em `perfis` filtrando por outro usuário)
+      // nunca funcionaram — a única policy de SELECT da tabela é
+      // `auth.uid() = id`, então a consulta sempre voltava vazia e a
+      // checagem nunca detectava duplicata nenhuma, mesmo quando existia. A
+      // proteção real contra duplicata é a constraint UNIQUE do banco
+      // (cpf/email), que rejeita no insert/update — o catch abaixo trata
+      // esse erro (23505) com mensagem amigável.
 
       // Verifica se o perfil já existe (ex: usuário master que ainda não preencheu CPF)
       const { data: perfilExistente, error: erroLeitura } = await supabase
@@ -159,6 +159,22 @@ export default function ModalCPF() {
       console.error('[ModalCPF] falha ao salvar perfil:', {
         code: err.code, message: err.message, details: err.details, hint: err.hint,
       })
+      // BUG CORRIGIDO: erro 23505 (unique_violation) é a constraint UNIQUE do
+      // banco barrando um CPF/e-mail duplicado (única proteção real, já que
+      // as pré-checagens no cliente nunca funcionavam — ver comentário acima).
+      // Antes disso caía no texto cru do Postgres ("23505 — duplicate key
+      // value violates unique constraint..."), incompreensível pro cidadão.
+      if (err.code === '23505') {
+        const msg = err.message || ''
+        if (msg.includes('cpf')) {
+          setErro('Este CPF já está cadastrado em outra conta.')
+        } else if (msg.includes('email')) {
+          setErro('Este e-mail já está cadastrado em outra conta.')
+        } else {
+          setErro('Estes dados já estão cadastrados em outra conta.')
+        }
+        return
+      }
       const detalhe = [err.code, err.message].filter(Boolean).join(' — ')
       setErro(detalhe ? `Erro ao salvar: ${detalhe}` : 'Erro ao salvar. Tente novamente.')
     } finally {
@@ -276,11 +292,14 @@ export default function ModalCPF() {
                 })
               }
               await supabase.auth.signOut()
-              window.location.href = '/'
+              router.push('/')
             }}
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: '#6b7280', padding: '4px', textDecoration: 'underline' }}
           >
-            Fechar
+            {/* BUG CORRIGIDO: rótulo era "Fechar", mas o botão exclui a conta
+                (DELETE /api/cidadao/cancelar-cadastro + signOut) — induzia o
+                usuário a clicar achando que só fecharia o modal. */}
+            Cancelar cadastro e sair
           </button>
         </form>
       </div>

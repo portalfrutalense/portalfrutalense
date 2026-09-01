@@ -18,9 +18,9 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const emailMap: Record<string, string> = {}
-  ;(perfis || []).forEach((p: any) => { if (p.email) emailMap[p.id] = p.email })
+  ;(perfis || []).forEach((p: { id: string; email: string | null }) => { if (p.email) emailMap[p.id] = p.email })
 
-  return NextResponse.json((data || []).map((d: any) => ({ ...d, morador_email: emailMap[d.user_id] || null })))
+  return NextResponse.json((data || []).map((d: { user_id: string }) => ({ ...d, morador_email: emailMap[d.user_id] || null })))
 }
 
 // DELETE /api/master/demanda  { demanda_id }
