@@ -1446,49 +1446,56 @@ mais 21 pontos onde o sistema está bem construído.
 
 ## Verificações que dependem de você (não dá para fazer pelo código)
 
-- [ ] `WHATSAPP_WEBHOOK_SECRET` existe na Vercel? (R3-1 — pode estar
-      derrubando o WhatsApp em produção agora)
-- [ ] RLS de `chatbot_base` está ligado no Supabase? (crítico 5 / B24-2)
-- [ ] `fix_perfis_unique_2026-08-30.sql` foi executado? (B25-2 — sem ele,
-      nada impede dois cadastros com o mesmo CPF)
-- [ ] `fix_classificados_onibus_2026-08-30.sql` foi executado? (R2-31)
-- [ ] `chatbot_sem_resposta_policy.sql` foi executado? (R2-41 — sem ele a
-      aba "Perguntas sem resposta" fica sempre vazia)
-- [ ] `fix_bloco11` e `fix_bloco14` foram executados? (B25-3)
-- [ ] `sql/migration-pets-config-por-especie.sql` foi executado? (pendência
-      aberta desde antes desta auditoria)
-- [ ] `supabase/fix_chat_conversas_2026-09-01.sql` foi executado? (Erro #34 —
-      cria a tabela `chat_conversas`; sem ela o chat do site quebra, porque
-      `/api/chat` passou a ler/escrever nela)
-- [ ] `supabase/fix_pets_data_hora_2026-09-01.sql` foi executado? (Erro #36 —
-      adiciona `pets.data_hora_aproximada`; sem ela, registrar/editar pet
-      perdido/achado falha, porque a API passou a gravar nessa coluna)
-- [ ] `supabase/fix_tabelas_faltantes_2026-09-01.sql` foi executado? (Erros
-      #42/#43, B24-1 CRÍTICO + B24-2 CRÍTICO — cria `entidades`,
-      `categorias_mapa`, `categoria_entidades`, `chatbot_base` com RLS
-      versionada; sem RLS em `chatbot_base`, qualquer autenticado pode
-      reescrever as instruções dos bots. Se essas 4 tabelas já existem no
-      seu banco mas foram criadas fora do versionamento, rode mesmo assim —
-      é seguro, `IF NOT EXISTS` não recria nada, só a RLS é reaplicada)
-- [ ] `supabase/fix_demanda_entidades_unique_2026-09-01.sql` foi executado?
-      (Erro #44, B24-3 — adiciona UNIQUE(demanda_id, entidade_id); o arquivo
-      tem uma query pra rodar antes, pra checar se já existem duplicatas
-      hoje, que bloqueariam a constraint)
-- [ ] `supabase/fix_moderacao_update_2026-09-01.sql` foi executado? (Erro
-      #79, R2-32 — gatilhos BEFORE UPDATE em pets/classificados, defesa em
-      profundidade pra reforçar no banco o que `PATCH /api/camadas` já
-      garante na API. Rode DEPOIS de `fix_pets_data_hora_2026-09-01.sql`,
-      já que usa a coluna `data_hora_aproximada`)
-- [ ] `supabase/fix_demandas_via_chatbot_2026-09-01.sql` foi executado?
-      (Erro #92, B18-8 — adiciona `demandas.via_chatbot`; sem ela, criar
-      demanda pelo chat do site ou WhatsApp falha, porque a API passou a
-      gravar nessa coluna)
-- [ ] `supabase/fix_grant_pets_classificados_2026-09-01.sql` foi executado?
-      (Erro #82, R2-40 — estreita o GRANT de UPDATE de pets/classificados
-      pra `authenticated` só às colunas reencontrado/vendido, já que editar
-      conteúdo passou a ir sempre por `PATCH /api/camadas` desde o Erro #5.
-      Sem isso, lat/lng de classificados ainda pode ser gravado exato via
-      API direta do Supabase, contornando `aproximarCoordenada`)
+**Confirmado via diagnóstico ao vivo em 2026-09-01** (query rodada pelo
+usuário, resultado conferido linha a linha) — todos os itens abaixo que dão
+pra checar por SQL estão **aplicados e corretos**:
+
+- [x] `fix_perfis_unique_2026-08-30.sql` — constraints `perfis_cpf_unique` e
+      `perfis_email_unique` confirmadas.
+- [x] `fix_classificados_onibus_2026-08-30.sql` — CHECK confirma `'onibus'`
+      no array de `tipo_veiculo`.
+- [x] `chatbot_sem_resposta_policy.sql` — policy de SELECT confirmada.
+- [x] `fix_bloco11_2026-08-30.sql` — gatilho `restringir_status_demanda` e
+      remoção de `ia_historico` confirmados.
+- [x] `fix_bloco14_2026-08-30.sql` — `nao_resolvida` visível no mapa público
+      e gatilhos `forcar_*_pendente_ao_criar` confirmados.
+- [x] `sql/migration-pets-config-por-especie.sql` — 8 linhas `pet_*` em
+      `camadas_config` confirmadas.
+- [x] `supabase/fix_chat_conversas_2026-09-01.sql` — tabela `chat_conversas`
+      confirmada (5/5 tabelas novas encontradas).
+- [x] `supabase/fix_pets_data_hora_2026-09-01.sql` — `pets.data_hora_aproximada`
+      confirmada.
+- [x] `supabase/fix_tabelas_faltantes_2026-09-01.sql` — `entidades`,
+      `categorias_mapa`, `categoria_entidades`, `chatbot_base` confirmadas
+      (5/5 junto com `chat_conversas`).
+- [x] `supabase/fix_demanda_entidades_unique_2026-09-01.sql` — constraint
+      `demanda_entidades_demanda_entidade_unique` confirmada.
+- [x] `supabase/fix_moderacao_update_2026-09-01.sql` — gatilhos
+      `forcar_*_pendente_ao_editar` confirmados.
+- [x] `supabase/fix_demandas_via_chatbot_2026-09-01.sql` — `demandas.via_chatbot`
+      confirmada.
+- [x] `supabase/fix_grant_pets_classificados_2026-09-01.sql` — GRANT
+      confirmado restrito a exatamente `classificados.vendido`,
+      `pets.reencontrado`, `pets.reencontrado_em` (nada a mais).
+
+- [x] `WHATSAPP_WEBHOOK_SECRET` existe na Vercel — confirmado pelo usuário.
+
+**Achado extra, fora de qualquer lista original — descoberto só por
+checagem ao vivo em 2026-09-01:** `chatbot_base` tinha uma policy de RLS
+("leitura publica chatbot_base", `roles={public}`, `qual=true`) de origem
+anterior desconhecida — **leitura totalmente aberta**, inclusive sem login,
+via chamada direta à API REST do Supabase com a chave anônima pública.
+Como RLS combina policies com OR, isso anulava a restrição
+`master_le_chatbot_base` que este mesmo dia de auditoria tinha acabado de
+adicionar. **Corrigido** em
+`supabase/fix_chatbot_base_leitura_publica_2026-09-01.sql` (já executado e
+confirmado). Varredura ampla rodada depois (`diagnostico_policies_abertas_2026-09-01.sql`)
+não achou o mesmo padrão em nenhuma tabela sensível (`perfis`, `ia_config`,
+`chatbot_config`, `chatbot_sem_resposta`, `whatsapp_conversas`,
+`chat_conversas`) — só nas tabelas onde leitura pública é esperada
+(`entidades`, `categorias_mapa`, `categoria_entidades`), incluindo uma
+duplicata cosmética em `categoria_entidades` sem risco de segurança
+(`fix_categoria_entidades_policy_duplicada_2026-09-01.sql`, opcional).
 
 ## Recomendação estrutural
 

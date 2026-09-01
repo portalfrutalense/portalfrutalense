@@ -148,7 +148,7 @@ Fluxo de criação de uma demanda (cidadão, pelo mapa ou pelo chatbot):
      demanda, envia ao Gemini, que retorna `{"decisao": "aprovada"|"rejeitada", "motivo": "..."}`.
    - **Aprovada**: status vira `aguardando_resposta`. Para cada autoridade vinculada,
      gera um token único (`magic_token`) e envia um e-mail via Resend com um link
-     `/responder/[token]`, que expira em 7 dias (ver seção 13.1).
+     `/responder/[token]`, que expira em 7 dias.
    - **Rejeitada**: status vira `rejeitada_ia`, motivo salvo em `ia_motivo`, e-mail
      não é enviado.
 5. Autoridade responde: por e-mail (magic link, sem login) via `POST /api/responder`,
@@ -173,9 +173,10 @@ Três tipos de registro **independentes** (nunca se convertem um no outro):
 - `achado` — cidadão encontrou um pet na rua
 - `adocao` — pet disponível para adoção
 
-Campos: espécie (cachorro/gato), nome, raça, cor, porte, descrição, localização,
-foto, contato. Cada registro expira automaticamente (`expira_em`) e passa por
-moderação de IA similar à das demandas (`/api/ia/analisar-pet`).
+Campos: espécie (cachorro/gato), nome, raça, cor, porte, descrição, **data/hora
+aproximada de quando sumiu ou foi encontrado** (obrigatória só pra `perdido`/`achado`),
+localização, foto, contato. Cada registro expira automaticamente (`expira_em`) e
+passa por moderação de IA similar à das demandas (`/api/ia/analisar-pet`).
 
 ### 5.3 Camada Classificados
 
@@ -209,9 +210,15 @@ passou a navegar direto pra página cheia; foi removido na auditoria em blocos,
 Bloco 9, por ser ~200 linhas de código morto que ainda disparava consultas
 desnecessárias ao Supabase em toda página.)
 
-- `POST /api/chat`: recebe o histórico de mensagens e o nome do usuário, monta um
-  system prompt com a base de conhecimento (tabela `chatbot_base`), lista de
-  categorias e configurações de tom de voz (tabela `chatbot_config`), chama o Gemini.
+- `POST /api/chat`: recebe só a mensagem nova do cidadão (`mensagem`) — o histórico
+  real da conversa é guardado no servidor (tabela `chat_conversas`, chaveada por
+  `user_id`), não confiado ao que o cliente manda (corrigido em 2026-09-01: antes o
+  cliente mandava o histórico inteiro a cada mensagem, forjável). `novaConversa: true`
+  reinicia o histórico salvo (usado quando a tela do chat recarrega do zero). O nome
+  do cidadão também não vem mais do corpo da requisição — a rota busca `perfis.nome`
+  no servidor. Monta um system prompt com a base de conhecimento (tabela
+  `chatbot_base`), lista de categorias e configurações de tom de voz (tabela
+  `chatbot_config`), chama o Gemini.
 - A IA pode retornar 3 tipos de resposta:
   - Texto livre (conversa normal)
   - `{"action":"detectar_demanda", "descricao", "categoria_id", "categoria_nome"}`
@@ -224,6 +231,10 @@ desnecessárias ao Supabase em toda página.)
 - O fluxo de registro guiado é implementado no hook `src/hooks/useChatBot.ts`,
   como uma máquina de estados (`etapaDemanda`).
 - Suporte a **entrada por voz** (reconhecimento de fala do navegador) quando disponível.
+- `GET /api/chatbot-config`: expõe só `nome_bot` (via `service_role`) pra UI
+  do site poder mostrar o nome do bot configurado no painel master — `chatbot_config`
+  só tem `SELECT` liberado por RLS pra `role='master'`, então o cliente comum
+  não conseguiria ler direto.
 
 ### 6.2 No WhatsApp (`/api/whatsapp/webhook`)
 
@@ -268,7 +279,8 @@ de ficar público:
   injetada no prompt.
 - Se desativada, tudo fica pendente para aprovação manual pelo master.
 - Existe também `/api/ia/melhorar-texto`, que reescreve/melhora a redação de um
-  texto enviado pelo usuário (provavelmente usado nos formulários de cadastro).
+  texto enviado pelo usuário — usado hoje só no formulário de demanda
+  (`FormDemanda.tsx`), botão "Melhorar texto".
 
 ---
 
@@ -283,7 +295,7 @@ a cada edição, não vale a pena manter atualizado aqui). Seções (menu latera
   moderar manualmente (aprovar/rejeitar), marcar como resolvida/não resolvida,
   reenviar o link de resposta por e-mail, ver status de entrega do e-mail
   (via webhook do Resend). Dois botões manuais no cabeçalho da seção, no lugar
-  de jobs automáticos (decisão do usuário — ver seção 13.2): "Reprocessar
+  de jobs automáticos (decisão do usuário): "Reprocessar
   pendentes travados" (`POST /api/master/reprocessar-pendentes`, reenvia pra
   análise de IA tudo parado há mais de 10 minutos) e "Marcar paradas há 30+
   dias" (`POST /api/master/marcar-nao-resolvidas`, marca como `nao_resolvida`
@@ -300,7 +312,7 @@ a cada edição, não vale a pena manter atualizado aqui). Seções (menu latera
 - **Configuração de categorias** — CRUD de categorias do mapa (nome, cor, ícone
   customizado com upload e compressão client-side via canvas).
 - **Configuração de camadas** — customização visual das camadas do mapa (cores,
-  ícones) via `camadas_mapa` / `CamadaConfig`.
+  ícones) via `camadas_config` / `CamadaConfig`.
 
 `GET /api/master/stats` retorna contagens agregadas de tudo (demandas por status,
 pets por tipo, classificados, empregos), usando `service_role` do Supabase para
@@ -324,22 +336,12 @@ a foto correspondente no Storage antes de apagar a linha.
 > incrementais na pasta `sql/` e no arquivo `migration_demanda_entidades.sql`.
 > As tabelas efetivamente em uso, inferidas do código:
 >
-> **Pendência conhecida (auditoria de 2026-09-01, B24-1):** `entidades`,
-> `categorias_mapa`, `categoria_entidades` e `chatbot_base` nunca tiveram
-> `CREATE TABLE` em nenhum arquivo versionado fora do `schema.sql` legado —
-> reconstruir o banco do zero só com os arquivos de `sql/` falhava, porque
-> `sql/migration-demandas.sql` referencia `categorias_mapa(id)`/`entidades(id)`
-> por FK antes de essas tabelas existirem em qualquer lugar. Corrigido em
-> `supabase/fix_tabelas_faltantes_2026-09-01.sql` (cria as 4 tabelas + RLS
-> versionada — `chatbot_base` não tinha NENHUMA policy de RLS, apesar de seu
-> conteúdo ser injetado na íntegra no prompt dos dois bots) — **status de
-> execução no banco real não confirmado nesta sessão.**
->
-> **Outra pendência (R2-37):** mesmo com todas as tabelas criadas, um banco
-> reconstruído do zero nasce **sem nenhuma conta master** — só o master cria
-> autoridade/empresa, e não existe caminho automático de bootstrap (de
-> propósito: um UUID de produção real hardcoded no repositório seria pior).
-> Passo manual obrigatório documentado em `sql/role_master.sql`.
+> Reconstruir o banco do zero exige alguns passos manuais fora dos arquivos de
+> `sql/` — ver `supabase/fix_tabelas_faltantes_2026-09-01.sql` (cria `entidades`,
+> `categorias_mapa`, `categoria_entidades`, `chatbot_base`, que nenhum arquivo
+> versionado criava) e `sql/role_master.sql` (não existe caminho automático pra
+> promover a primeira conta a `master`, de propósito). Lista completa de
+> arquivos SQL e o que cada um corrige em `AUDITORIA_FINAL.md`.
 
 | Tabela | Descrição |
 |---|---|
@@ -352,22 +354,13 @@ a foto correspondente no Storage antes de apagar a linha.
 | `pets` | Registros de pets perdidos/achados/adoção |
 | `classificados` | Anúncios de veículos |
 | `empregos` | Vagas de emprego |
-| `camadas_mapa` | Configuração visual de cada camada do mapa |
+| `camadas_config` | Configuração visual de cada camada do mapa (cor/ícone por situação e espécie) |
 | `ia_config` | Configuração global da moderação por IA (ativo, rigor, prompt) |
 | `chatbot_config` | Configuração do assistente (nome, tom, responsabilidades, prompt extra) |
 | `chatbot_base` | Base de conhecimento do assistente (títulos + conteúdo) |
 | `chatbot_sem_resposta` | Perguntas que a IA não soube responder, para revisão |
 | `whatsapp_conversas` | Histórico de conversas do WhatsApp, vinculável a um `user_id` |
 | `chat_conversas` | Histórico real do chat do site, guardado no servidor (chaveado por `user_id`) — criada em 2026-09-01 pra corrigir um bug de injeção onde o cliente mandava (e podia forjar) o histórico inteiro a cada mensagem; ver `supabase/fix_chat_conversas_2026-09-01.sql` |
-
-**Pendências de SQL não confirmadas como executadas** (auditoria de
-2026-09-01): `fix_bloco11_2026-08-30.sql`, `fix_bloco14_2026-08-30.sql`,
-`fix_perfis_unique_2026-08-30.sql` (este nem chegou a ser mencionado neste
-documento antes), `fix_classificados_onibus_2026-08-30.sql`,
-`sql/migration-pets-config-por-especie.sql`, e os arquivos novos desta
-sessão (`fix_tabelas_faltantes`, `fix_chat_conversas`, `fix_pets_data_hora`,
-`fix_demanda_entidades_unique`, todos `_2026-09-01`). Lista completa de
-pendências, com o que cada uma corrige, em `AUDITORIA_FINAL.md`.
 
 Todas essas tabelas usam **Row Level Security (RLS)** do Supabase — as rotas de
 API usam o cliente `service_role` (`supabaseServer`) para ignorar RLS quando
@@ -404,10 +397,13 @@ normalmente para leitura pública.
   chamada. Configure o mesmo valor na URL do webhook dentro da Evolution API.
 - `/api/webhooks/resend` **exige** `RESEND_WEBHOOK_SECRET` configurado — sem ele,
   o endpoint recusa qualquer chamada (antes a verificação era opcional).
-- `/api/chat` e `/api/ia/melhorar-texto` têm um limitador de taxa best-effort
-  (`limiteExcedido`, em `auth-api.ts`) — é em memória, por instância, então não é
-  garantia real em ambiente serverless com múltiplas instâncias; contém abuso
-  trivial de um mesmo processo, não um ataque distribuído.
+- Várias rotas públicas/sensíveis têm um limitador de taxa best-effort
+  (`limiteExcedido`, em `auth-api.ts`): `/api/chat`, `/api/ia/melhorar-texto`,
+  `/api/demandas`, `/api/camadas`, `/api/chatbot-config`,
+  `/api/cidadao/vincular-whatsapp-cadastro`, `/api/whatsapp/webhook` — é em
+  memória, por instância, então não é garantia real em ambiente serverless
+  com múltiplas instâncias; contém abuso trivial de um mesmo processo, não
+  um ataque distribuído.
 - Endpoints de resposta de autoridade (`/api/responder`, `/api/autoridade/responder`)
   registram o IP de quem respondeu (`resposta_ip`) para rastreabilidade.
 - Magic tokens de resposta (`magic_token`) são de uso único: ao ser respondido, o
@@ -423,6 +419,11 @@ normalmente para leitura pública.
   pela página `/perfil`.
 - Upload de foto (demanda/pet/classificado/chat) recusa arquivos acima de 20 MB
   no cliente, antes de tentar carregar na memória do navegador para compressão.
+- Exclusão de conta (`/api/cidadao/excluir-conta` e `/api/master/perfis` DELETE)
+  apaga perfil + conta do Auth atomicamente (`auth.admin.deleteUser`, que
+  cascateia via `ON DELETE CASCADE`), além das fotos e demandas do próprio
+  usuário. **Decisão consciente**: `whatsapp_conversas` e `chatbot_sem_resposta`
+  não são apagadas — o `user_id` vira nulo, mas a linha permanece.
 
 ---
 
@@ -430,7 +431,7 @@ normalmente para leitura pública.
 
 - O `supabase/schema.sql` do repositório **não reflete o schema real** — várias
   tabelas hoje em uso (`demandas`, `demanda_entidades`, `pets`, `classificados`,
-  `empregos`, `chatbot_*`, `ia_config`, `camadas_mapa`, `whatsapp_conversas`) só
+  `empregos`, `chatbot_*`, `ia_config`, `camadas_config`, `whatsapp_conversas`) só
   existem espalhadas pelos scripts incrementais da pasta `sql/` e no arquivo solto
   `migration_demanda_entidades.sql` na raiz — não há um dump único e atualizado
   do schema completo no repositório.
@@ -445,337 +446,13 @@ normalmente para leitura pública.
   consistente — o projeto usa Tailwind (`tailwindcss` está nas dependências) mas
   boa parte da UI mais recente foi construída com estilos inline diretos.
 
+
 ---
 
-## 13. Auditoria de segurança de 2026-08-30 — pendência que exige ação manual
+## 13. Histórico de correções e auditorias
 
-Uma auditoria completa do sistema encontrou e corrigiu (no código) vários problemas.
-**Duas correções ficaram só no arquivo SQL — precisam ser rodadas manualmente no
-SQL Editor do Supabase, porque esta sessão não tem acesso direto ao banco:**
-
-`supabase/fix_rls_seguranca_2026-08-30.sql` contém:
-1. Reaplica a restrição por coluna em `demandas`/`demanda_entidades`/`entidades`
-   (CPF, `magic_token` e e-mail de autoridade tinham voltado a ficar públicos
-   depois de um rollback de emergência anterior — ver `rollback_urgente_select.sql`).
-2. Restringe `pets`/`classificados`/`empregos` para que o autor só possa alterar
-   colunas de conteúdo — antes ele podia reverter uma ocultação do master ou
-   forjar aprovação da IA no próprio registro, batendo direto na API do Supabase.
-
-**Se você está lendo isso e não tem certeza se esse arquivo já foi executado**,
-rode a query de conferência no fim dele (`select ... from pg_policies`) e
-compare com o que o arquivo espera antes de assumir que já foi aplicado — se
-"sistema meio bagunçado" for a sensação de novo, é o primeiro lugar a checar.
-
-### 13.1 Segunda rodada (mesmo dia) — a partir de um review externo (Gemini)
-
-O usuário mandou uma segunda análise, feita por outra IA, pra conferir contra
-o código. Da lista, isto **procedia e foi corrigido**:
-
-- **Magic links de resposta nunca expiravam** (`expiracao = null` em 3 lugares:
-  `/api/ia/analisar`, `/api/master/moderar-demanda`, `/api/master/reenviar-link-demanda`).
-  Agora expiram em 7 dias. Isso passou batido na minha própria auditoria.
-- **Demanda/pet/classificado ficava preso em `pendente` para sempre** se a
-  chamada assíncrona pra IA falhasse (fire-and-forget sem retry). Em vez de
-  um cron automático, existe um botão "Reprocessar pendentes travados" no
-  cabeçalho da seção Demandas do painel master, que chama
-  `POST /api/master/reprocessar-pendentes` (protegida por `getMasterUser`,
-  igual as outras rotas do master) e reenvia pra análise tudo que estiver
-  parado há mais de 10 minutos.
-- **Comparação de `x-internal-key` e dos segredos de webhook não era de tempo
-  constante** (`!==` normal, vaza timing) — trocada por `segredoValido`
-  (`crypto.timingSafeEqual`) em `auth-api.ts`, aplicada nas 3 rotas de IA e
-  no webhook do WhatsApp.
-- **Sem rate limiting em `/api/demandas`, `/api/camadas` e no processamento do
-  WhatsApp** — adicionado (mesmo limitador best-effort já usado em `/api/chat`).
-- **`schema.sql` desatualizado** — não apaguei (é histórico), mas agora tem um
-  aviso enorme no topo dizendo pra não rodar e apontando pro lugar certo.
-
-Do resto da lista, **não procedia como descrito** (verifiquei e não fiz nada):
-- "Chave privada podia vazar pro client" — busquei em todo `'use client'` do
-  projeto por `supabaseServer`/`SERVICE_ROLE`/`INTERNAL_SECRET`: zero ocorrências.
-  Já estava certo.
-- "Invalidação incompleta de links cruzados" (responder pelo painel deixaria o
-  `magic_token` legado ainda válido) — o caminho legado nunca zera a coluna
-  `magic_token` mesmo, é verdade, mas ele bloqueia reuso checando
-  `status === 'respondida'` antes de aceitar qualquer resposta nova — então o
-  token já fica inutilizável na prática. Além disso, uma demanda hoje só existe
-  num dos dois formatos (legado OU com `demanda_entidades`), nunca nos dois ao
-  mesmo tempo, então o cenário de "dois canais pro mesmo token" descrito nem é
-  alcançável no fluxo atual.
-
-E isto eu decidi **não fazer sozinho**, por ser mudança grande demais pra entrar
-como correção de auditoria sem confirmação explícita:
-- Remover o código de fallback legado e migrar dados antigos pra
-  `demanda_entidades` — é cirurgia em dado de produção, não código.
-- Reescrever o painel master (1870 linhas de `style={{}}` inline) em Tailwind —
-  é um projeto à parte, não uma correção.
-
-### 13.2 Auditoria por blocos (2026-08-30, sessão de blocos 1-11) — pendência SQL adicional
-
-Durante a auditoria em blocos (Bloco 11 — Migrações SQL), além de conferir se
-`fix_rls_seguranca_2026-08-30.sql` (§13) já foi executado, **rode também
-`supabase/fix_bloco11_2026-08-30.sql`** no SQL Editor do Supabase — corrige:
-
-- Cidadão podia, via API direta do Supabase (fora da UI), marcar a própria
-  demanda como `resolvida` mesmo estando `pendente` (nunca moderada pela IA
-  nem pelo master) — `GRANT UPDATE (status)` restringia a coluna, mas nada
-  restringia o valor. Fix: gatilho `restringir_status_demanda`.
-- Job `marcar_nao_resolvida` (pg_cron) usava `created_at` em vez de
-  `ia_analisado_em` — uma demanda aprovada/reaprovada tardiamente podia virar
-  "não resolvida" no dia seguinte, sem a autoridade ter tido chance real de
-  responder.
-- `chatbot_sem_resposta` tinha duas policies de INSERT conflitantes (uma
-  restrita ao próprio `user_id`, outra aberta) por ter sido criada em dois
-  arquivos SQL diferentes (`sql/chatbot_sem_resposta.sql` e
-  `sql/chatbot_extras.sql`) — mantida só a restrita.
-- Tabela `ia_historico`, nunca usada pelo código, removida.
-
-Também: **`supabase/rollback_urgente_select.sql` nunca deve ser executado**
-depois dos arquivos de fix de RLS (§13) — ele reabre a exposição pública de
-CPF/`magic_token`/e-mail de autoridade que esses corrigem. Só existe como
-registro histórico de uma emergência de produção já resolvida; agora tem um
-aviso no topo do próprio arquivo.
-
-### 13.3 Auditoria ao vivo do Supabase (Bloco 14) — pendência SQL adicional
-
-O usuário rodou uma query de diagnóstico completa contra o banco real (tabelas,
-colunas, RLS, GRANTs por coluna, constraints, triggers, funções, Storage) e
-colou o resultado pra conferência. Achados que só uma leitura ao vivo do banco
-conseguiria pegar (invisíveis olhando só o código) — **rode
-`supabase/fix_bloco14_2026-08-30.sql`** no SQL Editor do Supabase:
-
-- **Demanda/pet/classificado podia nascer já "aprovado"**, pulando IA e master
-  por completo — o gatilho `restringir_status_demanda` (§13.2) só protege
-  `UPDATE`; o caminho de `INSERT` nunca tinha sido testado, e os GRANTs por
-  coluna liberam `status`/`ia_decisao`/`oculto`/`magic_token` etc. para INSERT
-  de `authenticated`, sem a policy de RLS restringir nenhum valor (só
-  `auth.uid() = user_id`). Fix: gatilhos `BEFORE INSERT` que forçam os campos
-  de moderação para os valores seguros de um registro recém-criado, fora do
-  backend (`service_role`).
-- **Demandas `nao_resolvida` eram invisíveis no mapa público** — nenhuma das
-  duas policies de `SELECT` público em `demandas` incluía esse status na lista
-  permitida (bug que já vinha do `migration-demandas.sql` original, nunca
-  corrigido). Como a policy é quem decide o que aparece no mapa, isso
-  contrariava o próprio propósito de transparência do sistema. De quebra,
-  havia duas policies praticamente iguais (uma exigia `authenticated`, a outra
-  não — RLS combina com OR, então a exigência da primeira já não valia nada na
-  prática); ficou só uma, com o status corrigido.
-
-### 13.4 Auditoria de repositório completo (2026-08-30) — código + pendência SQL
-
-Auditoria exaustiva de todo o repositório (raiz, `sql/`, `supabase/`, `src/app/`,
-`src/components/`, `src/hooks/`, `src/lib/`, `src/types/`), feita em paralelo por
-três leituras independentes. Corrigido:
-
-- **`/api/demandas` bloqueava a resposta ao cidadão esperando a análise de IA
-  terminar** (`await fetch('/api/ia/analisar')`) — contradizia o próprio
-  comentário do código e o padrão "fire-and-forget" já usado em `/api/camadas`
-  e descrito na seção 5.1. Corrigido pro mesmo padrão (sem `await`, com `.catch`).
-- **Webhook do WhatsApp — lost update no dedupe de mensagem**: depois de
-  reivindicar o `messageId` (update condicional), o código seguia usando o
-  snapshot de `historico`/`etapa`/`dados_pendentes` lido antes da reivindicação
-  — se outra mensagem do mesmo número tivesse sido processada e salva nesse
-  intervalo, esse progresso era perdido. Agora rebusca a conversa logo após
-  reivindicar o `messageId`.
-- **Webhook do WhatsApp — erro do insert em `demanda_entidades` não era checado**
-  no fluxo de registro por conversa (só no site já era checado) — corrigido pra
-  logar, mesmo padrão de `/api/demandas`.
-- **Webhook do WhatsApp — regex de "cancelar" sem suporte a acento** (`\b` sem
-  flag `u`) — mesma classe de bug já documentada e corrigida pra
-  `RE_POSITIVO`/`RE_NEGATIVO`, replicada aqui.
-- **Webhook do WhatsApp — foto sem teto de tamanho antes do `sharp`** — mídia
-  do WhatsApp não tinha nenhum limite de tamanho antes de ser processada
-  (diferente do teto de 20MB já aplicado no upload do site); adicionado o
-  mesmo limite.
-- **Painel master — aba "Camadas do mapa" era código morto inacessível**
-  (`AbaConfig` incluía `'camadas'`, mas o loop de abas nunca renderizava o
-  botão, e o conteúdo era `null`) — removida. `MasterCamadas` nunca teve
-  suporte a `camada="demandas"` (a cor de demandas já é por categoria, na aba
-  Categorias), então não era uma feature perdida, só scaffolding não usado.
-- **Painel master — edição de perfil sempre mandava `cpf` no PATCH**, mesmo
-  quando o campo fica oculto na tela pra `role === 'autoridade'` — podia
-  zerar um CPF existente sem o usuário nunca ter visto o campo. Corrigido pra
-  só incluir `cpf` no corpo quando o campo é de fato editável.
-- **Nome do assistente hardcoded como "Lucas"** em `/assistenteia`, sem ler
-  `chatbot_config.nome_bot` (configurável pelo master, já usado corretamente
-  em `/api/chat` e no WhatsApp). Como `chatbot_config` só tem `SELECT` liberado
-  por RLS pra `role='master'`, criada `GET /api/chatbot-config` (expõe só
-  `nome_bot`, via `service_role`) pra UI do site poder ler o nome configurado.
-- **`/app/perfil/page.tsx` marcava demanda como resolvida direto do client**
-  (`supabase.from('demandas').update(...)`), diferente do padrão adotado pro
-  resto do sistema (autoridade e master usam rota de API). Criada
-  `POST /api/cidadao/marcar-resolvida`, com a mesma checagem de estado
-  elegível que já existia na UI, reforçada aqui no servidor.
-- **Vazamento de foto no Storage — 2 casos novos, mesma classe já corrigida em
-  outros lugares**: `FormPet.tsx`/`FormClassificado.tsx` não tinham cleanup no
-  unmount — fechar o modal (botão "×") com upload em andamento ou já concluído
-  deixava o arquivo órfão no bucket; adicionado `useEffect` de limpeza.
-  `MapaDemandas.tsx` (`excluirPet`/`excluirClassificado`/`excluirEmprego`)
-  apagava a linha direto do client sem tocar na foto — mesmo problema já
-  corrigido no caminho do master, nunca replicado pro caminho do dono do
-  registro. Criada `POST /api/camadas/excluir` (ownership check + limpeza de
-  Storage + delete via `service_role`), e as três funções do mapa passaram a
-  chamá-la em vez de `supabase.from(camada).delete()` direto.
-- `icone_url` de classificados ia pro `divIcon.html` do Leaflet sem
-  `escapeHtml` (único ponto do arquivo com essa inconsistência; risco baixo,
-  campo só é setado pelo master) — corrigido.
-- Tipagem: `catch (err: any)` em `FormDemanda.tsx` (2 pontos) trocado por
-  `catch (err: unknown)` com `instanceof Error`, mesmo padrão de
-  `FormPet.tsx`/`FormClassificado.tsx`. `alterarLocal` em `MasterCamadas.tsx`
-  ganhou tipo genérico (`<K extends keyof CamadaConfig>`) no lugar de `any`.
-- Código morto: `setPets` (retorno de `usePets()`) nunca consumido, removido
-  do retorno do hook. Consulta redundante a `perfis(nome, cpf)` no webhook do
-  WhatsApp (o mesmo registro já tinha sido buscado no início do processamento
-  da mesma mensagem) — removida, reaproveitando o resultado já em memória.
-
-**Pendência SQL — resolvida em 2026-08-30**: `demandas.protocolo`,
-`demandas.email_resend_id` e `demandas.email_status` são usadas ativamente
-pelo app e por `fix_rls_seguranca_2026-08-30.sql` / `fix_bloco14_2026-08-30.sql`,
-mas nenhum arquivo SQL versionado as criava — reconstruir o banco do zero só
-com os arquivos do repositório deixaria essas 3 colunas faltando.
-`supabase/fix_colunas_faltantes_2026-08-30.sql` foi executado no SQL Editor
-do Supabase e as 3 colunas foram confirmadas (`text`, nullable) via
-`information_schema.columns`.
-
-### 13.5 Conferência do `fix_rls_seguranca_2026-08-30.sql` (§13) — achado adicional
-
-O usuário rodou uma query pra confirmar se as duas correções críticas de
-`fix_rls_seguranca_2026-08-30.sql` estavam de pé em produção. Confirmado
-que **estão** (nenhum `SELECT` liberado em `morador_cpf`/`magic_token`/
-`resposta_ip`/`email_resend_id`/`email_status`/`entidades.email` pra
-`anon`/`authenticated`; nenhum `UPDATE` liberado em `oculto`/`ia_decisao`/
-`ia_motivo`/`ia_analisado_em`/`expira_em` de pets/classificados/empregos
-pra `authenticated`).
-
-A mesma conferência revelou um achado novo, fora do escopo do que aquele
-arquivo corrige: **`demandas` e `demanda_entidades` nunca tiveram o `UPDATE`
-restringido por coluna** — só o `SELECT` (§13) e o `UPDATE` de
-pets/classificados/empregos (§13, CRÍTICO 2) foram tratados. O GRANT de
-coluna ainda liberava `UPDATE` em `magic_token`, `magic_token_expira_em`,
-`resposta_ip`, `email_resend_id` e `email_status` de `demandas` pra
-`anon`/`authenticated`, e o mesmo conjunto em `demanda_entidades`. Pra
-`demanda_entidades` isso já era inofensivo na prática (a única policy de
-RLS que permite `UPDATE` ali exige `service_role` — nenhuma linha é
-alterável por `authenticated`/`anon` de qualquer forma), mas pra
-`demandas` a policy `"Usuário resolve própria demanda"` permite `UPDATE`
-por `auth.uid() = user_id` sem restringir qual coluna — um cidadão logado
-podia, via chamada direta à API do Supabase, sobrescrever o
-`magic_token`/`resposta_ip`/`email_status` da própria demanda.
-
-Também encontrado, mesma auditoria: `MapaDemandas.tsx` (popup do mapa,
-botão "Marcar como resolvida") ainda escrevia direto do client
-(`supabase.from('demandas').update({status:'resolvida'})`) — mesmo bug já
-corrigido em `/perfil` (§13.4), só que numa segunda tela que passou batido
-naquela correção. Migrado pra `POST /api/cidadao/marcar-resolvida`, igual
-ao `/perfil`.
-
-**Pendência SQL — resolvida em 2026-08-30**: `supabase/fix_update_demandas_2026-08-30.sql`
-foi executado no SQL Editor do Supabase — restringe `UPDATE` de `demandas`
-pra só a coluna `status` (o único campo que a policy de RLS ainda precisa
-liberar pro próprio cidadão, já limitado em valor pelo gatilho
-`restringir_status_demanda`) e revoga `UPDATE` de `demanda_entidades` pra
-`anon`/`authenticated` por completo (nenhum fluxo do app escreve ali fora
-do backend). Confirmado via `information_schema.column_privileges`: só
-`demandas.status` para `authenticated` restou com `UPDATE` — nada em
-`magic_token`/`resposta_ip`/`email_status`/`demanda_entidades`.
-
-**Achado novo, não corrigido nesta sessão** — fora do escopo desta rodada:
-rodar `npx eslint` direto (fora do `next build`) nos arquivos de `src/app/`
-revela dezenas de erros reais de regras `react-hooks` mais rígidas
-(`react-hooks/refs`, `react-hooks/set-state-in-effect` — prováveis regras do
-React Compiler já habilitadas em `eslint.config.mjs`), pré-existentes e
-espalhadas por várias páginas/componentes (`assistenteia/page.tsx`,
-`perfil/page.tsx`, `master/page.tsx`, `MapaDemandas.tsx`, `CamadaPets.tsx`,
-`CamadaClassificados.tsx`, `MasterCamadas.tsx`, entre outros). O `next build`
-não falha por causa delas (usa `eslint-config-next`, que não inclui essas
-regras), então passaram despercebidas em todo build/commit anterior. Como é
-um padrão só de calling setState/lendo refs dentro do corpo de efeitos — não
-um bug de comportamento confirmado — e o volume é grande (dezenas de pontos
-em muitos arquivos), corrigir tudo exige sua própria auditoria dedicada, não
-uma correção pontual dentro desta.
-
-### 13.6 Exclusão de conta — ordem insegura e cobertura incompleta (2026-08-30)
-
-Achado ao vivo (não veio de auditoria de bloco): o usuário excluiu um
-cidadão pela tela `/perfil` e o perfil sumiu de `perfis`, mas o e-mail
-continuou em `auth.users`. Causa: tanto `/api/cidadao/excluir-conta`
-quanto `/api/master/perfis` (DELETE) apagavam a linha de `perfis`
-**antes** de chamar `auth.admin.deleteUser()` — se essa chamada seguinte
-falhasse por qualquer motivo, o perfil já tinha sumido e a conta do Auth
-ficava órfã, presa num estado que só dava pra limpar manual no painel do
-Supabase. Corrigido nos dois arquivos: o delete manual de `perfis` foi
-removido (é redundante mesmo — `perfis.id` já tem `ON DELETE CASCADE` pra
-`auth.users`), sobrando só a chamada a `auth.admin.deleteUser()`, que
-apaga os dois juntos ou nenhum dos dois, nunca um estado parcial.
-`perfil/page.tsx` também ganhou um alerta de erro nessa tela — antes uma
-falha na exclusão não mostrava nada, silêncio total.
-
-A mesma investigação revelou que o caminho do **master** excluir a conta
-de um cidadão nunca cobria demandas: como `demandas.user_id` é
-`ON DELETE SET NULL` (não cascade, diferente de pets/classificados/
-empregos), a demanda nunca desaparecia sozinha — ficava no banco pra
-sempre com nome e CPF do cidadão presos nela, sem dono, sem ninguém mais
-poder pedir pra apagar depois. O caminho do próprio cidadão (Bloco 1) já
-tratava isso corretamente; faltava só no caminho do master. Corrigido:
-`/api/master/perfis` agora também apaga as fotos de demandas do Storage e
-as próprias demandas antes de excluir a conta, mesmo padrão do outro
-caminho.
-
-Deixado como está, por decisão do usuário: `whatsapp_conversas` (telefone
-+ histórico de mensagens) e `chatbot_sem_resposta` (perguntas enviadas ao
-bot) não são apagadas em nenhum dos dois caminhos — o `user_id` vira nulo,
-mas a linha permanece. Se precisar mudar isso no futuro, ambas usam
-`ON DELETE SET NULL`, então precisariam do mesmo tratamento manual (buscar
-antes, apagar explicitamente) já aplicado a demandas.
-
-### 13.7 Auditoria dedicada de `react-hooks/refs` / `react-hooks/set-state-in-effect` (2026-08-30)
-
-Retomando o achado do §13.4 (dezenas de erros pré-existentes dessas duas
-regras, invisíveis no `next build` porque ele usa `eslint-config-next`, sem
-essas regras — só `npx eslint` direto revela).
-
-**Causa raiz identificada pra quase todo `react-hooks/refs`**: vários hooks
-customizados (`useChatBot`, `useMapaBase`) retornam um único objeto
-misturando `useState` normal com `useRef` de verdade no mesmo objeto (ex:
-`return { ...estado, fotoInputRef }`). O analisador do React Compiler, ao
-ver `bot.fotoInputRef` (uma ref real) usada no JSX, passa a tratar
-`bot.qualquerCoisa` inteiro como suspeito pro resto do componente — daí as
-dezenas de falsos positivos em cascata a partir de uma única ref mal
-exposta. Fix, sem mudar nenhum comportamento: extrair a ref à parte logo
-após chamar o hook (`const { fotoInputRef } = bot`) e usar o identificador
-solto no JSX, em vez de acesso a propriedade (`bot.fotoInputRef`) — isso
-some com a contaminação. Aplicado em `assistenteia/page.tsx` (23 erros
-de `react-hooks/refs` resolvidos com uma única linha).
-
-**Causa raiz pro `react-hooks/set-state-in-effect`**: `useEffect(() => {
-funcaoQueSetaEstado() }, [])`, onde a função (às vezes reusada em outros
-lugares do mesmo componente, tipo "recarregar após aprovar/excluir") é
-assíncrona e chama `setState` depois de um `await`. O analisador não
-consegue provar que é seguro através da indireção da chamada por nome —
-nem `void`, nem `.catch()` na chamada resolvem. O único padrão que
-convenceu o analisador foi inlinar a consulta direto no efeito com
-`.then()` visível ali (sem passar por uma função nomeada) — e, quando a
-função original também fazia `setCarregando(true)` de forma síncrona no
-início, envolver essa chamada específica em `Promise.resolve().then(() =>
-...)` (ou remover, quando o estado inicial já nascia `true` e o efeito só
-roda uma vez). Aplicado em: `CamadaPets.tsx`, `CamadaClassificados.tsx`,
-`CamadaEmpregos.tsx`, `MasterCamadas.tsx`, `MasterMapaCamadas.tsx` (3
-ocorrências), `MapaDemandas.tsx` (3 ocorrências), `perfil/page.tsx` (2
-ocorrências), `TourBoasVindas.tsx`.
-
-**As últimas 2 ocorrências** (`master/page.tsx` — a função `carregar()`
-da seção Perfis, com múltiplas consultas em `Promise.all` e mesclagem de
-autoridades legadas; e o trio `carregar()`/`carregarConfig()`/
-`carregarSemResposta()` da seção Chatbot), reusadas em 4-5 lugares cada,
-foram resolvidas sem duplicar nenhuma lógica: em vez de inlinar as
-consultas (que exigiria copiar essas funções complexas), a chamada no
-efeito foi despachada por `setTimeout(() => funcao(), 0)` com o cleanup
-correspondente (`clearTimeout`) — o analisador reconhece esse padrão como
-seguro (mesma família do `.then()`, uma indireção que ele consegue
-provar que não roda de forma síncrona no corpo do efeito), sem duplicar
-uma linha da função original.
-
-**Resultado final**: `react-hooks/refs` e `react-hooks/set-state-in-effect`
-zerados em todo o projeto (eram ~23 e ~14 ocorrências, respectivamente).
-Nenhuma consulta ou `setState` mudou de valor em nenhum dos pontos — só a
-forma de disparo dentro do efeito.
+Movido para `HISTORICO_CORRECOES.md` em 2026-09-01 — este arquivo (`SISTEMA.md`)
+descreve o estado atual do sistema; o relato de cada rodada de auditoria
+(o que foi encontrado, corrigido, e as decisões tomadas no caminho) fica
+separado, pra não crescer indefinidamente aqui. A auditoria mais recente e
+mais abrangente (99 correções, 2026-09-01) está em `AUDITORIA_FINAL.md`.
