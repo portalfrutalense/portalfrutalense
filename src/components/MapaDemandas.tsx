@@ -777,11 +777,7 @@ export default function MapaDemandas() {
 
         {/* MAPA */}
         <div style={isMobile ? { position: 'absolute', inset: 0 } : { flex: 1, position: 'relative', minWidth: 0 }}>
-          {/* Fundo azul (mesmo tom da navbar) atrás do canvas — em zoom baixo
-              com a inclinação de 70°, o topo da tela mostra o horizonte além
-              do que tem tile de satélite carregado, e sem fundo aparece uma
-              faixa branca ali (sem "céu" nenhum desenhado pelo estilo). */}
-          <div ref={mapRef} className="mapa-map-div" style={{ width: '100%', height: '100%', minHeight: 'clamp(300px, 55vw, 500px)', background: '#4256c8' }} />
+          <div ref={mapRef} className="mapa-map-div" style={{ width: '100%', height: '100%', minHeight: 'clamp(300px, 55vw, 500px)' }} />
 
           {/* Banner de login */}
           {!user && (
