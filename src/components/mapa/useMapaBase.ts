@@ -364,57 +364,69 @@ export function useMapaBase() {
       // 'zoomend'.
       mapa.on('zoomend', () => {
         if (emTransicaoDeZona || corrigindoZoomFracionario) return
+
         const zonaDeRuas = Math.round(mapa.getZoom()) >= ZOOM_SATELITE_RUAS
-        if (zonaDeRuas && !travadoNaZonaDeRuas) {
+        const entrandoNaZona = zonaDeRuas && !travadoNaZonaDeRuas
+        const saindoDaZona = !zonaDeRuas && travadoNaZonaDeRuas
+
+        if (entrandoNaZona) {
           mapa.dragRotate.disable()
           mapa.touchPitch.disable()
           mapa.touchZoomRotate.disableRotation()
-          if (mapa.getPitch() !== 0 || mapa.getBearing() !== 0) {
-            mapa.easeTo({ pitch: 0, bearing: 0, duration: 400, easing: suavizar })
-          }
           travadoNaZonaDeRuas = true
-        } else if (!zonaDeRuas && travadoNaZonaDeRuas) {
+        } else if (saindoDaZona) {
           mapa.dragRotate.enable()
           mapa.touchPitch.enable()
           mapa.touchZoomRotate.enableRotation()
-          mapa.easeTo({ pitch: PITCH_PADRAO, duration: 400, easing: suavizar })
           travadoNaZonaDeRuas = false
         }
 
         // Pinça (touch) é o único gesto que ainda deixa o zoom pousar num
         // valor fracionário — diferente do scroll/botões, que já pousam
-        // sempre num inteiro por construção (então esse ajuste é um no-op
-        // pra eles). Deixa o dedo mover livre durante o gesto (sem travar
-        // nada em tempo real) e só assenta suave no inteiro mais próximo
-        // quando o usuário solta, evitando o efeito de imagem borrada de
-        // tile de satélite em zoom fracionário.
-        //
-        // BUG CORRIGIDO (2026-08-31): sem a trava `corrigindoZoomFracionario`,
-        // essa mesma easeTo(...) terminando gera outro 'zoomend' — e se a
-        // câmera assentar com imprecisão de ponto flutuante (ex.: 16.0000003
-        // em vez de 16 exato, comum em animação), a checagem abaixo achava
-        // "ainda não é inteiro" de novo e disparava outra correção, que
-        // terminando gerava outro 'zoomend', em ciclo — consumindo a thread
-        // principal sem parar (zoom travava, a animação do radar de pets
-        // também travava, tudo no mapa ficava sem resposta). A tolerância
-        // de 0.01 raramente é passada por imprecisão genuína de ponto
-        // flutuante (erro típico é ~1e-10), então na prática só um ciclo de
-        // correção deveria mesmo acontecer — mas a trava garante isso mesmo
-        // que a tolerância um dia precise ficar mais apertada.
+        // sempre num inteiro por construção. Assenta suave no inteiro mais
+        // próximo quando o usuário solta, evitando o efeito de imagem
+        // borrada de tile de satélite em zoom fracionário.
         const zoomAtual = mapa.getZoom()
         const zoomArredondado = Math.round(zoomAtual)
-        if (!corrigindoZoomFracionario && Math.abs(zoomAtual - zoomArredondado) > 0.01) {
-          corrigindoZoomFracionario = true
-          mapa.easeTo({ zoom: zoomArredondado, duration: 200 })
-          let destravouCorrecao = false
-          function destravarCorrecao() {
-            if (destravouCorrecao) return
-            destravouCorrecao = true
+        const precisaCorrigirZoom = Math.abs(zoomAtual - zoomArredondado) > 0.01
+
+        // BUG CORRIGIDO (2026-08-31, 2ª rodada — achado ao vivo, só em
+        // mobile): entrar/sair da zona de ruas e corrigir zoom fracionário
+        // podiam disparar JUNTOS no mesmo 'zoomend' — muito comum na pinça
+        // (e no duplo toque), que costumam pousar fracionário bem na hora de
+        // cruzar o zoom 16. Antes, cada caso chamava seu próprio easeTo()
+        // separado; o MapLibre cancela uma animação em andamento sempre que
+        // outra começa, então a segunda chamada (a de corrigir o zoom, que
+        // não menciona pitch/bearing) interrompia a primeira quase
+        // instantaneamente — e como ela nunca voltava a tocar em pitch/
+        // bearing, a câmera ficava "congelada" inclinada pra sempre, mesmo
+        // com a rotação corretamente travada (isso vem só do disable() dos
+        // gestos, independente da animação). No scroll/botão isso nunca
+        // acontecia, porque o zoom já chega sempre inteiro por construção —
+        // só quem cruza fracionário (pinça/duplo toque) conseguia disparar
+        // os dois no mesmo instante. Corrigido juntando tudo numa ÚNICA
+        // chamada de easeTo() quando mais de uma coisa precisa mudar.
+        if (entrandoNaZona || saindoDaZona || precisaCorrigirZoom) {
+          const alvo: Parameters<typeof mapa.easeTo>[0] = {
+            duration: entrandoNaZona || saindoDaZona ? 400 : 200,
+            easing: suavizar,
+          }
+          if (precisaCorrigirZoom) alvo.zoom = zoomArredondado
+          if (entrandoNaZona) { alvo.pitch = 0; alvo.bearing = 0 }
+          else if (saindoDaZona) { alvo.pitch = PITCH_PADRAO }
+
+          if (precisaCorrigirZoom) corrigindoZoomFracionario = true
+          mapa.easeTo(alvo)
+
+          let destravou = false
+          function destravar() {
+            if (destravou) return
+            destravou = true
             window.clearTimeout(timeoutCorrecao)
             corrigindoZoomFracionario = false
           }
-          mapa.once('moveend', destravarCorrecao)
-          const timeoutCorrecao = window.setTimeout(destravarCorrecao, 800)
+          mapa.once('moveend', destravar)
+          const timeoutCorrecao = window.setTimeout(destravar, 800)
         }
       })
 
