@@ -144,10 +144,22 @@ export default function MapaTopBar({ camada, isMobile, onAbrirLogin }: { camada:
           {popover}
         </div>
         <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+          {/* BUG CORRIGIDO: faltava esconder a barra de scroll nativa —
+              existia no protótipo (artefato) mas não tinha sido copiada
+              pra cá. `overflowX:'auto'` sozinho mostra uma barrinha fina
+              (principalmente em navegadores/webviews que sempre desenham
+              scrollbar em overlay, mesmo fino). scrollbarWidth/
+              msOverflowStyle cobrem Firefox/Edge antigo; o resto (Chrome,
+              Safari, WebViews Android/iOS) só aceita esconder via
+              ::-webkit-scrollbar, que não dá pra fazer inline — daí a
+              className + <style> logo abaixo. */}
           <div
+            className="mapa-topbar-chiprow"
             style={{
               display: 'flex', gap: '6px', overflowX: 'auto', paddingRight: '26px',
               WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
               WebkitMaskImage: 'linear-gradient(90deg, #000 0%, #000 82%, transparent 100%)',
               maskImage: 'linear-gradient(90deg, #000 0%, #000 82%, transparent 100%)',
             }}
@@ -155,6 +167,7 @@ export default function MapaTopBar({ camada, isMobile, onAbrirLogin }: { camada:
             {chips}
           </div>
         </div>
+        <style>{`.mapa-topbar-chiprow::-webkit-scrollbar { display: none; }`}</style>
       </div>
     )
   }

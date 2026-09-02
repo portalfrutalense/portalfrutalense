@@ -365,10 +365,18 @@ export default function MapaDemandas() {
     return true
   }
 
+  // BUG CORRIGIDO (achado ao implementar a trava do "full"): estas 6
+  // funções desselecionavam o item sem tocar no sheetState — no mobile,
+  // detalhe só existe com sheetState='full' (sem alcinha nenhuma agora),
+  // então excluir/marcar por aqui devolvia a pessoa pra lista, mas com o
+  // sheet ainda travado em "full" e sem nenhum jeito de sair (a única
+  // saída do "full" é o botão "Voltar", que essas ações pulam). Todas
+  // passam a devolver pro "half" também.
   async function excluirPet(p: Pet) {
     if (!confirm('Excluir este registro? Essa ação não pode ser desfeita.')) return
     if (!await excluirViaApi('pets', p.id)) return
     setPetSelecionado(null)
+    setSheetState('half')
     recarregarPets()
   }
 
@@ -381,6 +389,7 @@ export default function MapaDemandas() {
     // botão parecia simplesmente não fazer nada.
     if (error) { alert('Não foi possível marcar como reencontrado. Tente novamente.'); return }
     setPetSelecionado(null)
+    setSheetState('half')
     recarregarPets()
   }
 
@@ -388,6 +397,7 @@ export default function MapaDemandas() {
     if (!confirm('Excluir este anúncio? Essa ação não pode ser desfeita.')) return
     if (!await excluirViaApi('classificados', c.id)) return
     setClassificadoSelecionado(null)
+    setSheetState('half')
     recarregarClassificados()
   }
 
@@ -396,6 +406,7 @@ export default function MapaDemandas() {
     // BUG CORRIGIDO: `if (error) return` engolia a falha em silêncio.
     if (error) { alert('Não foi possível marcar como vendido. Tente novamente.'); return }
     setClassificadoSelecionado(null)
+    setSheetState('half')
     recarregarClassificados()
   }
 
@@ -403,6 +414,7 @@ export default function MapaDemandas() {
     if (!confirm('Excluir esta vaga? Essa ação não pode ser desfeita.')) return
     if (!await excluirViaApi('empregos', e.id)) return
     setEmpregoSelecionado(null)
+    setSheetState('half')
     recarregarEmpregos()
   }
 
@@ -411,6 +423,7 @@ export default function MapaDemandas() {
     // BUG CORRIGIDO: `if (error) return` engolia a falha em silêncio.
     if (error) { alert('Não foi possível encerrar a vaga. Tente novamente.'); return }
     setEmpregoSelecionado(null)
+    setSheetState('half')
     recarregarEmpregos()
   }
 
@@ -425,19 +438,18 @@ export default function MapaDemandas() {
 
   // Texto "Arraste para ver mais" — sempre visível
 
-  // BUG CORRIGIDO / MUDANÇA DE COMPORTAMENTO (pedido do usuário): o "full"
-  // agora é um estado travado — uma vez lá, arrastar pra baixo não sai mais
-  // dele (o dedo continua controlando a altura em tempo real, dá a sensação
-  // de arrasto normal, mas ao soltar ele sempre volta pro "full" quando o
-  // gesto começou nele). A única saída é um toque na alcinha (que passa a
-  // aceitar clique também no "full", não só no "peek" — ver onClick do
-  // handle mais abaixo).
+  // MUDANÇA DE COMPORTAMENTO (pedido do usuário): "full" só é alcançado
+  // selecionando um item (pin no mapa ou card da lista — ver
+  // MapaTopBar/SidebarX/o clique na lista de demandas), nunca por arrasto
+  // nem clique na alcinha — e o "full" nem tem mais alcinha (ver JSX do
+  // handle mais abaixo: só aparece quando `sheetState !== 'full'`). Sair do
+  // "full" é só pelo botão "← Voltar" de dentro do card de detalhe, que
+  // agora leva pro "half" (não mais pro "peek" — ver os 4 lugares que
+  // chamam `setSheetState` ao desselecionar: aqui embaixo e dentro de cada
+  // SidebarX). Por isso `cicloSheet` só precisa tratar "peek → half" — é
+  // a única transição que a alcinha ainda cobre.
   function cicloSheet() {
-    const next: 'peek' | 'half' | 'full' =
-      sheetState === 'peek' ? 'half'
-      : sheetState === 'half' ? 'full'
-      : 'peek'
-    setSheetState(next)
+    if (sheetState === 'peek') setSheetState('half')
   }
 
   function aoIniciarArraste(e: React.TouchEvent) {
@@ -454,20 +466,32 @@ export default function MapaDemandas() {
 
   function aoSoltarArraste() {
     if (!arrasteRef.current || !sidebarRef.current) return
-    const veioDeFull = arrasteRef.current.startState === 'full'
+    const { startState } = arrasteRef.current
     const alturaAtual = sidebarRef.current.getBoundingClientRect().height / window.innerHeight
     arrasteRef.current = null
     let melhor: 'peek' | 'half' | 'full' = 'peek'
-    // Travado: um arraste que começou em "full" sempre volta pro "full",
-    // não importa até onde o dedo foi — a única saída é a alcinha.
-    if (veioDeFull) {
+    if (startState === 'full') {
+      // Travado: um arraste que começou em "full" sempre volta pro "full",
+      // não importa até onde o dedo foi — a única saída é o botão "Voltar"
+      // de dentro do card de detalhe (não tem mais alcinha no "full").
       melhor = 'full'
     } else {
-      let menorDist = Infinity
-      ;(['peek', 'half', 'full'] as const).forEach((s) => {
-        const d = Math.abs(SNAP[s] - alturaAtual)
-        if (d < menorDist) { menorDist = d; melhor = s }
-      })
+      // BUG CORRIGIDO (pedido do usuário): "full" só pode ser alcançado
+      // selecionando um item (pin ou card da lista) — nunca por arrasto,
+      // nem a partir do "peek" nem do "half". Um arraste que começa em
+      // qualquer um dos dois só alterna entre eles.
+      //
+      // BUG CORRIGIDO (pedido do usuário, "mais sensível"): decidir pelo
+      // ponto mais próximo entre os dois snaps exigia arrastar quase até a
+      // metade do caminho pra trocar — com "half" bem mais alto agora
+      // (75%, contra o "peek" de 15%), isso significava arrastar uns 30%
+      // da altura da tela só pra sair do peek. Troca pra um limiar fixo,
+      // bem menor: qualquer arraste de mais de 10% da altura da tela na
+      // direção certa já troca de estado (senão volta pro estado inicial).
+      const LIMIAR = 0.10
+      const delta = alturaAtual - SNAP[startState]
+      if (startState === 'peek') melhor = delta > LIMIAR ? 'half' : 'peek'
+      else melhor = delta < -LIMIAR ? 'peek' : 'half'
     }
     // Reaplica a altura oficial do snap na hora, sem depender do React re-renderizar
     // (se o estado escolhido for igual ao atual, o React pula o render e a altura
@@ -556,13 +580,13 @@ export default function MapaDemandas() {
               <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: '34px', width: 'auto', display: 'block' }} />
             </Link>
           )}
-          {isMobile && (
+          {/* BUG CORRIGIDO / MUDANÇA DE COMPORTAMENTO (pedido do usuário):
+              a alcinha some inteira no "full" — nesse estado a única saída
+              é o botão "← Voltar" de dentro do card de detalhe (que leva
+              pro "half"), não tem mais toque na alcinha nem arrasto. */}
+          {isMobile && sheetState !== 'full' && (
             <div
-              // BUG CORRIGIDO / MUDANÇA DE COMPORTAMENTO: a alcinha só
-              // aceitava clique no "peek" — agora aceita também no "full",
-              // já que arrastar pra baixo não sai mais de lá (ver
-              // aoSoltarArraste): o toque aqui é a única saída do "full".
-              onClick={(sheetState === 'peek' || sheetState === 'full') ? cicloSheet : undefined}
+              onClick={sheetState === 'peek' ? cicloSheet : undefined}
               onTouchStart={aoIniciarArraste}
               onTouchMove={aoArrastar}
               onTouchEnd={aoSoltarArraste}
@@ -574,11 +598,6 @@ export default function MapaDemandas() {
               {sheetState === 'peek' && (
                 <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
                   Arraste para ver mais
-                </span>
-              )}
-              {sheetState === 'full' && (
-                <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
-                  Toque para voltar
                 </span>
               )}
             </div>
@@ -609,7 +628,7 @@ export default function MapaDemandas() {
               filtro={filtroPet}
               setFiltro={setFiltroPet}
               selecionado={petSelecionado}
-              setSelecionado={(p) => { setPetSelecionado(p); if (!p) setSheetState('peek'); else if (isMobile) setSheetState('full') }}
+              setSelecionado={(p) => { setPetSelecionado(p); if (!p) setSheetState('half'); else if (isMobile) setSheetState('full') }}
               onRegistrar={() => user ? setFormPet({ aberto: true, editando: null }) : setModalAuth(true)}
               onEditar={(p) => setFormPet({ aberto: true, editando: p })}
               onExcluir={excluirPet}
@@ -628,7 +647,7 @@ export default function MapaDemandas() {
               filtro={filtroClassificado}
               setFiltro={setFiltroClassificado}
               selecionado={classificadoSelecionado}
-              setSelecionado={(c) => { setClassificadoSelecionado(c); if (!c) setSheetState('peek'); else if (isMobile) setSheetState('full') }}
+              setSelecionado={(c) => { setClassificadoSelecionado(c); if (!c) setSheetState('half'); else if (isMobile) setSheetState('full') }}
               onRegistrar={() => user ? setFormClassificado({ aberto: true, editando: null }) : setModalAuth(true)}
               onEditar={(c) => setFormClassificado({ aberto: true, editando: c })}
               onExcluir={excluirClassificado}
@@ -647,7 +666,7 @@ export default function MapaDemandas() {
               filtro={filtroEmprego}
               setFiltro={setFiltroEmprego}
               selecionado={empregoSelecionado}
-              setSelecionado={(e) => { setEmpregoSelecionado(e); if (!e) setSheetState('peek'); else if (isMobile) setSheetState('full') }}
+              setSelecionado={(e) => { setEmpregoSelecionado(e); if (!e) setSheetState('half'); else if (isMobile) setSheetState('full') }}
               onPublicar={() => user ? setFormEmprego({ aberto: true, editando: null }) : setModalAuth(true)}
               onEditar={(e) => setFormEmprego({ aberto: true, editando: e })}
               onExcluir={excluirEmprego}
@@ -664,7 +683,7 @@ export default function MapaDemandas() {
               {/* Voltar */}
               <div style={{ padding: '12px 14px', borderBottom: '1px solid #f9fafb', flexShrink: 0 }}>
                 <button
-                  onClick={() => { setDemandaSelecionada(null); setSheetState('peek') }}
+                  onClick={() => { setDemandaSelecionada(null); setSheetState('half') }}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#4256c8', padding: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
                   ← Voltar
                 </button>
@@ -804,6 +823,7 @@ export default function MapaDemandas() {
                         if (!res.ok) return
                         setDemandas(prev => prev.filter(d => d.id !== demandaSelecionada.id))
                         setDemandaSelecionada(null)
+                        setSheetState('half')
                       }}
                       style={{ fontSize: '12px', color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px', cursor: 'pointer', fontWeight: 500 }}>
                       Excluir
@@ -956,7 +976,13 @@ export default function MapaDemandas() {
         <FormularioPet
           editando={formPet.editando}
           aoFechar={() => setFormPet({ aberto: false, editando: null })}
-          aoSalvar={() => { recarregarPets(); setPetSelecionado(null) }}
+          // BUG CORRIGIDO: salvar uma edição (aberta a partir do card de
+          // detalhe, ou seja, com sheetState='full') desselecionava sem
+          // tocar no sheet — ficava travado no "full" sem alcinha pra
+          // sair. Só mexe no sheet quando de fato estava em "full" (não
+          // afeta o fluxo normal de criar um registro novo, que abre o
+          // formulário a partir do "peek"/"half").
+          aoSalvar={() => { recarregarPets(); setPetSelecionado(null); if (isMobile && sheetState === 'full') setSheetState('half') }}
         />
       )}
 
@@ -965,7 +991,7 @@ export default function MapaDemandas() {
         <FormularioClassificado
           editando={formClassificado.editando}
           aoFechar={() => setFormClassificado({ aberto: false, editando: null })}
-          aoSalvar={() => { recarregarClassificados(); setClassificadoSelecionado(null) }}
+          aoSalvar={() => { recarregarClassificados(); setClassificadoSelecionado(null); if (isMobile && sheetState === 'full') setSheetState('half') }}
         />
       )}
 
@@ -974,7 +1000,7 @@ export default function MapaDemandas() {
         <FormularioEmprego
           editando={formEmprego.editando}
           aoFechar={() => setFormEmprego({ aberto: false, editando: null })}
-          aoSalvar={() => { recarregarEmpregos(); setEmpregoSelecionado(null) }}
+          aoSalvar={() => { recarregarEmpregos(); setEmpregoSelecionado(null); if (isMobile && sheetState === 'full') setSheetState('half') }}
         />
       )}
 
