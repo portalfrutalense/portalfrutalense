@@ -47,6 +47,13 @@ export default function PublicShell({ children }: { children: React.ReactNode })
           height: 100svh;
           overflow: hidden;
           overscroll-behavior: none;
+          /* BUG CORRIGIDO: a regra global (globals.css) deixa
+             "scrollbar-gutter: stable" no <html> — essa propriedade reserva
+             o espaço da barra mesmo com overflow:hidden (só é ignorada com
+             overflow:visible), então sobrava uma faixa vazia do lado
+             direito, com cara de barra de scroll, mesmo sem nunca haver
+             scroll de verdade no /mapa. Desliga só aqui. */
+          scrollbar-gutter: auto;
         }
         @media (max-width: 640px) {
           .mapa-shell { height: 100svh !important; overflow: hidden !important; overscroll-behavior: none !important; }

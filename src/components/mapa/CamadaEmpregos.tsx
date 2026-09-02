@@ -170,6 +170,7 @@ const botaoAcao: React.CSSProperties = { fontSize: '12px', background: '#f9fafb'
 export function SidebarEmpregos({
   empregos, filtro, setFiltro, selecionado, setSelecionado,
   onPublicar, onEditar, onExcluir, onEncerrar,
+  isMobile, aoIniciarArraste, aoArrastar, aoSoltarArraste, onCentralizar,
 }: {
   empregos: Emprego[]
   filtro: string
@@ -180,6 +181,12 @@ export function SidebarEmpregos({
   onEditar: (e: Emprego) => void
   onExcluir: (e: Emprego) => void
   onEncerrar: (e: Emprego) => void
+  // Ver comentário equivalente em SidebarPets (CamadaPets.tsx).
+  isMobile: boolean
+  aoIniciarArraste: (e: React.TouchEvent) => void
+  aoArrastar: (e: React.TouchEvent) => void
+  aoSoltarArraste: () => void
+  onCentralizar: (lat: number, lng: number) => void
 }) {
   const { user, perfil } = useAuth()
   // Master publica em nome da administração; fora isso, só contas de empresa
@@ -262,7 +269,12 @@ export function SidebarEmpregos({
 
   return (
     <>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 14px 12px' }}>
+      <div
+        onTouchStart={isMobile ? aoIniciarArraste : undefined}
+        onTouchMove={isMobile ? aoArrastar : undefined}
+        onTouchEnd={isMobile ? aoSoltarArraste : undefined}
+        style={{ flexShrink: 0, touchAction: isMobile ? 'none' : undefined, padding: '8px 14px 12px' }}
+      >
         <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 6px', lineHeight: 1.3 }}>Empregos</h2>
         <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 12px', lineHeight: 1.5 }}>
           Vagas abertas nas empresas de Frutal-MG, no endereço de cada uma.
@@ -286,10 +298,35 @@ export function SidebarEmpregos({
         </select>
       </div>
 
-      <div style={{ padding: '10px 14px', borderTop: '1px solid #f9fafb' }}>
+      <div
+        onTouchStart={isMobile ? aoIniciarArraste : undefined}
+        onTouchMove={isMobile ? aoArrastar : undefined}
+        onTouchEnd={isMobile ? aoSoltarArraste : undefined}
+        style={{ flexShrink: 0, touchAction: isMobile ? 'none' : undefined, padding: '10px 14px', borderTop: '1px solid #f9fafb' }}
+      >
         <span style={{ fontSize: '11px', color: '#6b7280' }}>
           {visiveis.length} vaga{visiveis.length !== 1 ? 's' : ''}
         </span>
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, padding: '0 14px 12px' }}>
+        {visiveis.map((e) => (
+          <div
+            key={e.id}
+            onClick={() => { setSelecionado(e); if (!isMobile) onCentralizar(e.lat, e.lng) }}
+            style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '10px 12px', marginBottom: '8px', cursor: 'pointer' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '3px' }}>
+              <span style={{ fontSize: '10.5px', fontWeight: 700, color: COR_PADRAO, background: `${COR_PADRAO}18`, borderRadius: '20px', padding: '2px 8px' }}>
+                {ROTULO_CONTRATO[e.contrato]}
+              </span>
+              {e.encerrada && <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#6b7280' }}>Encerrada</span>}
+            </div>
+            <p style={{ fontSize: '12.5px', fontWeight: 600, color: '#111827', margin: '0 0 2px', lineHeight: 1.4 }}>{e.cargo}</p>
+            <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 2px' }}>{e.empresa_nome}</p>
+            <p style={{ fontSize: '11px', color: '#166534', fontWeight: 600, margin: 0 }}>{formatarSalario(e)}</p>
+          </div>
+        ))}
       </div>
     </>
   )

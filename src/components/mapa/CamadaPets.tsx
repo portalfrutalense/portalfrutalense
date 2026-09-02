@@ -364,6 +364,7 @@ export const rotuloPorte: Record<PortePet, string> = { pequeno: 'Pequeno', medio
 export function SidebarPets({
   pets, cores, filtro, setFiltro, selecionado, setSelecionado,
   onRegistrar, onEditar, onExcluir, onMarcarReencontrado, onFoto,
+  isMobile, aoIniciarArraste, aoArrastar, aoSoltarArraste, onCentralizar,
 }: {
   pets: Pet[]
   cores: Record<string, string>
@@ -376,6 +377,17 @@ export function SidebarPets({
   onExcluir: (p: Pet) => void
   onMarcarReencontrado: (p: Pet) => void
   onFoto: (url: string) => void
+  // Lista de cards resumidos abaixo do filtro — arrastar (mobile) só
+  // funciona do cabeçalho (até o filtro) pra cima; a lista tem scroll de
+  // dedo normal, por isso esses handlers de arraste não vão nela.
+  isMobile: boolean
+  aoIniciarArraste: (e: React.TouchEvent) => void
+  aoArrastar: (e: React.TouchEvent) => void
+  aoSoltarArraste: () => void
+  // Clicar num card da lista centraliza o mapa nele — só faz sentido no
+  // desktop (mobile expande o sheet pro card completo, não tem por que
+  // mexer no mapa por baixo).
+  onCentralizar: (lat: number, lng: number) => void
 }) {
   const { user, perfil } = useAuth()
   const visiveis = pets.filter(p => !filtro || chaveCorPet(p) === filtro)
@@ -502,7 +514,14 @@ export function SidebarPets({
 
   return (
     <>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 14px 12px' }}>
+      {/* Cabeçalho — dono do arrasto (mobile) pra redimensionar o sheet;
+          não tem scroll próprio, é sempre do tamanho do conteúdo. */}
+      <div
+        onTouchStart={isMobile ? aoIniciarArraste : undefined}
+        onTouchMove={isMobile ? aoArrastar : undefined}
+        onTouchEnd={isMobile ? aoSoltarArraste : undefined}
+        style={{ flexShrink: 0, touchAction: isMobile ? 'none' : undefined, padding: '8px 14px 12px' }}
+      >
         <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 6px', lineHeight: 1.3 }}>Achei / Perdi um Pet</h2>
         <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 12px', lineHeight: 1.5 }}>
           Pets perdidos pelos donos e animais encontrados abandonados nas ruas.
@@ -523,10 +542,40 @@ export function SidebarPets({
         </select>
       </div>
 
-      <div style={{ padding: '10px 14px', borderTop: '1px solid #f9fafb' }}>
+      <div
+        onTouchStart={isMobile ? aoIniciarArraste : undefined}
+        onTouchMove={isMobile ? aoArrastar : undefined}
+        onTouchEnd={isMobile ? aoSoltarArraste : undefined}
+        style={{ flexShrink: 0, touchAction: isMobile ? 'none' : undefined, padding: '10px 14px', borderTop: '1px solid #f9fafb' }}
+      >
         <span style={{ fontSize: '11px', color: '#6b7280' }}>
           {visiveis.length} registro{visiveis.length !== 1 ? 's' : ''}
         </span>
+      </div>
+
+      {/* Lista de cards resumidos — scroll de dedo normal (sem arrasto de
+          sheet aqui), clicar abre o card completo (mesmo caminho do pin). */}
+      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, padding: '0 14px 12px' }}>
+        {visiveis.map((p) => {
+          const cor = cores[chaveConfigPet(p)] || '#4256c8'
+          return (
+            <div
+              key={p.id}
+              onClick={() => { setSelecionado(p); if (!isMobile) onCentralizar(p.lat, p.lng) }}
+              style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '10px 12px', marginBottom: '8px', cursor: 'pointer' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '3px' }}>
+                <span style={{ fontSize: '10.5px', fontWeight: 700, color: cor, background: `${cor}18`, borderRadius: '20px', padding: '2px 8px' }}>
+                  {ROTULO_FILTRO[chaveCorPet(p)]}
+                </span>
+              </div>
+              <p style={{ fontSize: '12.5px', fontWeight: 600, color: '#111827', margin: '0 0 2px', lineHeight: 1.4 }}>
+                {p.nome_pet ? `${sentenceCase(p.nome_pet)} — ${p.especie === 'cachorro' ? 'cachorro' : 'gato'}` : (p.especie === 'cachorro' ? 'Cachorro' : 'Gato')}
+              </p>
+              {p.endereco_label && <p style={{ fontSize: '11px', color: '#6b7280', margin: 0 }}>{p.endereco_label}</p>}
+            </div>
+          )
+        })}
       </div>
     </>
   )

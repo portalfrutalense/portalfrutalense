@@ -105,8 +105,10 @@ export default function MapaDemandas() {
     return () => setSheetContext(null)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const arrasteRef = useRef<{ startY: number; startFrac: number } | null>(null)
-  const SNAP: Record<'peek' | 'half' | 'full', number> = { peek: 0.20, half: 0.50, full: 0.75 }
+  // `startState` guarda de que estado o arraste começou — usado pra travar
+  // a saída do "full" só soltando o dedo (ver aoSoltarArraste).
+  const arrasteRef = useRef<{ startY: number; startFrac: number; startState: 'peek' | 'half' | 'full' } | null>(null)
+  const SNAP: Record<'peek' | 'half' | 'full', number> = { peek: 0.15, half: 0.75, full: 0.87 }
 
   // Filtros
   const [filtroStatus, setFiltroStatus] = useState('')
@@ -423,16 +425,23 @@ export default function MapaDemandas() {
 
   // Texto "Arraste para ver mais" — sempre visível
 
+  // BUG CORRIGIDO / MUDANÇA DE COMPORTAMENTO (pedido do usuário): o "full"
+  // agora é um estado travado — uma vez lá, arrastar pra baixo não sai mais
+  // dele (o dedo continua controlando a altura em tempo real, dá a sensação
+  // de arrasto normal, mas ao soltar ele sempre volta pro "full" quando o
+  // gesto começou nele). A única saída é um toque na alcinha (que passa a
+  // aceitar clique também no "full", não só no "peek" — ver onClick do
+  // handle mais abaixo).
   function cicloSheet() {
     const next: 'peek' | 'half' | 'full' =
       sheetState === 'peek' ? 'half'
-      : sheetState === 'half' ? ((demandaSelecionada || petSelecionado || classificadoSelecionado || empregoSelecionado) ? 'full' : 'peek')
+      : sheetState === 'half' ? 'full'
       : 'peek'
     setSheetState(next)
   }
 
   function aoIniciarArraste(e: React.TouchEvent) {
-    arrasteRef.current = { startY: e.touches[0].clientY, startFrac: SNAP[sheetState] }
+    arrasteRef.current = { startY: e.touches[0].clientY, startFrac: SNAP[sheetState], startState: sheetState }
     if (sidebarRef.current) sidebarRef.current.style.transition = 'none'
   }
 
@@ -445,15 +454,21 @@ export default function MapaDemandas() {
 
   function aoSoltarArraste() {
     if (!arrasteRef.current || !sidebarRef.current) return
+    const veioDeFull = arrasteRef.current.startState === 'full'
     const alturaAtual = sidebarRef.current.getBoundingClientRect().height / window.innerHeight
     arrasteRef.current = null
     let melhor: 'peek' | 'half' | 'full' = 'peek'
-    let menorDist = Infinity
-    const candidatos = (demandaSelecionada || petSelecionado || classificadoSelecionado || empregoSelecionado) ? (['peek', 'half', 'full'] as const) : (['peek', 'half'] as const)
-    candidatos.forEach((s) => {
-      const d = Math.abs(SNAP[s] - alturaAtual)
-      if (d < menorDist) { menorDist = d; melhor = s }
-    })
+    // Travado: um arraste que começou em "full" sempre volta pro "full",
+    // não importa até onde o dedo foi — a única saída é a alcinha.
+    if (veioDeFull) {
+      melhor = 'full'
+    } else {
+      let menorDist = Infinity
+      ;(['peek', 'half', 'full'] as const).forEach((s) => {
+        const d = Math.abs(SNAP[s] - alturaAtual)
+        if (d < menorDist) { menorDist = d; melhor = s }
+      })
+    }
     // Reaplica a altura oficial do snap na hora, sem depender do React re-renderizar
     // (se o estado escolhido for igual ao atual, o React pula o render e a altura
     // "fantasma" do arraste ficaria grudada no elemento)
@@ -502,6 +517,21 @@ export default function MapaDemandas() {
     ? { position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1500, background: 'white', borderTopLeftRadius: '16px', borderTopRightRadius: '16px', boxShadow: '0 -1px 8px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', height: `${SNAP[sheetState] * 100}vh`, transition: 'height 0.25s ease', overflow: 'hidden' }
     : { width: '260px', flexShrink: 0, background: 'white', borderRight: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', minHeight: 'clamp(300px, 55vw, 500px)', overflow: 'hidden' }
 
+  // Se tem algo selecionado (card de detalhe aberto, em qualquer camada),
+  // o wrapper externo do conteúdo volta a controlar arrasto/scroll como um
+  // bloco só (comportamento de sempre) — só as telas de LISTAGEM (filtros +
+  // lista de cards) usam o arrasto restrito ao cabeçalho.
+  const algumSelecionado = !!(demandaSelecionada || petSelecionado || classificadoSelecionado || empregoSelecionado)
+
+  // Clicar num card resumido da lista (só desktop) centraliza o mapa nele,
+  // com um voo suave — mesma biblioteca que o mapa já usa (MapLibre), sem
+  // dependência nova.
+  function centralizarNoMapa(lat: number, lng: number) {
+    const mapa = mapaObj.current
+    if (!mapa) return
+    mapa.flyTo({ center: [lng, lat], zoom: Math.max(mapa.getZoom(), 16), duration: 800 })
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Layout principal: sidebar + mapa */}
@@ -528,30 +558,47 @@ export default function MapaDemandas() {
           )}
           {isMobile && (
             <div
-              onClick={sheetState === 'peek' ? cicloSheet : undefined}
+              // BUG CORRIGIDO / MUDANÇA DE COMPORTAMENTO: a alcinha só
+              // aceitava clique no "peek" — agora aceita também no "full",
+              // já que arrastar pra baixo não sai mais de lá (ver
+              // aoSoltarArraste): o toque aqui é a única saída do "full".
+              onClick={(sheetState === 'peek' || sheetState === 'full') ? cicloSheet : undefined}
               onTouchStart={aoIniciarArraste}
               onTouchMove={aoArrastar}
               onTouchEnd={aoSoltarArraste}
               style={{ flexShrink: 0, padding: sheetState === 'peek' ? '6px 0 2px' : '8px 0 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', cursor: 'grab', touchAction: 'none' }}
             >
-              {sheetState !== 'full' && (
-                <svg className={sheetState === 'half' ? 'sheet-chevron-down' : 'sheet-chevron-up'} width="26" height="15" viewBox="0 0 22 13" fill="none" style={{ color: '#4256c8', marginTop: '4px' }}>
-                  <path d="M1 12l10-10 10 10" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
+              <svg className={sheetState === 'peek' ? 'sheet-chevron-up' : 'sheet-chevron-down'} width="26" height="15" viewBox="0 0 22 13" fill="none" style={{ color: '#4256c8', marginTop: '4px' }}>
+                <path d="M1 12l10-10 10 10" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
               {sheetState === 'peek' && (
                 <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
                   Arraste para ver mais
+                </span>
+              )}
+              {sheetState === 'full' && (
+                <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
+                  Toque para voltar
                 </span>
               )}
             </div>
           )}
           <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
           <div
-            style={{ flex: 1, overflowY: isMobile ? 'hidden' : 'auto', minHeight: 0, touchAction: isMobile ? 'none' : undefined }}
-            onTouchStart={isMobile ? aoIniciarArraste : undefined}
-            onTouchMove={isMobile ? aoArrastar : undefined}
-            onTouchEnd={isMobile ? aoSoltarArraste : undefined}
+            // MUDANÇA DE COMPORTAMENTO (pedido do usuário): arrastar em
+            // qualquer lugar do conteúdo só faz sentido enquanto o
+            // conteúdo é um bloco só, sem lista própria (as telas de
+            // detalhe, abaixo). Nas telas de listagem (filtros + lista de
+            // cards), cada SidebarX agora cuida do próprio arrasto (só no
+            // cabeçalho, até o filtro) e a lista tem scroll de dedo normal
+            // — por isso este wrapper externo só assume overflow/arrasto
+            // "global" quando existe algo selecionado (tela de detalhe).
+            style={algumSelecionado
+              ? { flex: 1, overflowY: isMobile ? 'hidden' : 'auto', minHeight: 0, touchAction: isMobile ? 'none' : undefined, display: 'flex', flexDirection: 'column' }
+              : { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
+            onTouchStart={algumSelecionado && isMobile ? aoIniciarArraste : undefined}
+            onTouchMove={algumSelecionado && isMobile ? aoArrastar : undefined}
+            onTouchEnd={algumSelecionado && isMobile ? aoSoltarArraste : undefined}
           >
 
           {camada === 'pets' ? (
@@ -562,12 +609,17 @@ export default function MapaDemandas() {
               filtro={filtroPet}
               setFiltro={setFiltroPet}
               selecionado={petSelecionado}
-              setSelecionado={(p) => { setPetSelecionado(p); if (!p) setSheetState('peek') }}
+              setSelecionado={(p) => { setPetSelecionado(p); if (!p) setSheetState('peek'); else if (isMobile) setSheetState('full') }}
               onRegistrar={() => user ? setFormPet({ aberto: true, editando: null }) : setModalAuth(true)}
               onEditar={(p) => setFormPet({ aberto: true, editando: p })}
               onExcluir={excluirPet}
               onMarcarReencontrado={marcarPetReencontrado}
               onFoto={setFotoAmpliada}
+              isMobile={isMobile}
+              aoIniciarArraste={aoIniciarArraste}
+              aoArrastar={aoArrastar}
+              aoSoltarArraste={aoSoltarArraste}
+              onCentralizar={centralizarNoMapa}
             />
           ) : camada === 'classificados' ? (
             /* ── CAMADA: CLASSIFICADOS ── */
@@ -576,12 +628,17 @@ export default function MapaDemandas() {
               filtro={filtroClassificado}
               setFiltro={setFiltroClassificado}
               selecionado={classificadoSelecionado}
-              setSelecionado={(c) => { setClassificadoSelecionado(c); if (!c) setSheetState('peek') }}
+              setSelecionado={(c) => { setClassificadoSelecionado(c); if (!c) setSheetState('peek'); else if (isMobile) setSheetState('full') }}
               onRegistrar={() => user ? setFormClassificado({ aberto: true, editando: null }) : setModalAuth(true)}
               onEditar={(c) => setFormClassificado({ aberto: true, editando: c })}
               onExcluir={excluirClassificado}
               onMarcarVendido={marcarClassificadoVendido}
               onFoto={setFotoAmpliada}
+              isMobile={isMobile}
+              aoIniciarArraste={aoIniciarArraste}
+              aoArrastar={aoArrastar}
+              aoSoltarArraste={aoSoltarArraste}
+              onCentralizar={centralizarNoMapa}
             />
           ) : camada === 'empregos' ? (
             /* ── CAMADA: EMPREGOS ── */
@@ -590,11 +647,16 @@ export default function MapaDemandas() {
               filtro={filtroEmprego}
               setFiltro={setFiltroEmprego}
               selecionado={empregoSelecionado}
-              setSelecionado={(e) => { setEmpregoSelecionado(e); if (!e) setSheetState('peek') }}
+              setSelecionado={(e) => { setEmpregoSelecionado(e); if (!e) setSheetState('peek'); else if (isMobile) setSheetState('full') }}
               onPublicar={() => user ? setFormEmprego({ aberto: true, editando: null }) : setModalAuth(true)}
               onEditar={(e) => setFormEmprego({ aberto: true, editando: e })}
               onExcluir={excluirEmprego}
               onEncerrar={encerrarEmprego}
+              isMobile={isMobile}
+              aoIniciarArraste={aoIniciarArraste}
+              aoArrastar={aoArrastar}
+              aoSoltarArraste={aoSoltarArraste}
+              onCentralizar={centralizarNoMapa}
             />
           ) : demandaSelecionada ? (
             /* ── DETALHE DA DEMANDA ── */
@@ -754,8 +816,13 @@ export default function MapaDemandas() {
           ) : (
             /* ── FILTROS ── */
             <>
-              {/* Topo: título + descrição + filtros */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '8px 14px 12px' }}>
+              {/* Topo: título + descrição + filtros — dono do arrasto
+                  (mobile) pra redimensionar o sheet; sem scroll próprio. */}
+              <div
+                onTouchStart={isMobile ? aoIniciarArraste : undefined}
+                onTouchMove={isMobile ? aoArrastar : undefined}
+                onTouchEnd={isMobile ? aoSoltarArraste : undefined}
+                style={{ flexShrink: 0, touchAction: isMobile ? 'none' : undefined, padding: '8px 14px 12px' }}>
                 <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 6px', lineHeight: 1.3 }}>Mapa de Demandas</h2>
                 <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 12px', lineHeight: 1.5 }}>
                   Demandas dos cidadãos de Frutal-MG direcionadas às autoridades públicas.
@@ -807,13 +874,50 @@ export default function MapaDemandas() {
               </div>
 
               {/* Contador */}
-              <div style={{ padding: '10px 14px', borderTop: '1px solid #f9fafb' }}>
+              <div
+                onTouchStart={isMobile ? aoIniciarArraste : undefined}
+                onTouchMove={isMobile ? aoArrastar : undefined}
+                onTouchEnd={isMobile ? aoSoltarArraste : undefined}
+                style={{ flexShrink: 0, touchAction: isMobile ? 'none' : undefined, padding: '10px 14px', borderTop: '1px solid #f9fafb' }}>
                 <span style={{ fontSize: '11px', color: '#6b7280' }}>{demandasVisiveis.length} demanda{demandasVisiveis.length !== 1 ? 's' : ''}</span>
+              </div>
+
+              {/* Lista de cards resumidos — scroll de dedo normal, clicar
+                  abre o mesmo card de detalhe completo do clique no pin. */}
+              <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, padding: '0 14px 12px' }}>
+                {demandasVisiveis.map((d) => (
+                  <div
+                    key={d.id}
+                    onClick={() => {
+                      setDemandaSelecionada(d)
+                      if (isMobile) setSheetState('full')
+                      else centralizarNoMapa(d.lat, d.lng)
+                    }}
+                    style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '10px 12px', marginBottom: '8px', cursor: 'pointer' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '3px' }}>
+                      <span style={{ fontSize: '10.5px', fontWeight: 500, color: '#6b7280' }}>
+                        {d.categoria?.nome || 'Sem categoria'}
+                      </span>
+                      <span style={{
+                        fontSize: '10.5px', fontWeight: 700, borderRadius: '20px', padding: '2px 8px',
+                        background: statusCor[d.status]?.bg || '#f9fafb',
+                        color: statusCor[d.status]?.color || '#6b7280',
+                      }}>
+                        {statusLabel[d.status] || d.status}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '12.5px', fontWeight: 600, color: '#111827', margin: '0 0 2px', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                      {d.descricao}
+                    </p>
+                    {d.endereco_label && <p style={{ fontSize: '11px', color: '#6b7280', margin: 0 }}>{d.endereco_label}</p>}
+                  </div>
+                ))}
               </div>
 
             </>
           )}
-          </div>{/* fecha área rolável do sheet */}
+          </div>{/* fecha wrapper de conteúdo (rolável só quando há detalhe selecionado — ver comentário acima) */}
           </div>{/* fecha wrapper com fade */}
         </div>
 

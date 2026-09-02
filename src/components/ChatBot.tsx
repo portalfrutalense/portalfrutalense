@@ -4,7 +4,10 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from './AuthProvider'
 import { useSheet } from '@/contexts/SheetContext'
 
-const SNAP: Record<string, number> = { peek: 0.20, half: 0.50, full: 0.75 }
+// Precisa ficar em sincronia com o SNAP de MapaDemandas.tsx (mesmos valores,
+// cópia local porque este componente não tem acesso direto ao estado do
+// sheet, só ao valor já publicado via SheetContext).
+const SNAP: Record<string, number> = { peek: 0.15, half: 0.75, full: 0.87 }
 
 /**
  * Botão flutuante que leva pro assistente de IA (/assistenteia, com sua
