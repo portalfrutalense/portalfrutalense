@@ -40,6 +40,11 @@ export async function PATCH(req: NextRequest) {
 
   const { id, categorias, ...camposBrutos } = await req.json()
   if (!id) return NextResponse.json({ error: 'id obrigatório.' }, { status: 400 })
+  // BUG CORRIGIDO (B22-10): "bloqueado" está na whitelist de campos editáveis
+  // e nada impedia o master mandar `{ id: master.id, bloqueado: true }` pra
+  // essa mesma rota — travando a própria conta sem checagem nenhuma (o
+  // DELETE já tinha essa guarda, o PATCH nunca teve).
+  if (id === master.id) return NextResponse.json({ error: 'Não é possível editar a própria conta pelo painel.' }, { status: 400 })
 
   const campos: Record<string, unknown> = {}
   for (const chave of CAMPOS_PERFIL_PERMITIDOS) {
@@ -54,16 +59,22 @@ export async function PATCH(req: NextRequest) {
   ])
   const temAuth = !!perfil
 
-  // Sincronizar email com auth se alterado (só quando existe conta Auth de fato)
-  if (campos.email && temAuth) {
-    const { error: authError } = await supabaseServer.auth.admin.updateUserById(id, { email: campos.email as string, email_confirm: true })
-    if (authError) return NextResponse.json({ error: `Erro ao atualizar email: ${authError.message}` }, { status: 500 })
-  }
-
+  // BUG CORRIGIDO: o e-mail era sincronizado no Auth ANTES de atualizar
+  // `perfis` — se o `update` de `perfis` falhasse logo depois, o Auth já
+  // tinha o e-mail novo e `perfis` continuava com o antigo (estado parcial
+  // sem rollback). Inverte a ordem: `perfis` primeiro, Auth só depois de
+  // confirmar que a escrita no banco deu certo — se `perfis` falhar, a
+  // rota retorna erro antes de tocar no Auth, e nada fica dessincronizado.
   // Atualizar perfil (autoridade legada não tem linha em "perfis" — update simplesmente não afeta nada)
   if (Object.keys(campos).length > 0) {
     const { error: perfilError } = await supabaseServer.from('perfis').update(campos).eq('id', id)
     if (perfilError) return NextResponse.json({ error: perfilError.message }, { status: 500 })
+  }
+
+  // Sincronizar email com auth se alterado (só quando existe conta Auth de fato)
+  if (campos.email && temAuth) {
+    const { error: authError } = await supabaseServer.auth.admin.updateUserById(id, { email: campos.email as string, email_confirm: true })
+    if (authError) return NextResponse.json({ error: `Erro ao atualizar email: ${authError.message}` }, { status: 500 })
   }
 
   // Se for autoridade (novo fluxo com perfil, ou legada só em "entidades"), sincronizar entidade também
@@ -107,9 +118,18 @@ export async function DELETE(req: NextRequest) {
   const ehAutoridade = perfil?.role === 'autoridade' || !!entidade
   const temPerfil = !!perfil
 
-  // Remover categorias e entidade se for autoridade (novo ou legado)
+  // BUG CORRIGIDO (B22-9): pra quem tem `perfis` (temPerfil), este bloco
+  // apagava (ou desativava) `entidades`/`categoria_entidades` AQUI, antes
+  // de saber se a exclusão da conta (auth.admin.deleteUser, no fim da
+  // função) ia sequer dar certo — se o Auth falhasse por qualquer motivo,
+  // a autoridade continuava com perfil e login funcionando, mas já sem
+  // categorias vinculadas e sem `entidades` (ou desativada). Movido pra
+  // depois da confirmação de sucesso do Auth. Autoridade LEGADA (sem
+  // `perfis`, !temPerfil) nunca teve conta de Auth pra confirmar — nesse
+  // caso continua sendo feito aqui mesmo, é o único passo que existe.
   let entidadeDesativadaEmVezDeExcluida = false
-  if (ehAutoridade) {
+
+  async function removerOuDesativarEntidade() {
     await supabaseServer.from('categoria_entidades').delete().eq('entidade_id', id)
     // BUG CORRIGIDO: `entidade_id` em `demanda_entidades` não tem ON DELETE
     // (RESTRICT por padrão) — pra qualquer autoridade que já tenha recebido
@@ -129,8 +149,10 @@ export async function DELETE(req: NextRequest) {
     }
   }
 
-  // Se não tem perfil (autoridade legada), encerra aqui
+  // Se não tem perfil (autoridade legada), não há conta de Auth pra
+  // confirmar antes — encerra aqui, igual antes.
   if (!temPerfil) {
+    if (ehAutoridade) await removerOuDesativarEntidade()
     return NextResponse.json({
       ok: true,
       aviso: entidadeDesativadaEmVezDeExcluida
@@ -185,6 +207,18 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Não foi possível concluir a exclusão. Tente novamente.' }, { status: 500 })
   }
 
+  // BUG CORRIGIDO (B15-4, decisão confirmada com o usuário): whatsapp_conversas
+  // (telefone + histórico de mensagens) e chatbot_sem_resposta (perguntas
+  // enviadas ao bot) usam ON DELETE SET NULL — sem apagar aqui, o dado
+  // pessoal sobrevivia à exclusão da conta com o user_id só virando nulo.
+  // Mesmo tratamento já aplicado em /api/cidadao/excluir-conta, replicado
+  // aqui, no caminho em que é o master quem exclui a conta de outra
+  // pessoa. Best-effort, não deve travar a exclusão da conta em si.
+  await Promise.all([
+    supabaseServer.from('whatsapp_conversas').delete().eq('user_id', id),
+    supabaseServer.from('chatbot_sem_resposta').delete().eq('user_id', id),
+  ]).catch(e => console.error('[master/perfis] falha ao apagar histórico de whatsapp/chatbot:', e))
+
   // perfis.id tem ON DELETE CASCADE pra auth.users — apagar a conta do Auth
   // já apaga o perfil na mesma operação (chegou até aqui só quando temPerfil
   // é true, e temAuth === temPerfil). Um delete manual de "perfis" ANTES
@@ -193,6 +227,10 @@ export async function DELETE(req: NextRequest) {
   // limpar depois manual no painel do Supabase.
   const { error } = await supabaseServer.auth.admin.deleteUser(id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Só chega aqui com a conta (perfil + Auth) já confirmadamente excluída —
+  // agora sim é seguro apagar/desativar a entidade vinculada, se houver.
+  if (ehAutoridade) await removerOuDesativarEntidade()
 
   return NextResponse.json({
     ok: true,

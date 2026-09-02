@@ -22,6 +22,18 @@ export async function POST(req: NextRequest) {
 
   if (!vinculo) return NextResponse.json({ error: 'Demanda não direcionada a você.' }, { status: 403 })
 
+  // BUG CORRIGIDO (B16-2): nada checava o status atual — dava pra denunciar
+  // uma demanda já 'resolvida'/'nao_resolvida' (jogando de volta pra
+  // moderação algo que já tinha sido encerrado) ou já 'denunciada' (perdendo
+  // o `ia_motivo` original, que essa mesma rota reaproveita pra guardar o
+  // motivo da denúncia — sobrescrever de novo apaga o motivo da denúncia
+  // anterior sem necessidade). Só faz sentido denunciar uma demanda que
+  // ainda está em circulação normal.
+  const { data: demandaAtual } = await supabaseServer.from('demandas').select('status').eq('id', demanda_id).single()
+  if (!demandaAtual || !['aguardando_resposta', 'respondida'].includes(demandaAtual.status)) {
+    return NextResponse.json({ error: 'Essa demanda não pode ser denunciada no estado atual.' }, { status: 400 })
+  }
+
   const { error } = await supabaseServer.from('demandas').update({
     status: 'denunciada',
     ia_motivo: motivo?.trim() || 'Denunciada por uma autoridade.',

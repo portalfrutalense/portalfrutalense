@@ -15,11 +15,28 @@ export default function PageRedefinirSenha() {
   const [sessaoOk, setSessaoOk] = useState(false)
 
   useEffect(() => {
-    // O Supabase processa o hash da URL automaticamente e cria uma sessão temporária
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setSessaoOk(true)
-      else setErro('Link inválido ou expirado. Solicite um novo link de redefinição.')
+    // BUG CORRIGIDO (B05-9): checava só "existe uma sessão válida" — mas
+    // isso também é verdade pra quem já está logado normalmente (ou pra
+    // qualquer um num navegador destravado). A página não pedia a senha
+    // atual, então qualquer sessão aberta bastava pra trocar a senha, sem
+    // provar que foi o dono do e-mail que clicou no link de recuperação.
+    // `PASSWORD_RECOVERY` é o evento que o Supabase dispara especificamente
+    // quando a sessão veio de processar um link de recuperação de senha
+    // (hash da URL) — é o sinal certo pra liberar este formulário, não
+    // "existe sessão" (que também é verdadeiro pra login comum).
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') setSessaoOk(true)
     })
+    // Se o evento já disparou antes deste efeito montar (corrida rara),
+    // getSession() sozinho não distingue recovery de login comum — por
+    // isso o teste acima é só via evento, nunca via getSession().
+    const timeout = setTimeout(() => {
+      setSessaoOk((ok) => {
+        if (!ok) setErro('Link inválido ou expirado. Solicite um novo link de redefinição.')
+        return ok
+      })
+    }, 3000)
+    return () => { subscription.unsubscribe(); clearTimeout(timeout) }
   // `supabase` fica de fora de propósito — createClient() gera uma instância
   // nova a cada render (sem memoização interna); incluí-la faria este efeito
   // (que só deve rodar uma vez, ao processar o hash da URL) refazer a
@@ -67,7 +84,7 @@ export default function PageRedefinirSenha() {
 
           {sucesso ? (
             <div style={{ color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '12px', fontSize: '14px', lineHeight: 1.5, textAlign: 'center' }}>
-              ✅ Senha redefinida com sucesso! Redirecionando...
+              Senha redefinida com sucesso! Redirecionando...
             </div>
           ) : sessaoOk ? (
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

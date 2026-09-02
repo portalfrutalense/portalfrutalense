@@ -9,27 +9,12 @@ import { Classificado, TipoVeiculo } from '@/types'
 import { salvarCamada } from './salvarCamada'
 import { ROTULO_VEICULO, TIPOS } from './CamadaClassificados'
 import { mascaraTelefone, telefoneValido } from '@/lib/mascaraTelefone'
+import { comprimirFoto } from '@/lib/comprimirFoto'
 
 /* ------------------------------------------------------------ helpers --- */
 
-async function comprimirFoto(file: File): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      const MAX = 800
-      const ratio = Math.min(MAX / img.width, MAX / img.height, 1)
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.round(img.width * ratio)
-      canvas.height = Math.round(img.height * ratio)
-      const ctx = canvas.getContext('2d')!
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-      URL.revokeObjectURL(url)
-      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Falha')), 'image/jpeg', 0.6)
-    }
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Inválida')) }
-    img.src = url
-  })
+async function comprimirFotoClassificado(file: File): Promise<Blob> {
+  return comprimirFoto(file, 800, 0.6)
 }
 
 function aproximarCoordenada(lat: number, lng: number) {
@@ -116,7 +101,7 @@ export function FormClassificado({
       setUploadandoFotos(n => n + 1)
       const token = { cancelado: false, path: null as string | null }
       uploadTokens.current.push(token)
-      const promise = comprimirFoto(file)
+      const promise = comprimirFotoClassificado(file)
         .then(async (blob) => {
           const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
           const { error } = await supabase.storage.from('classificados-fotos').upload(path, blob, { contentType: 'image/jpeg' })

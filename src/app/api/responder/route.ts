@@ -1,8 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
+import { limiteExcedido } from '@/lib/auth-api'
+
+function ipDaRequisicao(req: NextRequest): string {
+  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || req.headers.get('x-real-ip')
+    || 'desconhecido'
+}
 
 // GET: valida o token e retorna dados da demanda
+//
+// BUG CORRIGIDO (B16-3): endpoint público, sem login, sem rate limit — o
+// token de 32 bytes torna força bruta impraticável, mas nada impedia
+// enumeração em massa (varrer tokens antigos, ou só bater sem parar) nem
+// carga desnecessária no banco. Mesmo limitador best-effort já usado em
+// /api/chat, /api/demandas etc., agora chaveado por IP (rota pública, sem
+// usuário autenticado pra chavear por id).
 export async function GET(req: NextRequest) {
+  if (limiteExcedido(`responder-get:${ipDaRequisicao(req)}`, 30, 10 * 60_000)) {
+    return NextResponse.json({ error: 'Muitas tentativas. Aguarde um pouco e tente de novo.' }, { status: 429 })
+  }
+
   const token = req.nextUrl.searchParams.get('token')
   if (!token) return NextResponse.json({ error: 'Token ausente.' }, { status: 400 })
 
@@ -39,15 +57,19 @@ export async function GET(req: NextRequest) {
 // POST: salva a resposta da autoridade
 export async function POST(req: NextRequest) {
   try {
-    const { token, resposta } = await req.json()
-
-    if (!token || !resposta || resposta.trim().length < 10) {
-      return NextResponse.json({ error: 'Dados inválidos.' }, { status: 400 })
+    const ip = ipDaRequisicao(req)
+    if (limiteExcedido(`responder-post:${ip}`, 10, 10 * 60_000)) {
+      return NextResponse.json({ error: 'Muitas tentativas. Aguarde um pouco e tente de novo.' }, { status: 429 })
     }
 
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-      || req.headers.get('x-real-ip')
-      || 'desconhecido'
+    const { token, resposta } = await req.json()
+
+    // BUG CORRIGIDO (B16-6): só havia mínimo (10 caracteres) — nada impedia
+    // um POST de vários MB de texto em "resposta". Teto de 5.000 caracteres
+    // (~1 página), bem acima de qualquer resposta legítima de autoridade.
+    if (!token || !resposta || resposta.trim().length < 10 || resposta.trim().length > 5000) {
+      return NextResponse.json({ error: 'Dados inválidos.' }, { status: 400 })
+    }
 
     const { data: vinculo, error: buscaError } = await supabaseServer
       .from('demanda_entidades')
@@ -63,7 +85,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Link expirado.' }, { status: 410 })
     }
 
-    // Salva resposta no vínculo (mantém token para exibir mensagem correta se acessar novamente)
+    // BUG CORRIGIDO (B16-4, decisão confirmada com o usuário): o token
+    // antes ficava vivo pra sempre depois de respondido (só pra mostrar
+    // "já foi respondida" em vez de "token inválido" se a autoridade
+    // clicasse de novo no mesmo link) — divergindo de
+    // /api/autoridade/responder, que já zera o token ao responder. Um link
+    // vazado continuava válido (pra essa checagem) no banco pra sempre.
+    // Agora os dois caminhos zeram o token do mesmo jeito; clicar de novo
+    // no link por e-mail passa a mostrar "token inválido" em vez da
+    // mensagem amigável.
     const { error: updateVinculo } = await supabaseServer
       .from('demanda_entidades')
       .update({
@@ -71,6 +101,8 @@ export async function POST(req: NextRequest) {
         status: 'respondida',
         respondida_em: new Date().toISOString(),
         resposta_ip: ip,
+        magic_token: null,
+        magic_token_expira_em: null,
       })
       .eq('id', vinculo.id)
 

@@ -351,7 +351,15 @@ export async function PATCH(req: NextRequest) {
 
     const { data: existente } = await supabaseServer.from(TABELAS[camada]).select('user_id, lat, lng').eq('id', id).single()
     if (!existente) return NextResponse.json({ error: 'Registro não encontrado.' }, { status: 404 })
-    if (existente.user_id !== user.id) return NextResponse.json({ error: 'Não autorizado.' }, { status: 403 })
+    // BUG CORRIGIDO (B10-3, decisão confirmada com o usuário): só o dono
+    // podia editar — o master não tinha nenhum caminho pra corrigir o
+    // conteúdo de um pet/classificado de outro usuário (só ocultar/aprovar/
+    // excluir, no painel). Dono continua liberado sem consulta extra;
+    // qualquer outra pessoa só passa se for master.
+    if (existente.user_id !== user.id) {
+      const { data: perfilEditor } = await supabaseServer.from('perfis').select('role').eq('id', user.id).single()
+      if (perfilEditor?.role !== 'master') return NextResponse.json({ error: 'Não autorizado.' }, { status: 403 })
+    }
 
     const dados = body?.dados ?? {}
     const atualizacao: Record<string, unknown> = {}

@@ -2,25 +2,49 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getMasterUser } from '@/lib/auth-api'
 import { supabaseServer } from '@/lib/supabase-server'
 
-// GET /api/master/demanda — lista todas as demandas com email (bypassa RLS)
+// GET /api/master/demanda?offset=0&limit=50 — lista demandas paginadas, com email (bypassa RLS)
+//
+// BUG CORRIGIDO (B22-15, decisão confirmada com o usuário): sem limite
+// nenhum, essa lista (com joins de categoria/entidade/vínculos) crescia sem
+// teto — além do limite de 1.000 linhas do PostgREST (que fazia demandas
+// antigas sumirem em silêncio da tela do master), carregar tudo de uma vez
+// no navegador ficaria cada vez mais pesado conforme o sistema crescesse.
+// Agora pagina de verdade: `offset`/`limit` na query, resposta traz
+// `hasMore` pro front saber se ainda tem mais pra pedir com "Carregar mais".
 export async function GET(req: NextRequest) {
   const user = await getMasterUser(req)
   if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
-  const [{ data, error }, { data: perfis }] = await Promise.all([
-    supabaseServer
-      .from('demandas')
-      .select('*, categoria:categorias_mapa(*), entidade:entidades(*), vinculos:demanda_entidades(id, status, resposta, respondida_em, resposta_ip, email_status, email_resend_id, entidade:entidades(nome, cargo))')
-      .order('created_at', { ascending: false }),
-    supabaseServer.from('perfis').select('id, email'),
-  ])
+  const { searchParams } = new URL(req.url)
+  const offset = Math.max(0, parseInt(searchParams.get('offset') || '0', 10) || 0)
+  const limite = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '50', 10) || 50))
+
+  // BUG CORRIGIDO: `select('*', ...)` trazia TODAS as colunas de `demandas`
+  // pro navegador do master, incluindo `magic_token`/`magic_token_expira_em`
+  // (coluna legada) — nunca lidos por nenhuma linha de `master/page.tsx`
+  // (confirmado por busca). Uma sessão de master comprometida entregava,
+  // de brinde, os tokens que permitem responder no lugar de qualquer
+  // autoridade. Lista explícita agora, com só o que a tela realmente usa.
+  const { data, error } = await supabaseServer
+    .from('demandas')
+    .select('id, user_id, morador_nome, morador_cpf, categoria_id, entidade_id, descricao, lat, lng, endereco_label, foto_url, status, ia_decisao, ia_motivo, resposta, respondido_em, link_enviado, oculto, created_at, protocolo, email_resend_id, email_status, categoria:categorias_mapa(*), entidade:entidades(*), vinculos:demanda_entidades(id, status, resposta, respondida_em, resposta_ip, email_status, email_resend_id, entidade:entidades(nome, cargo))')
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limite - 1)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  const userIds = [...new Set((data || []).map((d: { user_id: string | null }) => d.user_id).filter((id): id is string => !!id))]
+  const { data: perfis } = userIds.length > 0
+    ? await supabaseServer.from('perfis').select('id, email').in('id', userIds)
+    : { data: [] as { id: string; email: string | null }[] }
 
   const emailMap: Record<string, string> = {}
   ;(perfis || []).forEach((p: { id: string; email: string | null }) => { if (p.email) emailMap[p.id] = p.email })
 
-  return NextResponse.json((data || []).map((d: { user_id: string }) => ({ ...d, morador_email: emailMap[d.user_id] || null })))
+  return NextResponse.json({
+    data: (data || []).map((d: { user_id: string }) => ({ ...d, morador_email: emailMap[d.user_id] || null })),
+    hasMore: (data || []).length === limite,
+  })
 }
 
 // DELETE /api/master/demanda  { demanda_id }

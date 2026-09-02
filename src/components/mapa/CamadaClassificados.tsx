@@ -286,14 +286,19 @@ export function SidebarClassificados({
             </div>
           </div>
 
-          {meu && (
+          {/* BUG CORRIGIDO (B10-3, decisão confirmada com o usuário): mesmo
+              caso de CamadaPets.tsx — "Editar" ficava atrás de `meu`, então
+              o master só editava os próprios classificados. */}
+          {(meu || ehMaster) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <button onClick={() => onMarcarVendido(selecionado)} style={{ ...botaoAcao, color: '#166534', fontWeight: 600 }}>
-                Marcar como vendido
-              </button>
-              <div style={{ display: 'grid', gridTemplateColumns: ehMaster ? '1fr 1fr' : '1fr', gap: '6px' }}>
+              {meu && (
+                <button onClick={() => onMarcarVendido(selecionado)} style={{ ...botaoAcao, color: '#166534', fontWeight: 600 }}>
+                  Marcar como vendido
+                </button>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: ehMaster && meu ? '1fr 1fr' : '1fr', gap: '6px' }}>
                 {ehMaster && <button onClick={() => onEditar(selecionado)} style={{ ...botaoAcao, color: '#4256c8' }}>Editar</button>}
-                <button onClick={() => onExcluir(selecionado)} style={{ ...botaoAcao, color: '#dc2626' }}>Excluir</button>
+                {meu && <button onClick={() => onExcluir(selecionado)} style={{ ...botaoAcao, color: '#dc2626' }}>Excluir</button>}
               </div>
             </div>
           )}

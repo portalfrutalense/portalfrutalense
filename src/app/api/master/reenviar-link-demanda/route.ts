@@ -76,16 +76,19 @@ export async function POST(req: NextRequest) {
         // da antiga (que continuava salva, mas sem valer mais nada).
         if (v.status === 'respondida') continue
 
+        // BUG CORRIGIDO: o token era rotacionado e o status regredido pra
+        // 'aguardando_resposta' ANTES de saber se o e-mail ia sair —
+        // mesmo quando a rota terminava em 400 ("nenhuma autoridade tem
+        // e-mail"), os tokens de quem tinha e-mail já tinham sido
+        // rotacionados, invalidando o link antigo mesmo numa tentativa que
+        // "falhou". Gera o token e manda o e-mail primeiro; só grava no
+        // banco (e só então o link antigo deixa de valer) se o envio
+        // realmente for aceito pela Resend. Também captura o `error` do
+        // Resend, antes descartado (mesmo padrão do Erro #30/B22-3, nunca
+        // corrigido nesta rota).
         const novoToken = gerarToken()
-        await supabaseServer.from('demanda_entidades').update({
-          magic_token: novoToken,
-          magic_token_expira_em: expiracao,
-          link_enviado: true,
-          status: 'aguardando_resposta',
-        }).eq('id', vinculo.id)
-
         const linkResposta = `${process.env.SITE_URL}/responder/${novoToken}`
-        const { data: emailEnviado } = await resend.emails.send({
+        const { data: emailEnviado, error: erroEmail } = await resend.emails.send({
           from: 'CidadanIA Frutal <noreply@cidadaniafrutal.com.br>',
           to: ent.email,
           subject: `[REENVIO] Demanda aguardando sua resposta — CidadanIA Frutal`,
@@ -93,10 +96,16 @@ export async function POST(req: NextRequest) {
         })
         if (emailEnviado?.id) {
           await supabaseServer.from('demanda_entidades').update({
+            magic_token: novoToken,
+            magic_token_expira_em: expiracao,
+            link_enviado: true,
+            status: 'aguardando_resposta',
             email_resend_id: emailEnviado.id,
             email_status: 'enviado',
           }).eq('id', vinculo.id)
           algumEmailEnviado = true
+        } else {
+          console.error(`[reenviar-link-demanda] Falha ao enviar e-mail para ${ent.email} (demanda ${demanda_id}):`, erroEmail)
         }
       }
       // BUG CORRIGIDO: faltavam os mesmos guardas que /api/autoridade/responder

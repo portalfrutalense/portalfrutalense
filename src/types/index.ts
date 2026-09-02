@@ -23,7 +23,13 @@ export interface Demanda {
   morador_cpf?: string
   categoria_id: string
   categoria?: CategoriaMapa
-  entidade_id: string
+  /** BUG CORRIGIDO (B03-4): tipado como obrigatório, mas é coluna legada
+   * anterior a `demanda_entidades` (permite NULL no banco — ver
+   * `sql/migration-demandas.sql`). Hoje `/api/demandas` sempre preenche com
+   * a primeira autoridade escolhida, então nunca é nulo na prática, mas o
+   * tipo não deveria prometer isso ao compilador. Sem consumidores reais
+   * (busca confirmou: nenhum lugar do app lê `Demanda.entidade_id`). */
+  entidade_id: string | null
   entidade?: Entidade
   descricao: string
   lat: number
@@ -175,4 +181,25 @@ export interface Emprego {
   protocolo?: string
   created_at: string
   updated_at: string
+}
+
+/* -------------------------------------------------------------- perfil --- */
+
+// BUG CORRIGIDO (B03-5): não existia um tipo `Perfil` central — era
+// redefinido à mão em `AuthProvider.tsx` e de novo (com campos a mais, pra
+// listagem administrativa) como `PerfilLinha` em `master/page.tsx`. Centraliza
+// aqui a forma "de sessão" (a que `AuthProvider` expõe pro resto do app via
+// contexto); `master/page.tsx` continua com seu próprio `PerfilLinha` (a
+// listagem do painel precisa de campos extras — `cargo`, `_legado` — e trata
+// `role` como texto solto pra também caber autoridades legadas sem role
+// definido), mas agora derivado deste em vez de redigitado do zero.
+export interface Perfil {
+  id: string
+  nome: string
+  cpf: string
+  email?: string
+  role?: Role
+  bloqueado?: boolean
+  whatsapp?: string
+  data_nascimento?: string
 }

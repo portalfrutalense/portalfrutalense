@@ -7,7 +7,7 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-// POST /api/master/moderar-demanda  { demanda_id, acao: 'aprovar' | 'rejeitar' | 'ocultar' | 'reexibir', motivo? }
+// POST /api/master/moderar-demanda  { demanda_id, acao: 'aprovar' | 'rejeitar' | 'ocultar' | 'reexibir' | 'reaprovar', motivo? }
 export async function POST(req: NextRequest) {
   const user = await getMasterUser(req)
   if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
@@ -64,6 +64,17 @@ export async function POST(req: NextRequest) {
 
       if (!demanda) return NextResponse.json({ error: 'Demanda não encontrada.' }, { status: 404 })
 
+      // BUG CORRIGIDO (B22-11): nada impedia chamar "aprovar" numa demanda
+      // que já não está mais 'pendente' — o painel só mostra o botão nesse
+      // status (mesma tela em que 'reaprovar' já existe pra 'denunciada'),
+      // mas a rota em si aceitava qualquer status. Aprovar uma demanda
+      // 'resolvida'/'respondida' por uma chamada direta à API a regredia
+      // pra 'aguardando_resposta' e reenviava e-mail de nova demanda pra
+      // autoridade, como se fosse a primeira vez.
+      if (demanda.status !== 'pendente') {
+        return NextResponse.json({ error: 'Só é possível aprovar demandas pendentes.' }, { status: 400 })
+      }
+
       const expiracao = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 dias
       const motivoAprovacao = motivo?.trim() || 'Aprovada manualmente pelo administrador.'
 
@@ -72,20 +83,25 @@ export async function POST(req: NextRequest) {
         .select('id, entidade_id, entidade:entidades(nome, cargo, email)')
         .eq('demanda_id', demanda_id)
 
+      // BUG CORRIGIDO: `link_enviado: true` era gravado aqui, incondicionalmente,
+      // ANTES do loop de envio rodar — mesmo que todos os e-mails falhassem, o
+      // campo já mentia que tinha sido enviado. Hoje nada no projeto lê esse
+      // campo (busca confirmou: é write-only), mas o dado errado no banco é
+      // ruim por si só. Move pra depois do loop, e só marca `true` se pelo
+      // menos um e-mail realmente saiu.
       await supabaseServer.from('demandas').update({
         status: 'aguardando_resposta',
         ia_decisao: 'aprovada',
         ia_motivo: motivoAprovacao,
         ia_analisado_em: new Date().toISOString(),
-        link_enviado: true,
       }).eq('id', demanda_id)
 
+      let algumEmailEnviado = false
       for (const vinculo of (vinculos || [])) {
         const token = gerarToken()
         await supabaseServer.from('demanda_entidades').update({
           magic_token: token,
           magic_token_expira_em: expiracao,
-          link_enviado: true,
           status: 'aguardando_resposta',
         }).eq('id', vinculo.id)
 
@@ -128,7 +144,9 @@ export async function POST(req: NextRequest) {
             await supabaseServer.from('demanda_entidades').update({
               email_resend_id: emailEnviado.id,
               email_status: 'enviado',
+              link_enviado: true,
             }).eq('id', vinculo.id)
+            algumEmailEnviado = true
           } else {
             console.error(`[moderar-demanda] Falha ao enviar e-mail para ${ent.email} (demanda ${demanda_id}):`, erroEmail)
             await supabaseServer.from('demanda_entidades').update({
@@ -136,6 +154,10 @@ export async function POST(req: NextRequest) {
             }).eq('id', vinculo.id)
           }
         }
+      }
+
+      if (algumEmailEnviado) {
+        await supabaseServer.from('demandas').update({ link_enviado: true }).eq('id', demanda_id)
       }
 
       return NextResponse.json({ ok: true })

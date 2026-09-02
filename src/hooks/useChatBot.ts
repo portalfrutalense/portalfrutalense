@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '@/components/AuthProvider'
+import { comprimirFoto } from '@/lib/comprimirFoto'
 
 export interface Mensagem {
   role: 'user' | 'assistant'
@@ -46,26 +47,6 @@ export function extrairAcao(texto: string): Record<string, unknown> | null {
 // O Google às vezes manda o nome todo em minúsculo — garante a primeira letra maiúscula
 export function capitalizar(nome: string) {
   return nome ? nome.charAt(0).toUpperCase() + nome.slice(1) : nome
-}
-
-export async function comprimirFoto(file: File): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      const MAX = 600
-      const ratio = Math.min(MAX / img.width, MAX / img.height, 1)
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.round(img.width * ratio)
-      canvas.height = Math.round(img.height * ratio)
-      const ctx = canvas.getContext('2d')!
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-      URL.revokeObjectURL(url)
-      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Falha')), 'image/jpeg', 0.25)
-    }
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Inválida')) }
-    img.src = url
-  })
 }
 
 export function useChatBot() {

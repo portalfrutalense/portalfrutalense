@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
 import { createClient } from '@/lib/supabase-browser'
-import type { Demanda } from '@/types'
+import type { Demanda, Pet, Classificado, Emprego } from '@/types'
 
 const statusLabel: Record<string, string> = {
   pendente: 'Pendente',
@@ -34,7 +34,18 @@ export default function PerfilPage() {
   const [demandas, setDemandas] = useState<Demanda[]>([])
   const [carregandoDemandas, setCarregandoDemandas] = useState(true)
   const [abaAtiva, setAbaAtiva] = useState<'atividades' | 'conta'>('atividades')
-  const [subModulo, setSubModulo] = useState<'demandas' | null>(null)
+  // BUG CORRIGIDO (B15-5): "Minhas atividades" só tinha o módulo Demandas —
+  // quem registra pet, classificado ou vaga não tinha nenhuma tela própria
+  // de gestão, só conseguia editar/excluir achando o próprio pin no mapa.
+  // Adicionados os 3 módulos que faltavam, reaproveitando as mesmas rotas
+  // e updates que o mapa (MapaDemandas.tsx) já usa pro dono de um registro.
+  const [subModulo, setSubModulo] = useState<'demandas' | 'pets' | 'classificados' | 'empregos' | null>(null)
+  const [pets, setPets] = useState<Pet[]>([])
+  const [carregandoPets, setCarregandoPets] = useState(true)
+  const [classificados, setClassificados] = useState<Classificado[]>([])
+  const [carregandoClassificados, setCarregandoClassificados] = useState(true)
+  const [empregos, setEmpregos] = useState<Emprego[]>([])
+  const [carregandoEmpregos, setCarregandoEmpregos] = useState(true)
 
   useEffect(() => {
     if (!carregando && !user) router.replace('/')
@@ -60,6 +71,85 @@ export default function PerfilPage() {
   // mudam — mesmo padrão já usado no resto do arquivo (ex: master/page.tsx).
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, ehAutoridade])
+
+  useEffect(() => {
+    if (!user || ehAutoridade) return
+    Promise.resolve().then(() => setCarregandoPets(true))
+    supabase.from('pets').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+      .then(({ data }) => { setPets((data || []) as Pet[]); setCarregandoPets(false) })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, ehAutoridade])
+
+  useEffect(() => {
+    if (!user || ehAutoridade) return
+    Promise.resolve().then(() => setCarregandoClassificados(true))
+    supabase.from('classificados').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+      .then(({ data }) => { setClassificados((data || []) as Classificado[]); setCarregandoClassificados(false) })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, ehAutoridade])
+
+  useEffect(() => {
+    if (!user || ehAutoridade) return
+    Promise.resolve().then(() => setCarregandoEmpregos(true))
+    supabase.from('empregos').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+      .then(({ data }) => { setEmpregos((data || []) as Emprego[]); setCarregandoEmpregos(false) })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, ehAutoridade])
+
+  // Passa pelo backend (service_role) em vez de apagar a linha direto do
+  // client — mesma rota que MapaDemandas.tsx já usa pro dono de um registro:
+  // só assim dá pra limpar a foto/fotos correspondentes do Storage antes de
+  // excluir a linha.
+  async function excluirViaApi(camada: 'pets' | 'classificados' | 'empregos', id: string) {
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/camadas/excluir', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ camada, id }),
+    })
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}))
+      alert(d.error || 'Não foi possível excluir. Tente novamente.')
+      return false
+    }
+    return true
+  }
+
+  async function excluirPet(id: string) {
+    if (!confirm('Excluir este registro? Essa ação não pode ser desfeita.')) return
+    if (!await excluirViaApi('pets', id)) return
+    setPets(prev => prev.filter(p => p.id !== id))
+  }
+
+  async function marcarPetReencontrado(id: string) {
+    const { error } = await supabase.from('pets').update({ reencontrado: true, reencontrado_em: new Date().toISOString() }).eq('id', id)
+    if (error) { alert('Não foi possível marcar como reencontrado. Tente novamente.'); return }
+    setPets(prev => prev.map(p => p.id === id ? { ...p, reencontrado: true } : p))
+  }
+
+  async function excluirClassificado(id: string) {
+    if (!confirm('Excluir este anúncio? Essa ação não pode ser desfeita.')) return
+    if (!await excluirViaApi('classificados', id)) return
+    setClassificados(prev => prev.filter(c => c.id !== id))
+  }
+
+  async function marcarClassificadoVendido(id: string) {
+    const { error } = await supabase.from('classificados').update({ vendido: true }).eq('id', id)
+    if (error) { alert('Não foi possível marcar como vendido. Tente novamente.'); return }
+    setClassificados(prev => prev.map(c => c.id === id ? { ...c, vendido: true } : c))
+  }
+
+  async function excluirEmprego(id: string) {
+    if (!confirm('Excluir esta vaga? Essa ação não pode ser desfeita.')) return
+    if (!await excluirViaApi('empregos', id)) return
+    setEmpregos(prev => prev.filter(e => e.id !== id))
+  }
+
+  async function encerrarEmprego(id: string) {
+    const { error } = await supabase.from('empregos').update({ encerrada: true }).eq('id', id)
+    if (error) { alert('Não foi possível encerrar a vaga. Tente novamente.'); return }
+    setEmpregos(prev => prev.map(e => e.id === id ? { ...e, encerrada: true } : e))
+  }
 
   async function marcarResolvida(id: string) {
     if (!confirm('Marcar esta demanda como resolvida?')) return
@@ -157,6 +247,9 @@ export default function PerfilPage() {
                 <span style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>Demandas</span>
                 <span style={{ fontSize: '11px', color: '#6b7280' }}>{demandas.length} registro{demandas.length !== 1 ? 's' : ''}</span>
               </button>
+              <CardModulo rotulo="Pets" contagem={pets.length} onClick={() => setSubModulo('pets')} />
+              <CardModulo rotulo="Classificados" contagem={classificados.length} onClick={() => setSubModulo('classificados')} />
+              <CardModulo rotulo="Empregos" contagem={empregos.length} onClick={() => setSubModulo('empregos')} />
             </div>
           )}
 
@@ -201,7 +294,7 @@ export default function PerfilPage() {
                   {/* Endereço */}
                   {d.endereco_label && (
                     <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
-                      📍 {d.endereco_label}
+                      {d.endereco_label}
                     </p>
                   )}
 
@@ -252,6 +345,139 @@ export default function PerfilPage() {
               ))}
             </div>
           )}
+            </div>
+          )}
+
+          {subModulo === 'pets' && (
+            <div>
+              <button onClick={() => setSubModulo(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#4256c8', padding: '0 0 16px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                ← Voltar
+              </button>
+              {carregandoPets ? (
+                <p style={{ fontSize: '14px', color: '#6b7280', textAlign: 'center', padding: '32px 0' }}>Carregando...</p>
+              ) : pets.length === 0 ? (
+                <p style={{ fontSize: '14px', color: '#6b7280', textAlign: 'center', padding: '32px 0' }}>Você ainda não registrou nenhum pet.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {pets.map(p => (
+                    <div key={p.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 500 }}>
+                          {{ perdido: 'Perdido', achado: 'Achado', adocao: 'Adoção' }[p.tipo]} · {p.especie === 'cachorro' ? 'Cachorro' : 'Gato'}
+                        </span>
+                        <span style={{ fontSize: '11px', fontWeight: 600, borderRadius: '20px', padding: '3px 10px', background: '#f9fafb', color: p.reencontrado ? '#166534' : '#6b7280' }}>
+                          {p.reencontrado ? 'Reencontrado' : 'Ativo'}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.5 }}>{p.nome_pet ? `${p.nome_pet} — ` : ''}{p.descricao}</p>
+                      {p.endereco_label && <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{p.endereco_label}</p>}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                        <span style={{ fontSize: '11px', color: '#6b7280' }}>{new Date(p.created_at).toLocaleDateString('pt-BR')}</span>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          {p.tipo === 'perdido' && !p.reencontrado && (
+                            <button onClick={() => marcarPetReencontrado(p.id)}
+                              style={{ fontSize: '11px', color: '#166534', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontWeight: 500 }}>
+                              Marcar reencontrado
+                            </button>
+                          )}
+                          <button onClick={() => excluirPet(p.id)}
+                            style={{ fontSize: '11px', color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontWeight: 500 }}>
+                            Excluir
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {subModulo === 'classificados' && (
+            <div>
+              <button onClick={() => setSubModulo(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#4256c8', padding: '0 0 16px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                ← Voltar
+              </button>
+              {carregandoClassificados ? (
+                <p style={{ fontSize: '14px', color: '#6b7280', textAlign: 'center', padding: '32px 0' }}>Carregando...</p>
+              ) : classificados.length === 0 ? (
+                <p style={{ fontSize: '14px', color: '#6b7280', textAlign: 'center', padding: '32px 0' }}>Você ainda não publicou nenhum anúncio.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {classificados.map(c => (
+                    <div key={c.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 500 }}>{c.marca ? `${c.marca} ${c.modelo || ''}`.trim() : c.titulo}</span>
+                        <span style={{ fontSize: '11px', fontWeight: 600, borderRadius: '20px', padding: '3px 10px', background: '#f9fafb', color: c.vendido ? '#166534' : '#6b7280' }}>
+                          {c.vendido ? 'Vendido' : 'Ativo'}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.5 }}>{c.titulo}</p>
+                      {c.bairro_label && <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{c.bairro_label}</p>}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                        <span style={{ fontSize: '11px', color: '#6b7280' }}>{new Date(c.created_at).toLocaleDateString('pt-BR')}</span>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          {!c.vendido && (
+                            <button onClick={() => marcarClassificadoVendido(c.id)}
+                              style={{ fontSize: '11px', color: '#166534', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontWeight: 500 }}>
+                              Marcar vendido
+                            </button>
+                          )}
+                          <button onClick={() => excluirClassificado(c.id)}
+                            style={{ fontSize: '11px', color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontWeight: 500 }}>
+                            Excluir
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {subModulo === 'empregos' && (
+            <div>
+              <button onClick={() => setSubModulo(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#4256c8', padding: '0 0 16px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                ← Voltar
+              </button>
+              {carregandoEmpregos ? (
+                <p style={{ fontSize: '14px', color: '#6b7280', textAlign: 'center', padding: '32px 0' }}>Carregando...</p>
+              ) : empregos.length === 0 ? (
+                <p style={{ fontSize: '14px', color: '#6b7280', textAlign: 'center', padding: '32px 0' }}>Você ainda não publicou nenhuma vaga.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {empregos.map(e => (
+                    <div key={e.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 500 }}>{e.cargo}</span>
+                        <span style={{ fontSize: '11px', fontWeight: 600, borderRadius: '20px', padding: '3px 10px', background: '#f9fafb', color: e.encerrada ? '#6b7280' : '#166534' }}>
+                          {e.encerrada ? 'Encerrada' : 'Ativa'}
+                        </span>
+                      </div>
+                      {e.endereco_label && <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{e.endereco_label}</p>}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                        <span style={{ fontSize: '11px', color: '#6b7280' }}>{new Date(e.created_at).toLocaleDateString('pt-BR')}</span>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          {!e.encerrada && (
+                            <button onClick={() => encerrarEmprego(e.id)}
+                              style={{ fontSize: '11px', color: '#92400e', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontWeight: 500 }}>
+                              Encerrar vaga
+                            </button>
+                          )}
+                          <button onClick={() => excluirEmprego(e.id)}
+                            style={{ fontSize: '11px', color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontWeight: 500 }}>
+                            Excluir
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -368,8 +594,12 @@ function AtividadesAutoridade() {
   }
 
   async function denunciar(demandaId: string) {
-    const motivo = prompt('O que há de errado com essa demanda? (opcional)') || ''
+    // BUG CORRIGIDO (B15-8): o prompt() do motivo vinha ANTES do confirm()
+    // — cancelar a confirmação jogava fora o texto que o usuário acabou de
+    // digitar, mesmo tendo respondido a pergunta errada primeiro. Inverte
+    // a ordem: confirma a ação, só então pergunta o motivo.
     if (!confirm('Denunciar esta demanda? Ela vai sumir do mapa público e ficar em análise com o administrador.')) return
+    const motivo = prompt('O que há de errado com essa demanda? (opcional)') || ''
     const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch('/api/autoridade/denunciar', {
       method: 'POST',
@@ -404,7 +634,7 @@ function AtividadesAutoridade() {
             </div>
 
             <p style={{ fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.5 }}>{d.descricao}</p>
-            {d.endereco_label && <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>📍 {d.endereco_label}</p>}
+            {d.endereco_label && <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{d.endereco_label}</p>}
             <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>Registrada por: {d.morador_nome}</p>
 
             {jaRespondeu ? (
@@ -450,6 +680,27 @@ function AtividadesAutoridade() {
         )
       })}
     </div>
+  )
+}
+
+function CardModulo({ rotulo, contagem, onClick }: { rotulo: string; contagem: number; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        width: 'clamp(140px, 40vw, 180px)', minHeight: '80px', height: 'auto', background: 'white',
+        border: '1px solid #e5e7eb', borderRadius: '10px',
+        cursor: 'pointer', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '16px', gap: '4px', boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+        transition: 'box-shadow 0.15s',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)')}
+      onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.05)')}
+    >
+      <span style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>{rotulo}</span>
+      <span style={{ fontSize: '11px', color: '#6b7280' }}>{contagem} registro{contagem !== 1 ? 's' : ''}</span>
+    </button>
   )
 }
 

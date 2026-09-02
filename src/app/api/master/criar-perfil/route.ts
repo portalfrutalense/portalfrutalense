@@ -55,11 +55,24 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Atribuir categorias
+    //
+    // BUG CORRIGIDO (B16-8): uma falha aqui era só logada no servidor — a
+    // conta ficava criada normalmente, mas sem NENHUMA categoria vinculada
+    // e, na prática, nunca recebe demanda alguma, sem o master perceber
+    // (a conta parece ter dado certo). Não vale desfazer a conta inteira
+    // por causa disso (ela já é válida, só falta o vínculo) — devolve um
+    // aviso, mesmo padrão já usado em /api/master/perfis (DELETE) pra
+    // avisos que não são erro fatal.
+    let avisoCategorias: string | undefined
     if (Array.isArray(categorias) && categorias.length > 0) {
       const rows = categorias.map((catId: string) => ({ categoria_id: catId, entidade_id: userId }))
       const { error: catError } = await supabaseServer.from('categoria_entidades').insert(rows)
-      if (catError) console.error('[master/criar-perfil] falha ao salvar categorias:', catError)
+      if (catError) {
+        console.error('[master/criar-perfil] falha ao salvar categorias:', catError)
+        avisoCategorias = 'A conta foi criada, mas não foi possível salvar as categorias vinculadas — edite o perfil pra tentar de novo, senão essa autoridade não vai receber nenhuma demanda.'
+      }
     }
+    return NextResponse.json({ ok: true, id: userId, aviso: avisoCategorias })
   }
 
   return NextResponse.json({ ok: true, id: userId })

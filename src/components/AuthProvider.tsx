@@ -3,18 +3,9 @@
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import type { User } from '@supabase/supabase-js'
-import type { Role } from '@/types'
-
-interface Perfil {
-  id: string
-  nome: string
-  cpf: string
-  email?: string
-  role?: Role
-  bloqueado?: boolean
-  whatsapp?: string
-  data_nascimento?: string
-}
+// BUG CORRIGIDO (B03-5): tipo `Perfil` centralizado em `@/types` — era
+// redefinido à mão aqui e de novo (como `PerfilLinha`) em master/page.tsx.
+import type { Perfil } from '@/types'
 
 interface AuthContextType {
   user: User | null
@@ -53,12 +44,24 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   // (userId diferente) continua recarregando normalmente.
   const ultimoUserIdCarregado = useRef<string | null>(null)
 
+  // BUG CORRIGIDO (B05-11): sem try/catch, uma falha que lançasse exceção
+  // de verdade (não só `{error}` no retorno — ex: um blip de rede) deixava
+  // `setCarregando(false)` sem rodar, e `carregando` ficava `true` pra
+  // sempre. Com isso, `precisaCPF`/`bloqueado` (que dependem de `!carregando`
+  // pra valer) ficavam presos em `false` — modal de CPF nunca aparecia,
+  // bloqueio nunca era aplicado, mesmo pra uma conta que devesse ser barrada.
   async function carregarPerfil(userId: string) {
     if (ultimoUserIdCarregado.current === userId) return
     ultimoUserIdCarregado.current = userId
-    const { data } = await supabase.from('perfis').select('*').eq('id', userId).single()
-    setPerfil(data || null)
-    setCarregando(false)
+    try {
+      const { data } = await supabase.from('perfis').select('*').eq('id', userId).single()
+      setPerfil(data || null)
+    } catch (e) {
+      console.error('[AuthProvider] falha ao carregar perfil:', e)
+      setPerfil(null)
+    } finally {
+      setCarregando(false)
+    }
   }
 
   useEffect(() => {

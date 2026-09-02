@@ -9,6 +9,7 @@ import { Pet, TipoPet, EspeciePet, PortePet } from '@/types'
 import { salvarCamada } from './salvarCamada'
 import { rotuloEspecie, rotuloPorte } from './CamadaPets'
 import { mascaraTelefone, telefoneValido } from '@/lib/mascaraTelefone'
+import { comprimirFoto } from '@/lib/comprimirFoto'
 
 /* ------------------------------------------------------------ helpers --- */
 
@@ -19,26 +20,6 @@ function isoParaDatetimeLocal(iso: string): string {
   if (Number.isNaN(d.getTime())) return ''
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-async function comprimirFoto(file: File): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      const MAX = 600
-      const ratio = Math.min(MAX / img.width, MAX / img.height, 1)
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.round(img.width * ratio)
-      canvas.height = Math.round(img.height * ratio)
-      const ctx = canvas.getContext('2d')!
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-      URL.revokeObjectURL(url)
-      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Falha')), 'image/jpeg', 0.25)
-    }
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Inválida')) }
-    img.src = url
-  })
 }
 
 const rotuloCampo: React.CSSProperties = { display: 'block', fontSize: '12px', fontWeight: 500, color: '#6b7280', marginBottom: '4px' }

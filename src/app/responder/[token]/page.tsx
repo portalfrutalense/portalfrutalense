@@ -123,14 +123,14 @@ export default function PageResponder() {
           </p>
           {dados?.endereco_label && (
             <p style={{ fontSize: '12px', color: '#6b7280', margin: '10px 0 0', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              📍 {dados.endereco_label}
+              {dados.endereco_label}
             </p>
           )}
           {dados?.foto_url && (
             <p style={{ margin: '10px 0 0' }}>
               <a href={dados.foto_url} target="_blank" rel="noopener noreferrer"
                 style={{ fontSize: '13px', color: '#4256c8', fontWeight: 600, textDecoration: 'none' }}>
-                🖼️ Ver foto da demanda →
+                Ver foto da demanda →
               </a>
             </p>
           )}

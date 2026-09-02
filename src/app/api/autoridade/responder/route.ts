@@ -12,7 +12,11 @@ export async function POST(req: NextRequest) {
 
   try {
     const { vinculo_id, resposta } = await req.json()
-    if (!vinculo_id || !resposta || resposta.trim().length < 10) {
+    // BUG CORRIGIDO (B16-6): só havia mínimo (10 caracteres) — nada impedia
+    // um POST de vários MB de texto em "resposta". Mesmo teto aplicado em
+    // /api/responder (5.000 caracteres, bem acima de qualquer resposta
+    // legítima de autoridade).
+    if (!vinculo_id || !resposta || resposta.trim().length < 10 || resposta.trim().length > 5000) {
       return NextResponse.json({ error: 'Dados inválidos.' }, { status: 400 })
     }
 

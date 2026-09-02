@@ -24,10 +24,19 @@ export async function POST(req: NextRequest) {
   const base = process.env.SITE_URL || 'http://localhost:3000'
   const chaveInterna = process.env.INTERNAL_SECRET || ''
 
+  // BUG CORRIGIDO (B22-12): sem limite de lote, um acúmulo grande de
+  // pendentes (ex: Gemini fora do ar por horas) disparava uma chamada em
+  // paralelo pra cada um, todas aguardadas (`await Promise.all(disparos)`)
+  // antes de responder — arriscando estourar `maxDuration = 60` e derrubar
+  // a requisição inteira no meio, sem o master saber quantas realmente
+  // saíram. Limita cada categoria a um lote por clique; se sobrar mais que
+  // isso, é só clicar de novo (idempotente — o filtro é sempre "pendente há
+  // mais de 10 minutos").
+  const LOTE = 20
   const [{ data: demandas }, { data: pets }, { data: classificados }] = await Promise.all([
-    supabaseServer.from('demandas').select('id').eq('status', 'pendente').lt('created_at', limite),
-    supabaseServer.from('pets').select('id').eq('ia_decisao', 'pendente').lt('created_at', limite),
-    supabaseServer.from('classificados').select('id').eq('ia_decisao', 'pendente').lt('created_at', limite),
+    supabaseServer.from('demandas').select('id').eq('status', 'pendente').lt('created_at', limite).limit(LOTE),
+    supabaseServer.from('pets').select('id').eq('ia_decisao', 'pendente').lt('created_at', limite).limit(LOTE),
+    supabaseServer.from('classificados').select('id').eq('ia_decisao', 'pendente').lt('created_at', limite).limit(LOTE),
   ])
 
   const disparos: Promise<unknown>[] = []

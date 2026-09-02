@@ -186,11 +186,16 @@ export default function ModalCPF() {
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
         <div style={{ background: 'white', borderRadius: '12px', width: '100%', maxWidth: '380px', padding: '32px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
-          <p style={{ fontSize: '32px', margin: 0 }}>✅</p>
           <p style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>Cadastro concluído!</p>
           <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>Volte para o WhatsApp e continue de onde parou.</p>
+          {/* BUG CORRIGIDO (B05-8): número da prefeitura estava fixo no
+              código — trocar o número exigia alterar o código-fonte. Lido
+              de NEXT_PUBLIC_WHATSAPP_PREFEITURA (variável de ambiente
+              pública, expostas ao cliente pelo Next.js pelo prefixo
+              NEXT_PUBLIC_), com o valor atual como fallback, pra não
+              quebrar enquanto a variável não for configurada na Vercel. */}
           <a
-            href="https://wa.me/5534992115756?text=Pronto%2C+j%C3%A1+fiz+o+login"
+            href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_PREFEITURA || '5534992115756'}?text=Pronto%2C+j%C3%A1+fiz+o+login`}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => { if (perfilPendente) setPerfil(perfilPendente) }}

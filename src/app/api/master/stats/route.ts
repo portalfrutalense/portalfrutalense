@@ -2,22 +2,36 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getMasterUser } from '@/lib/auth-api'
 import { supabaseServer } from '@/lib/supabase-server'
 
+// BUG CORRIGIDO (B22-15): `select(...)` sem paginação para no limite padrão
+// do PostgREST (1.000 linhas) — com mais de mil demandas/pets/classificados/
+// empregos no banco, os cartões do dashboard passavam a subcontar tudo em
+// silêncio, sem erro nenhum. Busca em páginas de 1.000 até esgotar.
+async function buscarTudo<T>(tabela: string, colunas: string): Promise<T[]> {
+  const linhas: T[] = []
+  const TAMANHO_PAGINA = 1000
+  for (let inicio = 0; ; inicio += TAMANHO_PAGINA) {
+    const { data, error } = await supabaseServer
+      .from(tabela)
+      .select(colunas)
+      .range(inicio, inicio + TAMANHO_PAGINA - 1)
+    if (error) { console.error(`[master/stats] falha ao paginar ${tabela}:`, error); break }
+    linhas.push(...((data || []) as T[]))
+    if (!data || data.length < TAMANHO_PAGINA) break
+  }
+  return linhas
+}
+
 // GET /api/master/stats — contagens reais ignorando RLS
 export async function GET(req: NextRequest) {
   const user = await getMasterUser(req)
   if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
-  const [demandas, pets, classificados, empregos] = await Promise.all([
-    supabaseServer.from('demandas').select('status, oculto'),
-    supabaseServer.from('pets').select('tipo, reencontrado, oculto, ia_decisao'),
-    supabaseServer.from('classificados').select('tipo_veiculo, vendido, oculto, ia_decisao'),
-    supabaseServer.from('empregos').select('encerrada, oculto'),
+  const [d, p, c, e] = await Promise.all([
+    buscarTudo<{ status: string; oculto: boolean }>('demandas', 'status, oculto'),
+    buscarTudo<{ tipo: string; reencontrado: boolean; oculto: boolean; ia_decisao: string | null }>('pets', 'tipo, reencontrado, oculto, ia_decisao'),
+    buscarTudo<{ tipo_veiculo: string; vendido: boolean; oculto: boolean; ia_decisao: string | null }>('classificados', 'tipo_veiculo, vendido, oculto, ia_decisao'),
+    buscarTudo<{ encerrada: boolean; oculto: boolean }>('empregos', 'encerrada, oculto'),
   ])
-
-  const d = demandas.data || []
-  const p = pets.data || []
-  const c = classificados.data || []
-  const e = empregos.data || []
 
   // BUG CORRIGIDO: mesma causa raiz de MasterMapaCamadas.tsx — o gatilho de
   // banco grava `ia_decisao = NULL` quando o insert não vem do service_role,

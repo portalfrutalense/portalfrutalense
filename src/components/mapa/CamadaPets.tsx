@@ -126,6 +126,20 @@ export function usePets() {
     })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // BUG CORRIGIDO (B10-4): `expira_em` só era conferido no momento da
+  // consulta ao banco — numa aba deixada aberta por horas, um pet que
+  // expirasse nesse meio tempo continuava no mapa até um recarregamento
+  // (F5) ou uma ação que chamasse `recarregar()`. Reconfere a cada minuto,
+  // no cliente, sem bater no banco de novo — só remove do estado local o
+  // que já expirou.
+  useEffect(() => {
+    const intervalo = setInterval(() => {
+      const agora = new Date().toISOString()
+      setPets(prev => prev.filter(p => p.expira_em > agora))
+    }, 60_000)
+    return () => clearInterval(intervalo)
+  }, [])
+
   return { pets, cores, icones, recarregar }
 }
 
@@ -453,22 +467,31 @@ export function SidebarPets({
             </div>
           </div>
 
-          {meu && (
+          {/* BUG CORRIGIDO (B10-3, decisão confirmada com o usuário): o
+              bloco inteiro de ações (inclusive "Editar") ficava atrás de
+              `meu` — o master só conseguia editar os PRÓPRIOS pets, sem
+              nenhum caminho (nem no mapa, nem no painel) pra corrigir o
+              conteúdo de um pet de outro usuário. "Editar" agora aparece
+              pro master em qualquer pet; "Excluir"/"Marcar reencontrado"
+              continuam só pro dono (mesma rota exige `user_id === user.id`
+              — exclusão/moderação de terceiros já tem seu próprio caminho
+              no painel master). */}
+          {(meu || ehMaster) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {/* BUG CORRIGIDO: aparecia também pra 'adocao', mas o banco só
                   permite reencontrado=true quando tipo='perdido'
                   (CHECK pets_reencontrado_so_perdido) — pro dono de um pet em
                   adoção, o botão clicava e nada acontecia, pra sempre, sem
                   nenhuma mensagem. */}
-              {selecionado.tipo === 'perdido' && !selecionado.reencontrado && (
+              {meu && selecionado.tipo === 'perdido' && !selecionado.reencontrado && (
                 <button onClick={() => onMarcarReencontrado(selecionado)}
                   style={{ ...botaoAcao, color: '#166534', fontWeight: 600 }}>
                   Marcar como reencontrado
                 </button>
               )}
-              <div style={{ display: 'grid', gridTemplateColumns: ehMaster ? '1fr 1fr' : '1fr', gap: '6px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: ehMaster && meu ? '1fr 1fr' : '1fr', gap: '6px' }}>
                 {ehMaster && <button onClick={() => onEditar(selecionado)} style={{ ...botaoAcao, color: '#4256c8' }}>Editar</button>}
-                <button onClick={() => onExcluir(selecionado)} style={{ ...botaoAcao, color: '#dc2626' }}>Excluir</button>
+                {meu && <button onClick={() => onExcluir(selecionado)} style={{ ...botaoAcao, color: '#dc2626' }}>Excluir</button>}
               </div>
             </div>
           )}

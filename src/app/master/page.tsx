@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '@/components/AuthProvider'
 import MasterCamadas from '@/components/master/MasterCamadas'
 import { MasterPets, MasterClassificados, MasterEmpregos } from '@/components/master/MasterMapaCamadas'
-import { CategoriaMapa, Demanda, DemandaEntidade } from '@/types'
+import { CategoriaMapa, Demanda, DemandaEntidade, Perfil } from '@/types'
 
 type SecaoMaster = 'dashboard' | 'demandas' | 'pets' | 'classificados' | 'empregos' | 'chatbot' | 'perfis'
 type SubSecaoPerfis = 'cidadao' | 'autoridade' | 'empresa'
@@ -860,9 +860,23 @@ function MasterDemandas({ token }: { token: string | null }) {
   const sbClient = createClient()
   const [demandas, setDemandas] = useState<DemandaAdmin[]>([])
   const [carregandoDemandas, setCarregandoDemandas] = useState(true)
+  const [carregandoMais, setCarregandoMais] = useState(false)
+  const [temMais, setTemMais] = useState(false)
   const [filtro, setFiltro] = useState('todos')
   const [notif, setNotif] = useState('')
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set())
+  // Contagens por status vêm de /api/master/stats (agregado real do banco,
+  // já corrigido pra não truncar em 1.000 linhas — ver Erro B22-15), não do
+  // array `demandas` carregado na tela: com a lista agora paginada
+  // ("Carregar mais"), contar só o que já foi carregado mostraria números
+  // menores que o real e cresceria a cada página, confundindo o master.
+  const [statsDemandas, setStatsDemandas] = useState<Record<string, number> | null>(null)
+
+  useEffect(() => {
+    if (!token) return
+    fetch('/api/master/stats', { headers: { Authorization: `Bearer ${token}` } })
+      .then(async (res) => { if (res.ok) setStatsDemandas((await res.json().catch(() => null))?.demandas ?? null) })
+  }, [token])
 
   function toggleExpandida(id: string) {
     setExpandidas(prev => {
@@ -881,22 +895,52 @@ function MasterDemandas({ token }: { token: string | null }) {
   // (só troca de valor), o fallback nunca era acionado. Inverte a
   // prioridade: sessão fresca primeiro, prop só como último recurso se a
   // busca falhar.
+  const TAMANHO_PAGINA = 50
+
+  // Recarrega desde o início — usada após qualquer ação (aprovar, excluir,
+  // editar...). Busca de novo pelo menos o que já estava na tela (não só os
+  // 50 primeiros), pra uma demanda que o master tinha carregado com
+  // "Carregar mais" não sumir da lista só por causa do refresh.
   async function carregarDemandas() {
     const t = (await sbClient.auth.getSession()).data.session?.access_token ?? token
     if (!t || t === 'undefined' || t === 'null') return
     setCarregandoDemandas(true)
-    const res = await fetch('/api/master/demanda', {
+    const limite = Math.max(TAMANHO_PAGINA, demandas.length)
+    const res = await fetch(`/api/master/demanda?offset=0&limit=${limite}`, {
       headers: { 'Authorization': `Bearer ${t}` },
     })
-    if (res.ok) setDemandas(await res.json().catch(() => []))
+    if (res.ok) {
+      const d = await res.json().catch(() => ({ data: [], hasMore: false }))
+      setDemandas(d.data || [])
+      setTemMais(!!d.hasMore)
+    }
     setCarregandoDemandas(false)
+  }
+
+  async function carregarMais() {
+    const t = (await sbClient.auth.getSession()).data.session?.access_token ?? token
+    if (!t || t === 'undefined' || t === 'null') return
+    setCarregandoMais(true)
+    const res = await fetch(`/api/master/demanda?offset=${demandas.length}&limit=${TAMANHO_PAGINA}`, {
+      headers: { 'Authorization': `Bearer ${t}` },
+    })
+    if (res.ok) {
+      const d = await res.json().catch(() => ({ data: [], hasMore: false }))
+      setDemandas(prev => [...prev, ...(d.data || [])])
+      setTemMais(!!d.hasMore)
+    }
+    setCarregandoMais(false)
   }
 
   useEffect(() => {
     if (!token) return
-    fetch('/api/master/demanda', { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`/api/master/demanda?offset=0&limit=${TAMANHO_PAGINA}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(async (res) => {
-        if (res.ok) setDemandas(await res.json().catch(() => []))
+        if (res.ok) {
+          const d = await res.json().catch(() => ({ data: [], hasMore: false }))
+          setDemandas(d.data || [])
+          setTemMais(!!d.hasMore)
+        }
         setCarregandoDemandas(false)
       })
   }, [token])
@@ -1038,15 +1082,15 @@ function MasterDemandas({ token }: { token: string | null }) {
       {/* Filtro de status */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
         {([
-          { chave: 'todos',               rotulo: 'Todas',              contagem: demandas.length },
-          { chave: 'pendente',            rotulo: 'Pendente IA',        contagem: demandas.filter(d => d.status === 'pendente').length },
-          { chave: 'aguardando_resposta', rotulo: 'Aguardando resposta',contagem: demandas.filter(d => d.status === 'aguardando_resposta').length },
-          { chave: 'respondida',          rotulo: 'Respondida',         contagem: demandas.filter(d => d.status === 'respondida').length },
-          { chave: 'nao_resolvida',       rotulo: 'Não resolvida',      contagem: demandas.filter(d => d.status === 'nao_resolvida').length },
-          { chave: 'resolvida',           rotulo: 'Resolvida',          contagem: demandas.filter(d => d.status === 'resolvida').length },
-          { chave: 'rejeitada_ia',        rotulo: 'Rejeitada pela IA',  contagem: demandas.filter(d => d.status === 'rejeitada_ia').length },
-          { chave: 'denunciada',          rotulo: 'Denunciada',         contagem: demandas.filter(d => d.status === 'denunciada').length },
-          { chave: 'ocultos',             rotulo: 'Ocultos',            contagem: demandas.filter(d => d.oculto).length },
+          { chave: 'todos',               rotulo: 'Todas',              contagem: statsDemandas?.total         ?? demandas.length },
+          { chave: 'pendente',            rotulo: 'Pendente IA',        contagem: statsDemandas?.pendente      ?? demandas.filter(d => d.status === 'pendente').length },
+          { chave: 'aguardando_resposta', rotulo: 'Aguardando resposta',contagem: statsDemandas?.aguardando    ?? demandas.filter(d => d.status === 'aguardando_resposta').length },
+          { chave: 'respondida',          rotulo: 'Respondida',         contagem: statsDemandas?.respondida    ?? demandas.filter(d => d.status === 'respondida').length },
+          { chave: 'nao_resolvida',       rotulo: 'Não resolvida',      contagem: statsDemandas?.nao_resolvida ?? demandas.filter(d => d.status === 'nao_resolvida').length },
+          { chave: 'resolvida',           rotulo: 'Resolvida',          contagem: statsDemandas?.resolvida     ?? demandas.filter(d => d.status === 'resolvida').length },
+          { chave: 'rejeitada_ia',        rotulo: 'Rejeitada pela IA',  contagem: statsDemandas?.rejeitada_ia  ?? demandas.filter(d => d.status === 'rejeitada_ia').length },
+          { chave: 'denunciada',          rotulo: 'Denunciada',         contagem: statsDemandas?.denunciada    ?? demandas.filter(d => d.status === 'denunciada').length },
+          { chave: 'ocultos',             rotulo: 'Ocultos',            contagem: statsDemandas?.ocultos       ?? demandas.filter(d => d.oculto).length },
         ] as const).map(f => (
           <button
             key={f.chave}
@@ -1326,6 +1370,19 @@ function MasterDemandas({ token }: { token: string | null }) {
           </div>
         )
       })}
+
+      {!carregandoDemandas && temMais && (
+        <button
+          onClick={carregarMais}
+          disabled={carregandoMais}
+          style={{
+            background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '10px',
+            fontSize: '13px', fontWeight: 600, color: '#4256c8', cursor: carregandoMais ? 'default' : 'pointer',
+          }}
+        >
+          {carregandoMais ? 'Carregando...' : 'Carregar mais'}
+        </button>
+      )}
     </div>
   )
 }
@@ -1424,16 +1481,17 @@ const LABEL_PERFIS: Record<SubSecaoPerfis, string> = {
 
 // Mistura perfis de verdade (tabela perfis) com autoridades legadas (só em
 // entidades, sem perfil ainda) — por isso os campos opcionais e o `_legado`.
-interface PerfilLinha {
-  id: string
+// BUG CORRIGIDO (B03-5): derivado do `Perfil` central em `@/types` (em vez
+// de redefinir os mesmos campos do zero) — só sobrepõe o que a listagem do
+// painel precisa diferente: `nome`/`cpf`/`role` viram opcionais (a lista
+// inclui autoridades legadas incompletas), `role` vira texto solto (nem
+// toda linha tem um `Role` válido reconhecido), e ganha `cargo`/`_legado`,
+// específicos da administração.
+type PerfilLinha = Omit<Perfil, 'nome' | 'cpf' | 'role'> & {
   nome?: string
   cpf?: string
   role?: string
-  email?: string
-  whatsapp?: string
   cargo?: string
-  data_nascimento?: string
-  bloqueado?: boolean
   _legado?: boolean
 }
 
@@ -1618,7 +1676,12 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
     setSalvandoNovo(false)
     if (!d.ok) { mostrarNotif(d.error || 'Erro ao criar conta.'); return }
     setNovoNome(''); setNovoEmail(''); setNovaSenha(''); setNovoCargo(''); setNovasCats([]); setCriando(false)
-    mostrarNotif('Conta criada com sucesso.')
+    // BUG CORRIGIDO (B16-8): a API já avisa quando a conta foi criada mas
+    // as categorias não puderam ser salvas — antes esse aviso não existia
+    // e a tela sempre mostrava "sucesso", mesmo quando a autoridade ficava
+    // sem nenhuma categoria vinculada (e, na prática, sem nunca receber
+    // demanda alguma) sem o master perceber.
+    mostrarNotif(d.aviso || 'Conta criada com sucesso.', !!d.aviso)
     carregar()
   }
 

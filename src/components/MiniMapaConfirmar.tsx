@@ -16,8 +16,16 @@ const FRUTAL_LNG = -48.9338
 const ZOOM_CIDADE = 13
 const ZOOM_ENCONTRADO = 17
 const ZOOM_REVISAO = 19
+// BUG CORRIGIDO (B09-2): a trava era satisfeita contando EVENTOS (1 zoom-in,
+// 1 dragend), não ajuste real — dava pra zerar tudo dando um zoom pra dentro
+// e imediatamente pra fora, ou arrastando e voltando pro mesmo lugar, sem o
+// mapa ter mudado de verdade. Trocado por deslocamento NETO: exige o zoom
+// final pelo menos 1 nível acima do inicial, e o centro do mapa pelo menos
+// DISTANCIA_MIN_NECESSARIA_M metros longe de onde estava — as duas medidas
+// contra o estado no momento em que "não encontramos o endereço" apareceu,
+// não contra eventos que podem ser desfeitos.
 const ZOOM_MIN_NECESSARIO = 1
-const ARRASTE_MIN_NECESSARIO = 1
+const DISTANCIA_MIN_NECESSARIA_M = 15
 
 // Preposições que ficam em minúsculo no título
 const PREPS = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'a', 'o', 'em', 'no', 'na', 'nos', 'nas', 'ao', 'aos'])
@@ -41,6 +49,15 @@ function dentroFrutal(lat: number, lng: number): boolean {
   const dlatKm = (lat - FRUTAL_LAT) * 111.32
   const dlngKm = (lng - FRUTAL_LNG) * 111.32 * Math.cos(FRUTAL_LAT * Math.PI / 180)
   return Math.sqrt(dlatKm * dlatKm + dlngKm * dlngKm) < 15
+}
+
+// Distância em metros entre dois pontos, mesma aproximação de `dentroFrutal`
+// (compensa a longitude por cos(latitude)) — suficiente pra distâncias
+// curtas (dezenas de metros) como as tratadas aqui.
+function distanciaMetros(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const dlatKm = (lat2 - lat1) * 111.32
+  const dlngKm = (lng2 - lng1) * 111.32 * Math.cos(lat1 * Math.PI / 180)
+  return Math.sqrt(dlatKm * dlatKm + dlngKm * dlngKm) * 1000
 }
 
 interface Props {
@@ -82,7 +99,6 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
   const tileAtual = useRef<Leaflet.TileLayer | null>(null)
   const leafletObj = useRef<typeof Leaflet | null>(null)
   const resizeObserverRef = useRef<ResizeObserver | null>(null)
-  const zoomAnterior = useRef<number | null>(null)
   const zoomAntesRevisao = useRef<number | null>(null)
   const sateliteAntesRevisao = useRef(false)
 
@@ -94,8 +110,10 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
   const [obtendoGps, setObtendoGps] = useState(false)
   const [aviso, setAviso] = useState('')
   const [precisaAjustar, setPrecisaAjustar] = useState(false)
-  const [zoomsFeitos, setZoomsFeitos] = useState(0)
-  const [arrastesFeitos, setArrastesFeitos] = useState(0)
+  const [zoomAtual, setZoomAtual] = useState(0)
+  const [zoomInicial, setZoomInicial] = useState(0)
+  const [distanciaMovidaM, setDistanciaMovidaM] = useState(0)
+  const centroInicialRef = useRef<{ lat: number; lng: number } | null>(null)
   const [textoAlterado, setTextoAlterado] = useState(false)
   const [coordConfirmada, setCoordConfirmada] = useState<{ lat: number; lng: number } | null>(null)
 
@@ -130,7 +148,6 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
       tileAtual.current = tile
       mapaObj.current = mapa
       leafletObj.current = L
-      zoomAnterior.current = mapa.getZoom()
 
       // Garante que o Leaflet recalcule o tamanho após a montagem no DOM
       // Múltiplos timeouts para cobrir animações do container pai (chatbot)
@@ -146,15 +163,13 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
       }
 
       mapa.on('zoomend', () => {
-        const novoZoom = mapa!.getZoom()
-        if (zoomAnterior.current !== null && novoZoom > zoomAnterior.current) {
-          setZoomsFeitos((z) => z + 1)
-        }
-        zoomAnterior.current = novoZoom
+        setZoomAtual(mapa!.getZoom())
       })
 
       mapa.on('dragend', () => {
-        setArrastesFeitos((a) => a + 1)
+        if (!centroInicialRef.current) return
+        const c = mapa!.getCenter()
+        setDistanciaMovidaM(distanciaMetros(centroInicialRef.current.lat, centroInicialRef.current.lng, c.lat, c.lng))
       })
 
       aplicarTravamento(mapa, faseRef.current !== 'ajuste')
@@ -194,9 +209,14 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
   function marcarFalha() {
     setAviso('Não encontramos esse endereço automaticamente. Arraste e dê zoom no mapa até o local certo.')
     setPrecisaAjustar(true)
-    setZoomsFeitos(0)
-    setArrastesFeitos(0)
-    if (mapaObj.current) zoomAnterior.current = mapaObj.current.getZoom()
+    setDistanciaMovidaM(0)
+    if (mapaObj.current) {
+      const zoomAtualDoMapa = mapaObj.current.getZoom()
+      setZoomInicial(zoomAtualDoMapa)
+      setZoomAtual(zoomAtualDoMapa)
+      const c = mapaObj.current.getCenter()
+      centroInicialRef.current = { lat: c.lat, lng: c.lng }
+    }
   }
 
   function fecharAviso() {
@@ -251,7 +271,7 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
     )
   }
 
-  const bloqueadoPorAjuste = precisaAjustar && (zoomsFeitos < ZOOM_MIN_NECESSARIO || arrastesFeitos < ARRASTE_MIN_NECESSARIO)
+  const bloqueadoPorAjuste = precisaAjustar && (zoomAtual < zoomInicial + ZOOM_MIN_NECESSARIO || distanciaMovidaM < DISTANCIA_MIN_NECESSARIA_M)
   const bloqueadoPorTexto = textoAlterado
   const naoPodeSelecionar = !endereco.trim() || bloqueadoPorTexto || bloqueadoPorAjuste
 

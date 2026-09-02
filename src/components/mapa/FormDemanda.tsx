@@ -6,6 +6,7 @@ import { useAuth } from '../AuthProvider'
 import MiniMapaConfirmar from '../MiniMapaConfirmar'
 import Turnstile from '../Turnstile'
 import { CategoriaMapa, Entidade } from '@/types'
+import { comprimirFoto } from '@/lib/comprimirFoto'
 
 /* ------------------------------------------------------------ helpers --- */
 
@@ -13,26 +14,6 @@ import { CategoriaMapa, Entidade } from '@/types'
 // precisa ser carregado inteiro na memória do navegador (via Image) antes
 // do canvas reduzir — recusar cedo evita travar a aba em arquivos gigantes.
 const TAMANHO_MAX_FOTO = 20 * 1024 * 1024 // 20 MB
-
-async function comprimirFoto(file: File): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      const MAX = 600
-      const ratio = Math.min(MAX / img.width, MAX / img.height, 1)
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.round(img.width * ratio)
-      canvas.height = Math.round(img.height * ratio)
-      const ctx = canvas.getContext('2d')!
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-      URL.revokeObjectURL(url)
-      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Falha')), 'image/jpeg', 0.25)
-    }
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Inválida')) }
-    img.src = url
-  })
-}
 
 /* =========================================================== FormDemanda = */
 

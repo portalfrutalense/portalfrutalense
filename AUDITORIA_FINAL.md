@@ -1503,3 +1503,170 @@ O projeto tem **zero testes automatizados**. Auditoria repetida não impede
 regressão — teste impede. Os fluxos que mais mereceriam cobertura, pela
 quantidade de achados e pelo impacto: registrar demanda, responder por magic
 link, moderar no painel, e excluir conta.
+
+## Retomada da correção dos 51 erros pendentes (2026-09-01, sessão de cadência estrita)
+
+Correção item a item, seguindo a ordem acordada (API Master → WhatsApp →
+Autoridade → ...), com Passo A/B/C/D (análise, aplicação, validação
+`tsc`+`eslint`, checagem de regressão) por item.
+
+**API Master (12/12):**
+- B22-9 — `entidades`/`categoria_entidades` só são apagadas/desativadas
+  depois de confirmar que `auth.admin.deleteUser()` deu certo (antes,
+  ordem inversa deixava estado inconsistente se o Auth falhasse).
+- B22-10 — PATCH de perfis agora bloqueia o master editar a própria conta
+  (mesma guarda que o DELETE já tinha).
+- B22-11 — `moderar-demanda` (ação "aprovar") agora exige `status === 'pendente'`.
+- B22-12 — `reprocessar-pendentes` agora limita a 20 por categoria por chamada.
+- B22-13 — comentário do contrato da rota agora lista a ação "reaprovar".
+- B22-14 — já estava corrigido (tipos explícitos, sem `any`).
+- B22-15 — `stats` e `marcar-nao-resolvidas` agora paginam a leitura (sem
+  truncar no limite de 1.000 linhas do PostgREST). `GET /api/master/demanda`
+  ganhou paginação de verdade (`offset`/`limit`/`hasMore`) + botão "Carregar
+  mais" no painel — decisão confirmada com o usuário; contagens dos filtros
+  passaram a vir de `/api/master/stats` (agregado real) em vez do array
+  parcialmente carregado.
+
+**WhatsApp (8/8):**
+- B19-5 — foto órfã no Storage ao cancelar o fluxo agora é removida.
+- B19-6 — `.or()` com concatenação de string trocado por `.in()` (defesa
+  contra injeção de filtro).
+- B19-7 — `enviarWhatsapp`/`enviarImagemWhatsapp` agora retornam
+  `boolean` (checam `res.ok`) em vez de sempre `void`.
+- B19-8 — comentário da autorização do webhook corrigido pra apresentar o
+  header como preferencial e a query string como fallback (código já
+  priorizava o header).
+- B19-9 — já estava corrigido (erro do insert em `demanda_entidades` já é logado).
+- B19-10 — `descricao`/`endereco_label` do cidadão agora são delimitados
+  no system prompt (`comoDado()`) com instrução explícita pro modelo tratar
+  como dado, nunca como comando — mesma injeção de B17-1, mitigada aqui.
+- B19-11 — rótulo "SESSÃO #" (sugeria semente por sessão) corrigido pra
+  "VARIAÇÃO #" (reflete que é recalculado a cada mensagem).
+- B19-12 — já estava corrigido (regex já tinha a trava `FIM`).
+
+**Autoridade (8/8):**
+- B16-2 — `denunciar` agora exige que a demanda esteja em
+  `aguardando_resposta`/`respondida` antes de aceitar a denúncia.
+- B16-3 — rate limit (best-effort, por IP) adicionado em GET e POST de
+  `/api/responder`.
+- B16-4 — decisão confirmada com o usuário: `/api/responder` agora zera o
+  `magic_token` ao responder, igual ao caminho logado (troca a mensagem
+  amigável "já respondida" por "token inválido" em cliques repetidos no
+  link, aceito como trade-off).
+- B16-5 — decisão confirmada com o usuário: mantido como está (demanda
+  vira "respondida" já na primeira autoridade que responder).
+- B16-6 — teto de 5.000 caracteres em "resposta" (`/api/responder` e
+  `/api/autoridade/responder`).
+- B16-7 — verificado: `demanda_entidades.created_at` existe de fato no
+  schema real (`migration_demanda_entidades.sql`) — não era bug.
+- B16-8 — falha ao salvar categorias na criação de autoridade agora vira
+  aviso visível pro master (`{aviso}`), não só log.
+- B16-9 — emojis removidos de `responder/[token]/page.tsx`.
+
+Próximo na ordem: **Conta do cidadão** (B15-3 a B15-8).
+
+**Conta do cidadão (6/6):**
+- B15-3 — `excluir-conta` agora também limpa `empregos.logo_url` do Storage.
+- B15-4 — decisão confirmada com o usuário: `whatsapp_conversas` e
+  `chatbot_sem_resposta` agora são apagadas (não só desvinculadas) nos dois
+  caminhos de exclusão de conta (`/api/cidadao/excluir-conta` e
+  `/api/master/perfis` DELETE). `SISTEMA.md` §11 atualizado.
+- B15-5 — decisão confirmada com o usuário: construídos os módulos
+  "Pets"/"Classificados"/"Empregos" em `/perfil`, espelhando o padrão já
+  usado em "Demandas" (listar, excluir via `/api/camadas/excluir`, e as
+  mesmas ações de status que o mapa já expõe ao dono — reencontrado/
+  vendido/encerrada).
+- B15-6 — já estava corrigido (sem `any` sobrando).
+- B15-7 — emojis removidos de `perfil/page.tsx`.
+- B15-8 — `denunciar()` agora confirma antes de perguntar o motivo (ordem
+  invertida, texto digitado não se perde mais ao cancelar).
+
+Próximo na ordem: **Tipos compartilhados** (B03-1 a B03-5).
+
+**Tipos compartilhados (5/5):**
+- B03-1 — `escapeHtml` agora escapa aspa simples também (`&#39;`).
+- B03-2 — já estava corrigido (código só libera "reencontrado" pra
+  `tipo === 'perdido'`, batendo com o comentário do tipo).
+- B03-3 — decisão confirmada com o usuário: mantido proposital (vagas são
+  publicadas só por contas "empresa", criadas manualmente pelo master —
+  barreira de confiança diferente de conteúdo de cidadão comum). Sem
+  moderação de IA por enquanto.
+- B03-4 — `Demanda.entidade_id` agora tipado como `string | null` (reflete
+  a coluna real, que permite NULL); confirmado sem nenhum consumidor real
+  no app.
+- B03-5 — tipo `Perfil` centralizado em `types/index.ts`; `AuthProvider.tsx`
+  importa em vez de redefinir; `PerfilLinha` (master/page.tsx) agora deriva
+  dele via `Omit<Perfil, ...>` em vez de redigitar os mesmos campos.
+
+Próximo na ordem: **Sessão/autenticação** (B05-8 a B05-11).
+
+**Sessão/autenticação (4/4):**
+- B05-8 — número de WhatsApp da prefeitura movido pra
+  `NEXT_PUBLIC_WHATSAPP_PREFEITURA` (com fallback pro valor antigo,
+  documentado em `.env.example`).
+- B05-9 — `/redefinir-senha` agora exige o evento `PASSWORD_RECOVERY` do
+  Supabase (prova que a sessão veio de um link de recuperação), não só
+  "existe uma sessão válida" (que também vale pra quem já está logado
+  normalmente).
+- B05-10 — os 2 emojis restantes removidos (`ModalCPF.tsx`,
+  `redefinir-senha/page.tsx`), de brinde nas correções acima.
+- B05-11 — `carregarPerfil` (AuthProvider) agora tem try/catch/finally —
+  uma exceção de rede não deixa mais `carregando` preso em `true` pra
+  sempre.
+
+Próximo na ordem: **Mapa** (B10-3 a B10-5, B09-2 — menor prioridade,
+B10-3 provavelmente exige decisão de produto).
+
+**Mapa (5/5):**
+- B10-3 — decisão confirmada com o usuário: master agora vê "Editar" em
+  QUALQUER pet/classificado (não só os próprios), em `CamadaPets.tsx` e
+  `CamadaClassificados.tsx`; `PATCH /api/camadas` agora libera master
+  além do dono. "Excluir"/ações de status continuam só do dono (exclusão
+  de terceiros já tem seu caminho no painel master).
+- B10-4 — `usePets()` agora reconfere `expira_em` a cada minuto no
+  cliente (sem bater no banco de novo), removendo pets expirados do mapa
+  numa aba deixada aberta.
+- B09-2 — trava "ajuste o mapa" trocada de contagem de eventos (gameável)
+  pra deslocamento NETO: zoom final ≥ inicial+1 e centro ≥ 15m de onde
+  estava, medidos contra o estado no momento da falha, não contra eventos
+  reversíveis.
+- B10-5 — `comprimirFoto` centralizada em `src/lib/comprimirFoto.ts`
+  (parametrizada por `max`/`quality`, preservando o valor de cada
+  chamador) — eliminadas as 4 cópias (`FormPet.tsx`, `FormClassificado.tsx`,
+  `FormDemanda.tsx` — essa 4ª não estava na lista original — e
+  `useChatBot.ts`).
+
+Bloco Mapa concluído. Retomando a partir daqui: **Painel master** (B21-3,
+provavelmente parcial/arquitetural).
+
+**Painel master (B21-3) — RESOLVIDO (2026-09-02):**
+- Verificação ao vivo confirmou que as 6 tabelas escritas direto do
+  navegador (`categorias_mapa`, `ia_config`, `chatbot_config`,
+  `chatbot_base`, `chatbot_sem_resposta`, `camadas_config`) **já estão
+  protegidas** — RLS ligado nas 6, e toda policy de INSERT/UPDATE/DELETE
+  que master/page.tsx e MasterCamadas.tsx realmente exercitam exige
+  `perfis.role = 'master'`. A única exceção (`chatbot_sem_resposta` INSERT
+  liberado por `auth.uid() = user_id`) é proposital — é assim que a
+  pergunta de um cidadão sem resposta do bot entra na fila, não tem
+  relação com escrita do master. **Um cidadão comum logado NÃO consegue
+  reescrever categorias, prompt da IA, nem base de conhecimento do
+  chatbot** — o risco que o achado original temia não se confirmou.
+- Decisão confirmada com o usuário: mantido o padrão de escrita direto do
+  cliente (não vale a pena refatorar pra rotas de API agora que o RLS já
+  protege de verdade) — só limpada a duplicata cosmética encontrada de
+  passagem em `categorias_mapa` (duas policies idênticas por comando,
+  originadas de `fix_rls_seguranca_2026-08.sql` e
+  `fix_tabelas_faltantes_2026-09-01.sql`), via
+  `supabase/fix_categorias_mapa_policy_duplicada_2026-09-02.sql` (enviado
+  ao usuário).
+
+---
+
+## Retomada 2026-09-01/02 — resumo final
+
+Com este item, os **51 erros pendentes** identificados na reconciliação
+foram todos percorridos (corrigidos, já resolvidos, ou com decisão
+explícita do usuário registrada): API Master (12), WhatsApp (8), Autoridade
+(8), Conta do cidadão (6), Tipos compartilhados (5), Sessão/autenticação
+(4), Mapa (5), Painel master (1) — **49 itens fechados** nesta retomada.
+Nenhum item segue aberto.

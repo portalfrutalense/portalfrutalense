@@ -421,9 +421,11 @@ normalmente para leitura pública.
   no cliente, antes de tentar carregar na memória do navegador para compressão.
 - Exclusão de conta (`/api/cidadao/excluir-conta` e `/api/master/perfis` DELETE)
   apaga perfil + conta do Auth atomicamente (`auth.admin.deleteUser`, que
-  cascateia via `ON DELETE CASCADE`), além das fotos e demandas do próprio
-  usuário. **Decisão consciente**: `whatsapp_conversas` e `chatbot_sem_resposta`
-  não são apagadas — o `user_id` vira nulo, mas a linha permanece.
+  cascateia via `ON DELETE CASCADE`), além das fotos, demandas,
+  `whatsapp_conversas` e `chatbot_sem_resposta` do próprio usuário (as duas
+  últimas usam `ON DELETE SET NULL`, então precisam ser apagadas
+  explicitamente — decisão revista em 2026-09-01: antes só o `user_id`
+  virava nulo e a linha permanecia).
 
 ---
 
