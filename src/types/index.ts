@@ -72,7 +72,7 @@ export interface CategoriaMapa {
 
 /* ----------------------------------------------------- camadas do mapa --- */
 
-export type Camada = 'demandas' | 'pets' | 'classificados' | 'empregos' | 'imoveis'
+export type Camada = 'todos' | 'demandas' | 'pets' | 'classificados' | 'empregos' | 'imoveis'
 
 /** Cores e ícones de cada pin, editáveis no painel master. */
 export interface CamadaConfig {

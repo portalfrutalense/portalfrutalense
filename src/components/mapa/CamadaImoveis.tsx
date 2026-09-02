@@ -120,6 +120,7 @@ export function useImoveis() {
 
 export function useMarkersImoveis({
   ativo, imoveis, config, filtro, mapaObj, maplibreObj, mapaCarregado, aoSelecionar,
+  logado, aoExigirLogin,
 }: {
   ativo: boolean
   imoveis: Imovel[]
@@ -129,6 +130,11 @@ export function useMarkersImoveis({
   maplibreObj: React.MutableRefObject<typeof import('maplibre-gl') | null>
   mapaCarregado: boolean
   aoSelecionar: (i: Imovel) => void
+  // BUG CORRIGIDO (pedido do usuário): pin de imóvel abria o popup direto,
+  // sem checar login — só o pin de Demanda tinha essa trava. Mesmo padrão
+  // agora nas 4 camadas.
+  logado: boolean
+  aoExigirLogin: () => void
 }) {
   const markersRef = useRef<Marker[]>([])
   const popupAbertoRef = useRef<Popup | null>(null)
@@ -178,8 +184,13 @@ export function useMarkersImoveis({
 
       const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([i.lng, i.lat])
-        .setPopup(popup)
         .addTo(mapa)
+
+      el.addEventListener('click', (ev) => {
+        ev.stopPropagation()
+        if (!logado) { aoExigirLogin(); return }
+        popup.setLngLat([i.lng, i.lat]).addTo(mapa)
+      })
 
       markersRef.current.push(marker)
     })
@@ -195,7 +206,7 @@ export function useMarkersImoveis({
     }
     container.addEventListener('click', aoClicar)
     return () => { container.removeEventListener('click', aoClicar) }
-  }, [ativo, imoveis, config, filtro, mapaCarregado]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ativo, imoveis, config, filtro, mapaCarregado, logado]) // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /* =============================================================== sidebar = */
@@ -218,7 +229,7 @@ function IconeWhatsapp() {
 
 export function SidebarImoveis({
   imoveis, filtro, setFiltro, selecionado, setSelecionado,
-  onRegistrar, onEditar, onExcluir, onMarcarVendidoAlugado, onFoto,
+  onRegistrar, onEditar, onExcluir, onMarcarVendidoAlugado, onFoto, aoExigirLogin,
   isMobile, aoIniciarArraste, aoArrastar, aoSoltarArraste, onCentralizar,
 }: {
   imoveis: Imovel[]
@@ -231,6 +242,9 @@ export function SidebarImoveis({
   onExcluir: (i: Imovel) => void
   onMarcarVendidoAlugado: (i: Imovel) => void
   onFoto: (url: string) => void
+  // BUG CORRIGIDO (pedido do usuário): ver comentário equivalente em
+  // SidebarPets (CamadaPets.tsx).
+  aoExigirLogin: () => void
   isMobile: boolean
   aoIniciarArraste: (e: React.TouchEvent) => void
   aoArrastar: (e: React.TouchEvent) => void
@@ -371,7 +385,7 @@ export function SidebarImoveis({
         {visiveis.map((i) => (
           <div
             key={i.id}
-            onClick={() => { setSelecionado(i); if (!isMobile) onCentralizar(i.lat, i.lng) }}
+            onClick={() => { if (!user) { aoExigirLogin(); return } setSelecionado(i); if (!isMobile) onCentralizar(i.lat, i.lng) }}
             style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '10px 12px', marginBottom: '8px', cursor: 'pointer' }}
           >
             <p style={{ fontSize: '12.5px', fontWeight: 700, color: '#111827', margin: '0 0 2px', lineHeight: 1.4 }}>{ROTULO_FINALIDADE[i.finalidade]}</p>

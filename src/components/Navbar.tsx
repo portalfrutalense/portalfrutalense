@@ -10,6 +10,7 @@ import { usePathname, useSearchParams } from 'next/navigation'
 // próprio mapa) precisa da mesma lista/ordem — evita duas listas que podem
 // ficar diferentes com o tempo.
 export const CAMADAS_NAV = [
+  { label: 'Todos', camada: 'todos' },
   { label: 'Demandas Municipais', camada: 'demandas' },
   { label: 'Vagas de Emprego', camada: 'empregos' },
   { label: 'Veículos', camada: 'classificados' },
@@ -20,7 +21,10 @@ export const CAMADAS_NAV = [
 function NavCamadas({ user }: { user: unknown }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const camadaAtiva = pathname === '/mapa' ? (searchParams.get('camada') || 'demandas') : null
+  // BUG CORRIGIDO (pedido do usuário): "todos" virou o padrão de /mapa
+  // sem `?camada=` — esse default tinha ficado esquecido em 'demandas',
+  // então o chip errado (Demandas) ficava destacado como ativo aqui.
+  const camadaAtiva = pathname === '/mapa' ? (searchParams.get('camada') || 'todos') : null
   if (!user) return null
   return (
     <div className="nav-links" style={{ display: 'flex', alignItems: 'center' }}>

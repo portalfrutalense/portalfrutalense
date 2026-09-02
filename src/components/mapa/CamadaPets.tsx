@@ -166,6 +166,7 @@ export function usePets() {
 
 export function useMarkersPets({
   ativo, pets, cores, icones, filtro, mapaObj, maplibreObj, mapaCarregado, aoSelecionar,
+  logado, aoExigirLogin,
 }: {
   ativo: boolean
   pets: Pet[]
@@ -176,6 +177,12 @@ export function useMarkersPets({
   maplibreObj: React.MutableRefObject<typeof import('maplibre-gl') | null>
   mapaCarregado: boolean
   aoSelecionar: (p: Pet) => void
+  // BUG CORRIGIDO (pedido do usuário): pin de pet abria o popup direto,
+  // sem checar login — só o pin de Demanda tinha essa trava. Mesmo padrão
+  // agora nas 4 camadas: sem login, o clique no pin abre o modal de
+  // entrar em vez do popup.
+  logado: boolean
+  aoExigirLogin: () => void
 }) {
   const markersRef = useRef<Marker[]>([])
   const popupAbertoRef = useRef<Popup | null>(null)
@@ -233,8 +240,15 @@ export function useMarkersPets({
 
       const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([p.lng, p.lat])
-        .setPopup(popup)
         .addTo(mapa)
+
+      // Sem `.setPopup()` de propósito — o clique é interceptado à mão
+      // pra checar login antes (mesmo padrão de MapaDemandas.tsx).
+      el.addEventListener('click', (ev) => {
+        ev.stopPropagation()
+        if (!logado) { aoExigirLogin(); return }
+        popup.setLngLat([p.lng, p.lat]).addTo(mapa)
+      })
 
       markersRef.current.push(marker)
     })
@@ -372,7 +386,7 @@ export function useMarkersPets({
       if (mapa.getLayer('radar-pets-halo')) mapa.removeLayer('radar-pets-halo')
       if (mapa.getSource('radar-pets')) mapa.removeSource('radar-pets')
     }
-  }, [ativo, pets, cores, icones, filtro, mapaCarregado]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ativo, pets, cores, icones, filtro, mapaCarregado, logado]) // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /* =============================================================== sidebar = */
@@ -382,7 +396,7 @@ export const rotuloPorte: Record<PortePet, string> = { pequeno: 'Pequeno', medio
 
 export function SidebarPets({
   pets, cores, filtro, setFiltro, selecionado, setSelecionado,
-  onRegistrar, onEditar, onExcluir, onMarcarReencontrado, onFoto,
+  onRegistrar, onEditar, onExcluir, onMarcarReencontrado, onFoto, aoExigirLogin,
   isMobile, aoIniciarArraste, aoArrastar, aoSoltarArraste, onCentralizar,
 }: {
   pets: Pet[]
@@ -396,6 +410,10 @@ export function SidebarPets({
   onExcluir: (p: Pet) => void
   onMarcarReencontrado: (p: Pet) => void
   onFoto: (url: string) => void
+  // BUG CORRIGIDO (pedido do usuário): clicar num card da lista abria o
+  // registro completo sem checar login — só o pin no mapa tinha essa
+  // trava. Abre o modal de entrar em vez de expandir, igual ao pin.
+  aoExigirLogin: () => void
   // Lista de cards resumidos abaixo do filtro — arrastar (mobile) só
   // funciona do cabeçalho (até o filtro) pra cima; a lista tem scroll de
   // dedo normal, por isso esses handlers de arraste não vão nela.
@@ -594,7 +612,7 @@ export function SidebarPets({
           return (
             <div
               key={p.id}
-              onClick={() => { setSelecionado(p); if (!isMobile) onCentralizar(p.lat, p.lng) }}
+              onClick={() => { if (!user) { aoExigirLogin(); return } setSelecionado(p); if (!isMobile) onCentralizar(p.lat, p.lng) }}
               style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '10px 12px', marginBottom: '8px', cursor: 'pointer' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '3px' }}>

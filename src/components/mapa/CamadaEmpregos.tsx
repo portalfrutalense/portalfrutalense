@@ -91,6 +91,7 @@ export function useEmpregos() {
 
 export function useMarkersEmpregos({
   ativo, empregos, config, mapaObj, maplibreObj, mapaCarregado, aoSelecionar,
+  logado, aoExigirLogin,
 }: {
   ativo: boolean
   empregos: Emprego[]
@@ -99,6 +100,11 @@ export function useMarkersEmpregos({
   maplibreObj: React.MutableRefObject<typeof import('maplibre-gl') | null>
   mapaCarregado: boolean
   aoSelecionar: (e: Emprego) => void
+  // BUG CORRIGIDO (pedido do usuário): pin de vaga abria o popup direto,
+  // sem checar login — só o pin de Demanda tinha essa trava. Mesmo padrão
+  // agora nas 4 camadas.
+  logado: boolean
+  aoExigirLogin: () => void
 }) {
   const markersRef = useRef<Marker[]>([])
   const popupAbertoRef = useRef<Popup | null>(null)
@@ -148,8 +154,13 @@ export function useMarkersEmpregos({
 
       const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([e.lng, e.lat])
-        .setPopup(popup)
         .addTo(mapa)
+
+      el.addEventListener('click', (ev) => {
+        ev.stopPropagation()
+        if (!logado) { aoExigirLogin(); return }
+        popup.setLngLat([e.lng, e.lat]).addTo(mapa)
+      })
 
       markersRef.current.push(marker)
     })
@@ -165,7 +176,7 @@ export function useMarkersEmpregos({
     }
     container.addEventListener('click', aoClicar)
     return () => { container.removeEventListener('click', aoClicar) }
-  }, [ativo, empregos, config, mapaCarregado]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ativo, empregos, config, mapaCarregado, logado]) // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /* =============================================================== sidebar = */
@@ -188,7 +199,7 @@ function IconeWhatsapp() {
 
 export function SidebarEmpregos({
   empregos, selecionado, setSelecionado,
-  onPublicar, onEditar, onExcluir, onEncerrar,
+  onPublicar, onEditar, onExcluir, onEncerrar, aoExigirLogin,
   isMobile, aoIniciarArraste, aoArrastar, aoSoltarArraste, onCentralizar,
 }: {
   empregos: Emprego[]
@@ -198,6 +209,9 @@ export function SidebarEmpregos({
   onEditar: (e: Emprego) => void
   onExcluir: (e: Emprego) => void
   onEncerrar: (e: Emprego) => void
+  // BUG CORRIGIDO (pedido do usuário): ver comentário equivalente em
+  // SidebarPets (CamadaPets.tsx).
+  aoExigirLogin: () => void
   // Ver comentário equivalente em SidebarPets (CamadaPets.tsx).
   isMobile: boolean
   aoIniciarArraste: (e: React.TouchEvent) => void
@@ -345,7 +359,7 @@ export function SidebarEmpregos({
         {visiveis.map((e) => (
           <div
             key={e.id}
-            onClick={() => { setSelecionado(e); if (!isMobile) onCentralizar(e.lat, e.lng) }}
+            onClick={() => { if (!user) { aoExigirLogin(); return } setSelecionado(e); if (!isMobile) onCentralizar(e.lat, e.lng) }}
             style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '10px 12px', marginBottom: '8px', cursor: 'pointer' }}
           >
             {/* BUG CORRIGIDO (pedido do usuário): badge "Encerrada" removido

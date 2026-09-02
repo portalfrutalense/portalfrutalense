@@ -54,7 +54,9 @@ export default function MapaDemandas() {
 
   // Camada ativa — sincroniza com ?camada= da URL
   const searchParams = useSearchParams()
-  const camadaParam = (searchParams.get('camada') as Camada) || 'demandas'
+  // "todos" (pins de todas as camadas juntos) é o padrão agora — pedido do
+  // usuário, /mapa sem `?camada=` deve abrir nesse modo.
+  const camadaParam = (searchParams.get('camada') as Camada) || 'todos'
   const [camada, setCamada] = useState<Camada>(camadaParam)
   // O efeito que reage a mudanças de "?camada=" na URL fica logo abaixo da
   // declaração de trocarCamada (perto do fim do componente) — antes ele
@@ -185,7 +187,7 @@ export default function MapaDemandas() {
     // Limpa markers anteriores
     markersRef.current.forEach(m => m.remove())
     markersRef.current = []
-    if (camada !== 'demandas') return
+    if (camada !== 'demandas' && camada !== 'todos') return
 
     const filtradas = demandas.filter(d => {
       if (filtroStatus && d.status !== filtroStatus) return false
@@ -277,6 +279,10 @@ export default function MapaDemandas() {
       const fromRect = (popupEl || alvo).getBoundingClientRect()
       const toRect = sidebarRef.current?.getBoundingClientRect()
 
+      // No modo "Todos", clicar em "Ver mais" já troca pra camada certa
+      // (pedido do usuário), abrindo o card completo dela.
+      if (camada === 'todos') setCamada('demandas')
+
       if (!toRect) {
         setDemandaSelecionada(demanda)
         setSheetState('full')
@@ -314,33 +320,40 @@ export default function MapaDemandas() {
     }
   }, [demandas, user, mapaCarregado, filtroStatus, filtroCategoria, camada]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Markers da camada de pets — desenhados só quando ela está ativa
+  // Markers da camada de pets — desenhados quando ela está ativa OU no modo
+  // "Todos" (pedido do usuário: mostra pins de todas as camadas juntos).
   useMarkersPets({
-    ativo: camada === 'pets',
+    ativo: camada === 'pets' || camada === 'todos',
     pets, cores: coresPets, icones: iconesPets, filtro: filtroPet,
     mapaObj, maplibreObj, mapaCarregado,
-    aoSelecionar: (p) => { setPetSelecionado(p); setSheetState('full') },
+    // No modo "Todos", "Ver mais" no popup já troca pra camada certa antes
+    // de abrir o card completo (pedido do usuário).
+    aoSelecionar: (p) => { if (camada === 'todos') setCamada('pets'); setPetSelecionado(p); setSheetState('full') },
+    logado: !!user, aoExigirLogin: () => setModalAuth(true),
   })
 
   useMarkersClassificados({
-    ativo: camada === 'classificados',
+    ativo: camada === 'classificados' || camada === 'todos',
     classificados, config: configClassificados, filtro: filtroClassificado,
     mapaObj, maplibreObj, mapaCarregado,
-    aoSelecionar: (c) => { setClassificadoSelecionado(c); setSheetState('full') },
+    aoSelecionar: (c) => { if (camada === 'todos') setCamada('classificados'); setClassificadoSelecionado(c); setSheetState('full') },
+    logado: !!user, aoExigirLogin: () => setModalAuth(true),
   })
 
   useMarkersEmpregos({
-    ativo: camada === 'empregos',
+    ativo: camada === 'empregos' || camada === 'todos',
     empregos, config: configEmpregos,
     mapaObj, maplibreObj, mapaCarregado,
-    aoSelecionar: (e) => { setEmpregoSelecionado(e); setSheetState('full') },
+    aoSelecionar: (e) => { if (camada === 'todos') setCamada('empregos'); setEmpregoSelecionado(e); setSheetState('full') },
+    logado: !!user, aoExigirLogin: () => setModalAuth(true),
   })
 
   useMarkersImoveis({
-    ativo: camada === 'imoveis',
+    ativo: camada === 'imoveis' || camada === 'todos',
     imoveis, config: configImoveis, filtro: filtroImovel,
     mapaObj, maplibreObj, mapaCarregado,
-    aoSelecionar: (i) => { setImovelSelecionado(i); setSheetState('full') },
+    aoSelecionar: (i) => { if (camada === 'todos') setCamada('imoveis'); setImovelSelecionado(i); setSheetState('full') },
+    logado: !!user, aoExigirLogin: () => setModalAuth(true),
   })
 
   // Trocar de camada limpa a seleção da anterior — o mapa em si é preservado
@@ -356,7 +369,7 @@ export default function MapaDemandas() {
   }
 
   useEffect(() => {
-    const c = (searchParams.get('camada') as Camada) || 'demandas'
+    const c = (searchParams.get('camada') as Camada) || 'todos'
     if (c !== camada) Promise.resolve().then(() => trocarCamada(c))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
@@ -672,7 +685,48 @@ export default function MapaDemandas() {
             onTouchEnd={algumSelecionado && isMobile ? aoSoltarArraste : undefined}
           >
 
-          {camada === 'pets' ? (
+          {camada === 'todos' ? (
+            /* ── TODOS (pedido do usuário): mostra pins de todas as
+                camadas juntos no mapa; aqui no sidebar não tem filtro nem
+                lista (não teria como listar 5 formatos diferentes de item
+                de forma sensata) — só um tutorial explicando como usar. */
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '8px 14px 16px' }}>
+              <p style={{ fontSize: '11px', fontWeight: 700, color: '#111827', textTransform: 'uppercase', letterSpacing: '.05em', margin: '0 0 8px' }}>Como funciona</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '18px' }}>
+                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '10px 12px' }}>
+                  <p style={{ margin: 0, fontSize: '12.5px', color: '#111827', lineHeight: 1.5 }}>
+                    <strong>1.</strong> Use o mouse ou os dedos para navegar pelo mapa ou através dos botões no topo.
+                  </p>
+                </div>
+                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '10px 12px' }}>
+                  <p style={{ margin: 0, fontSize: '12.5px', color: '#111827', lineHeight: 1.5 }}>
+                    <strong>2.</strong> Clique em um pin para ver o resumo. Para abrir os detalhes completos, clique em <strong>&quot;Ver mais&quot;</strong>.
+                  </p>
+                </div>
+                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '10px 12px' }}>
+                  <p style={{ margin: 0, fontSize: '12.5px', color: '#111827', lineHeight: 1.5 }}>
+                    <strong>3.</strong> Para registrar uma demanda, um pet perdido/achado, veículo ou imóvel, é preciso estar logado.
+                  </p>
+                </div>
+              </div>
+
+              <p style={{ fontSize: '11px', fontWeight: 700, color: '#111827', textTransform: 'uppercase', letterSpacing: '.05em', margin: '0 0 8px' }}>O que cada camada é</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {[
+                  { label: 'Demandas Municipais', desc: 'Registre demandas públicas da cidade e acompanhe a resposta das autoridades direcionadas.' },
+                  { label: 'Vagas de Emprego', desc: 'Vagas abertas nas empresas de Frutal-MG.' },
+                  { label: 'Veículos', desc: 'Carros, motos e outros veículos à venda.' },
+                  { label: 'Imóveis', desc: 'Casas, apartamentos e outros imóveis pra alugar ou vender.' },
+                  { label: 'Área PET', desc: 'Pets para adoção, perdidos pelos donos ou encontrados abandonados nas ruas.' },
+                ].map(({ label, desc }) => (
+                  <div key={label} style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '10px 12px' }}>
+                    <p style={{ margin: '0 0 2px', fontSize: '12.5px', fontWeight: 700, color: '#111827' }}>{label}</p>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#6b7280', lineHeight: 1.45 }}>{desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : camada === 'pets' ? (
             /* ── CAMADA: PETS ── */
             <SidebarPets
               pets={pets}
@@ -686,6 +740,7 @@ export default function MapaDemandas() {
               onExcluir={excluirPet}
               onMarcarReencontrado={marcarPetReencontrado}
               onFoto={setFotoAmpliada}
+              aoExigirLogin={() => setModalAuth(true)}
               isMobile={isMobile}
               aoIniciarArraste={aoIniciarArraste}
               aoArrastar={aoArrastar}
@@ -705,6 +760,7 @@ export default function MapaDemandas() {
               onExcluir={excluirClassificado}
               onMarcarVendido={marcarClassificadoVendido}
               onFoto={setFotoAmpliada}
+              aoExigirLogin={() => setModalAuth(true)}
               isMobile={isMobile}
               aoIniciarArraste={aoIniciarArraste}
               aoArrastar={aoArrastar}
@@ -721,6 +777,7 @@ export default function MapaDemandas() {
               onEditar={(e) => setFormEmprego({ aberto: true, editando: e })}
               onExcluir={excluirEmprego}
               onEncerrar={encerrarEmprego}
+              aoExigirLogin={() => setModalAuth(true)}
               isMobile={isMobile}
               aoIniciarArraste={aoIniciarArraste}
               aoArrastar={aoArrastar}
@@ -740,6 +797,7 @@ export default function MapaDemandas() {
               onExcluir={excluirImovel}
               onMarcarVendidoAlugado={marcarImovelVendidoAlugado}
               onFoto={setFotoAmpliada}
+              aoExigirLogin={() => setModalAuth(true)}
               isMobile={isMobile}
               aoIniciarArraste={aoIniciarArraste}
               aoArrastar={aoArrastar}
@@ -1006,6 +1064,11 @@ export default function MapaDemandas() {
                   <div
                     key={d.id}
                     onClick={() => {
+                      // BUG CORRIGIDO (pedido do usuário): o card da lista
+                      // não checava login — dava pra contornar a trava do
+                      // pin de demanda (que já era gated) simplesmente
+                      // clicando na lista lateral em vez do pin.
+                      if (!user) { setModalAuth(true); return }
                       setDemandaSelecionada(d)
                       if (isMobile) setSheetState('full')
                       else centralizarNoMapa(d.lat, d.lng)
@@ -1051,6 +1114,7 @@ export default function MapaDemandas() {
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(15,36,64,0.92), transparent)', padding: 'clamp(24px,5vw,40px) clamp(12px,4vw,24px) 20px', zIndex: 1000, textAlign: 'center' }}>
               <p style={{ color: 'white', fontWeight: 600, fontSize: '14px', margin: '0 0 10px' }}>
                 {{
+                  todos: 'Faça login para ver o conteúdo completo dos pins',
                   demandas: 'Faça login para ver as demandas completas',
                   pets: 'Faça login para ver os registros completos',
                   classificados: 'Faça login para ver os anúncios completos',

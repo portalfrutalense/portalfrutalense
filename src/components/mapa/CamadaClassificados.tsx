@@ -123,6 +123,7 @@ export function useClassificados() {
 
 export function useMarkersClassificados({
   ativo, classificados, config, filtro, mapaObj, maplibreObj, mapaCarregado, aoSelecionar,
+  logado, aoExigirLogin,
 }: {
   ativo: boolean
   classificados: Classificado[]
@@ -132,6 +133,11 @@ export function useMarkersClassificados({
   maplibreObj: React.MutableRefObject<typeof import('maplibre-gl') | null>
   mapaCarregado: boolean
   aoSelecionar: (c: Classificado) => void
+  // BUG CORRIGIDO (pedido do usuário): pin de classificado abria o popup
+  // direto, sem checar login — só o pin de Demanda tinha essa trava.
+  // Mesmo padrão agora nas 4 camadas.
+  logado: boolean
+  aoExigirLogin: () => void
 }) {
   const markersRef = useRef<Marker[]>([])
   const popupAbertoRef = useRef<Popup | null>(null)
@@ -187,8 +193,13 @@ export function useMarkersClassificados({
 
       const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([c.lng, c.lat])
-        .setPopup(popup)
         .addTo(mapa)
+
+      el.addEventListener('click', (ev) => {
+        ev.stopPropagation()
+        if (!logado) { aoExigirLogin(); return }
+        popup.setLngLat([c.lng, c.lat]).addTo(mapa)
+      })
 
       markersRef.current.push(marker)
     })
@@ -204,7 +215,7 @@ export function useMarkersClassificados({
     }
     container.addEventListener('click', aoClicar)
     return () => { container.removeEventListener('click', aoClicar) }
-  }, [ativo, classificados, config, filtro, mapaCarregado]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ativo, classificados, config, filtro, mapaCarregado, logado]) // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /* =============================================================== sidebar = */
@@ -228,7 +239,7 @@ function IconeWhatsapp() {
 
 export function SidebarClassificados({
   classificados, filtro, setFiltro, selecionado, setSelecionado,
-  onRegistrar, onEditar, onExcluir, onMarcarVendido, onFoto,
+  onRegistrar, onEditar, onExcluir, onMarcarVendido, onFoto, aoExigirLogin,
   isMobile, aoIniciarArraste, aoArrastar, aoSoltarArraste, onCentralizar,
 }: {
   classificados: Classificado[]
@@ -241,6 +252,9 @@ export function SidebarClassificados({
   onExcluir: (c: Classificado) => void
   onMarcarVendido: (c: Classificado) => void
   onFoto: (url: string) => void
+  // BUG CORRIGIDO (pedido do usuário): ver comentário equivalente em
+  // SidebarPets (CamadaPets.tsx).
+  aoExigirLogin: () => void
   // Ver comentário equivalente em SidebarPets (CamadaPets.tsx).
   isMobile: boolean
   aoIniciarArraste: (e: React.TouchEvent) => void
@@ -390,7 +404,7 @@ export function SidebarClassificados({
         {visiveis.map((c) => (
           <div
             key={c.id}
-            onClick={() => { setSelecionado(c); if (!isMobile) onCentralizar(c.lat, c.lng) }}
+            onClick={() => { if (!user) { aoExigirLogin(); return } setSelecionado(c); if (!isMobile) onCentralizar(c.lat, c.lng) }}
             style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '10px 12px', marginBottom: '8px', cursor: 'pointer' }}
           >
             {/* BUG CORRIGIDO (pedido do usuário): badge de tipo/"Vendido" e
