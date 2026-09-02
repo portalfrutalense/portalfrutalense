@@ -103,11 +103,32 @@ export default function MapaTopBar({ camada, isMobile, onAbrirLogin }: { camada:
     </button>
   )
 
+  // Versão invertida do "Entrar" — só pro card azul do mobile (logo +
+  // conta): o botão padrão acima é azul, ficaria "azul em cima de azul" e
+  // ilegível dentro do card. Mesmo estilo de "chip inativo" que os botões
+  // de camada já usam (fundo branco, texto escuro).
+  const entrarBotaoInvertido = (
+    <button
+      onClick={onAbrirLogin}
+      style={{
+        flexShrink: 0, background: 'white', color: '#4256c8', border: 'none',
+        borderRadius: '20px', padding: '8px 14px',
+        fontSize: '12.5px', fontWeight: 700, cursor: 'pointer',
+      }}
+    >
+      Entrar
+    </button>
+  )
+
   const popover = popoverAberto && user && (
     <div
       style={{
         position: 'absolute', top: isMobile ? '46px' : '50px',
-        [isMobile ? 'left' : 'right']: 0,
+        // Avatar sempre fica no lado direito agora (no mobile, dentro do
+        // card azul da logo — antes ficava à esquerda, sozinho, por isso
+        // essa posição era 'left' só no mobile; corrigido junto com o
+        // reposicionamento do avatar, pedido do usuário).
+        right: 0,
         width: '220px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px',
         boxShadow: '0 12px 34px rgba(20,30,50,0.2)', padding: '6px', zIndex: 40,
       }}
@@ -138,34 +159,62 @@ export default function MapaTopBar({ camada, isMobile, onAbrirLogin }: { camada:
 
   if (isMobile) {
     return (
-      <div style={{ position: 'absolute', top: '12px', left: '12px', right: '12px', zIndex: 30, display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <div ref={wrapRef} style={{ position: 'relative', flexShrink: 0 }}>
-          {avatarBotao}
-          {popover}
-        </div>
-        <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-          {/* BUG CORRIGIDO: faltava esconder a barra de scroll nativa —
-              existia no protótipo (artefato) mas não tinha sido copiada
-              pra cá. `overflowX:'auto'` sozinho mostra uma barrinha fina
-              (principalmente em navegadores/webviews que sempre desenham
-              scrollbar em overlay, mesmo fino). scrollbarWidth/
-              msOverflowStyle cobrem Firefox/Edge antigo; o resto (Chrome,
-              Safari, WebViews Android/iOS) só aceita esconder via
-              ::-webkit-scrollbar, que não dá pra fazer inline — daí a
-              className + <style> logo abaixo. */}
-          <div
-            className="mapa-topbar-chiprow"
-            style={{
-              display: 'flex', gap: '6px', overflowX: 'auto', paddingRight: '26px',
-              WebkitOverflowScrolling: 'touch',
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
-              WebkitMaskImage: 'linear-gradient(90deg, #000 0%, #000 82%, transparent 100%)',
-              maskImage: 'linear-gradient(90deg, #000 0%, #000 82%, transparent 100%)',
-            }}
-          >
-            {chips}
+      <div style={{ position: 'absolute', top: '12px', left: '12px', right: '12px', zIndex: 30, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {/* Card azul: logo horizontal + avatar/Entrar — antes o avatar
+            dividia a mesma linha com os chips de camada, ficava
+            "espremido" junto deles (pedido do usuário pra separar). Reusa
+            o mesmo azul do cabeçalho da logo no sidebar desktop.
+            BUG CORRIGIDO (pedido do usuário): card baixou de altura
+            (padding vertical menor) e a logo saiu de colada na borda
+            esquerda — `justifyContent:'center'` centraliza ela no card
+            inteiro (empurra mais pra direita do que antes), com o avatar
+            flutuando absoluto por cima, sem competir pelo espaço central.
+            Padding vertical calibrado pra altura do card bater com o
+            diâmetro do círculo do avatar (40px) — tinha ficado baixo
+            demais na primeira tentativa. */}
+        <div style={{
+          // Altura TRAVADA (fixa, box-sizing:border-box) — pedido explícito
+          // do usuário: a logo pode crescer à vontade sem o card acompanhar.
+          // Sem isso, o card cresceria junto (linha flex sem altura fixa se
+          // ajusta ao maior filho) toda vez que a logo aumentasse.
+          position: 'relative', flexShrink: 0, background: '#4256c8', borderRadius: '16px',
+          height: '44px', boxSizing: 'border-box',
+          padding: '0 14px', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', overflow: 'visible',
+          boxShadow: '0 3px 12px rgba(20,30,50,0.14)',
+        }}>
+          {/* marginRight empurra a logo pra esquerda dentro do card
+              centralizado (pedido do usuário) — como é o único item
+              centralizado, mais margem de um lado desloca o centro
+              visual pro outro. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logohorizontal.png" alt="CidadanIA Frutal" style={{ height: '30px', width: 'auto', display: 'block', marginRight: '40px' }} />
+          <div ref={wrapRef} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)' }}>
+            {user ? avatarBotao : entrarBotaoInvertido}
+            {popover}
           </div>
+        </div>
+
+        {/* Chips de camada — linha própria, sem o avatar. BUG CORRIGIDO
+            (pedido do usuário): fade removido, e a fileira agora vai até a
+            borda REAL da tela dos dois lados (compensando com margem
+            negativa o `left`/`right: 12px` do container pai) — antes o
+            chip cortava numa faixa de espaço vazio antes da borda física,
+            parecia um corte arbitrário "do nada"; assim ele é "engolido"
+            pela ponta real da tela pra qualquer lado que role, lendo mais
+            naturalmente como "dá pra arrastar mais". */}
+        <div
+          className="mapa-topbar-chiprow"
+          style={{
+            display: 'flex', gap: '6px', overflowX: 'auto',
+            marginLeft: '-12px', paddingLeft: '12px',
+            marginRight: '-12px', paddingRight: '12px',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+        >
+          {chips}
         </div>
         <style>{`.mapa-topbar-chiprow::-webkit-scrollbar { display: none; }`}</style>
       </div>
