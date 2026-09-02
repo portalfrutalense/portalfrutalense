@@ -6,7 +6,10 @@ import { useAuth } from './AuthProvider'
 import ModalAuth from './ModalAuth'
 import { usePathname, useSearchParams } from 'next/navigation'
 
-const CAMADAS_NAV = [
+// Exportada porque MapaTopBar.tsx (chips flutuantes de camada, dentro do
+// próprio mapa) precisa da mesma lista/ordem — evita duas listas que podem
+// ficar diferentes com o tempo.
+export const CAMADAS_NAV = [
   { label: 'Demandas Municipais', camada: 'demandas' },
   { label: 'Empregos', camada: 'empregos' },
   { label: 'Classificados', camada: 'classificados' },

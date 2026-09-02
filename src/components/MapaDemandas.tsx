@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from './AuthProvider'
 import { useSheet } from '@/contexts/SheetContext'
@@ -11,6 +12,7 @@ import { usePets, useMarkersPets, SidebarPets, FormularioPet } from './mapa/Cama
 import { useClassificados, useMarkersClassificados, SidebarClassificados, FormularioClassificado } from './mapa/CamadaClassificados'
 import { useEmpregos, useMarkersEmpregos, SidebarEmpregos, FormularioEmprego } from './mapa/CamadaEmpregos'
 import { FormDemanda } from './mapa/FormDemanda'
+import MapaTopBar from './mapa/MapaTopBar'
 import { Demanda, CategoriaMapa, Entidade, DemandaEntidade, Camada, Pet, Classificado, Emprego } from '@/types'
 import { escapeHtml } from '@/lib/escapeHtml'
 // Só o tipo — o maplibre-gl em si continua carregado dinamicamente por
@@ -488,9 +490,13 @@ export default function MapaDemandas() {
     return true
   })
 
+  // "Mapa Grandão": sidebar+mapa passam a ocupar a tela inteira, sem a
+  // moldura de cartão (borda/sombra/cantos arredondados) que existia
+  // quando havia margem ao redor (a Navbar, removida desta página, dava
+  // esse respiro). Mobile já era assim, sem moldura nenhuma.
   const layoutEstilo: React.CSSProperties = isMobile
     ? { position: 'relative', height: '100%', overflow: 'hidden' }
-    : { display: 'flex', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', flex: 1 }
+    : { display: 'flex', overflow: 'hidden', flex: 1 }
 
   const sidebarEstilo: React.CSSProperties = isMobile
     ? { position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1500, background: 'white', borderTopLeftRadius: '16px', borderTopRightRadius: '16px', boxShadow: '0 -1px 8px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', height: `${SNAP[sheetState] * 100}vh`, transition: 'height 0.25s ease', overflow: 'hidden' }
@@ -508,6 +514,18 @@ export default function MapaDemandas() {
 
         {/* SIDEBAR */}
         <div ref={sidebarRef} className="mapa-sidebar" style={sidebarEstilo}>
+          {/* Logo fixa — substitui a Navbar (removida desta página) só no
+              desktop; no mobile o sidebar não tem cabeçalho, por decisão.
+              Fundo azul (não branco): o PNG da logo tem "CIDADAN" em texto
+              branco, desenhado pra ficar sobre o azul da navbar — testado
+              sobre fundo branco, esse texto fica invisível e só o "IA"
+              aparece. */}
+          {!isMobile && (
+            <Link href="/" style={{ flexShrink: 0, height: '56px', display: 'flex', alignItems: 'center', padding: '0 18px', background: '#4256c8' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: '34px', width: 'auto', display: 'block' }} />
+            </Link>
+          )}
           {isMobile && (
             <div
               onClick={sheetState === 'peek' ? cicloSheet : undefined}
@@ -802,6 +820,10 @@ export default function MapaDemandas() {
         {/* MAPA */}
         <div style={isMobile ? { position: 'absolute', inset: 0 } : { flex: 1, position: 'relative', minWidth: 0 }}>
           <div ref={mapRef} className="mapa-map-div" style={{ width: '100%', height: '100%', minHeight: 'clamp(300px, 55vw, 500px)' }} />
+
+          {/* Barra flutuante (chips de camada + conta) — substitui a Navbar
+              nesta página, que agora ocupa a tela inteira. */}
+          <MapaTopBar camada={camada} isMobile={isMobile} onAbrirLogin={() => setModalAuth(true)} />
 
           {/* Banner de login */}
           {!user && (

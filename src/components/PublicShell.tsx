@@ -29,10 +29,13 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   // Master, landing e Lucas têm seu próprio layout
   if (isMaster || isLanding || isAssistenteIA) return <>{children}</>
 
+  // "Mapa Grandão": a Navbar sai do fluxo desta página — sidebar e mapa
+  // (dentro de `children`) passam a ocupar a tela inteira; logo, camadas e
+  // conta do usuário viram elementos flutuando por cima do próprio mapa
+  // (ver MapaTopBar.tsx e a logo fixa no topo do sidebar, em MapaDemandas.tsx).
   if (isMapa) return (
     <div className="mapa-shell" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-      <Navbar />
-      <main className="mapa-main" style={{ flex: 1, overflow: 'hidden', padding: 'clamp(8px,2vw,16px)', display: 'flex', flexDirection: 'column' }}>
+      <main className="mapa-main" style={{ flex: 1, overflow: 'hidden', padding: 0, display: 'flex', flexDirection: 'column' }}>
         {children}
       </main>
       <ChatBot />
@@ -47,7 +50,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
         }
         @media (max-width: 640px) {
           .mapa-shell { height: 100svh !important; overflow: hidden !important; overscroll-behavior: none !important; }
-          .mapa-main { overflow: hidden !important; padding: 0 !important; }
+          .mapa-main { overflow: hidden !important; }
         }
       `}</style>
     </div>
