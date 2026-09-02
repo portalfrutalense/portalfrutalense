@@ -63,7 +63,7 @@ que dispara o `ModalCPF` sempre que um cidadão está logado mas sem nome/CPF sa
 | Rota | Público | Descrição |
 |---|---|---|
 | `/` | Todos | Landing page. Se o usuário já está logado, redireciona automaticamente para `/mapa`. |
-| `/mapa` | Logado | Mapa interativo com 4 camadas alternáveis via `?camada=`: `demandas`, `pets`, `classificados`, `empregos`. |
+| `/mapa` | Logado | Mapa interativo com 5 camadas alternáveis via `?camada=`: `demandas`, `pets`, `classificados`, `empregos`, `imoveis`. |
 | `/assistenteia` | Logado | Tela cheia do chatbot de IA (usado tanto para tirar dúvidas quanto para registrar demandas por conversa). |
 | `/perfil` | Logado | Edição de dados pessoais, exclusão de conta, cancelamento de cadastro. |
 | `/master` | Só `role = master` | Painel administrativo completo (ver seção 8). |
@@ -112,7 +112,7 @@ Componente principal: `src/components/MapaDemandas.tsx`, que:
   aos servidores da Esri pra carregar os tiles (`NEXT_PUBLIC_ARCGIS_API_KEY`).
   Mapbox continua em uso só no fluxo do WhatsApp (geocodificação de texto +
   miniatura estática, seção 6.2) — não mais no mapa principal. Inclinação padrão e
-  máxima em 65° (`PITCH_PADRAO`/`PITCH_MAX`, `useMapaBase.ts`); sem botões
+  máxima em 62° (`PITCH_PADRAO`/`PITCH_MAX`, `useMapaBase.ts`); sem botões
   +/− de zoom na tela (removidos — o gesto de pinça/scroll já cobre isso).
 - **Patch obrigatório do MapLibre** (`patches/maplibre-gl+4.7.1.patch`,
   aplicado via `patch-package` no `postinstall`): corrige uma race condition
@@ -190,6 +190,23 @@ publicamente. Também passa por moderação de IA (`/api/ia/analisar-classificad
 Vagas publicadas por contas com `role = 'empresa'`. Campos: cargo, área, tipo de
 contrato (CLT/PJ/temporário/estágio/freelance), salário (ou "a combinar"), número
 de vagas, requisitos, localização, logo, contato.
+
+### 5.5 Camada Imóveis
+
+Anúncios de aluguel ou venda de imóveis, publicados por qualquer cidadão
+(mesmo padrão de acesso de Classificados — não exige `role` específico).
+Campos: finalidade (aluguel/venda), tipo (casa, apartamento, terreno, cômodo
+comercial, barracão, fazenda, chácara, sítio), descrição, valor, 2 a 4 fotos,
+contato, endereço (mini-mapa). **Diferente de Classificados, a localização é
+exata** — não é deslocada aleatoriamente. Passa por moderação de IA
+(`/api/ia/analisar-imovel`, `ia_config.id = 4`).
+
+**"Marcar vendido/alugado" exclui o registro de verdade** (linha + fotos do
+Storage), sem deixar rastro — não é uma flag como
+`classificados.vendido`/`empregos.encerrada` (decisão confirmada com o
+usuário). Essa mesma exclusão real foi retroativamente aplicada a "marcar
+vendido" (Classificados) e "encerrar vaga" (Empregos), que antes só ligavam
+uma flag e mantinham a linha e as fotos no banco/Storage indefinidamente.
 
 ---
 
@@ -271,9 +288,10 @@ robóticas repetitivas — inclusive usando um número de sessão aleatório com
 
 ## 7. Moderação por IA
 
-Toda demanda, pet e classificado passa (opcionalmente) por um filtro de IA antes
-de ficar público:
-- Rotas: `/api/ia/analisar` (demandas), `/api/ia/analisar-pet`, `/api/ia/analisar-classificado`.
+Toda demanda, pet, classificado e imóvel passa (opcionalmente) por um filtro de IA
+antes de ficar público:
+- Rotas: `/api/ia/analisar` (demandas), `/api/ia/analisar-pet`, `/api/ia/analisar-classificado`,
+  `/api/ia/analisar-imovel`.
 - Configuração global em `ia_config`: liga/desliga a moderação e define o **rigor**
   (`permissivo`, `moderado`, `rigoroso`), cada um com uma instrução diferente
   injetada no prompt.
@@ -300,7 +318,7 @@ a cada edição, não vale a pena manter atualizado aqui). Seções (menu latera
   análise de IA tudo parado há mais de 10 minutos) e "Marcar paradas há 30+
   dias" (`POST /api/master/marcar-nao-resolvidas`, marca como `nao_resolvida`
   demandas em espera de resposta há mais de 30 dias desde a aprovação).
-- **Empregos / Classificados / Pets** — moderação equivalente para as outras 3 camadas.
+- **Empregos / Classificados / Imóveis / Pets** — moderação equivalente para as outras 4 camadas.
 - **Chatbot** — configuração do assistente: nome do bot, descrição, tom de voz,
   responsabilidades, prompt extra, base de conhecimento (`chatbot_base`, textos
   livres organizados por título), e a fila de perguntas sem resposta
@@ -354,6 +372,7 @@ a foto correspondente no Storage antes de apagar a linha.
 | `pets` | Registros de pets perdidos/achados/adoção |
 | `classificados` | Anúncios de veículos |
 | `empregos` | Vagas de emprego |
+| `imoveis` | Anúncios de imóveis para aluguel/venda — ver `sql/migration-imoveis.sql` |
 | `camadas_config` | Configuração visual de cada camada do mapa (cor/ícone por situação e espécie) |
 | `ia_config` | Configuração global da moderação por IA (ativo, rigor, prompt) |
 | `chatbot_config` | Configuração do assistente (nome, tom, responsabilidades, prompt extra) |
@@ -413,12 +432,19 @@ normalmente para leitura pública.
   qualquer demanda (dupla checagem: no cadastro via `ModalCPF` e novamente no
   backend de `/api/demandas`).
 - Localização de classificados é sempre aproximada no dado exposto publicamente
-  (bairro, não endereço exato).
+  (bairro, não endereço exato) — imóveis é a exceção confirmada: a localização
+  é exata, sem esse deslocamento.
 - Cancelamento de cadastro e exclusão de conta são endpoints dedicados
   (`/api/cidadao/cancelar-cadastro`, `/api/cidadao/excluir-conta`), acessíveis
   pela página `/perfil`.
-- Upload de foto (demanda/pet/classificado/chat) recusa arquivos acima de 20 MB
-  no cliente, antes de tentar carregar na memória do navegador para compressão.
+- Upload de foto (demanda/pet/classificado/imóvel/chat) recusa arquivos acima
+  de 20 MB no cliente, antes de tentar carregar na memória do navegador para
+  compressão.
+- "Marcar vendido" (classificados), "encerrar vaga" (empregos) e "marcar
+  vendido/alugado" (imóveis) excluem o registro de verdade (linha + fotos do
+  Storage) — não são mais uma flag que só oculta do mapa público, decisão
+  confirmada com o usuário ao criar a camada Imóveis. Mesma rota de exclusão
+  usada pelo botão "Excluir" (`/api/camadas/excluir`).
 - Exclusão de conta (`/api/cidadao/excluir-conta` e `/api/master/perfis` DELETE)
   apaga perfil + conta do Auth atomicamente (`auth.admin.deleteUser`, que
   cascateia via `ON DELETE CASCADE`), além das fotos, demandas,
@@ -447,6 +473,16 @@ normalmente para leitura pública.
   quase inteiramente com `style={{ ... }}` inline em vez de CSS Modules/Tailwind
   consistente — o projeto usa Tailwind (`tailwindcss` está nas dependências) mas
   boa parte da UI mais recente foi construída com estilos inline diretos.
+- **Bucket de Storage "Public" ≠ liberado pra upload.** Marcar um bucket como
+  Public no painel do Supabase só libera leitura sem autenticação — a tabela
+  `storage.objects` tem RLS própria, separada disso, que decide quem pode
+  fazer INSERT/DELETE. Cada bucket de foto (`demandas-fotos`, `pets-fotos`,
+  `classificados-fotos`, `empregos-fotos`, `imoveis-fotos`) precisa das
+  próprias policies de upload/remoção — nenhuma delas está versionada em
+  `sql/` (mesmo caso do restante do schema fora do repositório, ver acima),
+  exceto as de `imoveis-fotos`, criadas junto com a tabela em
+  `sql/migration-imoveis.sql`. Sintoma se faltar: "new row violates row-level
+  security policy" ao tentar enviar uma foto, mesmo com o bucket público.
 
 
 ---

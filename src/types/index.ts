@@ -72,7 +72,7 @@ export interface CategoriaMapa {
 
 /* ----------------------------------------------------- camadas do mapa --- */
 
-export type Camada = 'demandas' | 'pets' | 'classificados' | 'empregos'
+export type Camada = 'demandas' | 'pets' | 'classificados' | 'empregos' | 'imoveis'
 
 /** Cores e ícones de cada pin, editáveis no painel master. */
 export interface CamadaConfig {
@@ -181,6 +181,39 @@ export interface Emprego {
   contato: string
   encerrada: boolean
   oculto?: boolean
+  protocolo?: string
+  created_at: string
+  updated_at: string
+}
+
+/* -------------------------------------------------------------- imóveis --- */
+
+export type FinalidadeImovel = 'aluguel' | 'venda'
+// BUG CORRIGIDO (decisão confirmada com o usuário): Fazenda/Chácara/Sítio
+// eram 3 tipos separados — viraram 1 só ('fazenda_chacara_sitio').
+export type TipoImovel =
+  | 'casa' | 'apartamento' | 'terreno' | 'comodo_comercial'
+  | 'barracao' | 'fazenda_chacara_sitio'
+
+export interface Imovel {
+  id: string
+  user_id: string
+  autor_nome: string
+  finalidade: FinalidadeImovel
+  tipo: TipoImovel
+  descricao: string
+  valor?: number
+  contato: string
+  /** Localização exata (sem aproximar, ao contrário de Classificados —
+   * decisão confirmada com o usuário). */
+  lat: number
+  lng: number
+  endereco_label?: string
+  fotos: string[]
+  oculto?: boolean
+  ia_decisao?: string
+  ia_motivo?: string
+  ia_analisado_em?: string
   protocolo?: string
   created_at: string
   updated_at: string

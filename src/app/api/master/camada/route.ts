@@ -15,15 +15,16 @@ import { supabaseServer } from '@/lib/supabase-server'
  * autor comum de mexer em oculto/ia_decisao/ia_motivo sem quebrar o painel.
  */
 
-type Camada = 'pets' | 'classificados' | 'empregos'
-const TABELAS: Record<Camada, string> = { pets: 'pets', classificados: 'classificados', empregos: 'empregos' }
-const BUCKETS: Record<Camada, string> = { pets: 'pets-fotos', classificados: 'classificados-fotos', empregos: 'empregos-fotos' }
+type Camada = 'pets' | 'classificados' | 'empregos' | 'imoveis'
+const TABELAS: Record<Camada, string> = { pets: 'pets', classificados: 'classificados', empregos: 'empregos', imoveis: 'imoveis' }
+const BUCKETS: Record<Camada, string> = { pets: 'pets-fotos', classificados: 'classificados-fotos', empregos: 'empregos-fotos', imoveis: 'imoveis-fotos' }
 
 /** Só o que a moderação do master de fato precisa mexer — nada de conteúdo aqui. */
 const CAMPOS_PERMITIDOS: Record<Camada, string[]> = {
   pets: ['oculto', 'ia_decisao', 'ia_motivo', 'ia_analisado_em'],
   classificados: ['oculto', 'ia_decisao', 'ia_motivo', 'ia_analisado_em'],
   empregos: ['oculto', 'encerrada'],
+  imoveis: ['oculto', 'ia_decisao', 'ia_motivo', 'ia_analisado_em'],
 }
 
 /** Extrai o caminho do arquivo dentro do bucket a partir da URL pública completa. */
@@ -80,8 +81,8 @@ export async function DELETE(req: NextRequest) {
   const c = camada as Camada
   const bucket = BUCKETS[c]
 
-  if (c === 'classificados') {
-    const { data } = await supabaseServer.from('classificados').select('fotos').eq('id', id).single()
+  if (c === 'classificados' || c === 'imoveis') {
+    const { data } = await supabaseServer.from(c).select('fotos').eq('id', id).single()
     const caminhos = (data?.fotos || []).map((url: string) => caminhoNoBucket(url, bucket)).filter((p: string | null): p is string => !!p)
     if (caminhos.length > 0) await supabaseServer.storage.from(bucket).remove(caminhos).catch(() => {})
   } else {

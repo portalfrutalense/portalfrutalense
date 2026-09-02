@@ -11,9 +11,10 @@ import { usePathname, useSearchParams } from 'next/navigation'
 // ficar diferentes com o tempo.
 export const CAMADAS_NAV = [
   { label: 'Demandas Municipais', camada: 'demandas' },
-  { label: 'Empregos', camada: 'empregos' },
-  { label: 'Classificados', camada: 'classificados' },
-  { label: 'Achei/Perdi um Pet', camada: 'pets' },
+  { label: 'Vagas de Emprego', camada: 'empregos' },
+  { label: 'Veículos', camada: 'classificados' },
+  { label: 'Imóveis', camada: 'imoveis' },
+  { label: 'Área PET', camada: 'pets' },
 ]
 
 function NavCamadas({ user }: { user: unknown }) {

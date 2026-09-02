@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
-import { Pet, Classificado, Emprego } from '@/types'
+import { Pet, Classificado, Emprego, Imovel } from '@/types'
 
 /**
  * BUG CORRIGIDO: este painel tratava só `ia_decisao == null` como "ainda não
@@ -33,7 +33,7 @@ function estaPendenteDeIA(iaDecisao: string | null | undefined): boolean {
 // aconteceu. Agora devolvem se deu certo, e quem chama mostra o aviso certo.
 async function moderarCamada(
   client: ReturnType<typeof createClient>,
-  camada: 'pets' | 'classificados' | 'empregos',
+  camada: 'pets' | 'classificados' | 'empregos' | 'imoveis',
   id: string,
   campos: Record<string, unknown>
 ): Promise<boolean> {
@@ -53,7 +53,7 @@ async function moderarCamada(
  */
 async function excluirCamada(
   client: ReturnType<typeof createClient>,
-  camada: 'pets' | 'classificados' | 'empregos',
+  camada: 'pets' | 'classificados' | 'empregos' | 'imoveis',
   id: string
 ): Promise<boolean> {
   const { data: { session } } = await client.auth.getSession()
@@ -666,6 +666,137 @@ export function MasterEmpregos() {
         { chave: 'todos', rotulo: 'Todas' },
         { chave: 'encerradas', rotulo: 'Encerradas' },
         { chave: 'ocultos', rotulo: 'Ocultas' },
+      ]}
+      filtroAtivo={filtro}
+      setFiltro={setFiltro}
+      notif={notif}
+      notifErro={notifErro}
+    />
+  )
+}
+
+/* ============================================================= imóveis = */
+
+const ROTULO_TIPO_IMOVEL: Record<string, string> = {
+  casa: 'Casa', apartamento: 'Apartamento', terreno: 'Terreno', comodo_comercial: 'Cômodo Comercial',
+  barracao: 'Barracão', fazenda_chacara_sitio: 'Fazenda, Chácara ou Sítio',
+}
+const ROTULO_FINALIDADE_IMOVEL: Record<string, string> = { aluguel: 'Aluguel', venda: 'Venda' }
+
+export function MasterImoveis() {
+  const client = createClient()
+  const [itensBanco, setItensBanco] = useState<Imovel[]>([])
+  const [carregando, setCarregando] = useState(true)
+  const [filtro, setFiltro] = useState('todos')
+  const { notif, notifErro, avisar } = useNotif()
+
+  async function carregar() {
+    setCarregando(true)
+    const { data } = await client.from('imoveis').select('*').order('created_at', { ascending: false })
+    setItensBanco((data as Imovel[]) || [])
+    setCarregando(false)
+  }
+  useEffect(() => {
+    client.from('imoveis').select('*').order('created_at', { ascending: false })
+      .then(({ data }) => { setItensBanco((data as Imovel[]) || []); setCarregando(false) })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Sem filtro "Vendidos"/"Alugados" aqui — decisão confirmada com o
+  // usuário: marcar vendido/alugado exclui a linha de verdade (ver
+  // MapaDemandas.tsx/marcarImovelVendidoAlugado), então nunca existe um
+  // registro nesse estado pra listar.
+  const filtrados = itensBanco.filter(i => {
+    if (filtro === 'todos') return true
+    if (filtro === 'ocultos') return i.oculto
+    if (filtro === 'pendente_ia') return estaPendenteDeIA(i.ia_decisao)
+    if (filtro === 'aluguel' || filtro === 'venda') return i.finalidade === filtro
+    return true
+  })
+
+  const itens: ItemLista[] = filtrados.map(i => ({
+    id: i.id,
+    titulo: i.autor_nome,
+    subtitulo: undefined,
+    data: i.created_at,
+    foto: null,
+    fotos: i.fotos ?? [],
+    oculto: !!i.oculto,
+    etiquetas: [
+      { texto: ROTULO_FINALIDADE_IMOVEL[i.finalidade] || i.finalidade, cor: '#4256c8' },
+      { texto: ROTULO_TIPO_IMOVEL[i.tipo] || i.tipo, cor: '#f59e0b' },
+      ...(estaPendenteDeIA(i.ia_decisao) ? [{ texto: 'Pendente IA',      cor: '#92400e' }] : []),
+      ...(i.ia_decisao === 'aprovada'    ? [{ texto: 'Aprovada',         cor: '#166534' }] : []),
+      ...(i.ia_decisao === 'rejeitada'   ? [{ texto: 'Rejeitada pela IA', cor: '#dc2626' }] : []),
+      ...(i.oculto                       ? [{ texto: 'Oculto',           cor: '#6b7280' }] : []),
+    ],
+    meta: [
+      ...(i.protocolo ? [{ rotulo: 'Protocolo',   valor: i.protocolo }] : []),
+      { rotulo: 'Autor',       valor: i.autor_nome },
+      { rotulo: 'Finalidade',  valor: ROTULO_FINALIDADE_IMOVEL[i.finalidade] || i.finalidade },
+      { rotulo: 'Tipo',        valor: ROTULO_TIPO_IMOVEL[i.tipo] || i.tipo },
+      { rotulo: 'Valor',       valor: moeda(i.valor) },
+      { rotulo: 'Descrição',   valor: i.descricao },
+      { rotulo: 'Endereço',    valor: i.endereco_label || '—' },
+      { rotulo: 'Contato',     valor: i.contato },
+    ],
+    destaque: {
+      rotulo: i.ia_decisao === 'rejeitada' ? 'Motivo IA:' : 'Análise IA:',
+      valor: estaPendenteDeIA(i.ia_decisao)
+        ? 'Aguardando análise automática'
+        : i.ia_decisao === 'aprovada'
+          ? (i.ia_motivo || 'Aprovada')
+          : (i.ia_motivo || 'Rejeitada'),
+      cor: estaPendenteDeIA(i.ia_decisao) ? '#b45309' : i.ia_decisao === 'rejeitada' ? '#dc2626' : '#6b7280',
+    },
+    acoes: [
+      ...(i.ia_decisao !== 'aprovada' ? [{
+        rotulo: 'Aprovar',
+        cor: '#166534',
+        executar: async () => {
+          const ok = await moderarCamada(client, 'imoveis', i.id, {
+            oculto: false,
+            ia_decisao: 'aprovada',
+            ia_motivo: 'Aprovado manualmente pelo administrador.',
+            ia_analisado_em: new Date().toISOString(),
+          })
+          avisar(ok ? 'Anúncio aprovado.' : 'Não foi possível aprovar. Tente novamente.', !ok)
+          carregar()
+        },
+      }] : []),
+      {
+        rotulo: i.oculto ? 'Reexibir' : 'Ocultar',
+        cor: i.oculto ? '#166534' : '#92400e',
+        executar: async () => {
+          const ok = await moderarCamada(client, 'imoveis', i.id, { oculto: !i.oculto })
+          avisar(ok ? (i.oculto ? 'Anúncio reexibido no mapa.' : 'Anúncio ocultado do mapa.') : 'Não foi possível concluir a ação. Tente novamente.', !ok)
+          carregar()
+        },
+      },
+      {
+        rotulo: 'Excluir',
+        cor: '#dc2626',
+        confirmar: 'Excluir este anúncio permanentemente? Esta ação não pode ser desfeita.',
+        executar: async () => {
+          const ok = await excluirCamada(client, 'imoveis', i.id)
+          avisar(ok ? 'Anúncio excluído.' : 'Não foi possível excluir. Tente novamente.', !ok)
+          carregar()
+        },
+      },
+    ],
+  }))
+
+  return (
+    <ListaModeracao
+      carregando={carregando}
+      itens={itens}
+      vazio="Nenhum anúncio nesse filtro."
+      filtros={[
+        { chave: 'todos',       rotulo: 'Todos',       contagem: itensBanco.length },
+        { chave: 'pendente_ia', rotulo: 'Pendente IA', contagem: itensBanco.filter(i => estaPendenteDeIA(i.ia_decisao)).length },
+        { chave: 'aluguel',     rotulo: 'Aluguel',     contagem: itensBanco.filter(i => i.finalidade === 'aluguel').length },
+        { chave: 'venda',       rotulo: 'Venda',       contagem: itensBanco.filter(i => i.finalidade === 'venda').length },
+        { chave: 'ocultos',     rotulo: 'Ocultos',     contagem: itensBanco.filter(i => !!i.oculto).length },
       ]}
       filtroAtivo={filtro}
       setFiltro={setFiltro}

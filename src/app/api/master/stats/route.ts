@@ -26,11 +26,16 @@ export async function GET(req: NextRequest) {
   const user = await getMasterUser(req)
   if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
-  const [d, p, c, e] = await Promise.all([
+  const [d, p, c, e, im] = await Promise.all([
     buscarTudo<{ status: string; oculto: boolean }>('demandas', 'status, oculto'),
     buscarTudo<{ tipo: string; reencontrado: boolean; oculto: boolean; ia_decisao: string | null }>('pets', 'tipo, reencontrado, oculto, ia_decisao'),
     buscarTudo<{ tipo_veiculo: string; vendido: boolean; oculto: boolean; ia_decisao: string | null }>('classificados', 'tipo_veiculo, vendido, oculto, ia_decisao'),
     buscarTudo<{ encerrada: boolean; oculto: boolean }>('empregos', 'encerrada, oculto'),
+    // BUG EVITADO: imóveis não tem `vendido`/`encerrada` — "marcar
+    // vendido/alugado" exclui a linha de verdade (decisão confirmada com o
+    // usuário, ver MapaDemandas.tsx), então o único estado a contar aqui é
+    // oculto/ia_decisao.
+    buscarTudo<{ oculto: boolean; ia_decisao: string | null }>('imoveis', 'oculto, ia_decisao'),
   ])
 
   // BUG CORRIGIDO: mesma causa raiz de MasterMapaCamadas.tsx — o gatilho de
@@ -81,6 +86,13 @@ export async function GET(req: NextRequest) {
       ativas:     e.filter(x => !x.encerrada && !x.oculto).length,
       encerradas: e.filter(x => x.encerrada).length,
       ocultas:    e.filter(x => x.oculto).length,
+    },
+    imoveis: {
+      total:        im.length,
+      ativos:       im.filter(x => !x.oculto).length,
+      ocultos:      im.filter(x => x.oculto).length,
+      pendente_ia:  im.filter(x => estaPendenteDeIA(x.ia_decisao)).length,
+      rejeitada_ia: im.filter(x => x.ia_decisao === 'rejeitada').length,
     },
   })
 }

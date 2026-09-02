@@ -168,11 +168,12 @@ export async function DELETE(req: NextRequest) {
   // Mesma limpeza já feita em /api/cidadao/excluir-conta (Bloco 1); faltava
   // aqui, no caminho em que é o master quem exclui a conta de outra pessoa
   // — inclusive demandas, que este caminho nunca chegou a tocar (ver abaixo).
-  const [{ data: demandas }, { data: pets }, { data: classificados }, { data: empregos }] = await Promise.all([
+  const [{ data: demandas }, { data: pets }, { data: classificados }, { data: empregos }, { data: imoveis }] = await Promise.all([
     supabaseServer.from('demandas').select('foto_url').eq('user_id', id),
     supabaseServer.from('pets').select('foto_url').eq('user_id', id),
     supabaseServer.from('classificados').select('fotos').eq('user_id', id),
     supabaseServer.from('empregos').select('logo_url').eq('user_id', id),
+    supabaseServer.from('imoveis').select('fotos').eq('user_id', id),
   ])
   const caminhosDemandas = (demandas || [])
     .map(d => d.foto_url && caminhoNoBucket(d.foto_url, 'demandas-fotos'))
@@ -187,11 +188,16 @@ export async function DELETE(req: NextRequest) {
   const caminhosEmpregos = (empregos || [])
     .map(e => e.logo_url && caminhoNoBucket(e.logo_url, 'empregos-fotos'))
     .filter((p): p is string => !!p)
+  const caminhosImoveis = (imoveis || [])
+    .flatMap(i => i.fotos || [])
+    .map(url => caminhoNoBucket(url, 'imoveis-fotos'))
+    .filter((p): p is string => !!p)
   await Promise.all([
     caminhosDemandas.length > 0 ? supabaseServer.storage.from('demandas-fotos').remove(caminhosDemandas) : null,
     caminhosPets.length > 0 ? supabaseServer.storage.from('pets-fotos').remove(caminhosPets) : null,
     caminhosClassificados.length > 0 ? supabaseServer.storage.from('classificados-fotos').remove(caminhosClassificados) : null,
     caminhosEmpregos.length > 0 ? supabaseServer.storage.from('empregos-fotos').remove(caminhosEmpregos) : null,
+    caminhosImoveis.length > 0 ? supabaseServer.storage.from('imoveis-fotos').remove(caminhosImoveis) : null,
   ].filter(Boolean)).catch(e => console.error('[master/perfis] falha ao limpar fotos do storage:', e))
 
   // demandas.user_id é ON DELETE SET NULL (não cascade) — diferente de

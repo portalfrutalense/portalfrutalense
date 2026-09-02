@@ -25,7 +25,7 @@ import type { createClient } from '@/lib/supabase-browser'
 export async function salvarCamada({
   camada, editando, dados, turnstileToken, supabase,
 }: {
-  camada: 'pets' | 'classificados' | 'empregos'
+  camada: 'pets' | 'classificados' | 'empregos' | 'imoveis'
   editando: { id: string } | null
   dados: Record<string, unknown>
   turnstileToken: string

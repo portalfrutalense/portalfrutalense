@@ -26,11 +26,15 @@ export async function DELETE(req: NextRequest) {
   // tratado em /api/camadas/excluir e /api/master/perfis, só não tinha
   // sido replicado aqui. Uma vaga publicada e excluída em cascata pela
   // conta deixava a logo órfã no Storage pra sempre.
-  const [{ data: demandas }, { data: pets }, { data: classificados }, { data: empregos }] = await Promise.all([
+  // BUG EVITADO (mesma classe do B15-3 acima): `imoveis.fotos` tem o mesmo
+  // formato de array de classificados — replicado aqui desde a criação da
+  // camada, pra não repetir o mesmo esquecimento com empregos.
+  const [{ data: demandas }, { data: pets }, { data: classificados }, { data: empregos }, { data: imoveis }] = await Promise.all([
     supabaseServer.from('demandas').select('foto_url').eq('user_id', user.id),
     supabaseServer.from('pets').select('foto_url').eq('user_id', user.id),
     supabaseServer.from('classificados').select('fotos').eq('user_id', user.id),
     supabaseServer.from('empregos').select('logo_url').eq('user_id', user.id),
+    supabaseServer.from('imoveis').select('fotos').eq('user_id', user.id),
   ])
 
   const caminhosDemandas = (demandas || [])
@@ -50,6 +54,11 @@ export async function DELETE(req: NextRequest) {
     .map(e => e.logo_url && caminhoNoBucket(e.logo_url, 'empregos-fotos'))
     .filter((p): p is string => !!p)
 
+  const caminhosImoveis = (imoveis || [])
+    .flatMap(i => i.fotos || [])
+    .map(url => caminhoNoBucket(url, 'imoveis-fotos'))
+    .filter((p): p is string => !!p)
+
   // 2. Apagar as fotos do Storage — best-effort: uma falha aqui deixa
   // arquivo órfão (ruim, mas recuperável limpando depois), não deve travar
   // a exclusão da conta em si, que é o que a LGPD realmente exige.
@@ -58,6 +67,7 @@ export async function DELETE(req: NextRequest) {
     caminhosPets.length > 0 ? supabaseServer.storage.from('pets-fotos').remove(caminhosPets) : null,
     caminhosClassificados.length > 0 ? supabaseServer.storage.from('classificados-fotos').remove(caminhosClassificados) : null,
     caminhosEmpregos.length > 0 ? supabaseServer.storage.from('empregos-fotos').remove(caminhosEmpregos) : null,
+    caminhosImoveis.length > 0 ? supabaseServer.storage.from('imoveis-fotos').remove(caminhosImoveis) : null,
   ].filter(Boolean)).catch(e => console.error('[excluir-conta] falha ao limpar fotos do storage:', e))
 
   // 3. Apagar demandas — esta tabela usa ON DELETE SET NULL (não cascade),
@@ -85,7 +95,7 @@ export async function DELETE(req: NextRequest) {
 
   // 4. Por último, a conta do Auth — perfis.id tem ON DELETE CASCADE pra
   // auth.users, então apagar a conta do Auth já apaga o perfil (e
-  // pets/classificados/empregos do usuário) na mesma operação. Um passo
+  // pets/classificados/empregos/imoveis do usuário) na mesma operação. Um passo
   // manual "apagar perfil" ANTES deste existia aqui, mas deixava a conta
   // do Auth órfã (sem perfil) se essa chamada seguinte falhasse — a conta
   // ficava presa num estado inconsistente que só dava pra limpar manual

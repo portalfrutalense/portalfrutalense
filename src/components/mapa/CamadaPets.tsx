@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '../AuthProvider'
 import { Pet, EspeciePet, PortePet, CamadaConfig } from '@/types'
 import { escapeHtml } from '@/lib/escapeHtml'
+import { linkWhatsapp } from '@/lib/mascaraTelefone'
 // Só o tipo — o maplibre-gl em si continua carregado dinamicamente por
 // useMapaBase (import type é apagado na compilação, não força o bundle).
 import type { Map as MapLibreMap, Marker, Popup } from 'maplibre-gl'
@@ -54,6 +55,16 @@ export function chaveCorPet(p: Pet): string {
   return 'pet_achado'
 }
 
+// BUG CORRIGIDO (pedido do usuário): "Reencontrados" não é uma situação como
+// as outras — é um pet que já foi encontrado, então não faz sentido ele
+// aparecer misturado no filtro "Todos" (mapa e lista). Só aparece quando o
+// filtro "Reencontrados" é selecionado explicitamente.
+export function visivelNoFiltro(p: Pet, filtro: string): boolean {
+  const chave = chaveCorPet(p)
+  if (filtro) return chave === filtro
+  return chave !== 'pet_reencontrado'
+}
+
 /** Chave de configuração de verdade (situação + espécie) — é essa que
  * indexa cor e ícone em `camadas_config`, pra cachorro e gato poderem ter
  * cor/ícone independentes dentro da mesma situação (ex: "Perdido" tem uma
@@ -82,7 +93,15 @@ const ROTULO_FILTRO: Record<string, string> = {
 
 function sentenceCase(str?: string) {
   if (!str) return ''
-  return str.charAt(0).toUpperCase() + str.slice(1)
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+}
+
+// Endereço é nome próprio (nome de rua/bairro) — cada palavra com inicial
+// maiúscula, não só a primeira. Evita `\w`/`\b` (ASCII-only, quebra em
+// acento) — mesmo cuidado documentado em MapaDemandas.tsx/titleCase.
+function titleCase(str?: string) {
+  if (!str) return ''
+  return str.toLowerCase().split(' ').map((w) => w ? w.charAt(0).toUpperCase() + w.slice(1) : w).join(' ')
 }
 
 /* ================================================================= dados = */
@@ -170,7 +189,7 @@ export function useMarkersPets({
     markersRef.current = []
     if (!ativo) return
 
-    const visiveis = pets.filter(p => !filtro || chaveCorPet(p) === filtro)
+    const visiveis = pets.filter(p => visivelNoFiltro(p, filtro))
     const porId = new Map(visiveis.map(p => [p.id, p]))
 
     visiveis.forEach((p) => {
@@ -200,8 +219,8 @@ export function useMarkersPets({
         <div style="min-width:200px;max-width:230px;font-family:Inter,sans-serif;">
           ${p.foto_url ? `<img src="${escapeHtml(p.foto_url)}" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin-bottom:8px;display:block;" />` : ''}
           <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:.03em;">${titulo}</p>
-          ${p.nome_pet ? `<p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#111827;">${escapeHtml(p.nome_pet)}</p>` : ''}
-          <p style="margin:0 0 6px;font-size:12px;color:#6b7280;">${escapeHtml(p.endereco_label)}</p>
+          ${p.nome_pet ? `<p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#111827;">${escapeHtml(sentenceCase(p.nome_pet))}</p>` : ''}
+          <p style="margin:0 0 6px;font-size:12px;color:#6b7280;">${escapeHtml(titleCase(p.endereco_label))}</p>
           <p style="margin:0 0 10px;font-size:13px;color:#111827;line-height:1.4;">${escapeHtml(sentenceCase(p.descricao))}</p>
           <button class="ver-pet-btn" data-ver-pet="${p.id}" style="background:none;border:none;padding:0;display:flex;align-items:center;gap:4px;color:#4256c8;font-size:13px;font-weight:600;cursor:pointer;">
             Ver detalhes
@@ -390,7 +409,7 @@ export function SidebarPets({
   onCentralizar: (lat: number, lng: number) => void
 }) {
   const { user, perfil } = useAuth()
-  const visiveis = pets.filter(p => !filtro || chaveCorPet(p) === filtro)
+  const visiveis = pets.filter(p => visivelNoFiltro(p, filtro))
 
   if (selecionado) {
     const cor = cores[chaveConfigPet(selecionado)] || '#4256c8'
@@ -419,6 +438,15 @@ export function SidebarPets({
             </span>
           </div>
 
+          {/* Protocolo — padrão unificado (pedido do usuário) entre badge e
+              foto, igual nas outras camadas agora. Campo novo aqui: nunca
+              era exibido antes, só existia no banco. */}
+          {selecionado.protocolo && (
+            <p style={{ margin: 0, fontSize: '11px', color: '#6b7280', fontFamily: 'monospace' }}>
+              Protocolo: <strong style={{ color: '#111827' }}>{selecionado.protocolo}</strong>
+            </p>
+          )}
+
           {selecionado.foto_url && (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={selecionado.foto_url} alt={selecionado.nome_pet || 'Foto do Pet'}
@@ -430,7 +458,7 @@ export function SidebarPets({
             {selecionado.nome_pet && (
               <div>
                 <p style={rotuloEstilo}>Nome</p>
-                <p style={valorEstilo}>{selecionado.nome_pet}</p>
+                <p style={valorEstilo}>{sentenceCase(selecionado.nome_pet)}</p>
               </div>
             )}
             <div>
@@ -451,13 +479,13 @@ export function SidebarPets({
               {selecionado.raca && (
                 <div>
                   <p style={rotuloEstilo}>Raça</p>
-                  <p style={valorEstilo}>{selecionado.raca}</p>
+                  <p style={valorEstilo}>{sentenceCase(selecionado.raca)}</p>
                 </div>
               )}
               {selecionado.cor && (
                 <div>
                   <p style={rotuloEstilo}>Cor</p>
-                  <p style={valorEstilo}>{selecionado.cor}</p>
+                  <p style={valorEstilo}>{sentenceCase(selecionado.cor)}</p>
                 </div>
               )}
             </div>
@@ -470,12 +498,17 @@ export function SidebarPets({
             {selecionado.endereco_label && (
               <div>
                 <p style={rotuloEstilo}>{selecionado.tipo === 'perdido' ? 'Sumiu perto de' : selecionado.tipo === 'adocao' ? 'Localização' : 'Encontrado em'}</p>
-                <p style={valorEstilo}>{selecionado.endereco_label}</p>
+                <p style={valorEstilo}>{titleCase(selecionado.endereco_label)}</p>
               </div>
             )}
             <div>
               <p style={rotuloEstilo}>Contato</p>
-              <p style={valorEstilo}>{selecionado.contato}</p>
+              {/* BUG CORRIGIDO (pedido do usuário): contato era só texto —
+                  vira link direto pro WhatsApp (wa.me). */}
+              <a href={linkWhatsapp(selecionado.contato)} target="_blank" rel="noopener noreferrer" style={botaoWhatsapp}>
+                <IconeWhatsapp />
+                Chamar no WhatsApp
+              </a>
             </div>
           </div>
 
@@ -520,15 +553,15 @@ export function SidebarPets({
         onTouchStart={isMobile ? aoIniciarArraste : undefined}
         onTouchMove={isMobile ? aoArrastar : undefined}
         onTouchEnd={isMobile ? aoSoltarArraste : undefined}
-        style={{ flexShrink: 0, touchAction: isMobile ? 'none' : undefined, padding: '8px 14px 12px' }}
+        style={{ flexShrink: 0, touchAction: isMobile ? 'none' : undefined, padding: '8px 14px 8px' }}
       >
-        <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 6px', lineHeight: 1.3 }}>Achei / Perdi um Pet</h2>
+        <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 6px', lineHeight: 1.3 }}>Área PET</h2>
         <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 12px', lineHeight: 1.5 }}>
-          Pets perdidos pelos donos e animais encontrados abandonados nas ruas.
+          Pets para adoção, perdidos pelos donos e animais encontrados abandonados nas ruas.
         </p>
 
         <button onClick={onRegistrar}
-          style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '9px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', marginBottom: '16px' }}>
+          style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '9px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', marginBottom: '10px' }}>
           {user ? 'Registrar Pet' : 'Entrar para registrar'}
         </button>
 
@@ -546,7 +579,7 @@ export function SidebarPets({
         onTouchStart={isMobile ? aoIniciarArraste : undefined}
         onTouchMove={isMobile ? aoArrastar : undefined}
         onTouchEnd={isMobile ? aoSoltarArraste : undefined}
-        style={{ flexShrink: 0, touchAction: isMobile ? 'none' : undefined, padding: '10px 14px', borderTop: '1px solid #f9fafb' }}
+        style={{ flexShrink: 0, touchAction: isMobile ? 'none' : undefined, padding: '6px 14px', borderTop: '1px solid #f9fafb' }}
       >
         <span style={{ fontSize: '11px', color: '#6b7280' }}>
           {visiveis.length} registro{visiveis.length !== 1 ? 's' : ''}
@@ -565,14 +598,24 @@ export function SidebarPets({
               style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '10px 12px', marginBottom: '8px', cursor: 'pointer' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '3px' }}>
-                <span style={{ fontSize: '10.5px', fontWeight: 700, color: cor, background: `${cor}18`, borderRadius: '20px', padding: '2px 8px' }}>
+                <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#111827' }}>
+                  {p.especie === 'cachorro' ? 'Cachorro' : 'Gato'}
+                </span>
+                <span style={{ fontSize: '10.5px', fontWeight: 700, color: cor, background: `${cor}18`, borderRadius: '20px', padding: '2px 8px', flexShrink: 0 }}>
                   {ROTULO_FILTRO[chaveCorPet(p)]}
                 </span>
               </div>
-              <p style={{ fontSize: '12.5px', fontWeight: 600, color: '#111827', margin: '0 0 2px', lineHeight: 1.4 }}>
-                {p.nome_pet ? `${sentenceCase(p.nome_pet)} — ${p.especie === 'cachorro' ? 'cachorro' : 'gato'}` : (p.especie === 'cachorro' ? 'Cachorro' : 'Gato')}
-              </p>
-              {p.endereco_label && <p style={{ fontSize: '11px', color: '#6b7280', margin: 0 }}>{p.endereco_label}</p>}
+              {/* Linha 2 muda conforme a situação (pedido do usuário):
+                  perdido/reencontrado mostra o nome; achado/adoção mostra
+                  raça+cor, já que geralmente não se sabe o nome do pet. */}
+              {(p.tipo === 'perdido' || p.reencontrado)
+                ? (p.nome_pet && <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 2px', lineHeight: 1.4 }}>{sentenceCase(p.nome_pet)}</p>)
+                : ((p.raca || p.cor) && (
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 2px', lineHeight: 1.4 }}>
+                      {[p.raca, p.cor].filter(Boolean).map(v => sentenceCase(v)).join(', ')}
+                    </p>
+                  ))}
+              {p.endereco_label && <p style={{ fontSize: '11px', color: '#6b7280', margin: 0 }}>{titleCase(p.endereco_label)}</p>}
             </div>
           )
         })}
@@ -581,9 +624,21 @@ export function SidebarPets({
   )
 }
 
-const rotuloEstilo: React.CSSProperties = { fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }
+const rotuloEstilo: React.CSSProperties = { fontSize: '10px', fontWeight: 700, color: '#111827', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }
 const valorEstilo: React.CSSProperties = { fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.5 }
 const botaoAcao: React.CSSProperties = { fontSize: '12px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px', cursor: 'pointer', fontWeight: 500, width: '100%' }
+
+// Botão de contato via WhatsApp — mesmo ícone (traço, estilo feather) já
+// usado no botão flutuante do assistente de IA (ChatBot.tsx), só que aqui
+// preenchido, cor da marca do WhatsApp.
+const botaoWhatsapp: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '2px', background: '#25d366', color: 'white', fontSize: '12.5px', fontWeight: 600, padding: '8px 14px', borderRadius: '20px', textDecoration: 'none', border: 'none', cursor: 'pointer', width: 'fit-content' }
+function IconeWhatsapp() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  )
+}
 
 
 

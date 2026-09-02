@@ -11,9 +11,10 @@ import { useMapaBase } from './mapa/useMapaBase'
 import { usePets, useMarkersPets, SidebarPets, FormularioPet } from './mapa/CamadaPets'
 import { useClassificados, useMarkersClassificados, SidebarClassificados, FormularioClassificado } from './mapa/CamadaClassificados'
 import { useEmpregos, useMarkersEmpregos, SidebarEmpregos, FormularioEmprego } from './mapa/CamadaEmpregos'
+import { useImoveis, useMarkersImoveis, SidebarImoveis, FormularioImovel } from './mapa/CamadaImoveis'
 import { FormDemanda } from './mapa/FormDemanda'
 import MapaTopBar from './mapa/MapaTopBar'
-import { Demanda, CategoriaMapa, Entidade, DemandaEntidade, Camada, Pet, Classificado, Emprego } from '@/types'
+import { Demanda, CategoriaMapa, Entidade, DemandaEntidade, Camada, Pet, Classificado, Emprego, Imovel } from '@/types'
 import { escapeHtml } from '@/lib/escapeHtml'
 // Só o tipo — o maplibre-gl em si continua carregado dinamicamente por
 // useMapaBase (import type é apagado na compilação, não força o bundle).
@@ -34,7 +35,7 @@ function titleCase(str?: string) {
 
 function sentenceCase(str?: string) {
   if (!str) return ''
-  return str.charAt(0).toUpperCase() + str.slice(1)
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
 }
 
 
@@ -75,10 +76,18 @@ export default function MapaDemandas() {
   const [formClassificado, setFormClassificado] = useState<{ aberto: boolean; editando: Classificado | null }>({ aberto: false, editando: null })
 
   // Estado da camada de empregos
+  // BUG CORRIGIDO (pedido do usuário): vagas não são mais filtradas por
+  // tipo de contrato — `filtroEmprego` foi removido (junto com o dropdown
+  // e a prop `filtro` de useMarkersEmpregos/SidebarEmpregos).
   const { empregos, config: configEmpregos, recarregar: recarregarEmpregos } = useEmpregos()
-  const [filtroEmprego, setFiltroEmprego] = useState('')
   const [empregoSelecionado, setEmpregoSelecionado] = useState<Emprego | null>(null)
   const [formEmprego, setFormEmprego] = useState<{ aberto: boolean; editando: Emprego | null }>({ aberto: false, editando: null })
+
+  // Estado da camada de imóveis
+  const { imoveis, config: configImoveis, recarregar: recarregarImoveis } = useImoveis()
+  const [filtroImovel, setFiltroImovel] = useState('')
+  const [imovelSelecionado, setImovelSelecionado] = useState<Imovel | null>(null)
+  const [formImovel, setFormImovel] = useState<{ aberto: boolean; editando: Imovel | null }>({ aberto: false, editando: null })
   const [voo, setVoo] = useState<{ fromX: number; fromY: number; fromW: number; fromH: number; toX: number; toY: number; toW: number; toH: number; animando: boolean } | null>(null)
   const [demandas, setDemandas] = useState<Demanda[]>([])
   const [categorias, setCategorias] = useState<CategoriaMapa[]>([])
@@ -224,7 +233,7 @@ export default function MapaDemandas() {
         <div style="min-width:200px;max-width:230px;font-family:Inter,sans-serif;">
           ${d.foto_url ? `<img src="${escapeHtml(d.foto_url)}" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin-bottom:8px;display:block;" />` : ''}
           <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#4256c8;text-transform:uppercase;letter-spacing:.03em;">${escapeHtml(d.categoria?.nome) || 'Sem categoria'}</p>
-          <p style="margin:0 0 6px;font-size:12px;color:#6b7280;">${escapeHtml(d.endereco_label)}</p>
+          <p style="margin:0 0 6px;font-size:12px;color:#6b7280;">${escapeHtml(titleCase(d.endereco_label))}</p>
           <p style="margin:0 0 10px;font-size:13px;color:#111827;line-height:1.4;">${escapeHtml(sentenceCase(d.descricao))}</p>
           <button class="ver-mais-btn" data-ver-mais="${d.id}" style="background:none;border:none;padding:0;display:flex;align-items:center;gap:4px;color:#4256c8;font-size:13px;font-weight:600;cursor:pointer;">
             Ver demanda
@@ -322,9 +331,16 @@ export default function MapaDemandas() {
 
   useMarkersEmpregos({
     ativo: camada === 'empregos',
-    empregos, config: configEmpregos, filtro: filtroEmprego,
+    empregos, config: configEmpregos,
     mapaObj, maplibreObj, mapaCarregado,
     aoSelecionar: (e) => { setEmpregoSelecionado(e); setSheetState('full') },
+  })
+
+  useMarkersImoveis({
+    ativo: camada === 'imoveis',
+    imoveis, config: configImoveis, filtro: filtroImovel,
+    mapaObj, maplibreObj, mapaCarregado,
+    aoSelecionar: (i) => { setImovelSelecionado(i); setSheetState('full') },
   })
 
   // Trocar de camada limpa a seleção da anterior — o mapa em si é preservado
@@ -335,6 +351,7 @@ export default function MapaDemandas() {
     setPetSelecionado(null)
     setClassificadoSelecionado(null)
     setEmpregoSelecionado(null)
+    setImovelSelecionado(null)
     setSheetState('peek')
   }
 
@@ -350,7 +367,7 @@ export default function MapaDemandas() {
   // apagada mas o arquivo continuava órfão no bucket pra sempre.
   // BUG CORRIGIDO: devolvia só `res.ok` — quando a exclusão falhava, o item
   // simplesmente continuava na tela sem nenhuma mensagem ao usuário.
-  async function excluirViaApi(camada: 'pets' | 'classificados' | 'empregos', id: string) {
+  async function excluirViaApi(camada: 'pets' | 'classificados' | 'empregos' | 'imoveis', id: string) {
     const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch('/api/camadas/excluir', {
       method: 'POST',
@@ -401,10 +418,15 @@ export default function MapaDemandas() {
     recarregarClassificados()
   }
 
+  // BUG CORRIGIDO (decisão confirmada com o usuário): "marcar vendido"
+  // antes só ligava a flag `vendido` — a linha e as fotos continuavam no
+  // banco/Storage pra sempre, só saindo do mapa público. Agora usa a mesma
+  // rota de exclusão que excluirClassificado (apaga linha + fotos de
+  // verdade, sem rastro) — mesmo padrão aplicado a encerrarEmprego e
+  // marcarImovelVendidoAlugado logo abaixo.
   async function marcarClassificadoVendido(c: Classificado) {
-    const { error } = await supabase.from('classificados').update({ vendido: true }).eq('id', c.id)
-    // BUG CORRIGIDO: `if (error) return` engolia a falha em silêncio.
-    if (error) { alert('Não foi possível marcar como vendido. Tente novamente.'); return }
+    if (!confirm('Marcar como vendido? O anúncio será excluído e não poderá ser recuperado.')) return
+    if (!await excluirViaApi('classificados', c.id)) return
     setClassificadoSelecionado(null)
     setSheetState('half')
     recarregarClassificados()
@@ -418,13 +440,34 @@ export default function MapaDemandas() {
     recarregarEmpregos()
   }
 
+  // BUG CORRIGIDO (decisão confirmada com o usuário): ver comentário de
+  // marcarClassificadoVendido acima — mesma mudança de flag pra exclusão real.
   async function encerrarEmprego(e: Emprego) {
-    const { error } = await supabase.from('empregos').update({ encerrada: true }).eq('id', e.id)
-    // BUG CORRIGIDO: `if (error) return` engolia a falha em silêncio.
-    if (error) { alert('Não foi possível encerrar a vaga. Tente novamente.'); return }
+    if (!confirm('Encerrar esta vaga? O anúncio será excluído e não poderá ser recuperado.')) return
+    if (!await excluirViaApi('empregos', e.id)) return
     setEmpregoSelecionado(null)
     setSheetState('half')
     recarregarEmpregos()
+  }
+
+  async function excluirImovel(i: Imovel) {
+    if (!confirm('Excluir este anúncio? Essa ação não pode ser desfeita.')) return
+    if (!await excluirViaApi('imoveis', i.id)) return
+    setImovelSelecionado(null)
+    setSheetState('half')
+    recarregarImoveis()
+  }
+
+  // "Marcar vendido/alugado" já nasce como exclusão real (nunca teve uma
+  // flag como `classificados.vendido`/`empregos.encerrada` — ver
+  // sql/migration-imoveis.sql), mesmo comportamento das duas funções acima.
+  async function marcarImovelVendidoAlugado(i: Imovel) {
+    const acao = i.finalidade === 'aluguel' ? 'alugado' : 'vendido'
+    if (!confirm(`Marcar como ${acao}? O anúncio será excluído e não poderá ser recuperado.`)) return
+    if (!await excluirViaApi('imoveis', i.id)) return
+    setImovelSelecionado(null)
+    setSheetState('half')
+    recarregarImoveis()
   }
 
   // Detecta mobile (mesmo breakpoint do resto do layout)
@@ -539,13 +582,18 @@ export default function MapaDemandas() {
 
   const sidebarEstilo: React.CSSProperties = isMobile
     ? { position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1500, background: 'white', borderTopLeftRadius: '16px', borderTopRightRadius: '16px', boxShadow: '0 -1px 8px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', height: `${SNAP[sheetState] * 100}vh`, transition: 'height 0.25s ease', overflow: 'hidden' }
-    : { width: '260px', flexShrink: 0, background: 'white', borderRight: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', minHeight: 'clamp(300px, 55vw, 500px)', overflow: 'hidden' }
+    // BUG CORRIGIDO (pedido do usuário): a borda direita ia até o topo do
+    // sidebar, atravessando a faixa azul da logo — contra o azul, essa
+    // linha clara (#e5e7eb) aparecia como uma "listrinha branca" indevida.
+    // A borda saiu daqui (não cobre mais a altura da logo) e foi para o
+    // wrapper do conteúdo abaixo dela — ver comentário lá.
+    : { width: '260px', flexShrink: 0, background: 'white', display: 'flex', flexDirection: 'column', minHeight: 'clamp(300px, 55vw, 500px)', overflow: 'hidden' }
 
   // Se tem algo selecionado (card de detalhe aberto, em qualquer camada),
   // o wrapper externo do conteúdo volta a controlar arrasto/scroll como um
   // bloco só (comportamento de sempre) — só as telas de LISTAGEM (filtros +
   // lista de cards) usam o arrasto restrito ao cabeçalho.
-  const algumSelecionado = !!(demandaSelecionada || petSelecionado || classificadoSelecionado || empregoSelecionado)
+  const algumSelecionado = !!(demandaSelecionada || petSelecionado || classificadoSelecionado || empregoSelecionado || imovelSelecionado)
 
   // Clicar num card resumido da lista (só desktop) centraliza o mapa nele,
   // com um voo suave — mesma biblioteca que o mapa já usa (MapLibre), sem
@@ -575,7 +623,7 @@ export default function MapaDemandas() {
               sobre fundo branco, esse texto fica invisível e só o "IA"
               aparece. */}
           {!isMobile && (
-            <Link href="/" style={{ flexShrink: 0, height: '56px', display: 'flex', alignItems: 'center', padding: '0 18px', background: '#4256c8' }}>
+            <Link href="/" style={{ flexShrink: 0, height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#4256c8' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: '34px', width: 'auto', display: 'block' }} />
             </Link>
@@ -602,7 +650,11 @@ export default function MapaDemandas() {
               )}
             </div>
           )}
-          <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+          {/* Borda direita — antes ficava no container do sidebar inteiro e
+              cruzava a faixa azul da logo, criando uma "listrinha branca"
+              indevida contra o azul (pedido do usuário). Movida pra cá:
+              só cobre a altura do conteúdo abaixo da logo. */}
+          <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column', borderRight: isMobile ? undefined : '1px solid #e5e7eb' }}>
           <div
             // MUDANÇA DE COMPORTAMENTO (pedido do usuário): arrastar em
             // qualquer lugar do conteúdo só faz sentido enquanto o
@@ -663,14 +715,31 @@ export default function MapaDemandas() {
             /* ── CAMADA: EMPREGOS ── */
             <SidebarEmpregos
               empregos={empregos}
-              filtro={filtroEmprego}
-              setFiltro={setFiltroEmprego}
               selecionado={empregoSelecionado}
               setSelecionado={(e) => { setEmpregoSelecionado(e); if (!e) setSheetState('half'); else if (isMobile) setSheetState('full') }}
               onPublicar={() => user ? setFormEmprego({ aberto: true, editando: null }) : setModalAuth(true)}
               onEditar={(e) => setFormEmprego({ aberto: true, editando: e })}
               onExcluir={excluirEmprego}
               onEncerrar={encerrarEmprego}
+              isMobile={isMobile}
+              aoIniciarArraste={aoIniciarArraste}
+              aoArrastar={aoArrastar}
+              aoSoltarArraste={aoSoltarArraste}
+              onCentralizar={centralizarNoMapa}
+            />
+          ) : camada === 'imoveis' ? (
+            /* ── CAMADA: IMÓVEIS ── */
+            <SidebarImoveis
+              imoveis={imoveis}
+              filtro={filtroImovel}
+              setFiltro={setFiltroImovel}
+              selecionado={imovelSelecionado}
+              setSelecionado={(i) => { setImovelSelecionado(i); if (!i) setSheetState('half'); else if (isMobile) setSheetState('full') }}
+              onRegistrar={() => user ? setFormImovel({ aberto: true, editando: null }) : setModalAuth(true)}
+              onEditar={(i) => setFormImovel({ aberto: true, editando: i })}
+              onExcluir={excluirImovel}
+              onMarcarVendidoAlugado={marcarImovelVendidoAlugado}
+              onFoto={setFotoAmpliada}
               isMobile={isMobile}
               aoIniciarArraste={aoIniciarArraste}
               aoArrastar={aoArrastar}
@@ -692,8 +761,10 @@ export default function MapaDemandas() {
               {/* Conteúdo */}
               <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
-                {/* Badge de status + protocolo */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                {/* Badge de status — padrão unificado (pedido do usuário):
+                    badge → protocolo → foto → resto → respostas → ações,
+                    igual nas outras 3 camadas agora. */}
+                <div>
                   <span style={{
                     fontSize: '11px', fontWeight: 600, borderRadius: '20px', padding: '3px 10px',
                     background: statusCor[demandaSelecionada.status]?.bg || '#f9fafb',
@@ -701,88 +772,114 @@ export default function MapaDemandas() {
                   }}>
                     {statusLabel[demandaSelecionada.status] || demandaSelecionada.status}
                   </span>
-                  {demandaSelecionada.protocolo && (
-                    <span style={{ fontSize: '11px', color: '#6b7280', fontFamily: 'monospace' }}>
-                      Protocolo: <strong style={{ color: '#111827' }}>{demandaSelecionada.protocolo}</strong>
-                    </span>
-                  )}
                 </div>
+
+                {/* Protocolo — linha própria, não mais dentro do badge */}
+                {demandaSelecionada.protocolo && (
+                  <p style={{ margin: 0, fontSize: '11px', color: '#6b7280', fontFamily: 'monospace' }}>
+                    Protocolo: <strong style={{ color: '#111827' }}>{demandaSelecionada.protocolo}</strong>
+                  </p>
+                )}
+
+                {/* Foto — saiu de dentro da caixa cinza (ficava escondida
+                    quase no fim) pra cá, logo depois do protocolo. */}
+                {demandaSelecionada.foto_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={demandaSelecionada.foto_url}
+                    alt="Foto da demanda"
+                    onClick={() => setFotoAmpliada(demandaSelecionada.foto_url!)}
+                    style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '7px', cursor: 'zoom-in', display: 'block' }}
+                  />
+                )}
 
                 {/* Caixa principal — pares label/valor empilhados */}
                 <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div>
-                    <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }}>Demanda</p>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#111827', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }}>Demanda</p>
                     <p style={{ fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.5 }}>{sentenceCase(demandaSelecionada.descricao)}</p>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
                     <div>
-                      <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }}>Categoria</p>
+                      <p style={{ fontSize: '10px', fontWeight: 700, color: '#111827', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }}>Categoria</p>
                       <p style={{ fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.4 }}>{demandaSelecionada.categoria?.nome || '—'}</p>
                     </div>
                     <div>
-                      <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }}>Nome</p>
+                      <p style={{ fontSize: '10px', fontWeight: 700, color: '#111827', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }}>Nome</p>
                       <p style={{ fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.4 }}>{titleCase(demandaSelecionada.morador_nome)}</p>
                     </div>
                   </div>
 
                   {demandaSelecionada.endereco_label && (
                     <div>
-                      <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }}>Endereço</p>
+                      <p style={{ fontSize: '10px', fontWeight: 700, color: '#111827', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }}>Endereço</p>
                       <p style={{ fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.4 }}>{titleCase(demandaSelecionada.endereco_label)}</p>
                     </div>
                   )}
 
+                  {/* BUG CORRIGIDO (pedido do usuário): mostrava só
+                      `demandaSelecionada.entidade` — a coluna legada de
+                      autoridade única, sempre a primeira escolhida. Uma
+                      demanda pode ter até 3 autoridades vinculadas
+                      (demanda_entidades) e as outras duas nunca apareciam
+                      aqui. Agora lista todo mundo de `vinculosDemanda`. */}
                   <div>
-                    <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }}>Direcionada para</p>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#111827', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }}>Direcionada para</p>
                     <p style={{ fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.4 }}>
-                      {titleCase(demandaSelecionada.entidade?.nome)}
-                      {demandaSelecionada.entidade?.cargo && <span style={{ color: '#6b7280' }}> ({titleCase(demandaSelecionada.entidade.cargo)})</span>}
+                      {vinculosDemanda.length > 0
+                        ? vinculosDemanda.map((v, i) => {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            const ent = v.entidade as any
+                            return (
+                              <span key={v.id}>
+                                {i > 0 && ', '}
+                                {titleCase(ent?.nome)}
+                                {ent?.cargo && <span style={{ color: '#6b7280' }}> ({titleCase(ent.cargo)})</span>}
+                              </span>
+                            )
+                          })
+                        : '—'}
                     </p>
                   </div>
-
-                  {demandaSelecionada.foto_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={demandaSelecionada.foto_url}
-                      alt="Foto da demanda"
-                      onClick={() => setFotoAmpliada(demandaSelecionada.foto_url!)}
-                      style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '6px', cursor: 'pointer', border: '1px solid #e5e7eb' }}
-                    />
-                  )}
 
                   <p style={{ fontSize: '11px', color: '#6b7280', margin: 0, paddingTop: '8px', borderTop: '1px solid #e5e7eb' }}>
                     Criada em {new Date(demandaSelecionada.created_at).toLocaleDateString('pt-BR')}
                   </p>
                 </div>
 
-                {/* Respostas das autoridades */}
+                {/* Respostas das autoridades — BUG CORRIGIDO (pedido do
+                    usuário): status + nome + cargo iam tudo numa linha só,
+                    sem quebra — com nome/cargo compridos, o card ficava
+                    torto e diferente de autoridade pra autoridade. Agora
+                    nome (com cargo embaixo) fica numa coluna que pode
+                    quebrar linha à vontade, e o badge de status fica fixo
+                    à direita (`flexShrink:0`), sem nunca espremer. */}
                 {vinculosDemanda.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <p style={{ margin: 0, fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Respostas das autoridades</p>
-                    {vinculosDemanda.map(v => (
-                      <div key={v.id} style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 10px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: v.resposta ? '4px' : 0 }}>
-                          {/* BUG CORRIGIDO: emojis (✅/⏳) violavam a regra do projeto de nunca usar emoji */}
-                          <span style={{ fontSize: '11px', fontWeight: 600, color: v.status === 'respondida' ? '#166534' : '#92400e' }}>
-                            {v.status === 'respondida' ? 'Respondida' : 'Pendente'}
-                          </span>
-                          <span style={{ fontSize: '12px', fontWeight: 600, color: '#111827' }}>
-                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                            {(v.entidade as any)?.nome}
-                          </span>
-                          <span style={{ fontSize: '11px', color: '#9ca3af' }}>
-                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                            — {(v.entidade as any)?.cargo}
-                          </span>
+                    {vinculosDemanda.map(v => {
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      const ent = v.entidade as any
+                      return (
+                        <div key={v.id} style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                            <div style={{ minWidth: 0 }}>
+                              <p style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#111827', lineHeight: 1.35 }}>{ent?.nome}</p>
+                              {ent?.cargo && <p style={{ margin: 0, fontSize: '11px', color: '#9ca3af', lineHeight: 1.35 }}>{ent.cargo}</p>}
+                            </div>
+                            <span style={{ flexShrink: 0, fontSize: '11px', fontWeight: 600, color: v.status === 'respondida' ? '#166534' : '#92400e' }}>
+                              {v.status === 'respondida' ? 'Respondida' : 'Pendente'}
+                            </span>
+                          </div>
+                          {v.resposta ? (
+                            <p style={{ margin: 0, fontSize: '12px', color: '#374151', lineHeight: 1.5 }}>{v.resposta}</p>
+                          ) : (
+                            <p style={{ margin: 0, fontSize: '11px', color: '#9ca3af', fontStyle: 'italic' }}>Aguardando resposta...</p>
+                          )}
                         </div>
-                        {v.resposta ? (
-                          <p style={{ margin: 0, fontSize: '12px', color: '#374151', lineHeight: 1.5 }}>{v.resposta}</p>
-                        ) : (
-                          <p style={{ margin: 0, fontSize: '11px', color: '#9ca3af', fontStyle: 'italic' }}>Aguardando resposta...</p>
-                        )}
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 ) : null}
                 {/* BUG CORRIGIDO (código morto): fallback legado de "resposta
@@ -842,9 +939,9 @@ export default function MapaDemandas() {
                 onTouchStart={isMobile ? aoIniciarArraste : undefined}
                 onTouchMove={isMobile ? aoArrastar : undefined}
                 onTouchEnd={isMobile ? aoSoltarArraste : undefined}
-                style={{ flexShrink: 0, touchAction: isMobile ? 'none' : undefined, padding: '8px 14px 12px' }}>
-                <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 6px', lineHeight: 1.3 }}>Mapa de Demandas</h2>
-                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 12px', lineHeight: 1.5 }}>
+                style={{ flexShrink: 0, touchAction: isMobile ? 'none' : undefined, padding: '8px 14px 8px' }}>
+                <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 6px', lineHeight: 1.3 }}>Demandas Municipais</h2>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 10px', lineHeight: 1.5 }}>
                   Demandas dos cidadãos de Frutal-MG direcionadas às autoridades públicas.
                 </p>
 
@@ -852,20 +949,20 @@ export default function MapaDemandas() {
                 {user ? (
                   <button
                     onClick={() => setFormDemandaAberto(true)}
-                    style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '9px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', marginBottom: '16px' }}>
+                    style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '9px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', marginBottom: '10px' }}>
                     Registrar Demanda
                   </button>
                 ) : (
                   <button
                     onClick={() => setModalAuth(true)}
-                    style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '9px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', marginBottom: '16px' }}>
+                    style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '9px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', marginBottom: '10px' }}>
                     Entrar para registrar
                   </button>
                 )}
 
                 {/* Filtro de categoria */}
                 {categorias.length > 0 && (
-                  <div style={{ marginBottom: '16px' }}>
+                  <div style={{ marginBottom: '10px' }}>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#111827', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Categoria</label>
                     <select
                       value={filtroCategoria}
@@ -898,7 +995,7 @@ export default function MapaDemandas() {
                 onTouchStart={isMobile ? aoIniciarArraste : undefined}
                 onTouchMove={isMobile ? aoArrastar : undefined}
                 onTouchEnd={isMobile ? aoSoltarArraste : undefined}
-                style={{ flexShrink: 0, touchAction: isMobile ? 'none' : undefined, padding: '10px 14px', borderTop: '1px solid #f9fafb' }}>
+                style={{ flexShrink: 0, touchAction: isMobile ? 'none' : undefined, padding: '6px 14px', borderTop: '1px solid #f9fafb' }}>
                 <span style={{ fontSize: '11px', color: '#6b7280' }}>{demandasVisiveis.length} demanda{demandasVisiveis.length !== 1 ? 's' : ''}</span>
               </div>
 
@@ -916,21 +1013,21 @@ export default function MapaDemandas() {
                     style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '10px 12px', marginBottom: '8px', cursor: 'pointer' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '3px' }}>
-                      <span style={{ fontSize: '10.5px', fontWeight: 500, color: '#6b7280' }}>
+                      <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#111827' }}>
                         {d.categoria?.nome || 'Sem categoria'}
                       </span>
                       <span style={{
-                        fontSize: '10.5px', fontWeight: 700, borderRadius: '20px', padding: '2px 8px',
+                        fontSize: '10.5px', fontWeight: 700, borderRadius: '20px', padding: '2px 8px', flexShrink: 0,
                         background: statusCor[d.status]?.bg || '#f9fafb',
                         color: statusCor[d.status]?.color || '#6b7280',
                       }}>
                         {statusLabel[d.status] || d.status}
                       </span>
                     </div>
-                    <p style={{ fontSize: '12.5px', fontWeight: 600, color: '#111827', margin: '0 0 2px', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                      {d.descricao}
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 2px', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                      {sentenceCase(d.descricao)}
                     </p>
-                    {d.endereco_label && <p style={{ fontSize: '11px', color: '#6b7280', margin: 0 }}>{d.endereco_label}</p>}
+                    {d.endereco_label && <p style={{ fontSize: '11px', color: '#6b7280', margin: 0 }}>{titleCase(d.endereco_label)}</p>}
                   </div>
                 ))}
               </div>
@@ -958,6 +1055,7 @@ export default function MapaDemandas() {
                   pets: 'Faça login para ver os registros completos',
                   classificados: 'Faça login para ver os anúncios completos',
                   empregos: 'Faça login para ver as vagas completas',
+                  imoveis: 'Faça login para ver os anúncios completos',
                 }[camada]}
               </p>
               <button onClick={() => setModalAuth(true)} style={{ background: '#4256c8', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
@@ -1001,6 +1099,15 @@ export default function MapaDemandas() {
           editando={formEmprego.editando}
           aoFechar={() => setFormEmprego({ aberto: false, editando: null })}
           aoSalvar={() => { recarregarEmpregos(); setEmpregoSelecionado(null); if (isMobile && sheetState === 'full') setSheetState('half') }}
+        />
+      )}
+
+      {/* Formulário de imóvel (criar / editar) */}
+      {formImovel.aberto && (
+        <FormularioImovel
+          editando={formImovel.editando}
+          aoFechar={() => setFormImovel({ aberto: false, editando: null })}
+          aoSalvar={() => { recarregarImoveis(); setImovelSelecionado(null); if (isMobile && sheetState === 'full') setSheetState('half') }}
         />
       )}
 

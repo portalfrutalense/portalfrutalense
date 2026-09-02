@@ -8,6 +8,7 @@ const GRUPOS: { camada: string; titulo: string; descricao: string }[] = [
   { camada: 'pets', titulo: 'Pets', descricao: 'Cor e ícone do pin de cada situação. O ícone enviado substitui a silhueta padrão. Perdidos, Abandonados, Adoção e Reencontrados são registros independentes.' },
   { camada: 'classificados', titulo: 'Classificados', descricao: 'Cor e ícone do pin por tipo de veículo. O ícone enviado substitui a silhueta padrão.' },
   { camada: 'empregos', titulo: 'Empregos', descricao: 'Cor do pin das vagas. A logo da empresa, quando houver, ocupa o miolo do pin.' },
+  { camada: 'imoveis', titulo: 'Imóveis', descricao: 'Cor e ícone do pin por finalidade + tipo de imóvel (ex: "Alugar Casa" e "Vender Casa" são pins independentes). O ícone enviado substitui a silhueta padrão.' },
 ]
 
 export default function MasterCamadas({ camada: camadaFiltro }: { camada?: string } = {}) {
@@ -170,7 +171,11 @@ export default function MasterCamadas({ camada: camadaFiltro }: { camada?: strin
                     style={{ width: '42px', height: '34px', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '2px', cursor: 'pointer', background: 'white' }}
                   />
 
-                  {(camada === 'classificados' || camada === 'pets') && (
+                  {/* BUG CORRIGIDO (pedido do usuário): 'imoveis' faltava
+                      nesta lista — upload de ícone nunca aparecia pros
+                      pins de imóvel, mesmo o backend já suportando
+                      (icone_url é genérico, sem restrição de camada). */}
+                  {(camada === 'classificados' || camada === 'pets' || camada === 'imoveis') && (
                     <>
                       <label style={{ fontSize: '12px', fontWeight: 600, color: '#4256c8', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                         <input type="file" accept="image/*" style={{ display: 'none' }}

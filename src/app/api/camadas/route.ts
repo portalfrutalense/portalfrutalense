@@ -28,11 +28,12 @@ import { getUser, ipDaRequisicao, verificarTurnstile, limiteExcedido } from '@/l
  * o registro some do mapa até a IA (re)aprovar, igual ao fluxo de criação.
  */
 
-type Camada = 'pets' | 'classificados' | 'empregos'
+type Camada = 'pets' | 'classificados' | 'empregos' | 'imoveis'
 const TABELAS: Record<Camada, string> = {
   pets: 'pets',
   classificados: 'classificados',
   empregos: 'empregos',
+  imoveis: 'imoveis',
 }
 
 /** Campos que o cliente pode gravar, por camada. Nada fora disso passa. */
@@ -49,6 +50,10 @@ const CAMPOS: Record<Camada, string[]> = {
     'empresa_nome', 'cargo', 'area', 'contrato', 'salario', 'salario_a_combinar',
     'vagas', 'descricao', 'requisitos', 'lat', 'lng', 'endereco_label',
     'logo_url', 'contato',
+  ],
+  imoveis: [
+    'finalidade', 'tipo', 'descricao', 'valor', 'lat', 'lng', 'endereco_label',
+    'fotos', 'contato',
   ],
 }
 
@@ -79,6 +84,7 @@ const BUCKET_FOTO: Partial<Record<Camada, string>> = {
   pets: 'pets-fotos',
   classificados: 'classificados-fotos',
   empregos: 'empregos-fotos',
+  imoveis: 'imoveis-fotos',
 }
 
 // Mesmo centro/raio já usados no webhook do WhatsApp (dentroFrutal) pra
@@ -122,6 +128,7 @@ const CAMPOS_OBRIGATORIOS: Record<Camada, string[]> = {
   pets: ['tipo', 'especie'],
   classificados: ['titulo', 'contato'],
   empregos: ['cargo', 'empresa_nome'],
+  imoveis: ['finalidade', 'tipo', 'contato'],
 }
 
 /**
@@ -154,6 +161,12 @@ function erroDeEnum(camada: Camada, registro: Record<string, unknown>): string |
     const TIPOS_CONTRATO = ['clt', 'pj', 'temporario', 'estagio', 'freelance']
     if ('contrato' in registro && !TIPOS_CONTRATO.includes(registro.contrato as string)) return 'Tipo de contrato inválido.'
   }
+  if (camada === 'imoveis') {
+    const FINALIDADES = ['aluguel', 'venda']
+    const TIPOS_IMOVEL = ['casa', 'apartamento', 'terreno', 'comodo_comercial', 'barracao', 'fazenda_chacara_sitio']
+    if ('finalidade' in registro && !FINALIDADES.includes(registro.finalidade as string)) return 'Finalidade inválida.'
+    if ('tipo' in registro && !TIPOS_IMOVEL.includes(registro.tipo as string)) return 'Tipo de imóvel inválido.'
+  }
   return null
 }
 
@@ -182,6 +195,17 @@ function erroDeFotoInvalida(camada: Camada, registro: Record<string, unknown>): 
   if (camada === 'empregos' && registro.logo_url && !urlDoBucketValida(registro.logo_url, bucket)) {
     return 'Logo inválida. Tente anexar novamente.'
   }
+  // Imóveis exige de 2 a 4 fotos (pedido do usuário) — mesma checagem de
+  // bucket das outras camadas, mais o limite de quantidade, que a UI já
+  // aplica mas uma chamada direta à API não teria como garantir sozinha.
+  if (camada === 'imoveis') {
+    if (!Array.isArray(registro.fotos) || registro.fotos.length < 2 || registro.fotos.length > 4) {
+      return 'É preciso enviar de 2 a 4 fotos do imóvel.'
+    }
+    if (registro.fotos.some((f: unknown) => !urlDoBucketValida(f, bucket))) {
+      return 'Uma ou mais fotos são inválidas. Tente anexar novamente.'
+    }
+  }
   return null
 }
 
@@ -190,9 +214,9 @@ function erroDeFotoInvalida(camada: Camada, registro: Record<string, unknown>): 
  * falhar, o registro fica preso em 'pendente' até o botão "Reprocessar
  * pendentes travados" do painel master reenviar (mesmo comportamento já
  * existente pra criação). */
-function dispararAnaliseIA(camada: 'pets' | 'classificados', id: string) {
-  const rotaIA = camada === 'pets' ? '/api/ia/analisar-pet' : '/api/ia/analisar-classificado'
-  const corpoIA = camada === 'pets' ? { pet_id: id } : { classificado_id: id }
+function dispararAnaliseIA(camada: 'pets' | 'classificados' | 'imoveis', id: string) {
+  const rotaIA = camada === 'pets' ? '/api/ia/analisar-pet' : camada === 'classificados' ? '/api/ia/analisar-classificado' : '/api/ia/analisar-imovel'
+  const corpoIA = camada === 'pets' ? { pet_id: id } : camada === 'classificados' ? { classificado_id: id } : { imovel_id: id }
   const base = process.env.SITE_URL || 'http://localhost:3000'
   fetch(`${base}${rotaIA}`, {
     method: 'POST',
@@ -299,7 +323,7 @@ export async function POST(req: NextRequest) {
 
     // Pets e classificados nascem com ia_decisao='pendente' — a rota de IA atualiza ao terminar.
     // Assim registros que nunca foram analisados ficam visíveis no master como pendentes.
-    if (camada === 'pets' || camada === 'classificados') {
+    if (camada === 'pets' || camada === 'classificados' || camada === 'imoveis') {
       registro.ia_decisao = 'pendente'
     }
 
@@ -312,7 +336,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Dispara análise de IA em segundo plano para pets e classificados
-    if (data?.id && (camada === 'pets' || camada === 'classificados')) {
+    if (data?.id && (camada === 'pets' || camada === 'classificados' || camada === 'imoveis')) {
       dispararAnaliseIA(camada, data.id)
     }
 
@@ -345,7 +369,7 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json()
     const camada = body?.camada as Camada
     const id = body?.id as string | undefined
-    if (!id || (camada !== 'pets' && camada !== 'classificados')) {
+    if (!id || (camada !== 'pets' && camada !== 'classificados' && camada !== 'imoveis')) {
       return NextResponse.json({ error: 'Parâmetros inválidos.' }, { status: 400 })
     }
 

@@ -4,7 +4,16 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
 import { createClient } from '@/lib/supabase-browser'
-import type { Demanda, Pet, Classificado, Emprego } from '@/types'
+import type { Demanda, Pet, Classificado, Emprego, Imovel } from '@/types'
+
+// Mesmos rótulos de CamadaImoveis.tsx/MasterMapaCamadas.tsx — duplicado de
+// propósito, mesmo padrão do resto do projeto (sem módulo de rótulos
+// compartilhado entre telas de camada).
+const ROTULO_TIPO_IMOVEL: Record<string, string> = {
+  casa: 'Casa', apartamento: 'Apartamento', terreno: 'Terreno', comodo_comercial: 'Cômodo Comercial',
+  barracao: 'Barracão', fazenda_chacara_sitio: 'Fazenda, Chácara ou Sítio',
+}
+const ROTULO_FINALIDADE_IMOVEL: Record<string, string> = { aluguel: 'Aluguel', venda: 'Venda' }
 
 const statusLabel: Record<string, string> = {
   pendente: 'Pendente',
@@ -39,13 +48,15 @@ export default function PerfilPage() {
   // de gestão, só conseguia editar/excluir achando o próprio pin no mapa.
   // Adicionados os 3 módulos que faltavam, reaproveitando as mesmas rotas
   // e updates que o mapa (MapaDemandas.tsx) já usa pro dono de um registro.
-  const [subModulo, setSubModulo] = useState<'demandas' | 'pets' | 'classificados' | 'empregos' | null>(null)
+  const [subModulo, setSubModulo] = useState<'demandas' | 'pets' | 'classificados' | 'empregos' | 'imoveis' | null>(null)
   const [pets, setPets] = useState<Pet[]>([])
   const [carregandoPets, setCarregandoPets] = useState(true)
   const [classificados, setClassificados] = useState<Classificado[]>([])
   const [carregandoClassificados, setCarregandoClassificados] = useState(true)
   const [empregos, setEmpregos] = useState<Emprego[]>([])
   const [carregandoEmpregos, setCarregandoEmpregos] = useState(true)
+  const [imoveis, setImoveis] = useState<Imovel[]>([])
+  const [carregandoImoveis, setCarregandoImoveis] = useState(true)
 
   useEffect(() => {
     if (!carregando && !user) router.replace('/')
@@ -96,11 +107,24 @@ export default function PerfilPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, ehAutoridade])
 
+  // BUG CORRIGIDO (achado em auditoria dedicada à camada Imóveis): "Minhas
+  // atividades" ganhou os módulos Pets/Classificados/Empregos (B15-5), mas
+  // Imóveis nunca foi adicionado aqui — quem publicava um imóvel só
+  // conseguia editar/excluir achando o próprio pin no mapa, sem nenhuma
+  // tela de gestão própria, diferente das outras 3 camadas.
+  useEffect(() => {
+    if (!user || ehAutoridade) return
+    Promise.resolve().then(() => setCarregandoImoveis(true))
+    supabase.from('imoveis').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+      .then(({ data }) => { setImoveis((data || []) as Imovel[]); setCarregandoImoveis(false) })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, ehAutoridade])
+
   // Passa pelo backend (service_role) em vez de apagar a linha direto do
   // client — mesma rota que MapaDemandas.tsx já usa pro dono de um registro:
   // só assim dá pra limpar a foto/fotos correspondentes do Storage antes de
   // excluir a linha.
-  async function excluirViaApi(camada: 'pets' | 'classificados' | 'empregos', id: string) {
+  async function excluirViaApi(camada: 'pets' | 'classificados' | 'empregos' | 'imoveis', id: string) {
     const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch('/api/camadas/excluir', {
       method: 'POST',
@@ -133,10 +157,16 @@ export default function PerfilPage() {
     setClassificados(prev => prev.filter(c => c.id !== id))
   }
 
+  // BUG CORRIGIDO (achado em auditoria dedicada à camada Imóveis): esta
+  // função ainda só ligava a flag `vendido` (linha + fotos ficavam no
+  // banco/Storage pra sempre) — desde a decisão confirmada com o usuário
+  // de excluir de verdade ao marcar vendido/encerrado, MapaDemandas.tsx já
+  // foi corrigido, mas esta cópia paralela em /perfil (mesma ação, tela
+  // diferente) tinha ficado pra trás, ainda com o comportamento antigo.
   async function marcarClassificadoVendido(id: string) {
-    const { error } = await supabase.from('classificados').update({ vendido: true }).eq('id', id)
-    if (error) { alert('Não foi possível marcar como vendido. Tente novamente.'); return }
-    setClassificados(prev => prev.map(c => c.id === id ? { ...c, vendido: true } : c))
+    if (!confirm('Marcar como vendido? O anúncio será excluído e não poderá ser recuperado.')) return
+    if (!await excluirViaApi('classificados', id)) return
+    setClassificados(prev => prev.filter(c => c.id !== id))
   }
 
   async function excluirEmprego(id: string) {
@@ -145,10 +175,24 @@ export default function PerfilPage() {
     setEmpregos(prev => prev.filter(e => e.id !== id))
   }
 
+  // BUG CORRIGIDO — mesmo caso de marcarClassificadoVendido acima.
   async function encerrarEmprego(id: string) {
-    const { error } = await supabase.from('empregos').update({ encerrada: true }).eq('id', id)
-    if (error) { alert('Não foi possível encerrar a vaga. Tente novamente.'); return }
-    setEmpregos(prev => prev.map(e => e.id === id ? { ...e, encerrada: true } : e))
+    if (!confirm('Encerrar esta vaga? O anúncio será excluído e não poderá ser recuperado.')) return
+    if (!await excluirViaApi('empregos', id)) return
+    setEmpregos(prev => prev.filter(e => e.id !== id))
+  }
+
+  async function excluirImovel(id: string) {
+    if (!confirm('Excluir este anúncio? Essa ação não pode ser desfeita.')) return
+    if (!await excluirViaApi('imoveis', id)) return
+    setImoveis(prev => prev.filter(i => i.id !== id))
+  }
+
+  async function marcarImovelVendidoAlugado(id: string, finalidade: Imovel['finalidade']) {
+    const acao = finalidade === 'aluguel' ? 'alugado' : 'vendido'
+    if (!confirm(`Marcar como ${acao}? O anúncio será excluído e não poderá ser recuperado.`)) return
+    if (!await excluirViaApi('imoveis', id)) return
+    setImoveis(prev => prev.filter(i => i.id !== id))
   }
 
   async function marcarResolvida(id: string) {
@@ -250,6 +294,7 @@ export default function PerfilPage() {
               <CardModulo rotulo="Pets" contagem={pets.length} onClick={() => setSubModulo('pets')} />
               <CardModulo rotulo="Classificados" contagem={classificados.length} onClick={() => setSubModulo('classificados')} />
               <CardModulo rotulo="Empregos" contagem={empregos.length} onClick={() => setSubModulo('empregos')} />
+              <CardModulo rotulo="Imóveis" contagem={imoveis.length} onClick={() => setSubModulo('imoveis')} />
             </div>
           )}
 
@@ -469,6 +514,50 @@ export default function PerfilPage() {
                             </button>
                           )}
                           <button onClick={() => excluirEmprego(e.id)}
+                            style={{ fontSize: '11px', color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontWeight: 500 }}>
+                            Excluir
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {subModulo === 'imoveis' && (
+            <div>
+              <button onClick={() => setSubModulo(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#4256c8', padding: '0 0 16px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                ← Voltar
+              </button>
+              {carregandoImoveis ? (
+                <p style={{ fontSize: '14px', color: '#6b7280', textAlign: 'center', padding: '32px 0' }}>Carregando...</p>
+              ) : imoveis.length === 0 ? (
+                <p style={{ fontSize: '14px', color: '#6b7280', textAlign: 'center', padding: '32px 0' }}>Você ainda não publicou nenhum anúncio.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {imoveis.map(i => (
+                    <div key={i.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 500 }}>{ROTULO_TIPO_IMOVEL[i.tipo] || i.tipo}</span>
+                        <span style={{ fontSize: '11px', fontWeight: 600, borderRadius: '20px', padding: '3px 10px', background: '#f9fafb', color: '#166534' }}>
+                          {ROTULO_FINALIDADE_IMOVEL[i.finalidade] || i.finalidade}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.5 }}>
+                        {i.valor != null ? i.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : 'A combinar'}
+                      </p>
+                      {i.endereco_label && <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{i.endereco_label}</p>}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                        <span style={{ fontSize: '11px', color: '#6b7280' }}>{new Date(i.created_at).toLocaleDateString('pt-BR')}</span>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button onClick={() => marcarImovelVendidoAlugado(i.id, i.finalidade)}
+                            style={{ fontSize: '11px', color: '#166534', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontWeight: 500 }}>
+                            {i.finalidade === 'aluguel' ? 'Marcar alugado' : 'Marcar vendido'}
+                          </button>
+                          <button onClick={() => excluirImovel(i.id)}
                             style={{ fontSize: '11px', color: '#dc2626', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontWeight: 500 }}>
                             Excluir
                           </button>

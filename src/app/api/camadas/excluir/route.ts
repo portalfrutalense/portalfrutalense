@@ -3,20 +3,28 @@ import { getUser } from '@/lib/auth-api'
 import { supabaseServer } from '@/lib/supabase-server'
 
 /**
- * POST /api/camadas/excluir  { camada: 'pets'|'classificados'|'empregos', id }
+ * POST /api/camadas/excluir  { camada: 'pets'|'classificados'|'empregos'|'imoveis', id }
  *
  * Exclui um registro do próprio dono, limpando a(s) foto(s) do Storage
  * antes de apagar a linha — mesmo cuidado que MapaDemandas.tsx (excluirPet,
- * excluirClassificado, excluirEmprego) nunca teve: essas funções apagavam
- * a linha direto do client (Supabase), sem tocar no Storage, deixando as
- * fotos órfãs pra sempre. Já existia essa mesma limpeza pro caminho do
- * master (PATCH/DELETE /api/master/camada) — faltava só pro dono do
- * registro excluir a própria publicação com a mesma garantia.
+ * excluirClassificado, excluirEmprego, excluirImovel) nunca teve: essas
+ * funções apagavam a linha direto do client (Supabase), sem tocar no
+ * Storage, deixando as fotos órfãs pra sempre. Já existia essa mesma
+ * limpeza pro caminho do master (PATCH/DELETE /api/master/camada) —
+ * faltava só pro dono do registro excluir a própria publicação com a
+ * mesma garantia.
+ *
+ * BUG CORRIGIDO (decisão confirmada com o usuário): esta mesma rota agora
+ * também é usada por "marcar vendido"/"encerrar vaga"/"marcar
+ * alugado/vendido" (ver MapaDemandas.tsx) — antes essas 3 ações só
+ * marcavam uma flag (`vendido`/`encerrada`) e a linha + fotos ficavam no
+ * banco/Storage pra sempre, só saindo do mapa público. Agora "marcar" é,
+ * na prática, o mesmo excluir: some sem deixar rastro nenhum.
  */
 
-type Camada = 'pets' | 'classificados' | 'empregos'
-const TABELAS: Record<Camada, string> = { pets: 'pets', classificados: 'classificados', empregos: 'empregos' }
-const BUCKETS: Record<Camada, string> = { pets: 'pets-fotos', classificados: 'classificados-fotos', empregos: 'empregos-fotos' }
+type Camada = 'pets' | 'classificados' | 'empregos' | 'imoveis'
+const TABELAS: Record<Camada, string> = { pets: 'pets', classificados: 'classificados', empregos: 'empregos', imoveis: 'imoveis' }
+const BUCKETS: Record<Camada, string> = { pets: 'pets-fotos', classificados: 'classificados-fotos', empregos: 'empregos-fotos', imoveis: 'imoveis-fotos' }
 
 function caminhoNoBucket(fotoUrl: string, bucket: string): string | null {
   try {
@@ -39,13 +47,13 @@ export async function POST(req: NextRequest) {
   const c = camada as Camada
   const bucket = BUCKETS[c]
 
-  const campoFoto = c === 'classificados' ? 'fotos' : c === 'pets' ? 'foto_url' : 'logo_url'
+  const campoFoto = c === 'classificados' || c === 'imoveis' ? 'fotos' : c === 'pets' ? 'foto_url' : 'logo_url'
   const { data: registro } = await supabaseServer.from(c).select(`id, user_id, ${campoFoto}`).eq('id', id).single()
   if (!registro) return NextResponse.json({ error: 'Registro não encontrado.' }, { status: 404 })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if ((registro as any).user_id !== user.id) return NextResponse.json({ error: 'Não autorizado.' }, { status: 403 })
 
-  if (c === 'classificados') {
+  if (c === 'classificados' || c === 'imoveis') {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fotos = ((registro as any).fotos || []) as string[]
     const caminhos = fotos.map((url) => caminhoNoBucket(url, bucket)).filter((p): p is string => !!p)

@@ -21,3 +21,18 @@ export function telefoneValido(valor: string): boolean {
   const digits = valor.replace(/\D/g, '')
   return digits.length === 11 && digits[2] === '9'
 }
+
+/**
+ * Monta o link `wa.me` a partir do campo livre "contato" de pets,
+ * classificados e vagas — diferente do WhatsApp do próprio cadastro do
+ * cidadão (validado por `telefoneValido`), esse campo é texto livre digitado
+ * no formulário, sem validação de formato. Best-effort: limpa tudo que não
+ * for dígito e garante o DDI 55 na frente (sem duplicar se a pessoa já
+ * digitou com o 55). Não valida se sobrou um número plausível — quem decide
+ * se o link funciona é o próprio WhatsApp ao abrir.
+ */
+export function linkWhatsapp(contato: string): string {
+  let digits = contato.replace(/\D/g, '')
+  if (!digits.startsWith('55')) digits = `55${digits}`
+  return `https://wa.me/${digits}`
+}

@@ -9,6 +9,7 @@ import Turnstile from '../Turnstile'
 import { Emprego, TipoContrato, CamadaConfig } from '@/types'
 import { salvarCamada } from './salvarCamada'
 import { escapeHtml } from '@/lib/escapeHtml'
+import { linkWhatsapp } from '@/lib/mascaraTelefone'
 
 /* ------------------------------------------------------------- ícones --- */
 
@@ -44,7 +45,14 @@ function formatarSalario(e: Emprego) {
 
 function sentenceCase(str?: string) {
   if (!str) return ''
-  return str.charAt(0).toUpperCase() + str.slice(1)
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+}
+
+// Endereço é nome próprio — cada palavra com inicial maiúscula, não só a
+// primeira. Mesmo helper duplicado em CamadaPets.tsx/CamadaClassificados.tsx.
+function titleCase(str?: string) {
+  if (!str) return ''
+  return str.toLowerCase().split(' ').map((w) => w ? w.charAt(0).toUpperCase() + w.slice(1) : w).join(' ')
 }
 
 /* ================================================================= dados = */
@@ -82,12 +90,11 @@ export function useEmpregos() {
 /* =============================================================== markers = */
 
 export function useMarkersEmpregos({
-  ativo, empregos, config, filtro, mapaObj, maplibreObj, mapaCarregado, aoSelecionar,
+  ativo, empregos, config, mapaObj, maplibreObj, mapaCarregado, aoSelecionar,
 }: {
   ativo: boolean
   empregos: Emprego[]
   config: CamadaConfig | null
-  filtro: string
   mapaObj: React.MutableRefObject<MapLibreMap | null>
   maplibreObj: React.MutableRefObject<typeof import('maplibre-gl') | null>
   mapaCarregado: boolean
@@ -106,7 +113,7 @@ export function useMarkersEmpregos({
     if (!ativo) return
 
     const cor = config?.cor || COR_PADRAO
-    const visiveis = empregos.filter(e => !filtro || e.contrato === filtro)
+    const visiveis = empregos
     const porId = new Map(visiveis.map(e => [e.id, e]))
 
     visiveis.forEach((e) => {
@@ -127,8 +134,8 @@ export function useMarkersEmpregos({
       const popup = new maplibregl.Popup({ maxWidth: '260px', closeButton: true }).setHTML(`
         <div style="min-width:200px;max-width:230px;font-family:Inter,sans-serif;">
           <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:.03em;">${ROTULO_CONTRATO[e.contrato]}</p>
-          <p style="margin:0 0 2px;font-size:14px;font-weight:700;color:#111827;">${escapeHtml(e.cargo)}</p>
-          <p style="margin:0 0 6px;font-size:12px;color:#6b7280;">${escapeHtml(e.empresa_nome)}</p>
+          <p style="margin:0 0 2px;font-size:14px;font-weight:700;color:#111827;">${escapeHtml(sentenceCase(e.cargo))}</p>
+          <p style="margin:0 0 6px;font-size:12px;color:#6b7280;">${escapeHtml(sentenceCase(e.empresa_nome))}</p>
           <p style="margin:0 0 10px;font-size:13px;font-weight:600;color:#166534;">${formatarSalario(e)}</p>
           <button class="ver-emprego-btn" data-ver-emprego="${e.id}" style="background:none;border:none;padding:0;display:flex;align-items:center;gap:4px;color:#4256c8;font-size:13px;font-weight:600;cursor:pointer;">
             Ver vaga
@@ -158,23 +165,33 @@ export function useMarkersEmpregos({
     }
     container.addEventListener('click', aoClicar)
     return () => { container.removeEventListener('click', aoClicar) }
-  }, [ativo, empregos, config, filtro, mapaCarregado]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ativo, empregos, config, mapaCarregado]) // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /* =============================================================== sidebar = */
 
-const rotuloEstilo: React.CSSProperties = { fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }
+const rotuloEstilo: React.CSSProperties = { fontSize: '10px', fontWeight: 700, color: '#111827', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }
 const valorEstilo: React.CSSProperties = { fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.5 }
 const botaoAcao: React.CSSProperties = { fontSize: '12px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px', cursor: 'pointer', fontWeight: 500, width: '100%' }
 
+// Botão de contato via WhatsApp — mesmo ícone/estilo que CamadaPets.tsx e
+// CamadaClassificados.tsx (ver comentário lá sobre não haver módulo de
+// ícones compartilhado neste projeto).
+const botaoWhatsapp: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '2px', background: '#25d366', color: 'white', fontSize: '12.5px', fontWeight: 600, padding: '8px 14px', borderRadius: '20px', textDecoration: 'none', border: 'none', cursor: 'pointer', width: 'fit-content' }
+function IconeWhatsapp() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  )
+}
+
 export function SidebarEmpregos({
-  empregos, filtro, setFiltro, selecionado, setSelecionado,
+  empregos, selecionado, setSelecionado,
   onPublicar, onEditar, onExcluir, onEncerrar,
   isMobile, aoIniciarArraste, aoArrastar, aoSoltarArraste, onCentralizar,
 }: {
   empregos: Emprego[]
-  filtro: string
-  setFiltro: (f: string) => void
   selecionado: Emprego | null
   setSelecionado: (e: Emprego | null) => void
   onPublicar: () => void
@@ -191,10 +208,18 @@ export function SidebarEmpregos({
   const { user, perfil } = useAuth()
   // Master publica em nome da administração; fora isso, só contas de empresa
   const podePublicar = perfil?.role === 'empresa' || perfil?.role === 'master'
-  const visiveis = empregos.filter(e => !filtro || e.contrato === filtro)
+  // BUG CORRIGIDO (pedido do usuário): vagas não são mais filtradas/
+  // categorizadas por tipo de contrato — lista sempre mostra todas.
+  const visiveis = empregos
 
   if (selecionado) {
     const minha = user?.id === selecionado.user_id
+    // BUG CORRIGIDO (B10-3, decisão confirmada com o usuário, achado ao
+    // padronizar os 4 cards de detalhe): faltava o `ehMaster` que
+    // CamadaPets.tsx/CamadaClassificados.tsx já têm — o master só
+    // conseguia editar as próprias vagas, sem nenhum caminho pra corrigir
+    // a vaga de outra empresa (nem no mapa, nem no painel).
+    const ehMaster = perfil?.role === 'master'
     return (
       <div key={selecionado.id} className="demanda-detalhe-anim" style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '12px 14px', borderBottom: '1px solid #f9fafb', flexShrink: 0 }}>
@@ -205,6 +230,16 @@ export function SidebarEmpregos({
         </div>
 
         <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {/* Padrão unificado (pedido do usuário): sem badge de categoria
+              aqui (vagas não são mais categorizadas por tipo de contrato) →
+              protocolo → "foto" (só o quadradinho pequeno que já existia,
+              não vira foto grande) → resto → ações. */}
+          {selecionado.protocolo && (
+            <p style={{ margin: 0, fontSize: '11px', color: '#6b7280', fontFamily: 'monospace' }}>
+              Protocolo: <strong style={{ color: '#111827' }}>{selecionado.protocolo}</strong>
+            </p>
+          )}
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
             {selecionado.logo_url ? (
               /* eslint-disable-next-line @next/next/no-img-element */
@@ -216,25 +251,20 @@ export function SidebarEmpregos({
               </span>
             )}
             <div style={{ minWidth: 0 }}>
-              <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: 0, lineHeight: 1.25 }}>{selecionado.cargo}</h3>
-              <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{selecionado.empresa_nome}</p>
+              <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: 0, lineHeight: 1.25 }}>{sentenceCase(selecionado.cargo)}</h3>
+              <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{sentenceCase(selecionado.empresa_nome)}</p>
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '11px', fontWeight: 600, borderRadius: '20px', padding: '3px 10px', background: '#f9fafb', color: '#0891b2' }}>
-              {ROTULO_CONTRATO[selecionado.contrato]}
-            </span>
             <span style={{ fontSize: '13px', fontWeight: 700, color: '#166534' }}>{formatarSalario(selecionado)}</span>
             {selecionado.vagas > 1 && (
               <span style={{ fontSize: '11px', color: '#6b7280' }}>{selecionado.vagas} vagas</span>
             )}
           </div>
 
+          {/* BUG CORRIGIDO (pedido do usuário): "Área" removida. */}
           <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {selecionado.area && (
-              <div><p style={rotuloEstilo}>Área</p><p style={valorEstilo}>{selecionado.area}</p></div>
-            )}
             <div>
               <p style={rotuloEstilo}>Descrição</p>
               <p style={valorEstilo}>{sentenceCase(selecionado.descricao)}</p>
@@ -243,22 +273,29 @@ export function SidebarEmpregos({
               <div><p style={rotuloEstilo}>Requisitos</p><p style={valorEstilo}>{sentenceCase(selecionado.requisitos)}</p></div>
             )}
             {selecionado.endereco_label && (
-              <div><p style={rotuloEstilo}>Local</p><p style={valorEstilo}>{selecionado.endereco_label}</p></div>
+              <div><p style={rotuloEstilo}>Local</p><p style={valorEstilo}>{titleCase(selecionado.endereco_label)}</p></div>
             )}
             <div>
               <p style={rotuloEstilo}>Candidatar-se</p>
-              <p style={valorEstilo}>{selecionado.contato}</p>
+              {/* BUG CORRIGIDO (pedido do usuário): contato era só texto —
+                  vira link direto pro WhatsApp (wa.me). */}
+              <a href={linkWhatsapp(selecionado.contato)} target="_blank" rel="noopener noreferrer" style={botaoWhatsapp}>
+                <IconeWhatsapp />
+                Chamar no WhatsApp
+              </a>
             </div>
           </div>
 
-          {minha && (
+          {(minha || ehMaster) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <button onClick={() => onEncerrar(selecionado)} style={{ ...botaoAcao, color: '#92400e', fontWeight: 600 }}>
-                Encerrar vaga
-              </button>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                <button onClick={() => onEditar(selecionado)} style={{ ...botaoAcao, color: '#4256c8' }}>Editar</button>
-                <button onClick={() => onExcluir(selecionado)} style={{ ...botaoAcao, color: '#dc2626' }}>Excluir</button>
+              {minha && (
+                <button onClick={() => onEncerrar(selecionado)} style={{ ...botaoAcao, color: '#92400e', fontWeight: 600 }}>
+                  Encerrar vaga
+                </button>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: ehMaster && minha ? '1fr 1fr' : '1fr', gap: '6px' }}>
+                {ehMaster && <button onClick={() => onEditar(selecionado)} style={{ ...botaoAcao, color: '#4256c8' }}>Editar</button>}
+                {minha && <button onClick={() => onExcluir(selecionado)} style={{ ...botaoAcao, color: '#dc2626' }}>Excluir</button>}
               </div>
             </div>
           )}
@@ -273,36 +310,31 @@ export function SidebarEmpregos({
         onTouchStart={isMobile ? aoIniciarArraste : undefined}
         onTouchMove={isMobile ? aoArrastar : undefined}
         onTouchEnd={isMobile ? aoSoltarArraste : undefined}
-        style={{ flexShrink: 0, touchAction: isMobile ? 'none' : undefined, padding: '8px 14px 12px' }}
+        style={{ flexShrink: 0, touchAction: isMobile ? 'none' : undefined, padding: '8px 14px 8px' }}
       >
-        <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 6px', lineHeight: 1.3 }}>Empregos</h2>
+        <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#111827', margin: '0 0 6px', lineHeight: 1.3 }}>Vagas de Empregos</h2>
         <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 12px', lineHeight: 1.5 }}>
-          Vagas abertas nas empresas de Frutal-MG, no endereço de cada uma.
+          Vagas abertas nas empresas de Frutal-MG. O pin corresponde a localização.
         </p>
 
+        {/* BUG CORRIGIDO (pedido do usuário): removido o filtro "Tipo de
+            contrato" (dropdown) — vagas de emprego não são mais
+            categorizadas/filtradas por tipo de contrato na listagem nem
+            no card de detalhe. */}
         {/* Empresas e master publicam; cidadão apenas consulta */}
         {podePublicar && (
           <button onClick={onPublicar}
-            style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '9px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', marginBottom: '16px' }}>
+            style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '9px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px' }}>
             Publicar vaga
           </button>
         )}
-
-        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#111827', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Tipo de contrato</label>
-        <select value={filtro} onChange={e => setFiltro(e.target.value)}
-          style={{ width: '100%', fontSize: '13px', fontWeight: 500, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 28px 8px 10px', cursor: 'pointer', outline: 'none', appearance: 'none', fontFamily: 'inherit', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', boxSizing: 'border-box', marginBottom: '16px' }}>
-          <option value=''>Todos</option>
-          {CONTRATOS.map(c => (
-            <option key={c} value={c}>{ROTULO_CONTRATO[c]}</option>
-          ))}
-        </select>
       </div>
 
       <div
         onTouchStart={isMobile ? aoIniciarArraste : undefined}
         onTouchMove={isMobile ? aoArrastar : undefined}
         onTouchEnd={isMobile ? aoSoltarArraste : undefined}
-        style={{ flexShrink: 0, touchAction: isMobile ? 'none' : undefined, padding: '10px 14px', borderTop: '1px solid #f9fafb' }}
+        style={{ flexShrink: 0, touchAction: isMobile ? 'none' : undefined, padding: '6px 14px', borderTop: '1px solid #f9fafb' }}
       >
         <span style={{ fontSize: '11px', color: '#6b7280' }}>
           {visiveis.length} vaga{visiveis.length !== 1 ? 's' : ''}
@@ -316,15 +348,16 @@ export function SidebarEmpregos({
             onClick={() => { setSelecionado(e); if (!isMobile) onCentralizar(e.lat, e.lng) }}
             style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '10px 12px', marginBottom: '8px', cursor: 'pointer' }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '3px' }}>
-              <span style={{ fontSize: '10.5px', fontWeight: 700, color: COR_PADRAO, background: `${COR_PADRAO}18`, borderRadius: '20px', padding: '2px 8px' }}>
-                {ROTULO_CONTRATO[e.contrato]}
-              </span>
-              {e.encerrada && <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#6b7280' }}>Encerrada</span>}
-            </div>
-            <p style={{ fontSize: '12.5px', fontWeight: 600, color: '#111827', margin: '0 0 2px', lineHeight: 1.4 }}>{e.cargo}</p>
-            <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 2px' }}>{e.empresa_nome}</p>
-            <p style={{ fontSize: '11px', color: '#166534', fontWeight: 600, margin: 0 }}>{formatarSalario(e)}</p>
+            {/* BUG CORRIGIDO (pedido do usuário): badge "Encerrada" removido
+                — `visiveis` vem de `empregos`, que a consulta em
+                `useEmpregos` já filtra por `encerrada=false`/`oculto=false`,
+                então uma vaga encerrada ou excluída nunca chega a aparecer
+                aqui (nem no mapa, nem na lista) — o badge nunca disparava
+                na prática. Card simplificado ao pedido exato: cargo +
+                empresa + salário, mesmo padrão de Classificados. */}
+            <p style={{ fontSize: '12.5px', fontWeight: 600, color: '#111827', margin: '0 0 2px', lineHeight: 1.4 }}>{sentenceCase(e.cargo)}</p>
+            <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 2px' }}>{sentenceCase(e.empresa_nome)}</p>
+            <p style={{ fontSize: '12px', color: '#6b7280', fontWeight: 700, margin: 0 }}>{formatarSalario(e)}</p>
           </div>
         ))}
       </div>

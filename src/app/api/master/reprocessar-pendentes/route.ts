@@ -33,10 +33,11 @@ export async function POST(req: NextRequest) {
   // isso, é só clicar de novo (idempotente — o filtro é sempre "pendente há
   // mais de 10 minutos").
   const LOTE = 20
-  const [{ data: demandas }, { data: pets }, { data: classificados }] = await Promise.all([
+  const [{ data: demandas }, { data: pets }, { data: classificados }, { data: imoveis }] = await Promise.all([
     supabaseServer.from('demandas').select('id').eq('status', 'pendente').lt('created_at', limite).limit(LOTE),
     supabaseServer.from('pets').select('id').eq('ia_decisao', 'pendente').lt('created_at', limite).limit(LOTE),
     supabaseServer.from('classificados').select('id').eq('ia_decisao', 'pendente').lt('created_at', limite).limit(LOTE),
+    supabaseServer.from('imoveis').select('id').eq('ia_decisao', 'pendente').lt('created_at', limite).limit(LOTE),
   ])
 
   const disparos: Promise<unknown>[] = []
@@ -69,10 +70,20 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  for (const i of imoveis || []) {
+    disparos.push(
+      fetch(`${base}/api/ia/analisar-imovel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-internal-key': chaveInterna },
+        body: JSON.stringify({ imovel_id: i.id }),
+      }).catch((e) => console.error(`[reprocessar] imovel ${i.id} falhou:`, e))
+    )
+  }
+
   await Promise.all(disparos)
 
   return NextResponse.json({
     ok: true,
-    reprocessadas: { demandas: demandas?.length || 0, pets: pets?.length || 0, classificados: classificados?.length || 0 },
+    reprocessadas: { demandas: demandas?.length || 0, pets: pets?.length || 0, classificados: classificados?.length || 0, imoveis: imoveis?.length || 0 },
   })
 }

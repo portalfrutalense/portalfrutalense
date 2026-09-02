@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '@/components/AuthProvider'
 import MasterCamadas from '@/components/master/MasterCamadas'
-import { MasterPets, MasterClassificados, MasterEmpregos } from '@/components/master/MasterMapaCamadas'
+import { MasterPets, MasterClassificados, MasterEmpregos, MasterImoveis } from '@/components/master/MasterMapaCamadas'
 import { CategoriaMapa, Demanda, DemandaEntidade, Perfil } from '@/types'
 
-type SecaoMaster = 'dashboard' | 'demandas' | 'pets' | 'classificados' | 'empregos' | 'chatbot' | 'perfis'
+type SecaoMaster = 'dashboard' | 'demandas' | 'pets' | 'classificados' | 'empregos' | 'imoveis' | 'chatbot' | 'perfis'
 type SubSecaoPerfis = 'cidadao' | 'autoridade' | 'empresa'
 type AbaConfig = 'categorias' | 'ia'
 
@@ -42,12 +42,12 @@ export default function MasterPage() {
     // tratamento — a função para em silêncio, nenhuma mensagem aparece.
     const d = await res.json().catch(() => ({}))
       if (!res.ok) { setAvisoReprocessar(d.error || 'Erro ao reprocessar.'); return }
-      const { demandas, pets, classificados } = d.reprocessadas
-      const total = demandas + pets + classificados
+      const { demandas, pets, classificados, imoveis } = d.reprocessadas
+      const total = demandas + pets + classificados + imoveis
       setAvisoReprocessar(
         total === 0
           ? 'Nada pendente há mais de 10 minutos.'
-          : `Reenviado pra análise: ${demandas} demanda(s), ${pets} pet(s), ${classificados} classificado(s).`
+          : `Reenviado pra análise: ${demandas} demanda(s), ${pets} pet(s), ${classificados} classificado(s), ${imoveis} imóvel/imóveis.`
       )
     } catch {
       setAvisoReprocessar('Erro ao reprocessar. Tente de novo.')
@@ -93,9 +93,11 @@ export default function MasterPage() {
   const [configurandoPets, setConfigurandoPets] = useState(false)
   const [configurandoClassificados, setConfigurandoClassificados] = useState(false)
   const [configurandoEmpregos, setConfigurandoEmpregos] = useState(false)
+  const [configurandoImoveis, setConfigurandoImoveis] = useState(false)
   const [abaConfig, setAbaConfig] = useState<AbaConfig>('categorias')
   const [abaConfigPets, setAbaConfigPets] = useState<'pins' | 'ia'>('pins')
   const [abaConfigClassificados, setAbaConfigClassificados] = useState<'pins' | 'ia'>('pins')
+  const [abaConfigImoveis, setAbaConfigImoveis] = useState<'pins' | 'ia'>('pins')
   const [menuAberto, setMenuAberto] = useState(false)
 
   // Dados config
@@ -114,6 +116,7 @@ export default function MasterPage() {
   const [statsPets, setStatsPets] = useState({ total: 0, perdidos: 0, achados: 0, reencontrados: 0, ocultos: 0, pendente_ia: 0, rejeitada_ia: 0 })
   const [statsClass, setStatsClass] = useState({ total: 0, ativos: 0, vendidos: 0, ocultos: 0, pendente_ia: 0, rejeitada_ia: 0 })
   const [statsEmp, setStatsEmp] = useState({ total: 0, ativas: 0, encerradas: 0, ocultas: 0 })
+  const [statsImoveis, setStatsImoveis] = useState({ total: 0, ativos: 0, ocultos: 0, pendente_ia: 0, rejeitada_ia: 0 })
 
   const client = createClient()
 
@@ -191,6 +194,13 @@ export default function MasterPage() {
       ativas:     s.empregos.ativas,
       encerradas: s.empregos.encerradas,
       ocultas:    s.empregos.ocultas,
+    })
+    setStatsImoveis({
+      total:        s.imoveis.total,
+      ativos:       s.imoveis.ativos,
+      ocultos:      s.imoveis.ocultos,
+      pendente_ia:  s.imoveis.pendente_ia,
+      rejeitada_ia: s.imoveis.rejeitada_ia,
     })
   }
 
@@ -360,12 +370,13 @@ export default function MasterPage() {
             { key: 'demandas'      as SecaoMaster, label: 'Demandas Municipais' },
             { key: 'empregos'      as SecaoMaster, label: 'Empregos' },
             { key: 'classificados' as SecaoMaster, label: 'Classificados' },
+            { key: 'imoveis'       as SecaoMaster, label: 'Imóveis' },
             { key: 'pets'          as SecaoMaster, label: 'Pet' },
             { key: 'chatbot'       as SecaoMaster, label: 'Chatbot IA' },
           ].map(item => (
             <button
               key={item.key}
-              onClick={() => { setSecao(item.key); setPerfisAberto(false); setConfigurando(false); setConfigurandoPets(false); setConfigurandoClassificados(false); setConfigurandoEmpregos(false); setMenuAberto(false) }}
+              onClick={() => { setSecao(item.key); setPerfisAberto(false); setConfigurando(false); setConfigurandoPets(false); setConfigurandoClassificados(false); setConfigurandoEmpregos(false); setConfigurandoImoveis(false); setMenuAberto(false) }}
               style={{
                 display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 12px',
                 borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 500,
@@ -521,6 +532,13 @@ export default function MasterPage() {
                       { label: 'Encerradas', valor: statsEmp.encerradas },
                       { label: 'Ocultas', valor: statsEmp.ocultas },
                     ]} />
+                    <CardStats titulo="Imóveis" linhas={[
+                      { label: 'Total', valor: statsImoveis.total },
+                      { label: 'Ativos no mapa', valor: statsImoveis.ativos },
+                      { label: 'Ocultos', valor: statsImoveis.ocultos },
+                      { label: 'Pendente IA', valor: statsImoveis.pendente_ia, destaque: statsImoveis.pendente_ia > 0 },
+                      { label: 'Rejeitado IA', valor: statsImoveis.rejeitada_ia, destaque: statsImoveis.rejeitada_ia > 0 },
+                    ]} />
                   </div>
                 )
               })()}
@@ -637,6 +655,56 @@ export default function MasterPage() {
                   </div>
                   {abaConfigClassificados === 'pins' && <MasterCamadas camada="classificados" />}
                   {abaConfigClassificados === 'ia' && <MasterIAGenerico configId={3} textoAtivo="Quando desativada, os anúncios são publicados sem moderação automática." promptPadrao="Analise o anúncio de veículo e decida se deve ser aprovado ou rejeitado. Rejeite apenas se for claramente spam, ofensivo ou sem relação com venda de veículos." descRigor={{ permissivo: 'Rejeita apenas conteúdo claramente ofensivo ou spam.', moderado: 'Rejeita spam, anúncios sem sentido e conteúdo que não seja de venda de veículo.', rigoroso: 'Rejeita qualquer anúncio vago, sem informações mínimas ou suspeito de fraude.' }} />}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── IMÓVEIS ── */}
+          {secao === 'imoveis' && (
+            <div>
+              <div className="master-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', gap: '12px', flexWrap: 'wrap' }}>
+                <div>
+                  <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>{configurandoImoveis ? 'Configurações' : 'Imóveis'}</h1>
+                  <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>{configurandoImoveis ? 'Pins por tipo de imóvel e análise automática.' : 'Imóveis para aluguel ou venda publicados pelos cidadãos.'}</p>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {!configurandoImoveis && (
+                    <>
+                      {avisoReprocessar && (
+                        <span style={{ fontSize: '12px', color: '#6b7280' }}>{avisoReprocessar}</span>
+                      )}
+                      <button
+                        onClick={reprocessarPendentes}
+                        disabled={reprocessando}
+                        title="Demanda/pet/classificado/imóvel às vezes fica preso em 'pendente' se a análise de IA falhar ao ser criado. Isso reenvia tudo que está travado há mais de 10 minutos."
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: reprocessando ? 'wait' : 'pointer', opacity: reprocessando ? 0.6 : 1 }}>
+                        {reprocessando ? 'Reprocessando...' : 'Reprocessar pendentes travados'}
+                      </button>
+                    </>
+                  )}
+                  <button onClick={() => { setConfigurandoImoveis(v => !v); setAbaConfigImoveis('pins') }}
+                    style={{ fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer' }}>
+                    {configurandoImoveis ? 'Voltar' : 'Configurar'}
+                  </button>
+                </div>
+              </div>
+              {!configurandoImoveis && <MasterImoveis />}
+              {configurandoImoveis && (
+                <div>
+                  <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid #e5e7eb', marginBottom: '24px' }}>
+                    {(['pins', 'ia'] as const).map(a => (
+                      <button key={a} onClick={() => setAbaConfigImoveis(a)} style={{
+                        padding: '8px 16px', borderRadius: '6px 6px 0 0', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+                        background: abaConfigImoveis === a ? '#4256c8' : 'transparent',
+                        color: abaConfigImoveis === a ? 'white' : '#6b7280',
+                      }}>
+                        {a === 'pins' ? 'Pins' : 'IA'}
+                      </button>
+                    ))}
+                  </div>
+                  {abaConfigImoveis === 'pins' && <MasterCamadas camada="imoveis" />}
+                  {abaConfigImoveis === 'ia' && <MasterIAGenerico configId={4} textoAtivo="Quando desativada, os anúncios são publicados sem moderação automática." promptPadrao="Analise o anúncio de imóvel e decida se deve ser aprovado ou rejeitado. Rejeite apenas se for claramente spam, ofensivo ou sem relação com locação/venda de imóvel." descRigor={{ permissivo: 'Rejeita apenas conteúdo claramente ofensivo ou spam.', moderado: 'Rejeita spam, anúncios sem sentido e conteúdo que não seja de locação/venda de imóvel.', rigoroso: 'Rejeita qualquer anúncio vago, sem informações mínimas ou suspeito de fraude.' }} />}
                 </div>
               )}
             </div>
