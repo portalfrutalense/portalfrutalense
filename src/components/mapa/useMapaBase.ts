@@ -9,8 +9,12 @@ import type { Map as MapLibreMap } from 'maplibre-gl'
 // histórico dos nomes de rua não aparecerem (2026-08-30/31).
 import { version as MAPLIBRE_VERSION } from 'maplibre-gl/package.json'
 
-export const FRUTAL_LAT = -20.02752
-export const FRUTAL_LNG = -48.92702
+// LIMPEZA (código morto): estavam exportadas, mas nenhum outro arquivo do
+// projeto as importa — os outros lugares que precisam do centro de Frutal
+// (api/camadas, whatsapp/webhook, MiniMapaConfirmar) têm cada um a própria
+// cópia local. Deixam de ser exportadas; continuam usadas aqui embaixo.
+const FRUTAL_LAT = -20.02752
+const FRUTAL_LNG = -48.92702
 
 // Trocado de Mapbox pra Esri ArcGIS (2026-08-31) — mesma foto de satélite,
 // mas com cota gratuita bem maior (2 milhões de tiles/mês contra 200 mil do

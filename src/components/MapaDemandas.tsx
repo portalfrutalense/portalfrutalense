@@ -135,7 +135,10 @@ export default function MapaDemandas() {
   useEffect(() => {
     Promise.all([
       supabase.from('demandas')
-        .select('id, user_id, morador_nome, categoria_id, entidade_id, descricao, lat, lng, endereco_label, foto_url, status, resposta, oculto, created_at, categoria:categorias_mapa(*), entidade:entidades(nome, cargo)')
+        // LIMPEZA (código morto): tirado `entidade_id` cru daqui — só o objeto
+        // relacionado `entidade` (nome/cargo) é lido em algum lugar da tela;
+        // a coluna crua nunca era usada, só buscada à toa.
+        .select('id, user_id, morador_nome, categoria_id, descricao, lat, lng, endereco_label, foto_url, status, resposta, oculto, created_at, categoria:categorias_mapa(*), entidade:entidades(nome, cargo)')
         .in('status', ['aguardando_resposta', 'respondida', 'nao_resolvida', 'resolvida']).eq('oculto', false),
       supabase.from('categorias_mapa').select('*').eq('ativo', true).order('nome'),
       supabase.from('entidades').select('id, nome, cargo').eq('ativo', true).order('nome'),
@@ -155,7 +158,7 @@ export default function MapaDemandas() {
 
   function recarregarDemandas() {
     supabase.from('demandas')
-      .select('id, user_id, morador_nome, categoria_id, entidade_id, descricao, lat, lng, endereco_label, foto_url, status, resposta, oculto, created_at, categoria:categorias_mapa(*), entidade:entidades(nome, cargo)')
+      .select('id, user_id, morador_nome, categoria_id, descricao, lat, lng, endereco_label, foto_url, status, resposta, oculto, created_at, categoria:categorias_mapa(*), entidade:entidades(nome, cargo)')
       .in('status', ['aguardando_resposta', 'respondida', 'nao_resolvida', 'resolvida']).eq('oculto', false)
       .then(({ data }) => { if (data) setDemandas(data as unknown as Demanda[]) })
   }

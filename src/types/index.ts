@@ -1,4 +1,7 @@
-export type StatusDemanda = 'pendente' | 'aguardando_resposta' | 'respondida' | 'rejeitada_ia' | 'resolvida' | 'nao_resolvida' | 'denunciada'
+// LIMPEZA (código morto): estava exportado, mas nenhum arquivo do projeto o
+// importa — só é usado internamente aqui embaixo, como o tipo de
+// `Demanda.status`. Deixa de ser exportado.
+type StatusDemanda = 'pendente' | 'aguardando_resposta' | 'respondida' | 'rejeitada_ia' | 'resolvida' | 'nao_resolvida' | 'denunciada'
 
 /** Os 4 papéis que existem em `perfis.role` — todo o sistema de permissão
  * do site se baseia nessa comparação, então vale a pena fixar o tipo em
