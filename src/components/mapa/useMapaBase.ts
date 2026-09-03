@@ -82,6 +82,16 @@ function suavizar(t: number): number {
  * botão direito (ou Ctrl+arrastar) no desktop, girar/deslizar com dois dedos
  * no touch — sem nenhum controle extra de UI adicionado aqui.
  */
+// TESTE TEMPORÁRIO (PageSpeed sem MapLibre) — reverter este commit pra
+// voltar ao mapa interativo. Zero import de maplibre-gl: só uma imagem
+// estática de satélite (Esri export) cobrindo o container, sem JS de mapa
+// nenhum. mapaCarregado fica sempre false de propósito — todo o código de
+// camadas/marcadores em MapaDemandas.tsx e nas Camada* já é condicionado a
+// `mapaCarregado`, então ele simplesmente não roda, sem precisar tocar nele.
+const TESTE_SEM_MAPLIBRE = true
+const TEST_BBOX = `${FRUTAL_LNG - 0.03},${FRUTAL_LAT - 0.03},${FRUTAL_LNG + 0.03},${FRUTAL_LAT + 0.03}`
+const TEST_IMAGEM_ESTATICA = `https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/export?bbox=${TEST_BBOX}&bboxSR=4326&size=1200,1200&format=jpg&f=image&token=${ARCGIS_KEY}`
+
 export function useMapaBase() {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapaIniciado = useRef(false)
@@ -95,6 +105,13 @@ export function useMapaBase() {
   useEffect(() => {
     if (!mapRef.current || mapaIniciado.current) return
     mapaIniciado.current = true
+
+    if (TESTE_SEM_MAPLIBRE) {
+      mapRef.current.style.backgroundImage = `url(${TEST_IMAGEM_ESTATICA})`
+      mapRef.current.style.backgroundSize = 'cover'
+      mapRef.current.style.backgroundPosition = 'center'
+      return
+    }
 
     // Guardada à parte de mapaObj.current (só preenchido no 'load', mais
     // abaixo) — é essa variável local que o cleanup usa pra garantir que a
