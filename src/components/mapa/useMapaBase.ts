@@ -511,17 +511,20 @@ export function useMapaBase() {
       // true, e a reentrância dessa vez disparando a cada ~16ms sem parar).
       //
       // Corrigido de vez direto na biblioteca via patch-package
-      // (`patches/maplibre-gl+4.7.1.patch`): ao detectar a fila presa, força
-      // `_currentlyRunning = false` antes de seguir, em vez de só ignorar —
-      // isso deixa a chamada atual assumir a fila e destravar o que tiver
-      // pendente (inclusive o passo de animação da câmera), recuperando
-      // sozinho em vez de ficar preso. Testado ao vivo: o mapa não trava
-      // mais permanentemente — pode ter uma engasgada breve e curta em
-      // momentos de reentrância, mas se recupera sozinha em seguida. Sem
-      // esse patch, não tem correção possível só no nosso código, já que o
-      // problema é uma race condition dentro da própria lib (confirmado
-      // olhando o código-fonte publicado — o bug existe até na versão mais
-      // recente do MapLibre).
+      // (`patches/maplibre-gl+6.7.0.patch` — reaplicado na atualização de
+      // 4.7.1 para 6.7.0 em 2026-09-03; o bug é o mesmo, só muda o nome do
+      // arquivo de patch por causa da versão): ao detectar a fila presa,
+      // força `_currentlyRunning = false` antes de seguir, em vez de só
+      // ignorar — isso deixa a chamada atual assumir a fila e destravar o
+      // que tiver pendente (inclusive o passo de animação da câmera),
+      // recuperando sozinho em vez de ficar preso. Testado ao vivo: o mapa
+      // não trava mais permanentemente — pode ter uma engasgada breve e
+      // curta em momentos de reentrância, mas se recupera sozinha em
+      // seguida. Sem esse patch, não tem correção possível só no nosso
+      // código, já que o problema é uma race condition dentro da própria
+      // lib (confirmado olhando o código-fonte publicado — o bug existe
+      // até na versão mais recente do MapLibre, checado de novo em
+      // 2026-09-03 antes de subir pra 6.7.0).
       })
     })
 
