@@ -66,8 +66,10 @@ export default function PageRedefinirSenha() {
 
         {/* Header */}
         <div style={{ background: '#4256c8', height: '66px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* CORREÇÃO DE PERFORMANCE (PageSpeed Insights): ver comentário
+              equivalente em MapaDemandas.tsx — mesmo arquivo reduzido. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: '46px', width: 'auto' }} />
+          <img src="/CIDADANIA-logo.png" alt="CidadanIA Frutal" width={400} height={100} style={{ height: '46px', width: 'auto' }} />
         </div>
 
         <div style={{ padding: '28px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>

@@ -48,9 +48,14 @@ const ZOOM_LABELS_MAX = 17
 // "zoom N-1" no MapLibre. Todo valor de zoom deste arquivo é 1 a menos do
 // que era na versão Leaflet, de propósito.
 const ZOOM_SATELITE_RUAS = 16 // trava rotação/inclinação a partir deste zoom — mesmo zoom em que o nome de rua aparece (ZOOM_LABELS_MIN)
-const PITCH_PADRAO = 62 // inclinação inicial e a que o mapa retoma ao sair da zona de ruas
-const PITCH_MIN = 50 // faixa de inclinação livre por gesto, fora da zona de ruas
-const PITCH_MAX = 62
+// Inclinação máxima reduzida de 62° para 45° (pedido do usuário, 2026-09-03)
+// — mantém a mesma amplitude de 10° que a faixa livre por gesto já tinha
+// antes (era 50–62, 12° de faixa; agora 35–45, 10° de faixa, arredondado a
+// um número redondo). PITCH_PADRAO nunca pode passar de PITCH_MAX (o
+// MapLibre rejeita/trava um pitch inicial maior que maxPitch).
+const PITCH_PADRAO = 45 // inclinação inicial e a que o mapa retoma ao sair da zona de ruas
+const PITCH_MIN = 35 // faixa de inclinação livre por gesto, fora da zona de ruas
+const PITCH_MAX = 45
 
 // [oeste, sul], [leste, norte] — MapLibre usa [lng, lat], diferente do par
 // [lat, lng] que o Leaflet usava aqui antes.
@@ -69,6 +74,31 @@ function suavizar(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
 }
 
+// CORREÇÃO DE PERFORMANCE (PageSpeed Insights — TBT alto no carregamento):
+// o import('maplibre-gl') disparava sincronamente assim que o componente
+// montava, travando a thread principal com ~800KB de JS pra analisar/
+// executar bem no meio do carregamento inicial da página — concorrendo
+// com o resto da hidratação do React. `requestIdleCallback` adia essa
+// chamada até o navegador estar realmente ocioso (depois que o essencial já
+// rodou), sem tirar nada do total de trabalho — só tira ele do caminho
+// crítico. `timeout` garante que, mesmo numa página nunca "ociosa" de
+// verdade (ex.: scroll contínuo), o mapa começa a carregar de qualquer
+// jeito em até 1.2s. Safari não implementa `requestIdleCallback` — fallback
+// pra um `setTimeout` curto, que já ajuda a tirar o import do bloco síncrono
+// de montagem mesmo sem a heurística de ociosidade real.
+function agendarQuandoOcioso(cb: () => void): number | null {
+  if (typeof window === 'undefined') return null
+  // `typeof window.requestIdleCallback === 'function'` em vez de
+  // `'requestIdleCallback' in window`: o operador `in` aqui fazia o
+  // TypeScript estreitar o tipo de `window` pra `never` no ramo de baixo
+  // (checado com `npm run build` — erro de tipo, não só estética), provavelmente
+  // por causa da combinação com o `typeof window === 'undefined'` acima.
+  if (typeof window.requestIdleCallback === 'function') {
+    return window.requestIdleCallback(cb, { timeout: 1200 })
+  }
+  return window.setTimeout(cb, 150) as unknown as number
+}
+
 /**
  * Mapa MapLibre GL base, compartilhado por todas as camadas (demandas, pets,
  * classificados, empregos). O mapa é criado uma única vez: trocar de camada
@@ -82,13 +112,6 @@ function suavizar(t: number): number {
  * botão direito (ou Ctrl+arrastar) no desktop, girar/deslizar com dois dedos
  * no touch — sem nenhum controle extra de UI adicionado aqui.
  */
-// TESTE TEMPORÁRIO (PageSpeed com MapLibre travado em 2D) — reverter este
-// commit pra voltar ao pitch/bearing livre por gesto. Mantém o MapLibre de
-// verdade (ruas, pins, botões de camada — tudo intacto, nenhum desses
-// arquivos precisou mudar), só trava pitch em 0 e desliga os gestos de
-// rotação/inclinação logo abaixo, na criação do mapa.
-const TESTE_SEM_ROTACAO = true
-
 export function useMapaBase() {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapaIniciado = useRef(false)
@@ -114,17 +137,6 @@ export function useMapaBase() {
     // Mesmo padrão já usado em MiniMapaConfirmar.tsx.
     let mapaInstancia: MapLibreMap | null = null
     let desmontado = false
-
-    // BUG DE PERFORMANCE CORRIGIDO (achado no relatório do PageSpeed
-    // Insights): o CSS vinha de um <link> pro CDN do unpkg — uma viagem de
-    // rede extra (DNS+TLS+download) pra um arquivo que já existe local,
-    // dentro do próprio pacote instalado. Import dinâmico do CSS local
-    // resolve isso (mesma origem do site, sem dependência de CDN externo) e
-    // ainda mantém JS e CSS sempre na mesma versão automaticamente — sem
-    // precisar do MAPLIBRE_VERSION manual que existia só pra isso. Webpack/
-    // Turbopack já dedupe imports repetidos sozinho, então não precisa mais
-    // do dedupe manual por atributo no <head>.
-    import('maplibre-gl/dist/maplibre-gl.css')
 
     // Busca o estilo de rótulos (estradas + nome de rua) do Esri antes de
     // criar o mapa, pra já nascer com a camada pronta — em vez de montar o
@@ -195,7 +207,26 @@ export function useMapaBase() {
       }
     }
 
-    import('maplibre-gl').then(async (maplibregl) => {
+    // Adiado pra quando o navegador estiver ocioso (ver comentário de
+    // agendarQuandoOcioso acima) — tanto o CSS quanto o import('maplibre-gl')
+    // ficam dentro do mesmo callback, disparando juntos.
+    let idOcioso: number | null = null
+    idOcioso = agendarQuandoOcioso(() => {
+      idOcioso = null
+      if (desmontado) return
+
+      // BUG DE PERFORMANCE CORRIGIDO (achado no relatório do PageSpeed
+      // Insights): o CSS vinha de um <link> pro CDN do unpkg — uma viagem de
+      // rede extra (DNS+TLS+download) pra um arquivo que já existe local,
+      // dentro do próprio pacote instalado. Import dinâmico do CSS local
+      // resolve isso (mesma origem do site, sem dependência de CDN externo) e
+      // ainda mantém JS e CSS sempre na mesma versão automaticamente — sem
+      // precisar do MAPLIBRE_VERSION manual que existia só pra isso. Webpack/
+      // Turbopack já dedupe imports repetidos sozinho, então não precisa mais
+      // do dedupe manual por atributo no <head>.
+      import('maplibre-gl/dist/maplibre-gl.css')
+
+      import('maplibre-gl').then(async (maplibregl) => {
       if (!mapRef.current || desmontado) return
 
       const camadaDeRotulos = await buscarCamadaDeRotulos()
@@ -227,29 +258,23 @@ export function useMapaBase() {
         // inteiro mais próximo na direção rolada (ver zoomPassoRef, fórmula
         // piso/teto), e dali em diante segue sempre em inteiro normal.
         zoom: window.innerWidth < 768 ? 12.5 : 13.5,
-        pitch: TESTE_SEM_ROTACAO ? 0 : PITCH_PADRAO,
-        // Fixo em [0, 65] — nunca muda em runtime. A faixa de 0 (zona de
-        // ruas) até 65 (padrão) cobre tanto o travado quanto o livre; a
-        // restrição inferior de 45° fora da zona de ruas é imposta à mão
-        // (ver 'pitchend' abaixo), não por minPitch dinâmico. minPitch/
-        // maxPitch mudando em runtime (tentativa anterior) causava clamp
-        // instantâneo do pitch atual sempre que uma nova animação de
+        pitch: PITCH_PADRAO,
+        // Fixo em [0, PITCH_MAX] — nunca muda em runtime. A faixa de 0 (zona
+        // de ruas) até PITCH_MAX (padrão) cobre tanto o travado quanto o
+        // livre; a restrição inferior (PITCH_MIN) fora da zona de ruas é
+        // imposta à mão (ver 'pitchend' abaixo), não por minPitch dinâmico.
+        // minPitch/maxPitch mudando em runtime (tentativa anterior) causava
+        // clamp instantâneo do pitch atual sempre que uma nova animação de
         // transição começava antes da anterior terminar — a fonte da
         // instabilidade "ora anima, ora não" relatada em teste.
         minPitch: 0,
-        maxPitch: TESTE_SEM_ROTACAO ? 0 : PITCH_MAX,
+        maxPitch: PITCH_MAX,
         minZoom: 12,
         maxZoom: 17,
         maxBounds: LIMITES_FRUTAL,
         attributionControl: false,
       })
       mapaInstancia = mapa
-
-      if (TESTE_SEM_ROTACAO) {
-        mapa.dragRotate.disable()
-        mapa.touchPitch.disable()
-        mapa.touchZoomRotate.disableRotation()
-      }
 
       mapa.on('load', () => {
         mapaObj.current = mapa
@@ -448,7 +473,7 @@ export function useMapaBase() {
       })
 
       // Fora da zona de ruas, a inclinação livre por gesto (arrastar/pinça)
-      // fica restrita a PITCH_MIN–PITCH_MAX (50–62°), mesmo com minPitch
+      // fica restrita a PITCH_MIN–PITCH_MAX (35–45°), mesmo com minPitch
       // fixo em 0 — 0 só é permitido quando é ESTA lógica de zona quem está
       // pilotando. Ao soltar o gesto, se ficou abaixo do mínimo (e não é o
       // caso de estar travado na zona de ruas), volta suave pro mínimo.
@@ -497,10 +522,22 @@ export function useMapaBase() {
       // problema é uma race condition dentro da própria lib (confirmado
       // olhando o código-fonte publicado — o bug existe até na versão mais
       // recente do MapLibre).
+      })
     })
 
     return () => {
       desmontado = true
+      // Cancela o agendamento de ociosidade se o componente desmontar antes
+      // dele disparar (ex.: navegação rápida pra fora de /mapa) — os guards
+      // de `desmontado` dentro do callback já impediriam qualquer efeito
+      // colateral mesmo sem isso, mas cancelar de verdade evita o trabalho
+      // de import() começar à toa numa página que o usuário já saiu. Usa a
+      // mesma API que agendou (cancelIdleCallback só existe onde
+      // requestIdleCallback também existe — ver agendarQuandoOcioso acima).
+      if (idOcioso !== null) {
+        if (typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(idOcioso)
+        else window.clearTimeout(idOcioso)
+      }
       // Tira o listener de scroll da div do container ANTES de mapa.remove()
       // — a div é do React (mapRef.current), não é destruída junto com o
       // mapa, então o listener ficaria pra sempre sem isso (ver comentário

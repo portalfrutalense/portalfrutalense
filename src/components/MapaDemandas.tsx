@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useLayoutEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase-browser'
@@ -16,28 +16,27 @@ import { FormDemanda } from './mapa/FormDemanda'
 import MapaTopBar from './mapa/MapaTopBar'
 import { Demanda, CategoriaMapa, Entidade, DemandaEntidade, Camada, Pet, Classificado, Emprego, Imovel } from '@/types'
 import { escapeHtml } from '@/lib/escapeHtml'
+import { titleCase, sentenceCase } from '@/lib/textoFormatado'
 // Só o tipo — o maplibre-gl em si continua carregado dinamicamente por
 // useMapaBase (import type é apagado na compilação, não força o bundle).
 import type { Marker, Popup } from 'maplibre-gl'
 
-// BUG CORRIGIDO: `\b\w` é ASCII-only em JS — não reconhece letra acentuada
-// como caractere de palavra, então o "limite de palavra" (\b) aparecia
-// DEPOIS da primeira letra acentuada, não antes: "Ângela" (após o
-// toLowerCase) virava "âNgela" (a 2ª letra que ganhava maiúscula, não a
-// 1ª). Mesma classe de bug documentada como corrigida no webhook do
-// WhatsApp (falta da flag `u`), não replicada aqui. Corrigido evitando
-// `\w`/`\b` inteiramente: separa por espaço e capitaliza com métodos de
-// string puros.
-function titleCase(str?: string) {
-  if (!str) return ''
-  return str.toLowerCase().split(' ').map((w) => w ? w.charAt(0).toUpperCase() + w.slice(1) : w).join(' ')
-}
-
-function sentenceCase(str?: string) {
-  if (!str) return ''
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
-}
-
+// CORREÇÃO DE PERFORMANCE (CLS 0,854 no PageSpeed Insights mobile): o
+// layout inteiro (sidebar lateral vs. bottom sheet fixo) depende de
+// `isMobile`, que antes só era descoberto dentro de um `useEffect` comum —
+// e useEffect roda DEPOIS do navegador já ter pintado o primeiro frame. Na
+// prática: a página sempre nascia com o layout de desktop (SSR não tem
+// `window`, então `isMobile` começa `false` de propósito), o usuário via
+// esse layout errado por um instante, e só depois o layout inteiro trocava
+// — a maior mudança de layout possível, responsável por ~85% do CLS medido.
+// `useLayoutEffect` roda de forma síncrona, ANTES do navegador pintar
+// qualquer coisa na tela — trocar `isMobile` aqui dentro faz a correção
+// acontecer sem nunca chegar a pintar o layout errado, eliminando o salto
+// visual (e o CLS que ele causava) sem mudar nenhum comportamento. Em SSR,
+// `useLayoutEffect` não roda (e emite um aviso inofensivo no console do
+// servidor) — por isso o fallback para `useEffect` nesse ambiente, mesmo
+// padrão isomórfico recomendado pela própria documentação do React.
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
 
 export default function MapaDemandas() {
   const supabase = createClient()
@@ -252,6 +251,18 @@ export default function MapaDemandas() {
       const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([d.lng, d.lat])
         .addTo(mapa)
+      // BUG CORRIGIDO (achado no relatório do PageSpeed Insights, aba
+      // "Navegação agêntica"/acessibilidade): o próprio MapLibre define
+      // `aria-label="Map marker"` no elemento do pin dentro do construtor de
+      // `Marker` (mesmo passando um `element` customizado) — como esse
+      // `<div>` não tem `role`, `aria-label` nele é um atributo ARIA
+      // proibido (regra `aria-prohibited-attr`). Como o construtor já rodou
+      // de forma síncrona (a chamada acima não é assíncrona), sobrescrever
+      // aqui pega o mesmo elemento depois que o MapLibre mexeu nele: dá
+      // `role="button"` (o pin É clicável) e troca o texto genérico por um
+      // que descreve o que o pin representa de verdade.
+      el.setAttribute('role', 'button')
+      el.setAttribute('aria-label', `Ver demanda: ${d.categoria?.nome || 'Sem categoria'}`)
 
       // Diferente das outras 3 camadas: aqui o popup só abre depois de checar
       // login — por isso não usa marker.setPopup() (que abriria direto no
@@ -483,10 +494,13 @@ export default function MapaDemandas() {
     recarregarImoveis()
   }
 
-  // Detecta mobile (mesmo breakpoint do resto do layout)
-  useEffect(() => {
+  // Detecta mobile (mesmo breakpoint do resto do layout) — useLayoutEffect
+  // de propósito, ver comentário de useIsomorphicLayoutEffect acima do
+  // componente: evita pintar o layout de desktop por um instante antes de
+  // trocar pro layout mobile de verdade.
+  useIsomorphicLayoutEffect(() => {
     const mq = window.matchMedia('(max-width: 640px)')
-    Promise.resolve().then(() => setIsMobile(mq.matches))  // lê valor real após hidratação
+    setIsMobile(mq.matches)
     const aoMudar = (e: MediaQueryListEvent) => setIsMobile(e.matches)
     mq.addEventListener('change', aoMudar)
     return () => mq.removeEventListener('change', aoMudar)
@@ -637,8 +651,15 @@ export default function MapaDemandas() {
               aparece. */}
           {!isMobile && (
             <Link href="/" style={{ flexShrink: 0, height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#4256c8' }}>
+              {/* CORREÇÃO DE PERFORMANCE (PageSpeed Insights): trocado pro
+                  arquivo "CIDADANIA-logo.png" — mesma imagem, redimensionada
+                  pra 400x100 (2x de folga pra retina sobre o maior uso real
+                  no cliente, 46px de altura). O PNG original (800x200)
+                  continua intacto em public/, usado só por
+                  src/app/opengraph-image.tsx (gerado no servidor, não conta
+                  no peso de rede de nenhuma página). */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: '34px', width: 'auto', display: 'block' }} />
+              <img src="/CIDADANIA-logo.png" alt="CidadanIA Frutal" width={400} height={100} style={{ height: '34px', width: 'auto', display: 'block' }} />
             </Link>
           )}
           {/* BUG CORRIGIDO / MUDANÇA DE COMPORTAMENTO (pedido do usuário):
@@ -1103,7 +1124,17 @@ export default function MapaDemandas() {
 
         {/* MAPA */}
         <div style={isMobile ? { position: 'absolute', inset: 0 } : { flex: 1, position: 'relative', minWidth: 0 }}>
-          <div ref={mapRef} className="mapa-map-div" style={{ width: '100%', height: '100%', minHeight: 'clamp(300px, 55vw, 500px)' }} />
+          <div ref={mapRef} className="mapa-map-div" style={{ width: '100%', height: '100%', minHeight: 'clamp(300px, 55vw, 500px)' }}>
+            {/* Esqueleto leve enquanto o MapLibre ainda não carregou (ver
+                agendarQuandoOcioso em useMapaBase.ts — o carregamento agora
+                é adiado de propósito, então esse estado dura um pouco mais
+                que antes). O canvas do MapLibre é inserido dentro desta
+                mesma div quando o mapa monta, cobrindo o pulso por cima —
+                não precisa de lógica pra removê-lo depois. */}
+            {!mapaCarregado && (
+              <div className="mapa-esqueleto-pulso" style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #dbe2f5, #eef1fa)' }} />
+            )}
+          </div>
 
           {/* Barra flutuante (chips de camada + conta) — substitui a Navbar
               nesta página, que agora ocupa a tela inteira. */}
@@ -1241,6 +1272,8 @@ export default function MapaDemandas() {
         }
         .sheet-chevron-up { animation: sheet-chevron-bounce 1.6s ease-in-out infinite; }
         .sheet-chevron-down { animation: sheet-chevron-bounce-down 1.6s ease-in-out infinite; }
+        @keyframes mapa-esqueleto-pulso { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        .mapa-esqueleto-pulso { animation: mapa-esqueleto-pulso 1.8s ease-in-out infinite; }
       `}</style>
 
     </div>

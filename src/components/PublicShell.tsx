@@ -11,6 +11,10 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   const isLanding = pathname === '/'
   const isMapa = pathname === '/mapa'
   const isAssistenteIA = pathname === '/assistenteia'
+  // Usado só no preconnect do /mapa abaixo — lido da mesma env var que
+  // supabase-browser.ts usa pra criar o client, em vez de hardcodear o
+  // domínio do projeto aqui.
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 
   // Trava html/body de verdade no /mapa — evita scroll/rubber-band nativo do
   // navegador (que empurra a navbar pra trás da barra de endereço em mobile)
@@ -39,9 +43,27 @@ export default function PublicShell({ children }: { children: React.ReactNode })
           mapa) — achado no relatório do PageSpeed Insights ("candidatos a
           pré-conexão", ~600ms de economia estimada de LCP juntos). Só
           aparece aqui (React 19 hoista <link> pra <head> sozinho, de
-          qualquer componente) porque só o /mapa usa esses domínios. */}
-      <link rel="preconnect" href="https://cdn.arcgis.com" />
-      <link rel="preconnect" href="https://basemapstyles-api.arcgis.com" />
+          qualquer componente) porque só o /mapa usa esses domínios.
+          BUG CORRIGIDO (2ª rodada do PageSpeed Insights): sem o atributo
+          `crossorigin`, esses dois `<link>` apareciam de novo no relatório
+          como "pré-conexão não usada" — o navegador abre uma conexão HTTP
+          "normal" (com credenciais) quando falta esse atributo, mas as
+          chamadas reais que o MapLibre faz pra buscar tile/estilo são
+          `fetch`/`XHR` sem credenciais (anônimas); como o tipo de conexão
+          não bate, o navegador não reaproveita a que foi pré-aberta e abre
+          outra do zero — a pré-conexão vira trabalho desperdiçado em vez de
+          economia. `crossOrigin="anonymous"` alinha os dois. Também
+          adicionados aqui: o preconnect pro Supabase (Storage), terceiro
+          "candidato" apontado no mesmo relatório — as fotos dos pins
+          (demandas/pets/classificados/imóveis) vêm de lá — e pro
+          `ibasemaps-api.arcgis.com`, que é quem serve os tiles de satélite
+          em si (o domínio com mais requisições de todos aqui) e não estava
+          preconectado antes, apesar de já estarem os outros dois domínios
+          do Esri (só sprite/rótulo, bem menos tráfego que os tiles). */}
+      <link rel="preconnect" href="https://cdn.arcgis.com" crossOrigin="anonymous" />
+      <link rel="preconnect" href="https://basemapstyles-api.arcgis.com" crossOrigin="anonymous" />
+      <link rel="preconnect" href="https://ibasemaps-api.arcgis.com" crossOrigin="anonymous" />
+      {supabaseUrl && <link rel="preconnect" href={supabaseUrl} crossOrigin="anonymous" />}
       {/* Navbar padrão (com o menu hamburguer) só no mobile — pedido do
           usuário: o MapaTopBar.tsx perdeu o card azul de logo/avatar que
           tinha antes, e essa faixa fixa assumiu o lugar dele. Desktop

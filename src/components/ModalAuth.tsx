@@ -124,8 +124,10 @@ export default function ModalAuth({ onFechar }: Props) {
 
         {/* Header */}
         <div style={{ background: '#4256c8', height: '66px', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'visible' }}>
+          {/* CORREÇÃO DE PERFORMANCE (PageSpeed Insights): ver comentário
+              equivalente em MapaDemandas.tsx — mesmo arquivo reduzido. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: '46px', width: 'auto', display: 'block' }} />
+          <img src="/CIDADANIA-logo.png" alt="CidadanIA Frutal" width={400} height={100} style={{ height: '46px', width: 'auto', display: 'block' }} />
           <button onClick={onFechar} style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: '22px', lineHeight: 1, padding: 0 }}>×</button>
         </div>
 

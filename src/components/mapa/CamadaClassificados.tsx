@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '../AuthProvider'
 import { Classificado, TipoVeiculo, CamadaConfig } from '@/types'
 import { escapeHtml } from '@/lib/escapeHtml'
-import { linkWhatsapp } from '@/lib/mascaraTelefone'
+import { titleCase, sentenceCase } from '@/lib/textoFormatado'
+import { BotaoWhatsapp } from './BotaoWhatsapp'
 // Só o tipo — o maplibre-gl em si continua carregado dinamicamente por
 // useMapaBase (import type é apagado na compilação, não força o bundle).
 import type { Map as MapLibreMap, Marker, Popup } from 'maplibre-gl'
@@ -69,18 +70,6 @@ function formatarKm(v?: number) {
   return `${v.toLocaleString('pt-BR')} km`
 }
 
-function sentenceCase(str?: string) {
-  if (!str) return ''
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
-}
-
-// Bairro/endereço é nome próprio — cada palavra com inicial maiúscula, não
-// só a primeira. Mesmo helper duplicado em CamadaPets.tsx/CamadaEmpregos.tsx.
-function titleCase(str?: string) {
-  if (!str) return ''
-  return str.toLowerCase().split(' ').map((w) => w ? w.charAt(0).toUpperCase() + w.slice(1) : w).join(' ')
-}
-
 /* ================================================================= dados = */
 
 export function useClassificados() {
@@ -88,6 +77,9 @@ export function useClassificados() {
   const [classificados, setClassificados] = useState<Classificado[]>([])
   const [config, setConfig] = useState<Record<string, CamadaConfig>>({})
 
+  // LIMPEZA (duplicação de código — ver comentário equivalente em
+  // usePets/CamadaPets.tsx): a mesma consulta não fica mais escrita duas
+  // vezes; o useEffect abaixo chama esta função em vez de repetir a query.
   async function recarregar() {
     const { data } = await supabase
       .from('classificados')
@@ -100,14 +92,8 @@ export function useClassificados() {
   }
 
   useEffect(() => {
-    supabase
-      .from('classificados')
-      .select('*')
-      .eq('oculto', false)
-      .eq('vendido', false)
-      .eq('ia_decisao', 'aprovada')
-      .order('created_at', { ascending: false })
-      .then(({ data }) => setClassificados((data || []) as Classificado[]))
+    // Ver comentário equivalente em usePets/CamadaPets.tsx.
+    Promise.resolve().then(() => recarregar())
     supabase.from('camadas_config').select('*').eq('camada', 'classificados').then(({ data }) => {
       if (!data) return
       const mapa: Record<string, CamadaConfig> = {}
@@ -194,6 +180,12 @@ export function useMarkersClassificados({
       const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([c.lng, c.lat])
         .addTo(mapa)
+      // BUG CORRIGIDO (achado no PageSpeed Insights) — ver comentário
+      // equivalente em MapaDemandas.tsx: o MapLibre põe `aria-label="Map
+      // marker"` num `<div>` sem `role` (ARIA proibido). Sobrescreve com um
+      // `role` válido e um texto descritivo de verdade.
+      el.setAttribute('role', 'button')
+      el.setAttribute('aria-label', `Ver anúncio: ${ROTULO_VEICULO[c.tipo_veiculo]} — ${sentenceCase(c.titulo)}`)
 
       el.addEventListener('click', (ev) => {
         ev.stopPropagation()
@@ -223,19 +215,6 @@ export function useMarkersClassificados({
 const rotuloEstilo: React.CSSProperties = { fontSize: '10px', fontWeight: 700, color: '#111827', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }
 const valorEstilo: React.CSSProperties = { fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.5 }
 const botaoAcao: React.CSSProperties = { fontSize: '12px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px', cursor: 'pointer', fontWeight: 500, width: '100%' }
-
-// Botão de contato via WhatsApp — mesmo ícone/estilo que CamadaPets.tsx (não
-// compartilhado entre arquivos de propósito: cada Camada* já mantém os
-// próprios ícones/estilos locais neste projeto, sem um módulo de ícones
-// comum — mantém o mesmo padrão).
-const botaoWhatsapp: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '2px', background: '#25d366', color: 'white', fontSize: '12.5px', fontWeight: 600, padding: '8px 14px', borderRadius: '20px', textDecoration: 'none', border: 'none', cursor: 'pointer', width: 'fit-content' }
-function IconeWhatsapp() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-    </svg>
-  )
-}
 
 export function SidebarClassificados({
   classificados, filtro, setFiltro, selecionado, setSelecionado,
@@ -331,12 +310,7 @@ export function SidebarClassificados({
             </div>
             <div>
               <p style={rotuloEstilo}>Contato</p>
-              {/* BUG CORRIGIDO (pedido do usuário): contato era só texto —
-                  vira link direto pro WhatsApp (wa.me). */}
-              <a href={linkWhatsapp(selecionado.contato)} target="_blank" rel="noopener noreferrer" style={botaoWhatsapp}>
-                <IconeWhatsapp />
-                Chamar no WhatsApp
-              </a>
+              <BotaoWhatsapp contato={selecionado.contato} />
             </div>
           </div>
 

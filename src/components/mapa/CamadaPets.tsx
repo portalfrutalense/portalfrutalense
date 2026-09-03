@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '../AuthProvider'
 import { Pet, EspeciePet, PortePet, CamadaConfig } from '@/types'
 import { escapeHtml } from '@/lib/escapeHtml'
-import { linkWhatsapp } from '@/lib/mascaraTelefone'
+import { titleCase, sentenceCase } from '@/lib/textoFormatado'
+import { BotaoWhatsapp } from './BotaoWhatsapp'
 // Só o tipo — o maplibre-gl em si continua carregado dinamicamente por
 // useMapaBase (import type é apagado na compilação, não força o bundle).
 import type { Map as MapLibreMap, Marker, Popup } from 'maplibre-gl'
@@ -91,19 +92,6 @@ const ROTULO_FILTRO: Record<string, string> = {
   pet_reencontrado: 'Reencontrados',
 }
 
-function sentenceCase(str?: string) {
-  if (!str) return ''
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
-}
-
-// Endereço é nome próprio (nome de rua/bairro) — cada palavra com inicial
-// maiúscula, não só a primeira. Evita `\w`/`\b` (ASCII-only, quebra em
-// acento) — mesmo cuidado documentado em MapaDemandas.tsx/titleCase.
-function titleCase(str?: string) {
-  if (!str) return ''
-  return str.toLowerCase().split(' ').map((w) => w ? w.charAt(0).toUpperCase() + w.slice(1) : w).join(' ')
-}
-
 /* ================================================================= dados = */
 
 export function usePets() {
@@ -112,6 +100,11 @@ export function usePets() {
   const [cores, setCores] = useState<Record<string, string>>(COR_PADRAO)
   const [icones, setIcones] = useState<Record<string, string>>({})
 
+  // LIMPEZA (duplicação de código, achada na auditoria de performance do
+  // /mapa): essa mesma consulta estava escrita duas vezes — uma aqui, outra
+  // solta dentro do useEffect de montagem logo abaixo, sempre em risco de
+  // uma mudança futura corrigir só uma cópia e esquecer a outra. O
+  // useEffect passa a chamar esta função em vez de repetir a query.
   async function recarregar() {
     const { data } = await supabase
       .from('pets')
@@ -124,14 +117,13 @@ export function usePets() {
   }
 
   useEffect(() => {
-    supabase
-      .from('pets')
-      .select('*')
-      .eq('oculto', false)
-      .eq('ia_decisao', 'aprovada')
-      .gt('expira_em', new Date().toISOString())
-      .order('created_at', { ascending: false })
-      .then(({ data }) => setPets((data || []) as Pet[]))
+    // `Promise.resolve().then(...)` em vez de chamar `recarregar()` direto:
+    // o eslint-plugin-react-hooks (`set-state-in-effect`) reclama de chamar
+    // sincronamente, no corpo do efeito, uma função que ele consegue
+    // rastrear como "no fim chama setState" (mesmo sendo `async`) — mesmo
+    // padrão já usado em outros pontos do projeto pra esse caso exato
+    // (ex.: MapaDemandas.tsx).
+    Promise.resolve().then(() => recarregar())
     supabase.from('camadas_config').select('*').eq('camada', 'pets').then(({ data }) => {
       if (!data) return
       const mapaCores = { ...COR_PADRAO }
@@ -241,6 +233,12 @@ export function useMarkersPets({
       const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([p.lng, p.lat])
         .addTo(mapa)
+      // BUG CORRIGIDO (achado no PageSpeed Insights) — ver comentário
+      // equivalente em MapaDemandas.tsx: o MapLibre põe `aria-label="Map
+      // marker"` num `<div>` sem `role` (ARIA proibido). Sobrescreve com um
+      // `role` válido e um texto descritivo de verdade.
+      el.setAttribute('role', 'button')
+      el.setAttribute('aria-label', `Ver pet: ${titulo}`)
 
       // Sem `.setPopup()` de propósito — o clique é interceptado à mão
       // pra checar login antes (mesmo padrão de MapaDemandas.tsx).
@@ -342,28 +340,29 @@ export function useMarkersPets({
           })
         }
 
-        // Atualiza no máximo ~15x/s — suave o bastante pro pulso (ciclo de
+        // Atualiza no máximo ~10x/s — suave o bastante pro pulso (ciclo de
         // 2.2s, não precisa de mais que isso), sem pesar no mapa 3D já
         // carregado. Também não empilha requestAnimationFrame durante a
         // pausa entre atualizações — só agenda o próximo quando realmente
         // vai atualizar, em vez de rodar a 60fps só checando o relógio.
-        //
-        // PAUSA DURANTE MOVIMENTO (2026-08-31): sem isso, o radar continuava
-        // chamando setData() a cada 65ms mesmo bem no meio de uma animação
-        // de zoom/inclinação — nesse momento o mapa já está ocupado
-        // processando a própria transição, e as atualizações do radar
-        // competiam pelo mesmo pipeline. Se elas chegassem mais rápido do
-        // que o mapa conseguia absorver durante esse pico, empilhavam numa
-        // fila que só crescia, e o mapa nunca mais alcançava — travava de
-        // vez (zoom parava de responder, e a própria animação do radar
-        // parecia travada junto, já que o quadro nunca mais era repintado).
-        // mapa.isMoving() cobre pan, zoom, rotação e inclinação — qualquer
-        // um em andamento pausa a atualização até o próximo 'idle'.
-        const INTERVALO_MS = 65
+        // CORREÇÃO DE PERFORMANCE (PageSpeed Insights): era 65ms (~15x/s) —
+        // reduzido pra 100ms. O ciclo do pulso (2.2s) não fica visivelmente
+        // menos suave com 10 passos a menos por ciclo, e é ~35% menos
+        // trabalho de CPU rodando o tempo todo em segundo plano enquanto o
+        // usuário está no mapa (esse `setTimeout` roda pra sempre, não só
+        // durante o carregamento — ver comentário de `agendar` abaixo).
+        const INTERVALO_MS = 100
         function agendar() {
           animId = window.setTimeout(() => {
             try {
-              if (!mapa.isMoving()) {
+              // PAUSA COM A ABA EM SEGUNDO PLANO (PageSpeed Insights): sem
+              // isso, o loop continuava chamando setData() pra sempre mesmo
+              // com a aba minimizada/trocada — trabalho de CPU 100%
+              // desperdiçado, já que nada disso é visível. `agendar()`
+              // continua sendo rechamado (não para o loop), só pula o
+              // trabalho pesado — assim que a aba volta a ficar visível, o
+              // radar retoma sozinho, sem precisar de listener extra.
+              if (!document.hidden && !mapa.isMoving()) {
                 const fonte = mapa.getSource('radar-pets') as import('maplibre-gl').GeoJSONSource | undefined
                 fonte?.setData({ type: 'FeatureCollection', features: construirFeatures() })
               }
@@ -521,12 +520,7 @@ export function SidebarPets({
             )}
             <div>
               <p style={rotuloEstilo}>Contato</p>
-              {/* BUG CORRIGIDO (pedido do usuário): contato era só texto —
-                  vira link direto pro WhatsApp (wa.me). */}
-              <a href={linkWhatsapp(selecionado.contato)} target="_blank" rel="noopener noreferrer" style={botaoWhatsapp}>
-                <IconeWhatsapp />
-                Chamar no WhatsApp
-              </a>
+              <BotaoWhatsapp contato={selecionado.contato} />
             </div>
           </div>
 
@@ -645,20 +639,6 @@ export function SidebarPets({
 const rotuloEstilo: React.CSSProperties = { fontSize: '10px', fontWeight: 700, color: '#111827', textTransform: 'uppercase', letterSpacing: '.04em', margin: '0 0 2px' }
 const valorEstilo: React.CSSProperties = { fontSize: '13px', color: '#111827', margin: 0, lineHeight: 1.5 }
 const botaoAcao: React.CSSProperties = { fontSize: '12px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px', cursor: 'pointer', fontWeight: 500, width: '100%' }
-
-// Botão de contato via WhatsApp — mesmo ícone (traço, estilo feather) já
-// usado no botão flutuante do assistente de IA (ChatBot.tsx), só que aqui
-// preenchido, cor da marca do WhatsApp.
-const botaoWhatsapp: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '2px', background: '#25d366', color: 'white', fontSize: '12.5px', fontWeight: 600, padding: '8px 14px', borderRadius: '20px', textDecoration: 'none', border: 'none', cursor: 'pointer', width: 'fit-content' }
-function IconeWhatsapp() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-    </svg>
-  )
-}
-
-
 
 /* ============================================================ formulário = */
 

@@ -114,8 +114,10 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
         {/* Coluna esquerda — logo */}
         <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
           <Link href="/" className="nav-logo-link" style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+            {/* CORREÇÃO DE PERFORMANCE (PageSpeed Insights): ver comentário
+                equivalente em MapaDemandas.tsx — mesmo arquivo reduzido. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/CIDADANIA.png" alt="CidadanIA Frutal" width={800} height={200} className="nav-logo-img" style={{ height: '38px', width: 'auto', display: 'block' }} />
+            <img src="/CIDADANIA-logo.png" alt="CidadanIA Frutal" width={400} height={100} className="nav-logo-img" style={{ height: '38px', width: 'auto', display: 'block' }} />
           </Link>
         </div>
 
