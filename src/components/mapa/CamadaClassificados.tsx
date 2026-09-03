@@ -44,7 +44,7 @@ export function IconeVeiculo({ tipo, size = 18, cor = 'currentColor' }: { tipo: 
 /** Miolo do pin: ícone cadastrado no painel quando houver, senão a silhueta padrão. */
 function svgPinVeiculo(tipo: TipoVeiculo, iconeUrl: string | undefined, cor: string) {
   if (iconeUrl) {
-    return `<img src="${escapeHtml(iconeUrl)}" style="width:19px;height:19px;object-fit:contain;" />`
+    return `<img src="${escapeHtml(iconeUrl)}" alt="" style="width:19px;height:19px;object-fit:contain;" />`
   }
   return `<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="${cor}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="${PATH_VEICULO[tipo]}"/></svg>`
 }
@@ -177,7 +177,7 @@ export function useMarkersClassificados({
 
       const popup = new maplibregl.Popup({ maxWidth: '260px', closeButton: true }).setHTML(`
         <div style="min-width:200px;max-width:230px;font-family:Inter,sans-serif;">
-          ${c.fotos?.[0] ? `<img src="${escapeHtml(c.fotos[0])}" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin-bottom:8px;display:block;" />` : ''}
+          ${c.fotos?.[0] ? `<img src="${escapeHtml(c.fotos[0])}" alt="" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin-bottom:8px;display:block;" />` : ''}
           <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#4256c8;text-transform:uppercase;letter-spacing:.03em;">${ROTULO_VEICULO[c.tipo_veiculo]}</p>
           <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#111827;">${escapeHtml(sentenceCase(c.titulo))}</p>
           <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#166534;">${formatarPreco(c.preco)}</p>
@@ -194,6 +194,9 @@ export function useMarkersClassificados({
       const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([c.lng, c.lat])
         .addTo(mapa)
+      // Acessibilidade (PageSpeed Insights) — precisa vir DEPOIS de criar o
+      // Marker, ver comentário equivalente em CamadaPets.tsx.
+      el.setAttribute('aria-label', `Ver anúncio: ${ROTULO_VEICULO[c.tipo_veiculo]} — ${sentenceCase(c.titulo)}`)
 
       el.addEventListener('click', (ev) => {
         ev.stopPropagation()

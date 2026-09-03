@@ -36,7 +36,7 @@ export function IconeEspecie({ especie, size = 18, cor = 'currentColor' }: { esp
  * se houver, no mesmo padrão de `svgPinVeiculo` em CamadaClassificados. */
 function svgPinEspecie(especie: EspeciePet, cor: string, iconeUrl?: string) {
   if (iconeUrl) {
-    return `<img src="${escapeHtml(iconeUrl)}" style="width:19px;height:19px;object-fit:contain;" />`
+    return `<img src="${escapeHtml(iconeUrl)}" alt="" style="width:19px;height:19px;object-fit:contain;" />`
   }
   if (especie === 'gato') {
     return `<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="${cor}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${PATH_GATO}"/></svg>`
@@ -224,7 +224,7 @@ export function useMarkersPets({
 
       const popup = new maplibregl.Popup({ maxWidth: '260px', closeButton: true }).setHTML(`
         <div style="min-width:200px;max-width:230px;font-family:Inter,sans-serif;">
-          ${p.foto_url ? `<img src="${escapeHtml(p.foto_url)}" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin-bottom:8px;display:block;" />` : ''}
+          ${p.foto_url ? `<img src="${escapeHtml(p.foto_url)}" alt="" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin-bottom:8px;display:block;" />` : ''}
           <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:.03em;">${titulo}</p>
           ${p.nome_pet ? `<p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#111827;">${escapeHtml(sentenceCase(p.nome_pet))}</p>` : ''}
           <p style="margin:0 0 6px;font-size:12px;color:#6b7280;">${escapeHtml(titleCase(p.endereco_label))}</p>
@@ -241,6 +241,10 @@ export function useMarkersPets({
       const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([p.lng, p.lat])
         .addTo(mapa)
+      // Acessibilidade (PageSpeed Insights) — precisa vir DEPOIS de criar o
+      // Marker: o construtor do MapLibre sobrescreve `aria-label` com um
+      // valor genérico ("Map marker") se setado antes.
+      el.setAttribute('aria-label', `Ver pet: ${titulo}`)
 
       // Sem `.setPopup()` de propósito — o clique é interceptado à mão
       // pra checar login antes (mesmo padrão de MapaDemandas.tsx).
@@ -359,11 +363,20 @@ export function useMarkersPets({
         // parecia travada junto, já que o quadro nunca mais era repintado).
         // mapa.isMoving() cobre pan, zoom, rotação e inclinação — qualquer
         // um em andamento pausa a atualização até o próximo 'idle'.
-        const INTERVALO_MS = 65
+        //
+        // CORREÇÃO DE PERFORMANCE (PageSpeed Insights — TBT de ~19s no /mapa,
+        // achado depois do revert de 2026-09-03): 65ms era mais frequente do
+        // que o pulso (ciclo de 2.2s) precisa pra parecer suave — 100ms já
+        // basta e reduz o trabalho de thread principal em ~35%. Também pausa
+        // quando a aba está em segundo plano (`document.hidden`): sem isso,
+        // o loop de setTimeout continuava recriando o polígono do radar a
+        // cada ciclo mesmo com a aba escondida, sem nenhum efeito visível
+        // pra ninguém — trabalho puro jogado fora.
+        const INTERVALO_MS = 100
         function agendar() {
           animId = window.setTimeout(() => {
             try {
-              if (!mapa.isMoving()) {
+              if (!document.hidden && !mapa.isMoving()) {
                 const fonte = mapa.getSource('radar-pets') as import('maplibre-gl').GeoJSONSource | undefined
                 fonte?.setData({ type: 'FeatureCollection', features: construirFeatures() })
               }

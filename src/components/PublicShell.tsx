@@ -5,6 +5,16 @@ import { usePathname } from 'next/navigation'
 import Navbar from './Navbar'
 import ChatBot from './ChatBot'
 
+// CORREÇÃO DE PERFORMANCE (PageSpeed Insights — "nenhuma origem pré-
+// conectada", achado depois do revert de 2026-09-03): o /mapa depende de 3
+// origens externas só pra desenhar a primeira tela (satélite + rótulo de
+// rua da Esri, fotos/ícones do Supabase Storage) — sem preconnect, o
+// navegador só começa a resolver DNS/TLS dessas origens quando a PRIMEIRA
+// requisição de verdade é feita, perdendo uma volta inteira de rede. React
+// 19 iça automaticamente qualquer <link>/<meta> renderizado em componente
+// cliente pro <head>, então basta renderizar aqui dentro.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+
 export default function PublicShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isMaster = pathname.startsWith('/master')
@@ -35,6 +45,14 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   // (ver MapaTopBar.tsx e a logo fixa no topo do sidebar, em MapaDemandas.tsx).
   if (isMapa) return (
     <div className="mapa-shell" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      {/* Preconnect pras 3 origens externas que o mapa bate assim que
+          carrega — ver comentário no topo do arquivo. `crossOrigin` é
+          necessário pro navegador reaproveitar essa conexão pré-aberta nas
+          requisições reais (sem ele, cada origem CORS abre uma conexão
+          NOVA mesmo assim, desperdiçando o preconnect). */}
+      <link rel="preconnect" href="https://ibasemaps-api.arcgis.com" crossOrigin="anonymous" />
+      <link rel="preconnect" href="https://basemapstyles-api.arcgis.com" crossOrigin="anonymous" />
+      {supabaseUrl && <link rel="preconnect" href={supabaseUrl} crossOrigin="anonymous" />}
       {/* Navbar padrão (com o menu hamburguer) só no mobile — pedido do
           usuário: o MapaTopBar.tsx perdeu o card azul de logo/avatar que
           tinha antes, e essa faixa fixa assumiu o lugar dele. Desktop

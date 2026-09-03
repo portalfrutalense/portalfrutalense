@@ -27,7 +27,7 @@ export function IconeImovel({ size = 18, cor = 'currentColor' }: { size?: number
 
 function svgPinImovel(iconeUrl: string | undefined, cor: string) {
   if (iconeUrl) {
-    return `<img src="${escapeHtml(iconeUrl)}" style="width:19px;height:19px;object-fit:contain;" />`
+    return `<img src="${escapeHtml(iconeUrl)}" alt="" style="width:19px;height:19px;object-fit:contain;" />`
   }
   return `<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="${cor}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${PATH_CASA}"/></svg>`
 }
@@ -169,7 +169,7 @@ export function useMarkersImoveis({
 
       const popup = new maplibregl.Popup({ maxWidth: '260px', closeButton: true }).setHTML(`
         <div style="min-width:200px;max-width:230px;font-family:Inter,sans-serif;">
-          ${i.fotos?.[0] ? `<img src="${escapeHtml(i.fotos[0])}" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin-bottom:8px;display:block;" />` : ''}
+          ${i.fotos?.[0] ? `<img src="${escapeHtml(i.fotos[0])}" alt="" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin-bottom:8px;display:block;" />` : ''}
           <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#4256c8;text-transform:uppercase;letter-spacing:.03em;">${ROTULO_FINALIDADE[i.finalidade]} · ${ROTULO_TIPO_IMOVEL[i.tipo]}</p>
           <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#166534;">${formatarValor(i.valor)}</p>
           <p style="margin:0 0 10px;font-size:12px;color:#6b7280;">${escapeHtml(titleCase(i.endereco_label))}</p>
@@ -185,6 +185,9 @@ export function useMarkersImoveis({
       const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([i.lng, i.lat])
         .addTo(mapa)
+      // Acessibilidade (PageSpeed Insights) — precisa vir DEPOIS de criar o
+      // Marker, ver comentário equivalente em CamadaPets.tsx.
+      el.setAttribute('aria-label', `Ver anúncio: ${ROTULO_FINALIDADE[i.finalidade]} · ${ROTULO_TIPO_IMOVEL[i.tipo]}`)
 
       el.addEventListener('click', (ev) => {
         ev.stopPropagation()

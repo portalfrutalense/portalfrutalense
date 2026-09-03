@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useLayoutEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase-browser'
@@ -38,6 +38,9 @@ function sentenceCase(str?: string) {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
 }
 
+// `useLayoutEffect` gera aviso do React ao rodar em SSR (sem DOM) — cai pra
+// `useEffect` nesse caso, mantendo o comportamento síncrono só no navegador.
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
 
 export default function MapaDemandas() {
   const supabase = createClient()
@@ -204,11 +207,15 @@ export default function MapaDemandas() {
       // foto_url/iconeUrl vão pra dentro de um src="" de HTML bruto (não é
       // JSX, não escapa sozinho) — sem escapeHtml aqui, um valor malicioso
       // vira XSS armazenado pra quem visualizar o mapa.
+      // BUG CORRIGIDO (PageSpeed Insights — acessibilidade): faltava `alt`
+      // nesses <img> — vazio (`alt=""`) porque são puramente decorativos, o
+      // conteúdo real (categoria/descrição) já vem em texto ao lado, e o
+      // pin como um todo ganha aria-label descritivo logo abaixo.
       let miolo: string
       if (d.foto_url) {
-        miolo = `<img src="${escapeHtml(d.foto_url)}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:32px;height:32px;object-fit:cover;" />`
+        miolo = `<img src="${escapeHtml(d.foto_url)}" alt="" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:32px;height:32px;object-fit:cover;" />`
       } else if (iconeUrl) {
-        miolo = `<img src="${escapeHtml(iconeUrl)}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:125%;height:125%;object-fit:contain;filter:brightness(1.3);" />`
+        miolo = `<img src="${escapeHtml(iconeUrl)}" alt="" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:125%;height:125%;object-fit:contain;filter:brightness(1.3);" />`
       } else {
         miolo = `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:23px;height:23px;border-radius:50%;background:${cor};"></div>`
       }
@@ -233,7 +240,7 @@ export default function MapaDemandas() {
     filtradas.forEach((d) => {
       const popupHtml = `
         <div style="min-width:200px;max-width:230px;font-family:Inter,sans-serif;">
-          ${d.foto_url ? `<img src="${escapeHtml(d.foto_url)}" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin-bottom:8px;display:block;" />` : ''}
+          ${d.foto_url ? `<img src="${escapeHtml(d.foto_url)}" alt="" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin-bottom:8px;display:block;" />` : ''}
           <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#4256c8;text-transform:uppercase;letter-spacing:.03em;">${escapeHtml(d.categoria?.nome) || 'Sem categoria'}</p>
           <p style="margin:0 0 6px;font-size:12px;color:#6b7280;">${escapeHtml(titleCase(d.endereco_label))}</p>
           <p style="margin:0 0 10px;font-size:13px;color:#111827;line-height:1.4;">${escapeHtml(sentenceCase(d.descricao))}</p>
@@ -252,6 +259,12 @@ export default function MapaDemandas() {
       const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([d.lng, d.lat])
         .addTo(mapa)
+      // Acessibilidade (PageSpeed Insights — "Elements must only use
+      // permitted ARIA attributes"): o MapLibre marca o container do marker
+      // como `aria-label="Map marker"` genérico dentro do PRÓPRIO
+      // construtor — sobrescrever `el` antes de criar o Marker não
+      // funciona, ele reaplica o padrão. Precisa vir DEPOIS.
+      el.setAttribute('aria-label', `Ver demanda: ${d.categoria?.nome || 'Sem categoria'}`)
 
       // Diferente das outras 3 camadas: aqui o popup só abre depois de checar
       // login — por isso não usa marker.setPopup() (que abriria direto no
@@ -484,9 +497,20 @@ export default function MapaDemandas() {
   }
 
   // Detecta mobile (mesmo breakpoint do resto do layout)
-  useEffect(() => {
+  //
+  // CORREÇÃO DE CLS (PageSpeed Insights — 0.85, a pior nota possível,
+  // achada depois do revert de 2026-09-03): antes usava `useEffect` normal,
+  // que só roda DEPOIS da primeira pintura da tela — a página sempre
+  // desenhava primeiro o layout desktop (padrão SSR-safe de `isMobile`),
+  // pra só então trocar pro layout mobile (sidebar vira bottom sheet),
+  // causando o maior salto de layout que o Lighthouse consegue medir.
+  // `useIsomorphicLayoutEffect` roda de forma síncrona ANTES da pintura no
+  // navegador (é só `useEffect` mesmo durante SSR, pra não disparar o aviso
+  // do React sobre useLayoutEffect no servidor) — o layout certo já nasce
+  // certo, sem o "flash" do desktop.
+  useIsomorphicLayoutEffect(() => {
     const mq = window.matchMedia('(max-width: 640px)')
-    Promise.resolve().then(() => setIsMobile(mq.matches))  // lê valor real após hidratação
+    setIsMobile(mq.matches)
     const aoMudar = (e: MediaQueryListEvent) => setIsMobile(e.matches)
     mq.addEventListener('change', aoMudar)
     return () => mq.removeEventListener('change', aoMudar)
@@ -657,7 +681,12 @@ export default function MapaDemandas() {
                 <path d="M1 12l10-10 10 10" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               {sheetState === 'peek' && (
-                <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
+                // CORREÇÃO DE ACESSIBILIDADE (PageSpeed Insights — contraste
+                // insuficiente): #9ca3af sobre fundo branco não bate a taxa
+                // mínima de 4.5:1 do WCAG AA pra texto normal. #6b7280 (já
+                // usado como cor de texto secundário no resto do arquivo)
+                // passa com folga, sem mudar a intenção visual "discreto".
+                <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500 }}>
                   Arraste para ver mais
                 </span>
               )}

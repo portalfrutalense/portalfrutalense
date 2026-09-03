@@ -114,8 +114,16 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
         {/* Coluna esquerda — logo */}
         <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
           <Link href="/" className="nav-logo-link" style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+            {/* CORREÇÃO DE PERFORMANCE (PageSpeed Insights): "CIDADANIA.png"
+                original (800x200, 24,9 KiB) é maior do que precisa pra
+                exibir aqui (280x70 no máximo) — trocado por
+                "CIDADANIA-logo.png" (400x100, 4,6 KiB — 2x de folga sobre o
+                tamanho real exibido, o suficiente pra telas retina). O
+                arquivo original continua intacto em public/, usado por
+                src/app/opengraph-image.tsx (geração server-side, não afeta
+                o peso da página). */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/CIDADANIA.png" alt="CidadanIA Frutal" className="nav-logo-img" style={{ height: '38px', width: 'auto', display: 'block' }} />
+            <img src="/CIDADANIA-logo.png" alt="CidadanIA Frutal" width={400} height={100} className="nav-logo-img" style={{ height: '38px', width: 'auto', display: 'block' }} />
           </Link>
         </div>
 
