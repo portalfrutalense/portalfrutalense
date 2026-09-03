@@ -4,7 +4,6 @@ import './globals.css'
 import PublicShell from '@/components/PublicShell'
 import AuthProvider from '@/components/AuthProvider'
 import GlobalModals from '@/components/GlobalModals'
-import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
 import { SheetProvider } from '@/contexts/SheetContext'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -67,7 +66,6 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={`${inter.className} ${jakarta.variable} bg-[#f9fafb] min-h-screen`}>
-        <ServiceWorkerRegister />
         <AuthProvider>
           <SheetProvider>
             <GlobalModals />
