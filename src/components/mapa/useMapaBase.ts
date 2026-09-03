@@ -88,9 +88,15 @@ function suavizar(t: number): number {
 // nenhum. mapaCarregado fica sempre false de propósito — todo o código de
 // camadas/marcadores em MapaDemandas.tsx e nas Camada* já é condicionado a
 // `mapaCarregado`, então ele simplesmente não roda, sem precisar tocar nele.
+// BUG CORRIGIDO: o endpoint '/export' não existe no serviço de tiles do
+// ibasemaps-api (só serve '/tile/{z}/{y}/{x}') — a 1ª tentativa devolvia
+// 404 em JSON (com f=image e tudo), e um background-image que falha ao
+// carregar simplesmente não aparece: mapa inteiro branco, sem erro visível
+// em lugar nenhum óbvio. Corrigido usando um tile de verdade (z=13, já
+// calculado à mão pra cobrir o centro de Frutal, mesma ordem {z}/{y}/{x}
+// que o resto do arquivo usa) — 1 imagem 256×256 só, esticada por CSS.
 const TESTE_SEM_MAPLIBRE = true
-const TEST_BBOX = `${FRUTAL_LNG - 0.03},${FRUTAL_LAT - 0.03},${FRUTAL_LNG + 0.03},${FRUTAL_LAT + 0.03}`
-const TEST_IMAGEM_ESTATICA = `https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/export?bbox=${TEST_BBOX}&bboxSR=4326&size=1200,1200&format=jpg&f=image&token=${ARCGIS_KEY}`
+const TEST_IMAGEM_ESTATICA = `https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/13/4559/2981?token=${ARCGIS_KEY}`
 
 export function useMapaBase() {
   const mapRef = useRef<HTMLDivElement>(null)
