@@ -29,6 +29,56 @@ function FacebookIcon() {
   )
 }
 
+/* ------------------------------------------------ gate navegador in-app -- */
+
+// Instagram (e Facebook/Messenger) abrem links num WebView próprio, sem o
+// motor completo de PWA — "Instalar aplicativo" ali dentro nunca funciona.
+// Detecta esse navegador in-app e oferece sair pro navegador de verdade.
+function navegadorInApp() {
+  if (typeof navigator === 'undefined') return false
+  return /Instagram|FBAN|FBAV/i.test(navigator.userAgent)
+}
+
+function InstagramGateCard({ onContinuar }: { onContinuar: () => void }) {
+  function abrirNoNavegador(instalar: boolean) {
+    const destino = new URL(window.location.origin + '/')
+    if (instalar) destino.searchParams.set('pwa', 'instalar')
+    // Android: o WebView do Instagram roda sobre o Chrome — um link
+    // "intent://" força abrir no app do Chrome de verdade, fora do
+    // WebView. iOS não tem equivalente via JS (só o menu "Abrir no
+    // Safari" que o próprio Instagram expõe) — melhor esforço: abre numa
+    // nova aba, que em algumas versões já escapa do WebView.
+    if (/Android/i.test(navigator.userAgent)) {
+      const semProtocolo = destino.href.replace(/^https?:\/\//, '')
+      window.location.href = `intent://${semProtocolo}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(destino.href)};end`
+    } else {
+      window.open(destino.href, '_blank')
+    }
+  }
+
+  return (
+    <div className="cartao">
+      <div className="cartao-topo">
+        <p>Para uma experiência completa</p>
+      </div>
+      <div className="cartao-corpo" style={{ flex: 1, justifyContent: 'center', gap: 14 }}>
+        <p style={{ margin: '0 0 4px', fontSize: 14, lineHeight: 1.55, color: 'var(--tinta-suave)', textAlign: 'center' }}>
+          Clique no botão abaixo para instalar o aplicativo em seu aparelho celular, ou abrir no seu navegador.
+        </p>
+        <button type="button" className="btn-marca" onClick={() => abrirNoNavegador(true)}>
+          Instalar aplicativo
+        </button>
+        <button type="button" className="btn-primario" onClick={() => abrirNoNavegador(false)}>
+          Abrir no navegador
+        </button>
+        <button type="button" className="btn-voltar" style={{ alignSelf: 'center', marginTop: 2 }} onClick={onContinuar}>
+          Continuar aqui
+        </button>
+      </div>
+    </div>
+  )
+}
+
 /* ------------------------------------------------------------ card login -- */
 
 // Fluxo unificado: tenta login → se não existe, pede confirmação de senha e cria conta
@@ -240,6 +290,11 @@ export default function LandingPage() {
   const router = useRouter()
   const cardRef = useRef<HTMLDivElement>(null)
   const [tremendo, setTremendo] = useState(false)
+  // Só mostra o gate se: veio de um navegador in-app E ainda não dispensou
+  // ("Continuar aqui") nesta aba/sessão.
+  const [gateInApp, setGateInApp] = useState(() =>
+    navegadorInApp() && typeof window !== 'undefined' && !sessionStorage.getItem('gate-in-app-dispensado')
+  )
 
   function sacudir() {
     if (tremendo) return
@@ -263,6 +318,21 @@ export default function LandingPage() {
   useEffect(() => {
     if (user) router.replace('/mapa')
   }, [user, router])
+
+  // "?pwa=instalar" chega quando o botão "Instalar aplicativo" do gate de
+  // navegador in-app manda o usuário pro Chrome de verdade — aqui, assim
+  // que o navegador sinalizar que o PWA é instalável, já dispara o prompt
+  // nativo, sem precisar de mais um clique.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('pwa') !== 'instalar') return
+    window.history.replaceState(null, '', window.location.pathname)
+    function aoFicarInstalavel(e: Event) {
+      e.preventDefault()
+      ;(e as unknown as { prompt: () => void }).prompt()
+    }
+    window.addEventListener('beforeinstallprompt', aoFicarInstalavel)
+    return () => window.removeEventListener('beforeinstallprompt', aoFicarInstalavel)
+  }, [])
 
   if (user) return null
 
@@ -293,7 +363,14 @@ export default function LandingPage() {
 
         <section className="coluna-acao surge" style={{ animationDelay: '260ms' }}>
           <div ref={cardRef} className={tremendo ? 'tremer' : ''}>
-            <CardAcesso />
+            {gateInApp ? (
+              <InstagramGateCard onContinuar={() => {
+                sessionStorage.setItem('gate-in-app-dispensado', '1')
+                setGateInApp(false)
+              }} />
+            ) : (
+              <CardAcesso />
+            )}
           </div>
         </section>
       </main>
@@ -392,7 +469,7 @@ export default function LandingPage() {
         .cartao-topo p { margin: 0; font-size: 13px; font-weight: 600; color: #ffffff; }
         .cartao-corpo { padding: clamp(16px, 2.6vh, 22px); display: flex; flex-direction: column; gap: 10px; }
 
-        .btn-primario, .btn-enviar {
+        .btn-primario, .btn-enviar, .btn-marca {
           display: flex; align-items: center; justify-content: center; gap: 9px;
           width: 100%; border-radius: 10px; font-size: 14px; font-weight: 600;
           cursor: pointer; transition: transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease;
@@ -410,6 +487,15 @@ export default function LandingPage() {
           box-shadow: 0 2px 4px rgba(13,20,37,0.10), 0 10px 20px -6px rgba(13,20,37,0.20);
         }
         .btn-primario:disabled { cursor: wait; opacity: .7; }
+
+        .btn-marca {
+          padding: 12px 16px; border: 1px solid var(--marca); background: var(--marca); color: #fff;
+          box-shadow: 0 1px 2px rgba(13,20,37,0.08), 0 4px 12px -4px rgba(66,86,200,0.45);
+        }
+        .btn-marca:hover:not(:disabled) {
+          transform: translateY(-1px); background: var(--marca-escura); border-color: var(--marca-escura);
+          box-shadow: 0 2px 4px rgba(13,20,37,0.10), 0 10px 20px -6px rgba(66,86,200,0.5);
+        }
 
         .separador { display: flex; align-items: center; gap: 10px; margin: 2px 0; }
         .separador::before, .separador::after { content: ''; flex: 1; height: 1px; background: #e6e9f2; }
@@ -601,7 +687,7 @@ export default function LandingPage() {
           .cartao-corpo { padding: 10px 30px; gap: 5px; flex: 1; min-height: 0; overflow-y: auto; }
           /* Campos/botões mais altos (pedido do usuário) — padding
              vertical maior, largura já encolhida pelo padding acima. */
-          .btn-primario, .btn-enviar { padding: 14px 12px; font-size: 13px; }
+          .btn-primario, .btn-enviar, .btn-marca { padding: 14px 12px; font-size: 13px; }
           .campo { padding: 14px 12px; font-size: 13px; }
           .formulario { gap: 6px; }
           .separador { margin: 0; }
