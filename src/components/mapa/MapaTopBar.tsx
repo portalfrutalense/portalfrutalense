@@ -75,17 +75,15 @@ export default function MapaTopBar({ camada, isMobile, onAbrirLogin }: { camada:
     </>
   )
 
+  // Daqui pra baixo, só usado no desktop: no mobile, a Navbar padrão
+  // (com o hamburguer) assumiu o lugar dessa área inteira (avatar/Entrar) —
+  // ver PublicShell.tsx e o comentário no bloco `if (isMobile)` abaixo.
   const avatarBotao = user ? (
     <button
       onClick={() => setPopoverAberto(v => !v)}
       aria-label="Conta"
       style={{
-        // BUG CORRIGIDO (pedido do usuário): 40px não batia com os 44px
-        // fixos do card azul do mobile (ver comentário no card) — agora bate.
-        width: isMobile ? '44px' : '42px', height: isMobile ? '44px' : '42px', flexShrink: 0,
-        // BUG CORRIGIDO (pedido do usuário): desktop ainda estava com o
-        // azul de marca original e borda branca — unificado com o mobile
-        // (mesmo azul claro, sem borda).
+        width: '42px', height: '42px', flexShrink: 0,
         borderRadius: '50%', background: '#6d84e6', color: 'white',
         border: 'none', boxShadow: '0 2px 6px rgba(20,30,50,0.18)',
         fontWeight: 700, fontSize: '13px', cursor: 'pointer',
@@ -99,36 +97,9 @@ export default function MapaTopBar({ camada, isMobile, onAbrirLogin }: { camada:
       onClick={onAbrirLogin}
       style={{
         flexShrink: 0, background: '#4256c8', color: 'white', border: 'none',
-        borderRadius: '20px', padding: isMobile ? '8px 14px' : '9px 18px',
+        borderRadius: '20px', padding: '9px 18px',
         fontSize: '12.5px', fontWeight: 700, cursor: 'pointer',
         boxShadow: '0 4px 14px rgba(20,30,50,0.22)',
-      }}
-    >
-      Entrar
-    </button>
-  )
-
-  // Versão invertida do "Entrar" — só pro card azul do mobile (logo +
-  // conta): o botão padrão acima é azul, ficaria "azul em cima de azul" e
-  // ilegível dentro do card. Mesmo estilo de "chip inativo" que os botões
-  // de camada já usam (fundo branco, texto escuro).
-  // BUG CORRIGIDO (pedido do usuário): estava do mesmo tamanho do botão
-  // padrão (desktop) — com a logo maior ocupando mais espaço no card
-  // centralizado, o "Entrar" (mais largo que o avatar-círculo, que ele
-  // substitui aqui) chegava a cobrir parte da logo. Reduzido pra caber no
-  // espaço à direita sem sobrepor.
-  // Mesmo formato/tamanho do avatarBotao (círculo, 44px mobile / 42px
-  // desktop) — pedido do usuário: os dois deviam ser redondos e iguais,
-  // só trocando o conteúdo (iniciais vs. "Entrar").
-  const entrarBotaoInvertido = (
-    <button
-      onClick={onAbrirLogin}
-      style={{
-        width: isMobile ? '44px' : '42px', height: isMobile ? '44px' : '42px', flexShrink: 0,
-        borderRadius: '50%', background: 'white', color: '#4256c8',
-        border: 'none', boxShadow: '0 2px 6px rgba(20,30,50,0.18)',
-        fontWeight: 700, fontSize: '9px', cursor: 'pointer', letterSpacing: '-0.02em',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
     >
       Entrar
@@ -173,62 +144,22 @@ export default function MapaTopBar({ camada, isMobile, onAbrirLogin }: { camada:
   )
 
   if (isMobile) {
+    // O card azul (logo + avatar/Entrar) saiu daqui — pedido do usuário:
+    // no mobile, quem cobre essa área agora é a Navbar padrão de verdade
+    // (mesma usada no resto do site, com o menu hamburguer), renderizada
+    // fixa no topo pelo PublicShell.tsx só nessa largura de tela. Sobra só
+    // a fileira de chips de camada, que continua flutuando sobre o mapa —
+    // só o offset do topo mudou, pra não ficar embaixo da Navbar (56px de
+    // altura + 12px de respiro que já existia).
     return (
-      <div style={{ position: 'absolute', top: '12px', left: '12px', right: '12px', zIndex: 30, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {/* Card azul: logo horizontal + avatar/Entrar — antes o avatar
-            dividia a mesma linha com os chips de camada, ficava
-            "espremido" junto deles (pedido do usuário pra separar). Reusa
-            o mesmo azul do cabeçalho da logo no sidebar desktop.
-            BUG CORRIGIDO (pedido do usuário — logo comendo o botão
-            "Entrar" em telas estreitas, ex: 360px, mas não em telas largas,
-            ex: 430px): a 1ª versão usava `position:absolute` no botão e uma
-            imagem de largura FIXA em pixels pra logo — o card em volta
-            encolhe com a tela, mas nem a logo nem o botão acompanhavam,
-            então em telas estreitas sobrava pouco espaço e os dois se
-            atropelavam. Corrigido com layout flex de verdade: a logo fica
-            num contêiner `flex:1, minWidth:0` (cede espaço primeiro,
-            encolhe sozinha via `objectFit:'contain'` preservando a
-            proporção — nunca distorce, nunca invade o botão), o botão fica
-            `flexShrink:0` (tamanho sempre fixo, nunca cede). Funciona em
-            qualquer largura de tela sem essa colisão voltar a acontecer. */}
-        <div style={{
-          // Altura TRAVADA (fixa, box-sizing:border-box) — pedido explícito
-          // do usuário: a logo pode crescer à vontade sem o card acompanhar.
-          // BUG CORRIGIDO (pedido do usuário): borderRadius virou "pílula"
-          // (metade da altura, 22px = 44px/2) dos dois lados — com o avatar
-          // colado sem respiro na borda direita (mesmo diâmetro do card,
-          // 44px) e círculo (`50%`), a curva dele completa perfeitamente a
-          // curva do card, como se fosse uma peça só.
-          flexShrink: 0, background: '#4256c8', borderRadius: '22px',
-          height: '44px', boxSizing: 'border-box',
-          paddingLeft: '14px', display: 'flex', alignItems: 'center', gap: '10px',
-          boxShadow: '0 2px 6px rgba(20,30,50,0.18)',
-        }}>
-          {/* flex:1 + minWidth:0 = cede espaço primeiro; objectFit:'contain'
-              escala a logo mantendo a proporção (nunca distorce, nunca
-              estoura o espaço). BUG CORRIGIDO (pedido do usuário):
-              objectPosition 'left' deixava a logo grudada na borda
-              esquerda em telas largas (muito espaço vazio sobrando antes
-              do avatar) — 'center' centraliza ela no espaço disponível,
-              que já fica levemente puxado pra esquerda em relação ao card
-              inteiro por causa do avatar reservar espaço fixo à direita. */}
-          <div style={{ flex: 1, minWidth: 0, height: '30px' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logohorizontal.png" alt="CidadanIA Frutal" style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', display: 'block' }} />
-          </div>
-          <div ref={wrapRef} style={{ position: 'relative', flexShrink: 0 }}>
-            {user ? avatarBotao : entrarBotaoInvertido}
-            {popover}
-          </div>
-        </div>
-
-        {/* Chips de camada — linha própria, sem o avatar. A fileira vai até
-            a borda REAL da tela dos dois lados (compensando com margem
-            negativa o `left`/`right: 12px` do container pai) — o chip
-            "engolido" pela ponta física da tela, não um corte arbitrário
-            no meio de um vão vazio. Fade só do lado direito (pedido do
-            usuário — o esquerdo ficou só com o corte pela borda, sem
-            gradiente): sinaliza "tem mais pra rolar" sem exagerar. */}
+      <div style={{ position: 'absolute', top: '68px', left: '12px', right: '12px', zIndex: 30 }}>
+        {/* Chips de camada. A fileira vai até a borda REAL da tela dos dois
+            lados (compensando com margem negativa o `left`/`right: 12px`
+            do container pai) — o chip "engolido" pela ponta física da
+            tela, não um corte arbitrário no meio de um vão vazio. Fade só
+            do lado direito (pedido do usuário — o esquerdo ficou só com o
+            corte pela borda, sem gradiente): sinaliza "tem mais pra rolar"
+            sem exagerar. */}
         <div
           className="mapa-topbar-chiprow"
           style={{

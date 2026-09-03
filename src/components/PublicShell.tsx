@@ -35,11 +35,23 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   // (ver MapaTopBar.tsx e a logo fixa no topo do sidebar, em MapaDemandas.tsx).
   if (isMapa) return (
     <div className="mapa-shell" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      {/* Navbar padrão (com o menu hamburguer) só no mobile — pedido do
+          usuário: o MapaTopBar.tsx perdeu o card azul de logo/avatar que
+          tinha antes, e essa faixa fixa assumiu o lugar dele. Desktop
+          continua sem Navbar aqui (mesmo motivo de sempre: a sidebar do
+          mapa já tem sua própria logo, ver MapaDemandas.tsx). */}
+      <div className="mapa-navbar-mobile" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 5000 }}>
+        <Navbar />
+      </div>
       <main className="mapa-main" style={{ flex: 1, overflow: 'hidden', padding: 0, display: 'flex', flexDirection: 'column' }}>
         {children}
       </main>
       <ChatBot />
       <style>{`
+        .mapa-navbar-mobile { display: none; }
+        @media (max-width: 640px) {
+          .mapa-navbar-mobile { display: block; }
+        }
         html.mapa-lock-body, body.mapa-lock-body {
           position: fixed;
           inset: 0;

@@ -18,6 +18,20 @@ export const CAMADAS_NAV = [
   { label: 'Área PET', camada: 'pets' },
 ]
 
+// Mesma lógica do MapaTopBar.tsx (não reaproveitada de lá pra evitar
+// import circular — MapaTopBar já importa CAMADAS_NAV deste arquivo).
+function iniciais(nome: string | null | undefined, email: string | null | undefined): string {
+  if (nome?.trim()) {
+    const partes = nome.trim().split(/\s+/)
+    const primeira = partes[0]?.[0] || ''
+    const ultima = partes.length > 1 ? partes[partes.length - 1]?.[0] || '' : ''
+    const resultado = (primeira + ultima).toUpperCase()
+    if (resultado) return resultado
+  }
+  if (email?.trim()) return email.trim()[0].toUpperCase()
+  return 'U'
+}
+
 function NavCamadas({ user }: { user: unknown }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -88,6 +102,7 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
   }, [dropdown])
 
   const nomeExibido = perfil?.nome?.split(' ')[0] || user?.user_metadata?.given_name || 'Usuário'
+  const email = perfil?.email || user?.email || null
 
   const containerStyle: React.CSSProperties = overlay
     ? { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5000, background: '#4256c8', height: '56px', display: 'flex', alignItems: 'center', padding: '0 clamp(16px, 4vw, 48px)', boxSizing: 'border-box' }
@@ -133,9 +148,13 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
             <button
               className="nav-hamburger"
               onClick={() => setMenuMobile(!menuMobile)}
-              style={{ display: 'none', background: 'none', border: 'none', cursor: 'pointer', color: 'white', fontSize: '12px', fontWeight: 600, padding: '4px 0', gap: '8px', alignItems: 'center', marginRight: '2px' }}
+              aria-label="Menu"
+              style={{ display: 'none', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', alignItems: 'center', marginRight: '2px' }}
             >
-              <span style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>Olá, {nomeExibido.split(' ')[0]}</span>
+              {/* "Olá, Nome" removido daqui (pedido do usuário): com nome
+                  grande, o botão ficava largo demais e comia a logo ao lado
+                  em telas estreitas. O nome continua aparecendo dentro do
+                  menu, no cabeçalho "Logado como". */}
               <span style={{ display: 'flex', flexDirection: 'column', gap: '3px', flexShrink: 0 }}>
                 <span style={{ display: 'block', width: '20px', height: '3px', background: 'white', borderRadius: '1px' }} />
                 <span style={{ display: 'block', width: '20px', height: '3px', background: 'white', borderRadius: '1px' }} />
@@ -152,25 +171,32 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
           )}
         </div>
 
+            {/* Estilo copiado do popover de conta do MapaTopBar.tsx (pedido
+                do usuário: achou mais bonito que o menu azul que tinha
+                antes). Sem a lista de camadas — quem quiser trocar de
+                camada entra em "Mapa" e usa os chips flutuantes lá. */}
             {menuMobile && (
-              <div style={{ position: 'fixed', top: '56px', right: '8px', left: '8px', minWidth: '220px', maxWidth: '320px', marginLeft: 'auto', background: '#4256c8', zIndex: 5001, display: 'flex', flexDirection: 'column', padding: '8px 0', borderRadius: '14px', boxShadow: '0 8px 32px rgba(0,0,0,0.22)' }}>
-                <div style={{ padding: '12px 20px 10px', borderBottom: '2px solid rgba(255,255,255,0.15)', marginBottom: '4px' }}>
-                  <p style={{ margin: 0, color: 'rgba(255,255,255,0.6)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600 }}>Logado como</p>
-                  <p style={{ margin: '2px 0 6px', color: '#fff', fontSize: '15px', fontWeight: 400 }}>{nomeExibido}</p>
-                  <Link href="/perfil" onClick={() => setMenuMobile(false)}
-                    style={{ color: 'rgba(255,255,255,0.75)', fontSize: '13px', fontWeight: 500, textDecoration: 'none' }}>
-                    Minha conta
-                  </Link>
+              <div style={{ position: 'fixed', top: '56px', right: '8px', width: '230px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', boxShadow: '0 12px 34px rgba(20,30,50,0.2)', padding: '6px', zIndex: 5001 }}>
+                <div style={{ padding: '10px 10px 9px', display: 'flex', alignItems: 'center', gap: '9px', borderBottom: '1px solid #f9fafb', marginBottom: '4px' }}>
+                  <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#4256c8', color: 'white', fontWeight: 700, fontSize: '12px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {iniciais(perfil?.nome, email)}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nomeExibido}</p>
+                    {email && <p style={{ margin: 0, fontSize: '11px', color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email}</p>}
+                  </div>
                 </div>
-                {CAMADAS_NAV.map(({ label, camada }) => (
-                  <Link key={camada} href={`/mapa?camada=${camada}`} onClick={() => setMenuMobile(false)}
-                    style={{ color: 'rgba(255,255,255,0.85)', fontSize: '15px', fontWeight: 500, textDecoration: 'none', padding: '12px 20px' }}>
-                    {label}
-                  </Link>
-                ))}
-                <div style={{ height: '2px', background: 'rgba(255,255,255,0.15)', margin: '8px 20px' }} />
-                <button onClick={() => { setMenuMobile(false); sair() }} style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px', padding: '12px 20px', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                  Sair da conta
+                <Link href="/mapa" onClick={() => setMenuMobile(false)} style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#111827', padding: '9px 10px', borderRadius: '8px', textDecoration: 'none' }}>
+                  Mapa
+                </Link>
+                <Link href="/perfil" onClick={() => setMenuMobile(false)} style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#111827', padding: '9px 10px', borderRadius: '8px', textDecoration: 'none' }}>
+                  Minhas atividades
+                </Link>
+                <Link href="/perfil" onClick={() => setMenuMobile(false)} style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#111827', padding: '9px 10px', borderRadius: '8px', textDecoration: 'none' }}>
+                  Minha conta
+                </Link>
+                <button onClick={() => { setMenuMobile(false); sair() }} style={{ display: 'block', width: '100%', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: '#dc2626', padding: '9px 10px', borderRadius: '8px', border: 'none', background: 'none', cursor: 'pointer' }}>
+                  Sair
                 </button>
               </div>
             )}
