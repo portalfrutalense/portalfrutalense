@@ -2,6 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { Map as MapLibreMap } from 'maplibre-gl'
+// Versão real do pacote instalado — usada pra montar a URL do CSS via CDN
+// abaixo, em vez de um número fixo escrito à mão. Antes JS (package.json) e
+// CSS (link do CDN) podiam ficar de versões diferentes se só um dos dois
+// fosse atualizado — foi exatamente essa combinação que causou o bug
+// histórico dos nomes de rua não aparecerem (2026-08-30/31).
+import { version as MAPLIBRE_VERSION } from 'maplibre-gl/package.json'
 
 // LIMPEZA (código morto): estavam exportadas, mas nenhum outro arquivo do
 // projeto as importa — os outros lugares que precisam do centro de Frutal
@@ -48,14 +54,12 @@ const ZOOM_LABELS_MAX = 17
 // "zoom N-1" no MapLibre. Todo valor de zoom deste arquivo é 1 a menos do
 // que era na versão Leaflet, de propósito.
 const ZOOM_SATELITE_RUAS = 16 // trava rotação/inclinação a partir deste zoom — mesmo zoom em que o nome de rua aparece (ZOOM_LABELS_MIN)
-// Inclinação máxima reduzida de 62° para 45° (pedido do usuário, 2026-09-03)
-// — mantém a mesma amplitude de 10° que a faixa livre por gesto já tinha
-// antes (era 50–62, 12° de faixa; agora 35–45, 10° de faixa, arredondado a
-// um número redondo). PITCH_PADRAO nunca pode passar de PITCH_MAX (o
-// MapLibre rejeita/trava um pitch inicial maior que maxPitch).
-const PITCH_PADRAO = 45 // inclinação inicial e a que o mapa retoma ao sair da zona de ruas
-const PITCH_MIN = 35 // faixa de inclinação livre por gesto, fora da zona de ruas
-const PITCH_MAX = 45
+// Inclinação reduzida de 50–62° (padrão 62°) para 40–52° (padrão 52°) —
+// pedido do usuário, 2026-09-03 — mesma amplitude de 12° de faixa livre por
+// gesto, só deslocada 10° pra baixo.
+const PITCH_PADRAO = 52 // inclinação inicial e a que o mapa retoma ao sair da zona de ruas
+const PITCH_MIN = 40 // faixa de inclinação livre por gesto, fora da zona de ruas
+const PITCH_MAX = 52
 
 // [oeste, sul], [leste, norte] — MapLibre usa [lng, lat], diferente do par
 // [lat, lng] que o Leaflet usava aqui antes.
@@ -72,31 +76,6 @@ const CAMADA_SATELITE = 'satelite-camada'
 // de corte.
 function suavizar(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
-}
-
-// CORREÇÃO DE PERFORMANCE (PageSpeed Insights — TBT alto no carregamento):
-// o import('maplibre-gl') disparava sincronamente assim que o componente
-// montava, travando a thread principal com ~800KB de JS pra analisar/
-// executar bem no meio do carregamento inicial da página — concorrendo
-// com o resto da hidratação do React. `requestIdleCallback` adia essa
-// chamada até o navegador estar realmente ocioso (depois que o essencial já
-// rodou), sem tirar nada do total de trabalho — só tira ele do caminho
-// crítico. `timeout` garante que, mesmo numa página nunca "ociosa" de
-// verdade (ex.: scroll contínuo), o mapa começa a carregar de qualquer
-// jeito em até 1.2s. Safari não implementa `requestIdleCallback` — fallback
-// pra um `setTimeout` curto, que já ajuda a tirar o import do bloco síncrono
-// de montagem mesmo sem a heurística de ociosidade real.
-function agendarQuandoOcioso(cb: () => void): number | null {
-  if (typeof window === 'undefined') return null
-  // `typeof window.requestIdleCallback === 'function'` em vez de
-  // `'requestIdleCallback' in window`: o operador `in` aqui fazia o
-  // TypeScript estreitar o tipo de `window` pra `never` no ramo de baixo
-  // (checado com `npm run build` — erro de tipo, não só estética), provavelmente
-  // por causa da combinação com o `typeof window === 'undefined'` acima.
-  if (typeof window.requestIdleCallback === 'function') {
-    return window.requestIdleCallback(cb, { timeout: 1200 })
-  }
-  return window.setTimeout(cb, 150) as unknown as number
 }
 
 /**
@@ -137,6 +116,16 @@ export function useMapaBase() {
     // Mesmo padrão já usado em MiniMapaConfirmar.tsx.
     let mapaInstancia: MapLibreMap | null = null
     let desmontado = false
+
+    // Dedupe — sem isso, cada montagem deste hook (ex.: navegar pra fora do
+    // /mapa e voltar) empilhava uma nova tag <link> igual no <head>.
+    if (!document.querySelector('link[data-maplibre-css]')) {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css`
+      link.setAttribute('data-maplibre-css', 'true')
+      document.head.appendChild(link)
+    }
 
     // Busca o estilo de rótulos (estradas + nome de rua) do Esri antes de
     // criar o mapa, pra já nascer com a camada pronta — em vez de montar o
@@ -207,26 +196,7 @@ export function useMapaBase() {
       }
     }
 
-    // Adiado pra quando o navegador estiver ocioso (ver comentário de
-    // agendarQuandoOcioso acima) — tanto o CSS quanto o import('maplibre-gl')
-    // ficam dentro do mesmo callback, disparando juntos.
-    let idOcioso: number | null = null
-    idOcioso = agendarQuandoOcioso(() => {
-      idOcioso = null
-      if (desmontado) return
-
-      // BUG DE PERFORMANCE CORRIGIDO (achado no relatório do PageSpeed
-      // Insights): o CSS vinha de um <link> pro CDN do unpkg — uma viagem de
-      // rede extra (DNS+TLS+download) pra um arquivo que já existe local,
-      // dentro do próprio pacote instalado. Import dinâmico do CSS local
-      // resolve isso (mesma origem do site, sem dependência de CDN externo) e
-      // ainda mantém JS e CSS sempre na mesma versão automaticamente — sem
-      // precisar do MAPLIBRE_VERSION manual que existia só pra isso. Webpack/
-      // Turbopack já dedupe imports repetidos sozinho, então não precisa mais
-      // do dedupe manual por atributo no <head>.
-      import('maplibre-gl/dist/maplibre-gl.css')
-
-      import('maplibre-gl').then(async (maplibregl) => {
+    import('maplibre-gl').then(async (maplibregl) => {
       if (!mapRef.current || desmontado) return
 
       const camadaDeRotulos = await buscarCamadaDeRotulos()
@@ -262,9 +232,9 @@ export function useMapaBase() {
         // Fixo em [0, PITCH_MAX] — nunca muda em runtime. A faixa de 0 (zona
         // de ruas) até PITCH_MAX (padrão) cobre tanto o travado quanto o
         // livre; a restrição inferior (PITCH_MIN) fora da zona de ruas é
-        // imposta à mão (ver 'pitchend' abaixo), não por minPitch dinâmico.
-        // minPitch/maxPitch mudando em runtime (tentativa anterior) causava
-        // clamp instantâneo do pitch atual sempre que uma nova animação de
+        // imposta à mão (ver 'pitchend' abaixo), não por minPitch dinâmico. minPitch/
+        // maxPitch mudando em runtime (tentativa anterior) causava clamp
+        // instantâneo do pitch atual sempre que uma nova animação de
         // transição começava antes da anterior terminar — a fonte da
         // instabilidade "ora anima, ora não" relatada em teste.
         minPitch: 0,
@@ -473,7 +443,7 @@ export function useMapaBase() {
       })
 
       // Fora da zona de ruas, a inclinação livre por gesto (arrastar/pinça)
-      // fica restrita a PITCH_MIN–PITCH_MAX (35–45°), mesmo com minPitch
+      // fica restrita a PITCH_MIN–PITCH_MAX (40–52°), mesmo com minPitch
       // fixo em 0 — 0 só é permitido quando é ESTA lógica de zona quem está
       // pilotando. Ao soltar o gesto, se ficou abaixo do mínimo (e não é o
       // caso de estar travado na zona de ruas), volta suave pro mínimo.
@@ -511,36 +481,21 @@ export function useMapaBase() {
       // true, e a reentrância dessa vez disparando a cada ~16ms sem parar).
       //
       // Corrigido de vez direto na biblioteca via patch-package
-      // (`patches/maplibre-gl+6.7.0.patch` — reaplicado na atualização de
-      // 4.7.1 para 6.7.0 em 2026-09-03; o bug é o mesmo, só muda o nome do
-      // arquivo de patch por causa da versão): ao detectar a fila presa,
-      // força `_currentlyRunning = false` antes de seguir, em vez de só
-      // ignorar — isso deixa a chamada atual assumir a fila e destravar o
-      // que tiver pendente (inclusive o passo de animação da câmera),
-      // recuperando sozinho em vez de ficar preso. Testado ao vivo: o mapa
-      // não trava mais permanentemente — pode ter uma engasgada breve e
-      // curta em momentos de reentrância, mas se recupera sozinha em
-      // seguida. Sem esse patch, não tem correção possível só no nosso
-      // código, já que o problema é uma race condition dentro da própria
-      // lib (confirmado olhando o código-fonte publicado — o bug existe
-      // até na versão mais recente do MapLibre, checado de novo em
-      // 2026-09-03 antes de subir pra 6.7.0).
-      })
+      // (`patches/maplibre-gl+4.7.1.patch`): ao detectar a fila presa, força
+      // `_currentlyRunning = false` antes de seguir, em vez de só ignorar —
+      // isso deixa a chamada atual assumir a fila e destravar o que tiver
+      // pendente (inclusive o passo de animação da câmera), recuperando
+      // sozinho em vez de ficar preso. Testado ao vivo: o mapa não trava
+      // mais permanentemente — pode ter uma engasgada breve e curta em
+      // momentos de reentrância, mas se recupera sozinha em seguida. Sem
+      // esse patch, não tem correção possível só no nosso código, já que o
+      // problema é uma race condition dentro da própria lib (confirmado
+      // olhando o código-fonte publicado — o bug existe até na versão mais
+      // recente do MapLibre).
     })
 
     return () => {
       desmontado = true
-      // Cancela o agendamento de ociosidade se o componente desmontar antes
-      // dele disparar (ex.: navegação rápida pra fora de /mapa) — os guards
-      // de `desmontado` dentro do callback já impediriam qualquer efeito
-      // colateral mesmo sem isso, mas cancelar de verdade evita o trabalho
-      // de import() começar à toa numa página que o usuário já saiu. Usa a
-      // mesma API que agendou (cancelIdleCallback só existe onde
-      // requestIdleCallback também existe — ver agendarQuandoOcioso acima).
-      if (idOcioso !== null) {
-        if (typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(idOcioso)
-        else window.clearTimeout(idOcioso)
-      }
       // Tira o listener de scroll da div do container ANTES de mapa.remove()
       // — a div é do React (mapRef.current), não é destruída junto com o
       // mapa, então o listener ficaria pra sempre sem isso (ver comentário

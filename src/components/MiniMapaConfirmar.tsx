@@ -120,10 +120,13 @@ export default function MiniMapaConfirmar({ enderecoInicial = '', onConfirmar, o
   useEffect(() => {
     if (!mapRef.current) return
 
-    // Antes buscava de um CDN externo (unpkg) — troca pro CSS local do
-    // próprio pacote (mesmo motivo/técnica do MapLibre em useMapaBase.ts):
-    // uma origem a menos, sem depender do CDN estar de pé.
-    import('leaflet/dist/leaflet.css')
+    if (!document.querySelector('link[data-leaflet-css]')) {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+      link.setAttribute('data-leaflet-css', 'true')
+      document.head.appendChild(link)
+    }
 
     let mapa: Leaflet.Map | null = null
 

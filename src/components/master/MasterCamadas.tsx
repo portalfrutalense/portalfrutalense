@@ -93,7 +93,7 @@ export default function MasterCamadas({ camada: camadaFiltro }: { camada?: strin
     try {
       const blob = await comprimirIcone(file)
       const path = `camadas/${item.chave}-${Date.now()}.png`
-      const { error: upErro } = await client.storage.from('categoria-icones').upload(path, blob, { upsert: true, contentType: 'image/png', cacheControl: '31536000' })
+      const { error: upErro } = await client.storage.from('categoria-icones').upload(path, blob, { upsert: true, contentType: 'image/png' })
       if (upErro) throw upErro
       const url = client.storage.from('categoria-icones').getPublicUrl(path).data.publicUrl
       const { error } = await client.from('camadas_config').update({ icone_url: url }).eq('chave', item.chave)

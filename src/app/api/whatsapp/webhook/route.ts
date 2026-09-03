@@ -850,7 +850,7 @@ async function processarMensagem(body: EvolutionWebhookBody) {
             .jpeg({ quality: 50 })
             .toBuffer()
           const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
-          const { error: uploadError } = await supabaseServer.storage.from('demandas-fotos').upload(path, bufferComprimido, { contentType: 'image/jpeg', cacheControl: '31536000' })
+          const { error: uploadError } = await supabaseServer.storage.from('demandas-fotos').upload(path, bufferComprimido, { contentType: 'image/jpeg' })
           if (!uploadError) {
             dados.foto_url = supabaseServer.storage.from('demandas-fotos').getPublicUrl(path).data.publicUrl
           }

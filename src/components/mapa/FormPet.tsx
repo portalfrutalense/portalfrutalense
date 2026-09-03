@@ -138,7 +138,7 @@ export function FormPet({
     uploadFotoPromise.current = comprimirFoto(file)
       .then(async (blob) => {
         const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
-        const { error } = await supabase.storage.from('pets-fotos').upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000' })
+        const { error } = await supabase.storage.from('pets-fotos').upload(path, blob, { contentType: 'image/jpeg' })
         if (error) throw error
         if (token.cancelado) {
           // Usuário trocou/removeu a foto enquanto esse upload ainda rodava —
