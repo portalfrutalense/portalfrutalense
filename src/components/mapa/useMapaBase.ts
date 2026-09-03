@@ -83,20 +83,16 @@ function suavizar(t: number): number {
  * no touch — sem nenhum controle extra de UI adicionado aqui.
  */
 // TESTE TEMPORÁRIO (PageSpeed sem MapLibre) — reverter este commit pra
-// voltar ao mapa interativo. Zero import de maplibre-gl: só uma imagem
-// estática de satélite (Esri export) cobrindo o container, sem JS de mapa
-// nenhum. mapaCarregado fica sempre false de propósito — todo o código de
-// camadas/marcadores em MapaDemandas.tsx e nas Camada* já é condicionado a
-// `mapaCarregado`, então ele simplesmente não roda, sem precisar tocar nele.
-// BUG CORRIGIDO: o endpoint '/export' não existe no serviço de tiles do
-// ibasemaps-api (só serve '/tile/{z}/{y}/{x}') — a 1ª tentativa devolvia
-// 404 em JSON (com f=image e tudo), e um background-image que falha ao
-// carregar simplesmente não aparece: mapa inteiro branco, sem erro visível
-// em lugar nenhum óbvio. Corrigido usando um tile de verdade (z=13, já
-// calculado à mão pra cobrir o centro de Frutal, mesma ordem {z}/{y}/{x}
-// que o resto do arquivo usa) — 1 imagem 256×256 só, esticada por CSS.
+// voltar ao mapa interativo em MapLibre GL. Mapa real, com pan/zoom de
+// verdade (não uma imagem estática) — mas em Leaflet, que é puramente 2D:
+// não existe pitch/bearing pra desligar, a engine simplesmente não tem
+// esse conceito. Mesmo satélite Esri de sempre, mesmo padrão de import
+// dinâmico já usado no resto do arquivo. mapaCarregado fica sempre false
+// de propósito — todo o código de camadas/marcadores em MapaDemandas.tsx e
+// nas Camada* precisa da API do MapLibre (addLayer, Marker etc., que o
+// Leaflet não tem) e já é condicionado a isso, então não roda, sem
+// precisar tocar nele agora — os pins não aparecem nesse teste, só o mapa.
 const TESTE_SEM_MAPLIBRE = true
-const TEST_IMAGEM_ESTATICA = `https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/13/4559/2981?token=${ARCGIS_KEY}`
 
 export function useMapaBase() {
   const mapRef = useRef<HTMLDivElement>(null)
@@ -113,10 +109,33 @@ export function useMapaBase() {
     mapaIniciado.current = true
 
     if (TESTE_SEM_MAPLIBRE) {
-      mapRef.current.style.backgroundImage = `url(${TEST_IMAGEM_ESTATICA})`
-      mapRef.current.style.backgroundSize = 'cover'
-      mapRef.current.style.backgroundPosition = 'center'
-      return
+      let mapaLeaflet: import('leaflet').Map | null = null
+      let desmontadoTeste = false
+
+      import('leaflet/dist/leaflet.css')
+      import('leaflet').then((L) => {
+        if (!mapRef.current || desmontadoTeste) return
+        // Leaflet usa 256px como referência interna de zoom (MapLibre usa
+        // 512px) — mesma cena "zoom N" do MapLibre pede zoom N+1 aqui pra
+        // bater visualmente (mesma conta, invertida, do comentário de
+        // ZOOM_SATELITE_RUAS mais abaixo).
+        const zoomInicial = (window.innerWidth < 768 ? 12.5 : 13.5) + 1
+        const mapa = L.map(mapRef.current, { zoomControl: false, attributionControl: false, maxBounds: L.latLngBounds(
+          [LIMITES_FRUTAL[0][1], LIMITES_FRUTAL[0][0]],
+          [LIMITES_FRUTAL[1][1], LIMITES_FRUTAL[1][0]],
+        ) }).setView([FRUTAL_LAT, FRUTAL_LNG], zoomInicial)
+        L.tileLayer(TILE_SATELITE, {
+          minZoom: 13, maxZoom: 18, tileSize: TILE_SIZE,
+          attribution: '© Esri, Vantor, GeoEye, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN',
+        }).addTo(mapa)
+        mapaLeaflet = mapa
+      })
+
+      return () => {
+        desmontadoTeste = true
+        mapaLeaflet?.remove()
+        mapaIniciado.current = false
+      }
     }
 
     // Guardada à parte de mapaObj.current (só preenchido no 'load', mais
