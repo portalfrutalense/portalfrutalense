@@ -82,17 +82,12 @@ function suavizar(t: number): number {
  * botão direito (ou Ctrl+arrastar) no desktop, girar/deslizar com dois dedos
  * no touch — sem nenhum controle extra de UI adicionado aqui.
  */
-// TESTE TEMPORÁRIO (PageSpeed sem MapLibre) — reverter este commit pra
-// voltar ao mapa interativo em MapLibre GL. Mapa real, com pan/zoom de
-// verdade (não uma imagem estática) — mas em Leaflet, que é puramente 2D:
-// não existe pitch/bearing pra desligar, a engine simplesmente não tem
-// esse conceito. Mesmo satélite Esri de sempre, mesmo padrão de import
-// dinâmico já usado no resto do arquivo. mapaCarregado fica sempre false
-// de propósito — todo o código de camadas/marcadores em MapaDemandas.tsx e
-// nas Camada* precisa da API do MapLibre (addLayer, Marker etc., que o
-// Leaflet não tem) e já é condicionado a isso, então não roda, sem
-// precisar tocar nele agora — os pins não aparecem nesse teste, só o mapa.
-const TESTE_SEM_MAPLIBRE = true
+// TESTE TEMPORÁRIO (PageSpeed com MapLibre travado em 2D) — reverter este
+// commit pra voltar ao pitch/bearing livre por gesto. Mantém o MapLibre de
+// verdade (ruas, pins, botões de camada — tudo intacto, nenhum desses
+// arquivos precisou mudar), só trava pitch em 0 e desliga os gestos de
+// rotação/inclinação logo abaixo, na criação do mapa.
+const TESTE_SEM_ROTACAO = true
 
 export function useMapaBase() {
   const mapRef = useRef<HTMLDivElement>(null)
@@ -107,36 +102,6 @@ export function useMapaBase() {
   useEffect(() => {
     if (!mapRef.current || mapaIniciado.current) return
     mapaIniciado.current = true
-
-    if (TESTE_SEM_MAPLIBRE) {
-      let mapaLeaflet: import('leaflet').Map | null = null
-      let desmontadoTeste = false
-
-      import('leaflet/dist/leaflet.css')
-      import('leaflet').then((L) => {
-        if (!mapRef.current || desmontadoTeste) return
-        // Leaflet usa 256px como referência interna de zoom (MapLibre usa
-        // 512px) — mesma cena "zoom N" do MapLibre pede zoom N+1 aqui pra
-        // bater visualmente (mesma conta, invertida, do comentário de
-        // ZOOM_SATELITE_RUAS mais abaixo).
-        const zoomInicial = (window.innerWidth < 768 ? 12.5 : 13.5) + 1
-        const mapa = L.map(mapRef.current, { zoomControl: false, attributionControl: false, maxBounds: L.latLngBounds(
-          [LIMITES_FRUTAL[0][1], LIMITES_FRUTAL[0][0]],
-          [LIMITES_FRUTAL[1][1], LIMITES_FRUTAL[1][0]],
-        ) }).setView([FRUTAL_LAT, FRUTAL_LNG], zoomInicial)
-        L.tileLayer(TILE_SATELITE, {
-          minZoom: 13, maxZoom: 18, tileSize: TILE_SIZE,
-          attribution: '© Esri, Vantor, GeoEye, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN',
-        }).addTo(mapa)
-        mapaLeaflet = mapa
-      })
-
-      return () => {
-        desmontadoTeste = true
-        mapaLeaflet?.remove()
-        mapaIniciado.current = false
-      }
-    }
 
     // Guardada à parte de mapaObj.current (só preenchido no 'load', mais
     // abaixo) — é essa variável local que o cleanup usa pra garantir que a
@@ -262,7 +227,7 @@ export function useMapaBase() {
         // inteiro mais próximo na direção rolada (ver zoomPassoRef, fórmula
         // piso/teto), e dali em diante segue sempre em inteiro normal.
         zoom: window.innerWidth < 768 ? 12.5 : 13.5,
-        pitch: PITCH_PADRAO,
+        pitch: TESTE_SEM_ROTACAO ? 0 : PITCH_PADRAO,
         // Fixo em [0, 65] — nunca muda em runtime. A faixa de 0 (zona de
         // ruas) até 65 (padrão) cobre tanto o travado quanto o livre; a
         // restrição inferior de 45° fora da zona de ruas é imposta à mão
@@ -272,13 +237,19 @@ export function useMapaBase() {
         // transição começava antes da anterior terminar — a fonte da
         // instabilidade "ora anima, ora não" relatada em teste.
         minPitch: 0,
-        maxPitch: PITCH_MAX,
+        maxPitch: TESTE_SEM_ROTACAO ? 0 : PITCH_MAX,
         minZoom: 12,
         maxZoom: 17,
         maxBounds: LIMITES_FRUTAL,
         attributionControl: false,
       })
       mapaInstancia = mapa
+
+      if (TESTE_SEM_ROTACAO) {
+        mapa.dragRotate.disable()
+        mapa.touchPitch.disable()
+        mapa.touchZoomRotate.disableRotation()
+      }
 
       mapa.on('load', () => {
         mapaObj.current = mapa
