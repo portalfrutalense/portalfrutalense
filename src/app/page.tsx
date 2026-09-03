@@ -62,9 +62,9 @@ function InstagramGateCard({ onContinuar }: { onContinuar: () => void }) {
       </div>
       <div className="cartao-corpo" style={{ flex: 1, justifyContent: 'center', gap: 14 }}>
         <p style={{ margin: '0 0 4px', fontSize: 14, lineHeight: 1.55, color: 'var(--tinta-suave)', textAlign: 'center' }}>
-          Abra no seu navegador para continuar.
+          Para explorar o app com máxima qualidade e sem travamentos, clique em Abrir no navegador
         </p>
-        <button type="button" className="btn-primario" onClick={abrirNoNavegador}>
+        <button type="button" className="btn-marca" onClick={abrirNoNavegador}>
           Abrir no navegador
         </button>
         <button type="button" className="btn-voltar" style={{ alignSelf: 'center', marginTop: 2 }} onClick={onContinuar}>
@@ -450,7 +450,7 @@ export default function LandingPage() {
         .cartao-topo p { margin: 0; font-size: 13px; font-weight: 600; color: #ffffff; }
         .cartao-corpo { padding: clamp(16px, 2.6vh, 22px); display: flex; flex-direction: column; gap: 10px; }
 
-        .btn-primario, .btn-enviar {
+        .btn-primario, .btn-enviar, .btn-marca {
           display: flex; align-items: center; justify-content: center; gap: 9px;
           width: 100%; border-radius: 10px; font-size: 14px; font-weight: 600;
           cursor: pointer; transition: transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease;
@@ -468,6 +468,15 @@ export default function LandingPage() {
           box-shadow: 0 2px 4px rgba(13,20,37,0.10), 0 10px 20px -6px rgba(13,20,37,0.20);
         }
         .btn-primario:disabled { cursor: wait; opacity: .7; }
+
+        .btn-marca {
+          padding: 12px 16px; border: 1px solid var(--marca); background: var(--marca); color: #fff;
+          box-shadow: 0 1px 2px rgba(13,20,37,0.08), 0 4px 12px -4px rgba(66,86,200,0.45);
+        }
+        .btn-marca:hover:not(:disabled) {
+          transform: translateY(-1px); background: var(--marca-escura); border-color: var(--marca-escura);
+          box-shadow: 0 2px 4px rgba(13,20,37,0.10), 0 10px 20px -6px rgba(66,86,200,0.5);
+        }
 
         .separador { display: flex; align-items: center; gap: 10px; margin: 2px 0; }
         .separador::before, .separador::after { content: ''; flex: 1; height: 1px; background: #e6e9f2; }
@@ -662,8 +671,11 @@ export default function LandingPage() {
           .cartao-corpo { padding: 10px 30px; gap: 5px; flex: 1; min-height: 0; overflow-y: auto; }
           /* Campos/botões mais altos (pedido do usuário) — padding
              vertical maior, largura já encolhida pelo padding acima. */
-          .btn-primario, .btn-enviar { padding: 14px 12px; font-size: 13px; }
-          .campo { padding: 14px 12px; font-size: 13px; }
+          .btn-primario, .btn-marca { padding: 14px 12px; font-size: 13px; }
+          /* Campo de e-mail/senha e botão "Entrar" um pouco mais baixos
+             que o resto (pedido do usuário) — só esses dois. */
+          .btn-enviar { padding: 10px 12px; font-size: 13px; }
+          .campo { padding: 11px 12px; font-size: 13px; }
           .formulario { gap: 6px; }
           .separador { margin: 0; }
           .separador span { font-size: 10px; }
