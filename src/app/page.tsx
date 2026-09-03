@@ -21,6 +21,14 @@ function GoogleIcon() {
   )
 }
 
+function FacebookIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" style={{ flexShrink: 0 }} aria-hidden="true">
+      <path fill="#1877F2" d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.95.93-1.95 1.89v2.25h3.32l-.53 3.49h-2.79V24C19.61 23.1 24 18.1 24 12.07z"/>
+    </svg>
+  )
+}
+
 /* ------------------------------------------------------------ card login -- */
 
 // Fluxo unificado: tenta login → se não existe, pede confirmação de senha e cria conta
@@ -34,6 +42,7 @@ function CardAcesso() {
   const [fase, setFase] = useState<FaseEmail>('form')
   const [carregando, setCarregando] = useState(false)
   const [carregandoGoogle, setCarregandoGoogle] = useState(false)
+  const [carregandoFacebook, setCarregandoFacebook] = useState(false)
   // "?erro=login" vem do /auth/callback quando o login com Google falha —
   // antes disso o usuário só era jogado de volta pro mapa sem explicação
   // nenhuma. O valor inicial é lido direto no inicializador do useState (só
@@ -77,6 +86,15 @@ function CardAcesso() {
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     })
     if (error) { setErro('Não foi possível conectar com o Google. Tente de novo.'); setCarregandoGoogle(false) }
+  }
+
+  async function entrarComFacebook() {
+    setCarregandoFacebook(true); setErro('')
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'facebook',
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    })
+    if (error) { setErro('Não foi possível conectar com o Facebook. Tente de novo.'); setCarregandoFacebook(false) }
   }
 
   async function submeter(e: React.FormEvent) {
@@ -148,7 +166,11 @@ function CardAcesso() {
                 <GoogleIcon />
                 {carregandoGoogle ? 'Redirecionando…' : 'Continuar com Google'}
               </button>
-              <p className="dica-primaria">O jeito mais rápido — sem criar senha</p>
+              <p className="dica-primaria">O jeito mais rápido de entrar!</p>
+              <button onClick={entrarComFacebook} disabled={carregandoFacebook} className="btn-secundario">
+                <FacebookIcon />
+                {carregandoFacebook ? 'Redirecionando…' : 'Continuar com Facebook'}
+              </button>
               <div className="separador"><span>ou</span></div>
             </>)}
 
@@ -160,7 +182,7 @@ function CardAcesso() {
               <form onSubmit={submeter} className="formulario">
                 {fase === 'confirmar' && (
                   <div className="aviso-info" role="status">
-                    Não conseguimos entrar com esse e-mail e senha. Se você ainda não tem conta, digite uma senha abaixo para criá-la.
+                    Email não encontrado. Se você ainda não tem conta, repita a senha abaixo para criá-la.
                   </div>
                 )}
                 {erro && <div className="aviso-erro" role="alert">{erro}</div>}
@@ -203,6 +225,10 @@ function CardAcesso() {
             )}
           </>
         )}
+
+        <p className="aviso-legal">
+          Ao entrar, você concorda com nossos <Link href="/termos">Termos de Uso</Link> e <Link href="/privacidade">Política de Privacidade</Link>.
+        </p>
       </div>
     </div>
   )
@@ -272,12 +298,6 @@ export default function LandingPage() {
           </div>
         </section>
       </main>
-
-      <footer className="rodape">
-        <Link href="/termos">Termos de Uso</Link>
-        <span aria-hidden="true">·</span>
-        <Link href="/privacidade">Política de Privacidade</Link>
-      </footer>
 
       <style>{`
         html.landing-lock-body, body.landing-lock-body {
@@ -388,7 +408,7 @@ export default function LandingPage() {
           transform: translateY(-1px); border-color: #c6c9ce;
           box-shadow: 0 2px 4px rgba(13,20,37,0.10), 0 10px 20px -6px rgba(13,20,37,0.20);
         }
-        .btn-primario:disabled { cursor: wait; opacity: .7; }
+        .btn-primario:disabled, .btn-secundario:disabled { cursor: wait; opacity: .7; }
         .dica-primaria { margin: -2px 0 0; text-align: center; font-size: 11.5px; color: var(--tinta-fraca); }
 
         .separador { display: flex; align-items: center; gap: 10px; margin: 2px 0; }
@@ -510,16 +530,17 @@ export default function LandingPage() {
         }
         .tremer { animation: tremer 0.55s cubic-bezier(.36,.07,.19,.97) both; }
 
-        /* ---- rodapé ---- */
-        /* item do fluxo, não sobreposto: assim sempre reserva o próprio espaço
-           e nunca cobre o conteúdo em telas baixas */
-        .rodape {
-          position: relative; z-index: 2; flex-shrink: 0;
-          display: flex; align-items: center; justify-content: center; gap: 10px;
-          padding: 0 16px 14px; font-size: 12px; color: var(--tinta-fraca);
+        /* ---- aviso legal (dentro do card de acesso) ---- */
+        /* BUG CORRIGIDO (pedido do usuário): Termos de Uso/Política de
+           Privacidade saíram do rodapé da página e entraram aqui, junto
+           do próprio formulário de login/cadastro — mais visível e no
+           lugar onde a ação de "entrar" de fato acontece. */
+        .aviso-legal {
+          margin: 12px 0 0; text-align: center; font-size: 11px;
+          line-height: 1.5; color: var(--tinta-fraca);
         }
-        .rodape a { color: var(--tinta-fraca); text-decoration: none; }
-        .rodape a:hover { color: var(--marca-escura); text-decoration: underline; }
+        .aviso-legal a { color: var(--tinta-fraca); text-decoration: underline; }
+        .aviso-legal a:hover { color: var(--marca-escura); }
 
         /* ---- foco visível em tudo que é operável ---- */
         .palco a:focus-visible, .palco button:focus-visible, .palco .campo:focus-visible {
@@ -533,27 +554,57 @@ export default function LandingPage() {
           to   { opacity: 1; transform: none; }
         }
 
-        /* ---- mobile: uma coluna, tudo dentro da tela, sem scroll ---- */
+        /* ---- mobile: uma coluna, card fixo em baixo ---- */
+        /* BUG CORRIGIDO / MUDANÇA DE COMPORTAMENTO (pedido do usuário): o
+           card de acesso deixou de fazer parte do fluxo normal (coluna
+           central) e virou um painel FIXO grudado embaixo da tela, 65% da
+           altura, de ponta a ponta na lateral. Diferente do bottom sheet
+           do mapa (SNAP peek/half/full) — aqui não tem alcinha, não
+           arrasta, é uma altura fixa sempre, sem gesto nenhum. */
         @media (max-width: 860px) {
           .grade {
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            padding: calc(56px + 16px) clamp(20px, 6vw, 32px) clamp(8px, 1.4vh, 14px);
+            padding: calc(56px + 16px) clamp(20px, 6vw, 32px) 0;
+            /* Espaço reservado embaixo pro card fixo não cobrir o texto */
+            padding-bottom: 55dvh;
           }
-          .coluna-conteudo { align-items: center; text-align: center; }
+          .coluna-conteudo { align-items: center; text-align: center; justify-content: center; flex: 1; }
           .subtitulo { text-align: center; max-width: 100%; }
-          .coluna-acao { display: flex; justify-content: center; }
-          .cartao, .atalhos { max-width: 340px; width: 100%; }
+          .coluna-acao {
+            position: fixed; left: 0; right: 0; bottom: 0;
+            height: 55dvh; z-index: 30;
+            display: block; justify-content: unset;
+          }
+          /* BUG CORRIGIDO (achado testando ao vivo): existe uma div sem
+             classe própria entre .coluna-acao e .cartao (o wrapper do
+             efeito de "tremer" do botão Entrar da navbar) — sem isso ela
+             ficava com altura automática (só o conteúdo), e o height:100%
+             do .cartao herdava dessa altura pequena, não dos 55dvh do
+             .coluna-acao. */
+          .coluna-acao > div { height: 100%; }
+          .cartao, .atalhos { max-width: 100%; width: 100%; }
+          .cartao {
+            height: 100%; border-radius: 20px 20px 0 0;
+            display: flex; flex-direction: column;
+          }
           .halo { left: -30%; top: 8%; width: 110vw; height: 110vw; }
         }
 
         /* card menor no mobile */
         @media (max-width: 860px) {
-          .cartao-topo { padding: 9px 14px; font-size: 12px; }
-          .cartao-corpo { padding: 12px 14px; gap: 7px; }
-          .btn-primario, .btn-secundario, .btn-enviar { padding: 9px 12px; font-size: 13px; }
-          .campo { padding: 9px 12px; font-size: 13px; }
+          .cartao-topo { padding: 9px 14px; font-size: 12px; flex-shrink: 0; }
+          /* corpo rola por dentro se o conteúdo não couber nos 50% — é
+             scroll comum de página, não o "arrastar o painel" que o
+             usuário pediu pra não ter (o painel em si não se move).
+             Padding lateral maior (pedido do usuário): encolhe a largura
+             útil de campos/botões (que são width:100% do próprio pai) sem
+             precisar mexer em cada um deles. */
+          .cartao-corpo { padding: 12px 30px; gap: 6px; flex: 1; min-height: 0; overflow-y: auto; }
+          /* Campos/botões mais altos (pedido do usuário) — padding
+             vertical maior, largura já encolhida pelo padding acima. */
+          .btn-primario, .btn-secundario, .btn-enviar { padding: 14px 12px; font-size: 13px; }
+          .campo { padding: 14px 12px; font-size: 13px; }
           .dica-primaria { font-size: 11px; }
           .separador span { font-size: 10px; }
         }

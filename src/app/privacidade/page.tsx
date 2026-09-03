@@ -33,8 +33,8 @@ export default function PoliticaPrivacidade() {
           Para garantir a autenticidade das solicitações, prevenir fraudes e evitar spams, coletamos os seguintes dados:
         </p>
         <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '15px', color: '#111827', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <li><strong>Nome completo</strong> — obtido via Google OAuth ou informado manualmente. Exibido publicamente junto à demanda no mapa.</li>
-          <li><strong>Endereço de e-mail</strong> — obtido via Google OAuth ou informado no cadastro por e-mail e senha. Utilizado para identificação da conta e comunicações operacionais. Nunca exibido publicamente.</li>
+          <li><strong>Nome completo</strong> — obtido via Google OAuth, Facebook Login ou informado manualmente. Exibido publicamente junto à demanda no mapa.</li>
+          <li><strong>Endereço de e-mail</strong> — obtido via Google OAuth, Facebook Login ou informado no cadastro por e-mail e senha. Utilizado para identificação da conta e comunicações operacionais. Nunca exibido publicamente.</li>
           <li><strong>CPF</strong> — coletado obrigatoriamente no cadastro para validação de identidade e prevenção de perfis falsos. Nunca exibido publicamente.</li>
           <li><strong>Data de nascimento</strong> — coletada obrigatoriamente no cadastro como dado complementar de identificação. Nunca exibida publicamente.</li>
           <li><strong>Número de WhatsApp</strong> — coletado obrigatoriamente no cadastro para vinculação ao assistente virtual da plataforma. Nunca exibido publicamente.</li>
@@ -67,6 +67,7 @@ export default function PoliticaPrivacidade() {
         </p>
         <ul style={{ margin: '0 0 12px', paddingLeft: '20px', fontSize: '15px', color: '#111827', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <li><strong>Google OAuth e Google Gemini API</strong> — autenticação segura do usuário, moderação automatizada de textos e conversas com o assistente de IA (o texto integral de demandas, pets e classificados enviados é processado pelo Gemini para essa moderação).</li>
+          <li><strong>Meta (Facebook Login)</strong> — forma alternativa de autenticação segura do usuário, com as mesmas finalidades do Google OAuth acima (nome e e-mail da conta usados só para identificação, nunca compartilhados com terceiros).</li>
           <li><strong>Supabase</strong> — armazenamento seguro de banco de dados e gestão de sessões.</li>
           <li><strong>Resend</strong> — envio de notificações operacionais por e-mail para as autoridades públicas.</li>
           <li><strong>Esri/ArcGIS</strong> — imagens de satélite do mapa principal (seu navegador se conecta diretamente aos servidores da Esri para carregar as imagens do mapa).</li>
@@ -86,7 +87,7 @@ export default function PoliticaPrivacidade() {
         </p>
       </section>
 
-      <section style={{ marginBottom: '32px' }}>
+      <section id="exclusao-de-dados" style={{ marginBottom: '32px' }}>
         <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#4256c8', marginBottom: '8px' }}>7. Seus Direitos e Exclusão de Dados (LGPD)</h2>
         <p style={{ margin: '0 0 12px', fontSize: '15px', color: '#111827' }}>Você possui total controle sobre suas informações:</p>
         <ul style={{ margin: '0 0 12px', paddingLeft: '20px', fontSize: '15px', color: '#111827', display: 'flex', flexDirection: 'column', gap: '6px' }}>

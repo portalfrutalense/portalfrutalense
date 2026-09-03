@@ -19,6 +19,14 @@ function GoogleIcon() {
   )
 }
 
+function FacebookIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+      <path fill="#1877F2" d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.95.93-1.95 1.89v2.25h3.32l-.53 3.49h-2.79V24C19.61 23.1 24 18.1 24 12.07z"/>
+    </svg>
+  )
+}
+
 function EmailIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
@@ -40,6 +48,7 @@ export default function ModalAuth({ onFechar }: Props) {
   const [fase, setFase] = useState<'form' | 'confirmar' | 'ok'>('form')
   const [carregando, setCarregando] = useState(false)
   const [carregandoGoogle, setCarregandoGoogle] = useState(false)
+  const [carregandoFacebook, setCarregandoFacebook] = useState(false)
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState('')
 
@@ -63,6 +72,16 @@ export default function ModalAuth({ onFechar }: Props) {
       options: { redirectTo: `${window.location.origin}/auth/callback?next=${volta}` },
     })
     if (error) { setErro('Erro ao conectar com Google.'); setCarregandoGoogle(false) }
+  }
+
+  async function entrarComFacebook() {
+    setCarregandoFacebook(true); setErro('')
+    const volta = encodeURIComponent(window.location.pathname + window.location.search)
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'facebook',
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=${volta}` },
+    })
+    if (error) { setErro('Erro ao conectar com Facebook.'); setCarregandoFacebook(false) }
   }
 
   async function submeter(e: React.FormEvent) {
@@ -122,6 +141,11 @@ export default function ModalAuth({ onFechar }: Props) {
                 <GoogleIcon />
                 {carregandoGoogle ? 'Redirecionando...' : 'Continuar com Google'}
               </button>
+              <button onClick={entrarComFacebook} disabled={carregandoFacebook}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '13px 16px', border: '1.5px solid #e5e7eb', borderRadius: '8px', background: 'white', cursor: carregandoFacebook ? 'wait' : 'pointer', fontSize: '15px', fontWeight: 600, color: '#111827', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+                <FacebookIcon />
+                {carregandoFacebook ? 'Redirecionando...' : 'Continuar com Facebook'}
+              </button>
               <button onClick={() => setTela('email')}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '13px 16px', border: '1.5px solid #e5e7eb', borderRadius: '8px', background: 'white', cursor: 'pointer', fontSize: '15px', fontWeight: 600, color: '#111827', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
                 <EmailIcon />
@@ -169,7 +193,7 @@ export default function ModalAuth({ onFechar }: Props) {
                 <form onSubmit={submeter} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {fase === 'confirmar' && (
                     <div style={{ color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', padding: '10px 12px', fontSize: '13px', lineHeight: 1.5 }}>
-                      Não conseguimos entrar com esse e-mail e senha. Se você ainda não tem conta, digite uma senha abaixo para criá-la.
+                      Email não encontrado. Se você ainda não tem conta, repita a senha abaixo para criá-la.
                     </div>
                   )}
                   <input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setErro('') }} required
@@ -206,9 +230,9 @@ export default function ModalAuth({ onFechar }: Props) {
           )}
 
           <p style={{ fontSize: '11px', color: '#6b7280', textAlign: 'center', margin: 0, lineHeight: 1.5 }}>
-            Ao entrar, você concorda com os{' '}
+            Ao entrar, você concorda com nossos{' '}
             <a href="/termos" target="_blank" style={{ color: '#4256c8' }}>Termos de Uso</a>
-            {' '}e a{' '}
+            {' '}e{' '}
             <a href="/privacidade" target="_blank" style={{ color: '#4256c8' }}>Política de Privacidade</a>.
           </p>
         </div>
