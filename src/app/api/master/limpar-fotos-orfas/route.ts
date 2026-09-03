@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
       for (const { table, column, isArray } of colunas) {
         const { data, error } = await supabaseServer.from(table).select(column)
         if (error) throw error
-        for (const row of (data as Record<string, unknown>[]) || []) {
+        for (const row of (data as unknown as Record<string, unknown>[]) || []) {
           const valor = row[column]
           const urls = isArray ? (Array.isArray(valor) ? valor as string[] : []) : (valor ? [valor as string] : [])
           for (const url of urls) {
