@@ -35,6 +35,13 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   // (ver MapaTopBar.tsx e a logo fixa no topo do sidebar, em MapaDemandas.tsx).
   if (isMapa) return (
     <div className="mapa-shell" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      {/* Preconnect pros domínios do Esri (tiles de satélite + rótulos do
+          mapa) — achado no relatório do PageSpeed Insights ("candidatos a
+          pré-conexão", ~600ms de economia estimada de LCP juntos). Só
+          aparece aqui (React 19 hoista <link> pra <head> sozinho, de
+          qualquer componente) porque só o /mapa usa esses domínios. */}
+      <link rel="preconnect" href="https://cdn.arcgis.com" />
+      <link rel="preconnect" href="https://basemapstyles-api.arcgis.com" />
       {/* Navbar padrão (com o menu hamburguer) só no mobile — pedido do
           usuário: o MapaTopBar.tsx perdeu o card azul de logo/avatar que
           tinha antes, e essa faixa fixa assumiu o lugar dele. Desktop

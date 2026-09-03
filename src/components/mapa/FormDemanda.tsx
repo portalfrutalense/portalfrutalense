@@ -129,7 +129,7 @@ export function FormDemanda({
       try {
         const blob = await comprimirFoto(fotoFile)
         const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
-        const { error: uploadError } = await supabase.storage.from('demandas-fotos').upload(path, blob, { contentType: 'image/jpeg' })
+        const { error: uploadError } = await supabase.storage.from('demandas-fotos').upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000' })
         if (uploadError) throw uploadError
         fotoPath = path
         foto_url = supabase.storage.from('demandas-fotos').getPublicUrl(path).data.publicUrl

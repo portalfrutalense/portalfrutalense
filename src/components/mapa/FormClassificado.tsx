@@ -104,7 +104,7 @@ export function FormClassificado({
       const promise = comprimirFotoClassificado(file)
         .then(async (blob) => {
           const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
-          const { error } = await supabase.storage.from('classificados-fotos').upload(path, blob, { contentType: 'image/jpeg' })
+          const { error } = await supabase.storage.from('classificados-fotos').upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000' })
           if (error) throw error
           if (token.cancelado) {
             // Foto removida enquanto esse upload ainda rodava — só terminou

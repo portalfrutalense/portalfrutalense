@@ -238,7 +238,7 @@ export default function MasterPage() {
   async function uploadIconeCategoria(file: File, id: string): Promise<string | null> {
     const blob = await comprimirIcone(file)
     const path = `${id}.png`
-    const { error } = await client.storage.from('categoria-icones').upload(path, blob, { upsert: true, contentType: 'image/png' })
+    const { error } = await client.storage.from('categoria-icones').upload(path, blob, { upsert: true, contentType: 'image/png', cacheControl: '31536000' })
     if (error) { console.error('Erro upload icone:', error); return null }
     const { data } = client.storage.from('categoria-icones').getPublicUrl(path)
     return data.publicUrl

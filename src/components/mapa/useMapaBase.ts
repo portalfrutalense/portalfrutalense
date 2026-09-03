@@ -2,12 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { Map as MapLibreMap } from 'maplibre-gl'
-// Versão real do pacote instalado — usada pra montar a URL do CSS via CDN
-// abaixo, em vez de um número fixo escrito à mão. Antes JS (package.json) e
-// CSS (link do CDN) podiam ficar de versões diferentes se só um dos dois
-// fosse atualizado — foi exatamente essa combinação que causou o bug
-// histórico dos nomes de rua não aparecerem (2026-08-30/31).
-import { version as MAPLIBRE_VERSION } from 'maplibre-gl/package.json'
 
 // LIMPEZA (código morto): estavam exportadas, mas nenhum outro arquivo do
 // projeto as importa — os outros lugares que precisam do centro de Frutal
@@ -114,15 +108,16 @@ export function useMapaBase() {
     let mapaInstancia: MapLibreMap | null = null
     let desmontado = false
 
-    // Dedupe — sem isso, cada montagem deste hook (ex.: navegar pra fora do
-    // /mapa e voltar) empilhava uma nova tag <link> igual no <head>.
-    if (!document.querySelector('link[data-maplibre-css]')) {
-      const link = document.createElement('link')
-      link.rel = 'stylesheet'
-      link.href = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css`
-      link.setAttribute('data-maplibre-css', 'true')
-      document.head.appendChild(link)
-    }
+    // BUG DE PERFORMANCE CORRIGIDO (achado no relatório do PageSpeed
+    // Insights): o CSS vinha de um <link> pro CDN do unpkg — uma viagem de
+    // rede extra (DNS+TLS+download) pra um arquivo que já existe local,
+    // dentro do próprio pacote instalado. Import dinâmico do CSS local
+    // resolve isso (mesma origem do site, sem dependência de CDN externo) e
+    // ainda mantém JS e CSS sempre na mesma versão automaticamente — sem
+    // precisar do MAPLIBRE_VERSION manual que existia só pra isso. Webpack/
+    // Turbopack já dedupe imports repetidos sozinho, então não precisa mais
+    // do dedupe manual por atributo no <head>.
+    import('maplibre-gl/dist/maplibre-gl.css')
 
     // Busca o estilo de rótulos (estradas + nome de rua) do Esri antes de
     // criar o mapa, pra já nascer com a camada pronta — em vez de montar o

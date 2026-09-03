@@ -96,7 +96,7 @@ export function FormImovel({
       const promise = comprimirFotoImovel(file)
         .then(async (blob) => {
           const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
-          const { error } = await supabase.storage.from('imoveis-fotos').upload(path, blob, { contentType: 'image/jpeg' })
+          const { error } = await supabase.storage.from('imoveis-fotos').upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000' })
           if (error) throw error
           if (token.cancelado) {
             limparFotoOrfa(path)
