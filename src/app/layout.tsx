@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     apple: { url: '/favicon-192.png', sizes: '192x192', type: 'image/png' },
   },
   title: 'CidadanIA Frutal',
-  description: 'Explore os mapas interativos da cidade para cobrar serviços públicos, encontrar oportunidades, empregos, ajudar a encontrar pets e apoiar causas locais.',
+  description: 'Explore os mapas interativos para ver e registrar demandas de serviços públicos, encontrar vagas de empregos, anunciar e comprar veículos e imóveis e ajudar a encontrar e adotar pets.',
   // Sem "alternates.canonical" fixo aqui: como esse campo não é sobrescrito
   // automaticamente por página, deixá-lo no layout raiz fazia todo o site
   // (inclusive /termos e /privacidade) apontar seu canonical pra home —
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   // precisar de canonical próprio declara o dela (ver termos/privacidade).
   openGraph: {
     title: 'CidadanIA Frutal',
-    description: 'Explore os mapas interativos da cidade para cobrar serviços públicos, encontrar oportunidades, empregos, ajudar a encontrar pets e apoiar causas locais.',
+    description: 'Explore os mapas interativos para ver e registrar demandas de serviços públicos, encontrar vagas de empregos, anunciar e comprar veículos e imóveis e ajudar a encontrar e adotar pets.',
     url: 'https://cidadaniafrutal.com.br',
     siteName: 'CidadanIA Frutal',
     locale: 'pt_BR',
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'CidadanIA Frutal',
-    description: 'Explore os mapas interativos da cidade para cobrar serviços públicos, encontrar oportunidades, empregos, ajudar a encontrar pets e apoiar causas locais.',
+    description: 'Explore os mapas interativos para ver e registrar demandas de serviços públicos, encontrar vagas de empregos, anunciar e comprar veículos e imóveis e ajudar a encontrar e adotar pets.',
   },
   verification: {
     google: 'lPI_-xfdqfhBGjByM6htLkimhgUlfUZsy8pIVK99K_0',

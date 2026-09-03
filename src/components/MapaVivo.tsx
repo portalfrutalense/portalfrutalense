@@ -217,7 +217,7 @@ export default function MapaVivo() {
     function frame(agora: number) {
       const t = (agora - inicio) / 1000
       ctx!.clearRect(0, 0, larg, alt)
-      if (malha) ctx!.drawImage(malha, 0, 0, larg, alt)
+      if (malha && malha.width > 0 && malha.height > 0) ctx!.drawImage(malha, 0, 0, larg, alt)
       desenharPulsos(1 / 60)
       desenharPins(t)
       raf = requestAnimationFrame(frame)
@@ -236,7 +236,7 @@ export default function MapaVivo() {
 
     function comporEstatico() {
       ctx!.clearRect(0, 0, larg, alt)
-      if (malha) ctx!.drawImage(malha, 0, 0, larg, alt)
+      if (malha && malha.width > 0 && malha.height > 0) ctx!.drawImage(malha, 0, 0, larg, alt)
       desenharPins(0.5)
     }
 

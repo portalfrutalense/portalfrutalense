@@ -166,8 +166,7 @@ function CardAcesso() {
                 <GoogleIcon />
                 {carregandoGoogle ? 'Redirecionando…' : 'Continuar com Google'}
               </button>
-              <p className="dica-primaria">O jeito mais rápido de entrar!</p>
-              <button onClick={entrarComFacebook} disabled={carregandoFacebook} className="btn-secundario">
+              <button onClick={entrarComFacebook} disabled={carregandoFacebook} className="btn-primario">
                 <FacebookIcon />
                 {carregandoFacebook ? 'Redirecionando…' : 'Continuar com Facebook'}
               </button>
@@ -288,7 +287,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="subtitulo surge" style={{ animationDelay: '210ms' }}>
-            Explore os mapas interativos da cidade para cobrar serviços públicos, encontrar oportunidades, empregos, ajudar a encontrar pets e apoiar causas locais. Conte com o suporte do nosso assistente IA para guiar sua navegação.
+            Explore os mapas interativos para ver e registrar demandas de serviços públicos, encontrar vagas de empregos, anunciar e comprar veículos e imóveis e ajudar a encontrar e adotar pets. Conte com o suporte do nosso assistente IA para guiar sua navegação.
           </p>
         </section>
 
@@ -393,13 +392,15 @@ export default function LandingPage() {
         .cartao-topo p { margin: 0; font-size: 13px; font-weight: 600; color: #ffffff; }
         .cartao-corpo { padding: clamp(16px, 2.6vh, 22px); display: flex; flex-direction: column; gap: 10px; }
 
-        .btn-primario, .btn-secundario, .btn-enviar {
+        .btn-primario, .btn-enviar {
           display: flex; align-items: center; justify-content: center; gap: 9px;
           width: 100%; border-radius: 10px; font-size: 14px; font-weight: 600;
           cursor: pointer; transition: transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease;
         }
         /* botão do Google fica no branco oficial da marca deles: a hierarquia
-           vem da borda firme e da sombra, não de recolorir o botão */
+           vem da borda firme e da sombra, não de recolorir o botão. Mesmo
+           estilo reaproveitado pro Facebook (pedido do usuário: mesmo
+           destaque dos dois, só o ícone/texto muda). */
         .btn-primario {
           padding: 12px 16px; border: 1px solid #dadce0; background: #ffffff; color: #1f1f1f;
           box-shadow: 0 1px 2px rgba(13,20,37,0.08), 0 4px 12px -4px rgba(13,20,37,0.15);
@@ -408,18 +409,11 @@ export default function LandingPage() {
           transform: translateY(-1px); border-color: #c6c9ce;
           box-shadow: 0 2px 4px rgba(13,20,37,0.10), 0 10px 20px -6px rgba(13,20,37,0.20);
         }
-        .btn-primario:disabled, .btn-secundario:disabled { cursor: wait; opacity: .7; }
-        .dica-primaria { margin: -2px 0 0; text-align: center; font-size: 11.5px; color: var(--tinta-fraca); }
+        .btn-primario:disabled { cursor: wait; opacity: .7; }
 
         .separador { display: flex; align-items: center; gap: 10px; margin: 2px 0; }
         .separador::before, .separador::after { content: ''; flex: 1; height: 1px; background: #e6e9f2; }
         .separador span { font-size: 11px; color: var(--tinta-fraca); text-transform: uppercase; letter-spacing: .1em; }
-
-        .btn-secundario {
-          padding: 11px 16px; border: 1px solid #e6e9f2;
-          background: #fbfcfe; color: var(--tinta-suave); font-weight: 500;
-        }
-        .btn-secundario:hover { background: #f3f5fb; border-color: var(--borda-forte); color: var(--marca-escura); }
 
         .btn-enviar {
           padding: 11px; border: 1px solid #e6e9f2; margin-top: 2px;
@@ -570,7 +564,11 @@ export default function LandingPage() {
             padding-bottom: 55dvh;
           }
           .coluna-conteudo { align-items: center; text-align: center; justify-content: center; flex: 1; }
-          .subtitulo { text-align: center; max-width: 100%; }
+          /* título fixo em 36px+ (clamp calibrado pra desktop) estourava o
+             espaço reservado acima do card fixo em telas de ~800px de
+             altura, cobrindo o fim do texto do subtítulo com o card. */
+          .titulo { font-size: clamp(24px, 7.5vw, 38px); margin: 8px 0 12px; }
+          .subtitulo { text-align: center; max-width: 100%; font-size: clamp(14px, 3.7vw, 17px); padding: 20px 0; }
           .coluna-acao {
             position: fixed; left: 0; right: 0; bottom: 0;
             height: 55dvh; z-index: 30;
@@ -600,12 +598,13 @@ export default function LandingPage() {
              Padding lateral maior (pedido do usuário): encolhe a largura
              útil de campos/botões (que são width:100% do próprio pai) sem
              precisar mexer em cada um deles. */
-          .cartao-corpo { padding: 12px 30px; gap: 6px; flex: 1; min-height: 0; overflow-y: auto; }
+          .cartao-corpo { padding: 10px 30px; gap: 5px; flex: 1; min-height: 0; overflow-y: auto; }
           /* Campos/botões mais altos (pedido do usuário) — padding
              vertical maior, largura já encolhida pelo padding acima. */
-          .btn-primario, .btn-secundario, .btn-enviar { padding: 14px 12px; font-size: 13px; }
+          .btn-primario, .btn-enviar { padding: 14px 12px; font-size: 13px; }
           .campo { padding: 14px 12px; font-size: 13px; }
-          .dica-primaria { font-size: 11px; }
+          .formulario { gap: 6px; }
+          .separador { margin: 0; }
           .separador span { font-size: 10px; }
         }
 
@@ -618,7 +617,7 @@ export default function LandingPage() {
         /* com o formulário de e-mail aberto o cartão cresce; numa tela baixa o
            conteúdo editorial cede o espaço para ele, em vez de ser encoberto */
         @media (max-width: 860px) and (max-height: 780px) {
-          .palco:has(.formulario) .titulo { font-size: clamp(22px, 5.4vw, 30px); margin-top: 4px; }
+          .palco:has(.formulario) .titulo { font-size: clamp(26px, 5.4vw, 30px); margin-top: 4px; }
         }
 
         @media (prefers-reduced-motion: reduce) {

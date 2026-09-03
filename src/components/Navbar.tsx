@@ -98,9 +98,9 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
       <nav style={containerStyle}>
         {/* Coluna esquerda — logo */}
         <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+          <Link href="/" className="nav-logo-link" style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/CIDADANIA.png" alt="CidadanIA Frutal" style={{ height: '38px', width: 'auto', display: 'block' }} />
+            <img src="/CIDADANIA.png" alt="CidadanIA Frutal" className="nav-logo-img" style={{ height: '38px', width: 'auto', display: 'block' }} />
           </Link>
         </div>
 
@@ -186,6 +186,13 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
           .nav-auth { display: none !important; }
           .nav-hamburger { display: flex !important; align-items: center; }
           .nav-auth-mobile { display: flex !important; }
+          /* Logo maior e centralizada de verdade na faixa (pedido do
+             usuário, ajustado no canvas de design) — position:absolute
+             ignora a divisão em colunas flex:1/flex:1 do resto da navbar,
+             então centraliza em relação à largura toda, não só na coluna
+             da esquerda. */
+          .nav-logo-link { position: absolute; left: 50%; transform: translateX(-50%); }
+          .nav-logo-img { height: 40px !important; }
         }
       `}</style>
     </>
