@@ -124,7 +124,7 @@ export function useMarkersEmpregos({
 
     visiveis.forEach((e) => {
       const miolo = e.logo_url
-        ? `<img src="${escapeHtml(e.logo_url)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />`
+        ? `<img src="${escapeHtml(e.logo_url)}" alt="" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />`
         : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${PATH_MALA}"/></svg>`
 
       const el = document.createElement('div')

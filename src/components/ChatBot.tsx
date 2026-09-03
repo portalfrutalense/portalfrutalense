@@ -48,7 +48,7 @@ export default function ChatBot() {
       {/* Da metade pra baixo a foto fica presa ao circulo; da metade pra cima pode vazar */}
       <div style={{ position: 'absolute', inset: 0, clipPath: 'inset(-1000px 0 0 0 round 0 0 32px 32px)' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/assistenteia.png" alt="Assistente virtual" style={{ position: 'absolute', bottom: '-20px', left: '50%', transform: 'translateX(-50%)', height: '150%', width: 'auto', pointerEvents: 'none' }} />
+        <img src="/assistenteia.png" alt="Assistente virtual" width={375} height={552} style={{ position: 'absolute', bottom: '-20px', left: '50%', transform: 'translateX(-50%)', height: '150%', width: 'auto', pointerEvents: 'none' }} />
       </div>
     </button>
   )

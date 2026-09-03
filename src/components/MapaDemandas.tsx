@@ -206,9 +206,9 @@ export default function MapaDemandas() {
       // vira XSS armazenado pra quem visualizar o mapa.
       let miolo: string
       if (d.foto_url) {
-        miolo = `<img src="${escapeHtml(d.foto_url)}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:32px;height:32px;object-fit:cover;" />`
+        miolo = `<img src="${escapeHtml(d.foto_url)}" alt="" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:32px;height:32px;object-fit:cover;" />`
       } else if (iconeUrl) {
-        miolo = `<img src="${escapeHtml(iconeUrl)}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:125%;height:125%;object-fit:contain;filter:brightness(1.3);" />`
+        miolo = `<img src="${escapeHtml(iconeUrl)}" alt="" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:125%;height:125%;object-fit:contain;filter:brightness(1.3);" />`
       } else {
         miolo = `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:23px;height:23px;border-radius:50%;background:${cor};"></div>`
       }
@@ -657,7 +657,7 @@ export default function MapaDemandas() {
                 <path d="M1 12l10-10 10 10" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               {sheetState === 'peek' && (
-                <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
+                <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500 }}>
                   Arraste para ver mais
                 </span>
               )}

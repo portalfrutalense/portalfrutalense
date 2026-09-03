@@ -27,7 +27,7 @@ export function IconeImovel({ size = 18, cor = 'currentColor' }: { size?: number
 
 function svgPinImovel(iconeUrl: string | undefined, cor: string) {
   if (iconeUrl) {
-    return `<img src="${escapeHtml(iconeUrl)}" style="width:19px;height:19px;object-fit:contain;" />`
+    return `<img src="${escapeHtml(iconeUrl)}" alt="" style="width:19px;height:19px;object-fit:contain;" />`
   }
   return `<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="${cor}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${PATH_CASA}"/></svg>`
 }

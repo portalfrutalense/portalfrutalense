@@ -20,6 +20,8 @@ export default function MasterPage() {
   const [avisoReprocessar, setAvisoReprocessar] = useState('')
   const [marcandoNaoResolvidas, setMarcandoNaoResolvidas] = useState(false)
   const [avisoNaoResolvidas, setAvisoNaoResolvidas] = useState('')
+  const [limpandoOrfas, setLimpandoOrfas] = useState(false)
+  const [avisoOrfas, setAvisoOrfas] = useState('')
 
   // BUG CORRIGIDO (V-4/B21-1): usava `tokenSessao` cacheado direto — o resto
   // do arquivo já busca sessão fresca antes de cada requisição (padrão
@@ -84,6 +86,35 @@ export default function MasterPage() {
     } finally {
       setMarcandoNaoResolvidas(false)
       setTimeout(() => setAvisoNaoResolvidas(''), 6000)
+    }
+  }
+  // Fotos que subiram pro Storage assim que o usuário escolheu o arquivo
+  // (Classificado, Pet, Imóvel, Demanda), mas cujo formulário nunca foi
+  // enviado (aba fechada, refresh, navegador caiu no meio) — ficam órfãs,
+  // sem nenhum registro do banco apontando pra elas. Ver route.ts pra detalhe
+  // do critério (só apaga o que tem mais de 2h, pra não pegar upload em curso).
+  async function limparFotosOrfas() {
+    const t = (await client.auth.getSession()).data.session?.access_token ?? tokenSessao
+    if (!t) return
+    setLimpandoOrfas(true)
+    setAvisoOrfas('')
+    try {
+      const res = await fetch('/api/master/limpar-fotos-orfas', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${t}` },
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok) { setAvisoOrfas(d.error || 'Erro ao limpar.'); return }
+      const partes = Object.entries(d.resultado as Record<string, { encontrados: number; apagados: number }>)
+        .map(([bucket, r]) => r.encontrados < 0 ? `${bucket}: erro` : `${bucket}: ${r.apagados}`)
+      const total = Object.values(d.resultado as Record<string, { encontrados: number; apagados: number }>)
+        .reduce((soma, r) => soma + Math.max(r.apagados, 0), 0)
+      setAvisoOrfas(total === 0 ? 'Nenhuma foto órfã encontrada.' : `Apagadas — ${partes.join(', ')}.`)
+    } catch {
+      setAvisoOrfas('Erro ao limpar. Tente de novo.')
+    } finally {
+      setLimpandoOrfas(false)
+      setTimeout(() => setAvisoOrfas(''), 8000)
     }
   }
   const [secao, setSecao] = useState<SecaoMaster>('dashboard')
@@ -542,6 +573,22 @@ export default function MasterPage() {
                   </div>
                 )
               })()}
+
+              <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '20px' }}>
+                <h2 style={{ fontSize: '14px', fontWeight: 700, color: '#111827', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '.04em' }}>Manutenção do Storage</h2>
+                <p style={{ fontSize: '12.5px', color: '#6b7280', margin: '0 0 14px', lineHeight: 1.5 }}>
+                  Classificado, Pet e Imóvel sobem a foto assim que o arquivo é escolhido, antes de enviar o formulário. Se o usuário fecha a aba no meio do caminho, a foto fica órfã no bucket. Isso varre classificados-fotos, pets-fotos, imoveis-fotos e demandas-fotos e apaga o que não estiver referenciado em nenhum registro (só considera órfão o que tem mais de 2h de upload).
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <button onClick={limparFotosOrfas} disabled={limpandoOrfas}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 14px', cursor: limpandoOrfas ? 'wait' : 'pointer', opacity: limpandoOrfas ? 0.6 : 1 }}>
+                    {limpandoOrfas ? 'Limpando...' : 'Limpar fotos órfãs'}
+                  </button>
+                  {avisoOrfas && (
+                    <span style={{ fontSize: '12px', color: '#6b7280' }}>{avisoOrfas}</span>
+                  )}
+                </div>
+              </div>
 
             </div>
           )}

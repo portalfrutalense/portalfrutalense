@@ -36,7 +36,7 @@ export function IconeEspecie({ especie, size = 18, cor = 'currentColor' }: { esp
  * se houver, no mesmo padrão de `svgPinVeiculo` em CamadaClassificados. */
 function svgPinEspecie(especie: EspeciePet, cor: string, iconeUrl?: string) {
   if (iconeUrl) {
-    return `<img src="${escapeHtml(iconeUrl)}" style="width:19px;height:19px;object-fit:contain;" />`
+    return `<img src="${escapeHtml(iconeUrl)}" alt="" style="width:19px;height:19px;object-fit:contain;" />`
   }
   if (especie === 'gato') {
     return `<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="${cor}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${PATH_GATO}"/></svg>`
