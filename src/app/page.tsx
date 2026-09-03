@@ -104,6 +104,16 @@ function CardAcesso() {
   )
   const [msgEsqueci, setMsgEsqueci] = useState('')
 
+  // Paliativo pro WebView do Instagram: diferente do Chrome de verdade, ele
+  // não redimensiona a viewport quando o teclado abre, então o campo focado
+  // fica escondido atrás do teclado. Forçamos o scroll manualmente — o
+  // delay dá tempo da animação do teclado abrir antes de calcular a
+  // posição final (senão o scroll acontece cedo demais e erra o alvo).
+  function aoFocarCampo(e: React.FocusEvent<HTMLInputElement>) {
+    const campo = e.target
+    setTimeout(() => campo.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
+  }
+
   // Só a limpeza da URL é um efeito de verdade (mexe no histórico do
   // navegador, não em estado do React).
   useEffect(() => {
@@ -197,7 +207,7 @@ function CardAcesso() {
                 <input
                   type="email" value={email} onChange={(e) => { setEmail(e.target.value); setErro('') }}
                   required placeholder="seu@email.com" aria-label="E-mail"
-                  autoComplete="email" className="campo"
+                  autoComplete="email" className="campo" onFocus={aoFocarCampo}
                 />
                 <button type="submit" disabled={carregando} className="btn-enviar">
                   {carregando ? 'Enviando…' : 'Enviar link de redefinição'}
@@ -234,14 +244,14 @@ function CardAcesso() {
                 <input
                   type="email" value={email} onChange={(e) => { setEmail(e.target.value); setErro('') }}
                   required placeholder="seu@email.com" aria-label="E-mail"
-                  autoComplete="email" className="campo"
+                  autoComplete="email" className="campo" onFocus={aoFocarCampo}
                 />
                 <input
                   type="password" value={senha} onChange={(e) => { setSenha(e.target.value); setErro('') }}
                   required aria-label="Senha"
                   autoComplete={fase === 'confirmar' ? 'new-password' : 'current-password'}
                   placeholder={fase === 'confirmar' ? 'Crie uma senha (mín. 6 caracteres)' : 'Sua senha'}
-                  className="campo"
+                  className="campo" onFocus={aoFocarCampo}
                 />
                 {fase === 'form' && (
                   <button type="button" onClick={() => { setFase('esqueci'); setErro('') }}
@@ -255,7 +265,7 @@ function CardAcesso() {
                     required aria-label="Confirmar senha"
                     autoComplete="new-password"
                     placeholder="Repita a senha"
-                    className="campo"
+                    className="campo" onFocus={aoFocarCampo}
                   />
                 )}
                 <button type="submit" disabled={carregando} className="btn-enviar">

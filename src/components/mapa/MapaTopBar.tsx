@@ -117,13 +117,18 @@ export default function MapaTopBar({ camada, isMobile, onAbrirLogin }: { camada:
   // centralizado, o "Entrar" (mais largo que o avatar-círculo, que ele
   // substitui aqui) chegava a cobrir parte da logo. Reduzido pra caber no
   // espaço à direita sem sobrepor.
+  // Mesmo formato/tamanho do avatarBotao (círculo, 44px mobile / 42px
+  // desktop) — pedido do usuário: os dois deviam ser redondos e iguais,
+  // só trocando o conteúdo (iniciais vs. "Entrar").
   const entrarBotaoInvertido = (
     <button
       onClick={onAbrirLogin}
       style={{
-        flexShrink: 0, background: 'white', color: '#4256c8', border: 'none',
-        borderRadius: '20px', padding: '6px 11px',
-        fontSize: '11px', fontWeight: 700, cursor: 'pointer',
+        width: isMobile ? '44px' : '42px', height: isMobile ? '44px' : '42px', flexShrink: 0,
+        borderRadius: '50%', background: 'white', color: '#4256c8',
+        border: 'none', boxShadow: '0 2px 6px rgba(20,30,50,0.18)',
+        fontWeight: 700, fontSize: '9px', cursor: 'pointer', letterSpacing: '-0.02em',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
     >
       Entrar
@@ -233,8 +238,8 @@ export default function MapaTopBar({ camada, isMobile, onAbrirLogin }: { camada:
             WebkitOverflowScrolling: 'touch',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
-            WebkitMaskImage: 'linear-gradient(90deg, #000 0%, #000 90%, transparent 100%)',
-            maskImage: 'linear-gradient(90deg, #000 0%, #000 90%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(90deg, #000 0%, #000 97%, rgba(0,0,0,0.55) 100%)',
+            maskImage: 'linear-gradient(90deg, #000 0%, #000 97%, rgba(0,0,0,0.55) 100%)',
           }}
         >
           {chips}
