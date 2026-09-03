@@ -113,11 +113,21 @@ export default function MapaDemandas() {
     setSheetContext(s)
   }
 
-  // Inicializa o contexto global com 'peek' ao montar
+  // Inicializa o contexto global com 'peek' ao montar — só em mobile.
+  //
+  // BUG CORRIGIDO (pedido do usuário): rodava incondicionalmente, sem
+  // checar `isMobile` — publicava 'peek' no contexto global mesmo em
+  // desktop, onde não existe bottom sheet nenhum (a sidebar é fixa, sem
+  // posição em % de altura de tela). O ChatBot.tsx lê esse contexto pra
+  // posicionar o botão flutuante "grudado" no sheet (`calc(SNAP*100vh +
+  // 12px)`) — em desktop isso empurrava o botão bem mais pra cima do que
+  // os 24px fixos do canto inferior direito que deveria ter, já que 15%
+  // (SNAP.peek) da altura da tela raramente bate com 24px do fundo.
   useEffect(() => {
+    if (!isMobile) { setSheetContext(null); return }
     setSheetContext('peek')
     return () => setSheetContext(null)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isMobile]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // `startState` guarda de que estado o arraste começou — usado pra travar
   // a saída do "full" só soltando o dedo (ver aoSoltarArraste).

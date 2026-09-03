@@ -395,6 +395,22 @@ export function useMarkersPets({
     return () => {
       container.removeEventListener('click', aoClicar)
       if (animId !== null) window.clearTimeout(animId)
+      // CAUSA RAIZ CONFIRMADA (2026-09-03 — não era cache nem Fast Refresh):
+      // `useMapaBase()` é chamado ANTES de `useMarkersPets()` em
+      // MapaDemandas.tsx, e o React limpa efeitos na MESMA ordem em que
+      // foram declarados (não ao contrário) — então, ao sair do /mapa, a
+      // limpeza de useMapaBase (`mapaInstancia?.remove()`) roda PRIMEIRO,
+      // antes desta. `Map.prototype.remove()` do MapLibre chama
+      // `this.setStyle(null)` por dentro, que faz `delete this.style` no
+      // objeto do mapa — o objeto `mapa` em si continua existindo (por
+      // isso um `if (!mapa) return` não pegava nada), só que
+      // `mapa.getLayer(id)` internamente é `return this.style.getLayer(id)`
+      // — com `this.style` apagado, vira exatamente "Cannot read properties
+      // of undefined (reading 'getLayer')" (confirmado lendo
+      // node_modules/maplibre-gl/dist/maplibre-gl.js direto). `mapa.style`
+      // é a guarda certa: continua presente enquanto o mapa está vivo, e
+      // some assim que `.remove()` já rodou.
+      if (!mapa || !mapa.style) return
       if (mapa.getLayer('radar-pets-linha')) mapa.removeLayer('radar-pets-linha')
       if (mapa.getLayer('radar-pets-halo')) mapa.removeLayer('radar-pets-halo')
       if (mapa.getSource('radar-pets')) mapa.removeSource('radar-pets')
