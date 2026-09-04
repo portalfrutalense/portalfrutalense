@@ -354,6 +354,16 @@ export default function MapaTopBar({
           color: ativo ? 'white' : '#111827', background: ativo ? '#4256c8' : 'none',
           padding: '9px 10px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
         })
+        // Opções DENTRO de um grupo (ex.: "Buraco no asfalto" dentro de
+        // "Manutenção Urbana") — pedido do usuário: ficava tudo com a mesma
+        // cara do item pai, confuso pra perceber que eram opções filhas.
+        // Menor, mais claro, e com um traço antes pra marcar visualmente
+        // que é uma sub-opção.
+        const subItemEstilo = (ativo: boolean): React.CSSProperties => ({
+          display: 'block', width: '100%', textAlign: 'left', fontSize: '12px', fontWeight: 500,
+          color: ativo ? 'white' : '#6b7280', background: ativo ? '#4256c8' : 'none',
+          padding: '7px 10px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+        })
         return (
           <>
             <button onClick={() => aoEscolherOpcao(chipAberto, '')} style={itemEstilo(!filtroAtual)}>
@@ -378,7 +388,14 @@ export default function MapaTopBar({
                 <div key={item.rotulo}>
                   <button
                     onClick={() => setGrupoExpandido(expandido ? null : item.rotulo)}
-                    style={{ ...itemEstilo(grupoAtivo && !expandido), display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}
+                    style={{
+                      ...itemEstilo(grupoAtivo && !expandido),
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px',
+                      // Fundo cinza clarinho quando expandido (nem ativo nem
+                      // transparente) — deixa claro que este item "abriu"
+                      // algo abaixo dele, diferente de um item comum.
+                      background: grupoAtivo && !expandido ? '#4256c8' : expandido ? '#f3f4f6' : 'none',
+                    }}
                   >
                     <span>{item.rotulo}</span>
                     <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
@@ -387,10 +404,10 @@ export default function MapaTopBar({
                     </svg>
                   </button>
                   {expandido && (
-                    <div style={{ marginLeft: '10px', paddingLeft: '8px', borderLeft: '2px solid #e5e7eb' }}>
+                    <div style={{ margin: '2px 0 2px 10px', paddingLeft: '10px', borderLeft: '2px solid #e5e7eb' }}>
                       {item.itens.map((o) => (
-                        <button key={o.valor} onClick={() => aoEscolherOpcao(chipAberto, o.valor)} style={itemEstilo(filtroAtual === o.valor)}>
-                          {o.rotulo}
+                        <button key={o.valor} onClick={() => aoEscolherOpcao(chipAberto, o.valor)} style={subItemEstilo(filtroAtual === o.valor)}>
+                          — {o.rotulo}
                         </button>
                       ))}
                     </div>

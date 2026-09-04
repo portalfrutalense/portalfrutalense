@@ -216,7 +216,14 @@ function Linha({ autoridade, posicao, aba }: { autoridade: Autoridade; posicao: 
 
 function ListaVertical({ lista, aba }: { lista: Autoridade[]; aba: Aba }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', overflowX: 'hidden', minHeight: 0, paddingTop: '14px' }}>
+    <div style={{
+      display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', overflowX: 'hidden', minHeight: 0,
+      // paddingRight extra: a estrela do 1º lugar (EstrelaOuro) sai 10px pra
+      // fora do card à direita, de propósito — sem essa folga ela ficava
+      // cortada pelo overflowX:hidden deste container (achado testando no
+      // celular de verdade).
+      padding: '14px 18px 0 0',
+    }}>
       {lista.map((a, i) => <Linha key={a.id} autoridade={a} posicao={i + 1} aba={aba} />)}
     </div>
   )
