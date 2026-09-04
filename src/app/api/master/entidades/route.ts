@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabaseServer
     .from('entidades')
-    .select('id, nome, cargo, email, ativo')
+    .select('id, nome, cargo, email, ativo, foto_url')
     .order('nome')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

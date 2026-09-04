@@ -33,12 +33,15 @@ export async function GET(req: NextRequest) {
 // virar "role: 'master'" por aqui). Só os campos que o painel de fato edita.
 const CAMPOS_PERFIL_PERMITIDOS = ['nome', 'cpf', 'email', 'whatsapp', 'data_nascimento', 'cargo', 'bloqueado'] as const
 
+// foto_url não é coluna de "perfis" (só de "entidades") — fica de fora da
+// whitelist acima e é tratado à parte, só quando for autoridade (abaixo).
+
 // PATCH — editar campos do perfil (e entidade se for autoridade)
 export async function PATCH(req: NextRequest) {
   const master = await getMasterUser(req)
   if (!master) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
 
-  const { id, categorias, ...camposBrutos } = await req.json()
+  const { id, categorias, foto_url, ...camposBrutos } = await req.json()
   if (!id) return NextResponse.json({ error: 'id obrigatório.' }, { status: 400 })
   // BUG CORRIGIDO (B22-10): "bloqueado" está na whitelist de campos editáveis
   // e nada impedia o master mandar `{ id: master.id, bloqueado: true }` pra
@@ -84,6 +87,7 @@ export async function PATCH(req: NextRequest) {
     if (campos.nome) camposEnt.nome = campos.nome
     if (campos.cargo) camposEnt.cargo = campos.cargo
     if (campos.email) camposEnt.email = campos.email
+    if (typeof foto_url === 'string') camposEnt.foto_url = foto_url
     if (Object.keys(camposEnt).length > 0) {
       await supabaseServer.from('entidades').update(camposEnt).eq('id', id)
     }
@@ -130,6 +134,7 @@ export async function DELETE(req: NextRequest) {
   let entidadeDesativadaEmVezDeExcluida = false
 
   async function removerOuDesativarEntidade() {
+    const { data: entidadeFoto } = await supabaseServer.from('entidades').select('foto_url').eq('id', id).single()
     await supabaseServer.from('categoria_entidades').delete().eq('entidade_id', id)
     // BUG CORRIGIDO: `entidade_id` em `demanda_entidades` não tem ON DELETE
     // (RESTRICT por padrão) — pra qualquer autoridade que já tenha recebido
@@ -146,6 +151,10 @@ export async function DELETE(req: NextRequest) {
       console.error('[master/perfis DELETE] Não foi possível excluir entidade (provável FK de demanda_entidades):', erroEntidade)
       await supabaseServer.from('entidades').update({ ativo: false }).eq('id', id)
       entidadeDesativadaEmVezDeExcluida = true
+    } else {
+      // Entidade de fato excluída (não só desativada) — limpa a foto órfã.
+      const caminho = entidadeFoto?.foto_url && caminhoNoBucket(entidadeFoto.foto_url, 'entidades-fotos')
+      if (caminho) await supabaseServer.storage.from('entidades-fotos').remove([caminho]).catch(() => {})
     }
   }
 
