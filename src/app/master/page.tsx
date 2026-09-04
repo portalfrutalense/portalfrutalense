@@ -1560,6 +1560,7 @@ type PerfilLinha = Omit<Perfil, 'nome' | 'cpf' | 'role'> & {
   cpf?: string
   role?: string
   cargo?: string
+  foto_url?: string
   _legado?: boolean
 }
 
@@ -1577,6 +1578,8 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
   const [editDataNascimento, setEditDataNascimento] = useState('')
   const [editCargo, setEditCargo] = useState('')
   const [editCats, setEditCats] = useState<string[]>([])
+  const [editFoto, setEditFoto] = useState<File | null>(null)
+  const [editFotoPreview, setEditFotoPreview] = useState('')
   const [notif, setNotif] = useState('')
   const [criando, setCriando] = useState(false)
   const [novoNome, setNovoNome] = useState('')
@@ -1584,6 +1587,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
   const [novaSenha, setNovaSenha] = useState('')
   const [novoCargo, setNovoCargo] = useState('')
   const [novasCats, setNovasCats] = useState<string[]>([])
+  const [novaFoto, setNovaFoto] = useState<File | null>(null)
   const [salvandoNovo, setSalvandoNovo] = useState(false)
   const [categorias, setCategorias] = useState<{ id: string; nome: string }[]>([])
   const [catEntidades, setCatEntidades] = useState<Record<string, string[]>>({})
@@ -1616,7 +1620,13 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
       const entidadesOrfas = (dataE || [])
         .filter((e: { id: string }) => !perfisIds.has(e.id))
         .map((e: { id: string }) => ({ ...e, role: 'autoridade', _legado: true }))
-      setPerfis([...dataP, ...entidadesOrfas])
+      // "perfis" não tem coluna foto_url (só "entidades" tem) — mescla aqui
+      // pras autoridades com login também mostrarem a foto já cadastrada.
+      const fotosPorId = new Map((dataE || []).map((e: { id: string; foto_url?: string }) => [e.id, e.foto_url]))
+      const dataPComFoto = dataP.map((p: { id: string; role?: string }) =>
+        p.role === 'autoridade' ? { ...p, foto_url: fotosPorId.get(p.id) } : p
+      )
+      setPerfis([...dataPComFoto, ...entidadesOrfas])
 
       // Carregar categorias de todas as autoridades
       const todasAuts = [
@@ -1645,6 +1655,42 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
 
   useEffect(() => { if (token) { const id = setTimeout(() => carregar(), 0); return () => clearTimeout(id) } }, [token]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Mesmo padrão de comprimirIcone (categorias) — comprime pro lado maior
+  // caber em `maxSize`, mantendo proporção, antes de subir pro Storage.
+  async function comprimirFotoEntidade(file: File, maxSize = 400): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        if (!img.width || !img.height) {
+          URL.revokeObjectURL(url)
+          reject(new Error('Essa imagem não tem dimensões válidas.'))
+          return
+        }
+        const canvas = document.createElement('canvas')
+        const scale = Math.min(maxSize / img.width, maxSize / img.height, 1)
+        canvas.width = Math.round(img.width * scale)
+        canvas.height = Math.round(img.height * scale)
+        const ctx = canvas.getContext('2d')!
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        URL.revokeObjectURL(url)
+        canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Falha ao gerar a foto.')), 'image/jpeg', 0.85)
+      }
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Arquivo de imagem inválido.')) }
+      img.src = url
+    })
+  }
+  async function uploadFotoEntidade(file: File, id: string): Promise<string | null> {
+    const blob = await comprimirFotoEntidade(file)
+    const path = `${id}.jpg`
+    const { error } = await sbClient.storage.from('entidades-fotos').upload(path, blob, { upsert: true, contentType: 'image/jpeg' })
+    if (error) { console.error('Erro upload foto entidade:', error); return null }
+    // Cache-bust: o path é sempre o mesmo (id.jpg) então uma foto trocada
+    // manteria a URL antiga em cache do navegador sem isso.
+    const { data } = sbClient.storage.from('entidades-fotos').getPublicUrl(path)
+    return `${data.publicUrl}?v=${Date.now()}`
+  }
+
   async function salvarEdicao(id: string) {
     const t = await getToken()
     const perfil = perfis.find(p => p.id === id)
@@ -1652,6 +1698,15 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
     if (perfil?.role === 'autoridade') {
       body.cargo = editCargo
       body.categorias = editCats
+      if (editFoto) {
+        try {
+          const url = await uploadFotoEntidade(editFoto, id)
+          if (url) body.foto_url = url
+        } catch (e) {
+          mostrarNotif(`Foto inválida: ${e instanceof Error ? e.message : 'tente novamente'}`, true)
+          return
+        }
+      }
     } else {
       // O campo CPF fica oculto no formulário de edição pra autoridades (não
       // precisam de CPF) — enviar editCpf mesmo assim sobrescreveria/zeraria
@@ -1674,6 +1729,8 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
     const d = await res.json().catch(() => ({})).catch(() => ({}))
     if (!res.ok || !d.ok) { mostrarNotif(d.error || 'Não foi possível atualizar o perfil.', true); return }
     setEditandoId(null)
+    setEditFoto(null)
+    setEditFotoPreview('')
     mostrarNotif('Perfil atualizado.')
     carregar()
   }
@@ -1741,15 +1798,32 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
     // erro HTML de um 500 do Next) fazia `res.json()` rejeitar sem
     // tratamento — a função para em silêncio, nenhuma mensagem aparece.
     const d = await res.json().catch(() => ({}))
+    if (!d.ok) { setSalvandoNovo(false); mostrarNotif(d.error || 'Erro ao criar conta.'); return }
+    let avisoFoto: string | undefined
+    if (novaFoto && subSecao === 'autoridade' && d.id) {
+      try {
+        const url = await uploadFotoEntidade(novaFoto, d.id)
+        if (url) {
+          const t2 = await getToken()
+          const resFoto = await fetch('/api/master/perfis', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t2}` },
+            body: JSON.stringify({ id: d.id, foto_url: url }),
+          })
+          if (!resFoto.ok) avisoFoto = 'Conta criada, mas a foto não pôde ser salva — edite o perfil pra tentar de novo.'
+        }
+      } catch (e) {
+        avisoFoto = `Conta criada, mas a foto falhou: ${e instanceof Error ? e.message : 'tente novamente'}`
+      }
+    }
     setSalvandoNovo(false)
-    if (!d.ok) { mostrarNotif(d.error || 'Erro ao criar conta.'); return }
-    setNovoNome(''); setNovoEmail(''); setNovaSenha(''); setNovoCargo(''); setNovasCats([]); setCriando(false)
+    setNovoNome(''); setNovoEmail(''); setNovaSenha(''); setNovoCargo(''); setNovasCats([]); setNovaFoto(null); setCriando(false)
     // BUG CORRIGIDO (B16-8): a API já avisa quando a conta foi criada mas
     // as categorias não puderam ser salvas — antes esse aviso não existia
     // e a tela sempre mostrava "sucesso", mesmo quando a autoridade ficava
     // sem nenhuma categoria vinculada (e, na prática, sem nunca receber
     // demanda alguma) sem o master perceber.
-    mostrarNotif(d.aviso || 'Conta criada com sucesso.', !!d.aviso)
+    mostrarNotif(avisoFoto || d.aviso || 'Conta criada com sucesso.', !!(avisoFoto || d.aviso))
     carregar()
   }
 
@@ -1806,6 +1880,17 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
                   <input value={novoCargo} onChange={e => setNovoCargo(e.target.value)} placeholder="Cargo (ex: Secretário de Obras)"
                     style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 10px', fontSize: '13px', outline: 'none' }} />
                   <div>
+                    <p style={{ fontSize: '12px', fontWeight: 600, color: '#111827', margin: '0 0 6px' }}>Foto</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      {novaFoto && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={URL.createObjectURL(novaFoto)} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #e5e7eb' }} />
+                      )}
+                      <input type="file" accept="image/*" onChange={e => setNovaFoto(e.target.files?.[0] || null)}
+                        style={{ fontSize: '12px' }} />
+                    </div>
+                  </div>
+                  <div>
                     <p style={{ fontSize: '12px', fontWeight: 600, color: '#111827', margin: '0 0 6px' }}>Categorias</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '140px', overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px' }}>
                       {categorias.length === 0 && <span style={{ fontSize: '12px', color: '#6b7280' }}>Nenhuma categoria cadastrada.</span>}
@@ -1825,7 +1910,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
                   style={{ background: '#4256c8', color: 'white', border: 'none', borderRadius: '6px', padding: '7px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', opacity: salvandoNovo ? 0.6 : 1 }}>
                   {salvandoNovo ? 'Criando...' : 'Criar conta'}
                 </button>
-                <button onClick={() => { setCriando(false); setNovoNome(''); setNovoEmail(''); setNovaSenha(''); setNovoCargo(''); setNovasCats([]) }}
+                <button onClick={() => { setCriando(false); setNovoNome(''); setNovoEmail(''); setNovaSenha(''); setNovoCargo(''); setNovasCats([]); setNovaFoto(null) }}
                   style={{ background: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 14px', fontSize: '13px', cursor: 'pointer' }}>
                   Cancelar
                 </button>
@@ -1858,7 +1943,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
                     <>
                       <div onClick={() => setMenuAbertoId(null)} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
                       <div style={{ position: 'absolute', top: '28px', right: 0, background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', minWidth: '160px', zIndex: 20, padding: '4px 0' }}>
-                        <button onClick={() => { setEditandoId(p.id); setEditNome(p.nome || ''); setEditCpf(p.cpf || ''); setEditEmail(p.email || ''); setEditWhatsapp(p.whatsapp || ''); setEditDataNascimento(p.data_nascimento || ''); setEditCargo(p.cargo || ''); setEditCats(catEntidades[p.id] || []); setMenuAbertoId(null) }}
+                        <button onClick={() => { setEditandoId(p.id); setEditNome(p.nome || ''); setEditCpf(p.cpf || ''); setEditEmail(p.email || ''); setEditWhatsapp(p.whatsapp || ''); setEditDataNascimento(p.data_nascimento || ''); setEditCargo(p.cargo || ''); setEditCats(catEntidades[p.id] || []); setEditFoto(null); setEditFotoPreview(p.foto_url || ''); setMenuAbertoId(null) }}
                           style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 16px', fontSize: '13px', fontWeight: 500, color: '#111827', background: 'none', border: 'none', cursor: 'pointer' }}>
                           Editar
                         </button>
@@ -1898,6 +1983,17 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
                         <input value={editCargo} onChange={e => setEditCargo(e.target.value)} placeholder="Cargo"
                           style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '7px 10px', fontSize: '13px', outline: 'none' }} />
                         <div>
+                          <p style={{ fontSize: '12px', fontWeight: 600, color: '#111827', margin: '0 0 6px' }}>Foto</p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            {(editFoto || editFotoPreview) && (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={editFoto ? URL.createObjectURL(editFoto) : editFotoPreview} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #e5e7eb' }} />
+                            )}
+                            <input type="file" accept="image/*" onChange={e => setEditFoto(e.target.files?.[0] || null)}
+                              style={{ fontSize: '12px' }} />
+                          </div>
+                        </div>
+                        <div>
                           <p style={{ fontSize: '12px', fontWeight: 600, color: '#111827', margin: '0 0 6px' }}>Categorias</p>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '140px', overflowY: 'auto' }}>
                             {categorias.map(cat => (
@@ -1923,7 +2019,18 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
                     </div>
                   </div>
                 ) : (
-                  <div style={{ paddingRight: '40px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ paddingRight: '40px', display: 'flex', gap: '12px' }}>
+                    {p.role === 'autoridade' && (
+                      p.foto_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.foto_url} alt="" style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #e5e7eb', flexShrink: 0 }} />
+                      ) : (
+                        <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#f9fafb', border: '1px solid #e5e7eb', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: '#9ca3af' }}>
+                          {(p.nome || '?').trim().charAt(0).toUpperCase()}
+                        </div>
+                      )
+                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>{p.nome || '—'}</span>
                       {p.bloqueado && <span style={{ fontSize: '10px', fontWeight: 700, background: '#f9fafb', color: '#dc2626', border: '1px solid #e5e7eb', borderRadius: '20px', padding: '2px 8px' }}>BLOQUEADO</span>}
@@ -1954,6 +2061,7 @@ function MasterPerfis({ token, subSecao }: { token: string | null; subSecao: Sub
                         })}
                       </div>
                     )}
+                    </div>
                   </div>
                 )}
               </div>

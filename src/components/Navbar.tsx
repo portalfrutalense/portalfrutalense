@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useAuth } from './AuthProvider'
 import ModalAuth from './ModalAuth'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 
 // Exportada porque MapaTopBar.tsx (chips flutuantes de camada, dentro do
 // próprio mapa) precisa da mesma lista/ordem — evita duas listas que podem
@@ -32,22 +32,33 @@ function iniciais(nome: string | null | undefined, email: string | null | undefi
   return 'U'
 }
 
-function NavCamadas({ user }: { user: unknown }) {
+// Nav principal — pedido do usuário: as antigas "camadas" no centro da
+// navbar (Todos/Demandas/Empregos/...) só faziam sentido dentro de /mapa
+// (que nem usa esta Navbar no desktop, ver "Mapa Grandão" em
+// PublicShell.tsx) e apareciam soltas, sem nenhuma ativa, em qualquer outra
+// página logada (ex: /perfil). Trocado por um nav simples e universal.
+const NAV_PRINCIPAL = [
+  // "Início" ainda não existe como página própria (pedido do usuário) —
+  // aponta pra "/", que já redireciona sozinho pra /mapa quando logado
+  // (ver AuthProvider/page.tsx). Fica pronto pra virar uma página de
+  // verdade (dashboard) sem precisar mexer aqui de novo.
+  { label: 'Início', href: '/' },
+  { label: 'Mapas', href: '/mapa' },
+  { label: 'Ranking', href: '/ranking' },
+  { label: 'Minha conta', href: '/perfil' },
+]
+
+function NavPrincipal({ user }: { user: unknown }) {
   const pathname = usePathname()
-  const searchParams = useSearchParams()
-  // BUG CORRIGIDO (pedido do usuário): "todos" virou o padrão de /mapa
-  // sem `?camada=` — esse default tinha ficado esquecido em 'demandas',
-  // então o chip errado (Demandas) ficava destacado como ativo aqui.
-  const camadaAtiva = pathname === '/mapa' ? (searchParams.get('camada') || 'todos') : null
   if (!user) return null
   return (
     <div className="nav-links" style={{ display: 'flex', alignItems: 'center' }}>
-      {CAMADAS_NAV.map(({ label, camada }, i) => {
-        const ativo = camadaAtiva === camada
+      {NAV_PRINCIPAL.map(({ label, href }, i) => {
+        const ativo = pathname === href
         return (
-          <div key={camada} style={{ display: 'flex', alignItems: 'center' }}>
+          <div key={label} style={{ display: 'flex', alignItems: 'center' }}>
             {i > 0 && <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '14px', margin: '0 2px', userSelect: 'none' }}>|</span>}
-            <Link href={`/mapa?camada=${camada}`}
+            <Link href={href}
               style={{
                 color: 'white',
                 fontSize: '13.5px', fontWeight: 500,
@@ -127,9 +138,9 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
           </Link>
         </div>
 
-        {/* Coluna central — camadas (desktop, só logado) */}
+        {/* Coluna central — nav principal (desktop, só logado) */}
         <Suspense fallback={null}>
-          <NavCamadas user={user} />
+          <NavPrincipal user={user} />
         </Suspense>
 
         {/* Coluna direita — auth */}
@@ -170,15 +181,6 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
               </span>
             </button>
 
-        {/* Auth mobile — só Entrar quando deslogado */}
-        <div className="nav-auth-mobile" style={{ display: 'none', alignItems: 'center', marginLeft: 'auto' }}>
-          {!user && (
-            <button onClick={handleEntrar} style={{ fontSize: '13px', color: 'white', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer' }}>
-              Entrar
-            </button>
-          )}
-        </div>
-
             {/* Estilo copiado do popover de conta do MapaTopBar.tsx (pedido
                 do usuário: achou mais bonito que o menu azul que tinha
                 antes). Sem a lista de camadas — quem quiser trocar de
@@ -195,7 +197,10 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
                   </div>
                 </div>
                 <Link href="/mapa" onClick={() => setMenuMobile(false)} style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#111827', padding: '9px 10px', borderRadius: '8px', textDecoration: 'none' }}>
-                  Mapa
+                  Mapas
+                </Link>
+                <Link href="/ranking" onClick={() => setMenuMobile(false)} style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#111827', padding: '9px 10px', borderRadius: '8px', textDecoration: 'none' }}>
+                  Ranking
                 </Link>
                 <Link href="/perfil" onClick={() => setMenuMobile(false)} style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#111827', padding: '9px 10px', borderRadius: '8px', textDecoration: 'none' }}>
                   Minhas atividades
@@ -219,7 +224,6 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
           .nav-links { display: none !important; }
           .nav-auth { display: none !important; }
           .nav-hamburger { display: flex !important; align-items: center; }
-          .nav-auth-mobile { display: flex !important; }
           /* Logo maior e centralizada de verdade na faixa (pedido do
              usuário, ajustado no canvas de design) — position:absolute
              ignora a divisão em colunas flex:1/flex:1 do resto da navbar,

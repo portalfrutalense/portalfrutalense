@@ -21,6 +21,7 @@ export default function PublicShell({ children }: { children: React.ReactNode })
   const isLanding = pathname === '/'
   const isMapa = pathname === '/mapa'
   const isAssistenteIA = pathname === '/assistenteia'
+  const isRanking = pathname === '/ranking'
 
   // Trava html/body de verdade no /mapa — evita scroll/rubber-band nativo do
   // navegador (que empurra a navbar pra trás da barra de endereço em mobile)
@@ -36,8 +37,19 @@ export default function PublicShell({ children }: { children: React.ReactNode })
     }
   }, [isMapa])
 
-  // Master, landing e Lucas têm seu próprio layout
+  // Master, landing e assistente de IA têm seu próprio layout.
   if (isMaster || isLanding || isAssistenteIA) return <>{children}</>
+
+  // Ranking: Navbar padrão (pedido do usuário), mas sem o <main> com
+  // max-width/padding do layout default nem o ChatBot flutuante — a
+  // própria página já é 100dvh fixa, sem scroll, e calcula sua altura
+  // descontando os 56px da Navbar (ver src/app/ranking/page.tsx).
+  if (isRanking) return (
+    <>
+      <Navbar />
+      {children}
+    </>
+  )
 
   // "Mapa Grandão": a Navbar sai do fluxo desta página — sidebar e mapa
   // (dentro de `children`) passam a ocupar a tela inteira; logo, camadas e

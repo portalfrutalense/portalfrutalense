@@ -68,6 +68,7 @@ que dispara o `ModalCPF` sempre que um cidadão está logado mas sem nome/CPF sa
 | `/perfil` | Logado | Edição de dados pessoais, exclusão de conta, cancelamento de cadastro. |
 | `/master` | Só `role = master` | Painel administrativo completo (ver seção 8). |
 | `/responder/[token]` | Público (via magic link) | Página onde uma autoridade responde a uma demanda, sem precisar de login — acessada pelo link enviado por e-mail. |
+| `/ranking` | Público | Ranking de autoridades por demandas respondidas. Duas abas: taxa de resposta (0–100%) e quantidade de demandas recebidas. Sem link no menu ainda — acesso só por URL direta. Ver seção 5.6. |
 | `/auth/callback` | — | Rota técnica do fluxo OAuth (Google). Redireciona para `?next=` ou `/mapa` por padrão. |
 | `/redefinir-senha` | Público | Fluxo de recuperação de senha. |
 | `/termos`, `/privacidade` | Público | Páginas estáticas de termos de uso e política de privacidade. |
@@ -208,6 +209,29 @@ usuário). Essa mesma exclusão real foi retroativamente aplicada a "marcar
 vendido" (Classificados) e "encerrar vaga" (Empregos), que antes só ligavam
 uma flag e mantinham a linha e as fotos no banco/Storage indefinidamente.
 
+### 5.6 Ranking de autoridades (`/ranking`)
+
+Página pública (criada em 2026-09-04), fora do mapa, ranqueando as
+autoridades ativas (`entidades.ativo = true`) por desempenho no atendimento
+de demandas. Duas abas, sem separação por cargo (Vereador/Secretário) —
+decisão do usuário, já que `entidades.cargo` é texto livre, sem categoria fixa:
+
+- **Taxa de resposta**: `respondidas ÷ destinadas × 100`, arredondado.
+  Autoridade sem nenhuma demanda destinada aparece com 0% (não é excluída).
+  Desempate por mais demandas destinadas.
+- **Mais demandas recebidas**: ordenado só pela contagem de `destinadas`.
+
+"Destinadas" = total de vínculos da autoridade em `demanda_entidades`
+(histórico completo, todo o período). "Respondidas" = os vínculos com
+`status = 'respondida'`. Cada card mostra foto (redonda, com iniciais como
+fallback), nome, cargo, o número principal da aba ativa, e os dois totais
+(destinadas/respondidas). Lista rola horizontalmente (sem quebra em grade),
+com indicador visual (seta) de que há mais cards à direita.
+
+Dado servido por `GET /api/ranking` (pública, sem autenticação, calcula tudo
+em memória a partir de duas queries — `entidades` e `demanda_entidades` —
+sem RPC/agregação no Postgres).
+
 ---
 
 ## 6. O Assistente de IA
@@ -327,6 +351,9 @@ a cada edição, não vale a pena manter atualizado aqui). Seções (menu latera
   contas de autoridade/empresa (com senha inicial definida pelo master), edição de
   dados, vínculo de categorias a cada autoridade (`categoria_entidades` — define
   quais tipos de demanda cada autoridade pode receber), bloqueio de contas.
+  Autoridades também têm upload de foto (`entidades.foto_url`, bucket
+  `entidades-fotos`, criado em 2026-09-04 — mesmo padrão de compressão
+  client-side via canvas do ícone de categoria) usada nos cards do `/ranking`.
 - **Configuração de categorias** — CRUD de categorias do mapa (nome, cor, ícone
   customizado com upload e compressão client-side via canvas).
 - **Configuração de camadas** — customização visual das camadas do mapa (cores,
@@ -477,12 +504,15 @@ normalmente para leitura pública.
   Public no painel do Supabase só libera leitura sem autenticação — a tabela
   `storage.objects` tem RLS própria, separada disso, que decide quem pode
   fazer INSERT/DELETE. Cada bucket de foto (`demandas-fotos`, `pets-fotos`,
-  `classificados-fotos`, `empregos-fotos`, `imoveis-fotos`) precisa das
-  próprias policies de upload/remoção — nenhuma delas está versionada em
-  `sql/` (mesmo caso do restante do schema fora do repositório, ver acima),
-  exceto as de `imoveis-fotos`, criadas junto com a tabela em
-  `sql/migration-imoveis.sql`. Sintoma se faltar: "new row violates row-level
-  security policy" ao tentar enviar uma foto, mesmo com o bucket público.
+  `classificados-fotos`, `empregos-fotos`, `imoveis-fotos`, `entidades-fotos`)
+  precisa das próprias policies de upload/remoção — nenhuma delas está
+  versionada em `sql/` (mesmo caso do restante do schema fora do
+  repositório, ver acima), exceto as de `imoveis-fotos`
+  (`sql/migration-imoveis.sql`) e `entidades-fotos`
+  (`sql/migration-entidades-fotos.sql`, criado em 2026-09-04 — a criação do
+  bucket em si continua manual pelo painel do Supabase, o SQL só cria as
+  policies). Sintoma se faltar: "new row violates row-level security
+  policy" ao tentar enviar uma foto, mesmo com o bucket público.
 
 
 ---
