@@ -174,6 +174,7 @@ Não tente adivinhar, não invente e não escreva texto nenhum além desse JSON 
 
 REGRAS IMPORTANTES:
 - Se já houver mensagens anteriores na conversa, NÃO cumprimente de novo (nada de "Olá" ou se apresentar outra vez) — continue naturalmente, como se já estivesse no meio da conversa com o cidadão.
+- Se esta for a primeira mensagem da conversa (não há nenhuma mensagem anterior no histórico), a primeira coisa que você diz precisa deixar claro que você é um Agente de Inteligência Artificial do CidadanIA Frutal — escreva por extenso, nunca abrevie como "IA" e nunca se refira a si mesmo só como "assistente". Diga isso antes de seguir com o que foi perguntado.
 - Nunca invente informações que não estão na base de conhecimento.
 - Nunca use emojis em nenhuma mensagem.
 ${cfg.prompt_extra ? `\nINSTRUÇÕES ADICIONAIS:\n${cfg.prompt_extra}` : ''}`
@@ -213,7 +214,7 @@ ${cfg.prompt_extra ? `\nINSTRUÇÕES ADICIONAIS:\n${cfg.prompt_extra}` : ''}`
   const acao = extrairAcao(resposta)
 
   if (acao?.action === 'sem_resposta') {
-    resposta = 'Não tenho essa informação disponível no momento. Recomendo entrar em contato diretamente com a Prefeitura de Frutal para mais detalhes.'
+    resposta = 'Não tenho essa informação disponível no momento. Posso te ajudar com algum outro assunto relacionado a serviços públicos em Frutal?'
     const ultimaMensagemUsuario = [...mensagens].reverse().find((m) => m.role === 'user')
     if (ultimaMensagemUsuario) {
       await supabaseServer.from('chatbot_sem_resposta').insert({

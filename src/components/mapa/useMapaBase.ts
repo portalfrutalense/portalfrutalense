@@ -158,11 +158,28 @@ export function useMapaBase() {
         // cedo, ex.: zoom 12+). Aqui a decisão é mostrar só na faixa
         // estreita configurada acima (só zoom 16, por decisão sua — a Esri
         // está desatualizada em nome de rua pra essa região).
-        const layers = camadasDeRua.map((camada: Record<string, unknown>) => ({
-          ...camada,
-          minzoom: ZOOM_LABELS_MIN,
-          maxzoom: ZOOM_LABELS_MAX,
-        }))
+        const layers = camadasDeRua.map((camada: Record<string, unknown>) => {
+          const layout = camada.layout as Record<string, unknown> | undefined
+          // BUG CORRIGIDO (2026-09-03 — achado ao vivo, testando o mesmo
+          // zoom em pontos diferentes do mapa: ora aparecia nome de rua, ora
+          // não): o estilo original da Esri usa
+          // `symbol-placement: "line"` nas camadas de texto (`type:
+          // "symbol"`) — o MapLibre só desenha o texto se achar um trecho
+          // de linha comprido o bastante DENTRO da tela pra "deitar" a
+          // palavra em cima. Em quarteirões pequenos (a maioria de Frutal,
+          // numa janela de zoom já estreita de propósito — 16 só), quase
+          // nunca sobra trecho de rua comprido o bastante à vista, e o
+          // texto some mesmo com a feature/nome existindo (confirmado com
+          // queryRenderedFeatures retornando o nome real, só que sem nada
+          // pintado na tela). Trocado pra `"point"`: ancora o nome num
+          // ponto da rua, sem depender do comprimento visível — sempre
+          // aparece quando a feature está na tela, só perde o efeito de
+          // "acompanhar a curva da rua" que o `"line"` dava.
+          if (layout?.['symbol-placement'] === 'line') {
+            return { ...camada, minzoom: ZOOM_LABELS_MIN, maxzoom: ZOOM_LABELS_MAX, layout: { ...layout, 'symbol-placement': 'point' } }
+          }
+          return { ...camada, minzoom: ZOOM_LABELS_MIN, maxzoom: ZOOM_LABELS_MAX }
+        })
         // CAUSA RAIZ DO BUG (2026-08-31): a fonte vetorial 'esri' vem com
         // dois jeitos de indicar onde buscar tile ao mesmo tempo — 'url'
         // (um endereço "resumo" do serviço, SEM token) e 'tiles' (a URL

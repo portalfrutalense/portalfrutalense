@@ -110,24 +110,27 @@ export default function MapaDemandas() {
 
   function setSheetState(s: 'peek' | 'half' | 'full') {
     setSheetStateLocal(s)
-    setSheetContext(s)
   }
 
-  // Inicializa o contexto global com 'peek' ao montar — só em mobile.
+  // Publica no contexto global só em mobile — é o ChatBot.tsx quem lê isso
+  // pra posicionar o botão flutuante "grudado" no sheet
+  // (`calc(SNAP*100vh + 12px)`).
   //
-  // BUG CORRIGIDO (pedido do usuário): rodava incondicionalmente, sem
-  // checar `isMobile` — publicava 'peek' no contexto global mesmo em
-  // desktop, onde não existe bottom sheet nenhum (a sidebar é fixa, sem
-  // posição em % de altura de tela). O ChatBot.tsx lê esse contexto pra
-  // posicionar o botão flutuante "grudado" no sheet (`calc(SNAP*100vh +
-  // 12px)`) — em desktop isso empurrava o botão bem mais pra cima do que
-  // os 24px fixos do canto inferior direito que deveria ter, já que 15%
-  // (SNAP.peek) da altura da tela raramente bate com 24px do fundo.
+  // BUG CORRIGIDO (pedido do usuário, 2ª rodada — a 1ª correção só cobriu o
+  // efeito de montagem, mas `setSheetState` continuava chamando
+  // `setSheetContext(s)` direto, sem checar `isMobile`, toda vez que o
+  // sheet mudava de estado — trocar de camada, selecionar um item, etc.
+  // Cada uma dessas trocas republicava um valor no contexto global mesmo em
+  // desktop, sobrescrevendo o `null` da correção anterior — sintoma: "cada
+  // camada o botão fica em um lugar diferente"): centralizado num único
+  // efeito que observa `[isMobile, sheetState]` — nenhum outro lugar do
+  // componente chama `setSheetContext` diretamente mais, então não tem como
+  // esse valor escapar do controle de `isMobile` de novo.
   useEffect(() => {
     if (!isMobile) { setSheetContext(null); return }
-    setSheetContext('peek')
+    setSheetContext(sheetState)
     return () => setSheetContext(null)
-  }, [isMobile]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isMobile, sheetState]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // `startState` guarda de que estado o arraste começou — usado pra travar
   // a saída do "full" só soltando o dedo (ver aoSoltarArraste).
