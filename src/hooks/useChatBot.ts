@@ -84,15 +84,6 @@ export function useChatBot() {
   const fotoInputRef = useRef<HTMLInputElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null)
-  // BUG CORRIGIDO: quando a IA não identifica nenhuma categoria, o prompt
-  // manda ela usar categoria_id:"" (vazio) — sem isso, `enviar()` usava
-  // esse ID vazio direto, `catEntidades['']` nunca achava autoridade
-  // nenhuma, e o cidadão caía num beco sem saída mesmo quando uma
-  // categoria "Outros" de verdade (com autoridade vinculada) já existisse
-  // no painel master. Guardado numa ref (não state) porque só é lido
-  // dentro de `enviar()`, nunca precisa causar re-render.
-  const categoriaOutrosIdRef = useRef('')
-
   // Carrega autoridades e vínculos com categorias (usado para escolher autoridade sem precisar da IA)
   useEffect(() => {
     supabase.from('entidades').select('id, nome, cargo').eq('ativo', true).then(({ data }) => setEntidades((data as Entidade[]) || []))
@@ -103,9 +94,6 @@ export function useChatBot() {
         mapa[row.categoria_id].push(row.entidade_id)
       }
       setCatEntidades(mapa)
-    })
-    supabase.from('categorias_mapa').select('id, nome').eq('nome', 'Outros').maybeSingle().then(({ data }) => {
-      if (data) categoriaOutrosIdRef.current = data.id
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -215,10 +203,15 @@ export function useChatBot() {
 
       const acao = extrairAcao(resposta)
       if (acao?.action === 'detectar_demanda') {
-        const categoriaIdBruta = (acao.categoria_id as string) || ''
+        // A IA não emite mais este JSON quando nenhuma categoria da lista é
+        // adequada (ver prompt em api/chat/route.ts) — categoria_id sempre
+        // deveria vir preenchido aqui. Se por algum motivo vier vazio (a IA
+        // não segue a instrução à risca), `aoConfirmarQuerRegistrar` já trata
+        // isso: `catEntidades['']` não acha autoridade nenhuma e mostra
+        // "Não há autoridade vinculada a essa categoria", sem travar o fluxo.
         setDescricaoDemanda((acao.descricao as string) || texto)
-        setCategoriaIdDemanda(categoriaIdBruta || categoriaOutrosIdRef.current)
-        setCategoriaNomeDemanda((acao.categoria_nome as string) || 'Outros')
+        setCategoriaIdDemanda((acao.categoria_id as string) || '')
+        setCategoriaNomeDemanda((acao.categoria_nome as string) || '')
         setMensagens(prev => [...prev, { role: 'assistant', content: 'O CidadanIA Frutal pode tentar dar voz à sua reclamação! Podemos registrar uma demanda sobre isso, e ela ficará visível para todos. Seus dados são preservados, apenas o seu nome é publicado. Você escolhe uma autoridade para que seja enviada automaticamente, e tentaremos obter uma resposta sobre. Quer registrar?' }])
         setEtapaDemanda('perguntar_registrar')
       } else {

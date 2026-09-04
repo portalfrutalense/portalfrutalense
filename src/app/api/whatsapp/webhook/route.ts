@@ -78,12 +78,6 @@ function urlMapaSatelite(lat: number, lng: number): string {
 let _cacheConfigs: {
   base: string
   categorias: string
-  // Lista crua (id + nome), guardada à parte do texto formatado pro
-  // prompt — precisa dela pra resolver "Outros" por nome (ver
-  // idDaCategoriaOutros abaixo). Antes só o texto formatado era guardado
-  // e o array cru era descartado, sem jeito de achar o id de uma
-  // categoria pelo nome depois.
-  categoriasRaw: { id: string; nome: string }[]
   cfg: Record<string, string>
   ts: number
 } | null = null
@@ -100,26 +94,10 @@ async function carregarConfigs() {
   _cacheConfigs = {
     base: (base || []).map((e) => `### ${e.titulo}\n${e.conteudo}`).join('\n\n'),
     categorias: (categorias || []).map((c) => `- ${c.nome} (id: ${c.id})`).join('\n'),
-    categoriasRaw: categorias || [],
     cfg: (chatConfig || {}) as Record<string, string>,
     ts: agora,
   }
   return _cacheConfigs
-}
-
-/**
- * BUG CORRIGIDO: quando a IA não identifica nenhuma categoria adequada, o
- * prompt manda ela usar categoria_nome:"Outros" e categoria_id:"" — um ID
- * vazio, sem categoria real por trás. O código então buscava autoridade
- * pra esse ID vazio, nunca achava nenhuma, e o cidadão caía num beco sem
- * saída ("não há autoridade cadastrada pra essa categoria"), mesmo quando
- * uma categoria "Outros" de verdade (com autoridade vinculada) existisse
- * no painel master. Resolve pelo NOME em vez de aceitar o ID vazio — se
- * não existir uma categoria chamada "Outros" cadastrada ainda, devolve ''
- * (mesmo comportamento de antes, degradação graciosa).
- */
-function idDaCategoriaOutros(categoriasRaw: { id: string; nome: string }[]): string {
-  return categoriasRaw.find((c) => c.nome.trim().toLowerCase() === 'outros')?.id || ''
 }
 
 // BUG CORRIGIDO (B19-10): `descricao`/`endereco_label` vêm de dados que o
@@ -152,7 +130,7 @@ async function montarSystemPrompt(nomeUsuario: string, contexto?: {
 DETECÇÃO DE DEMANDA:
 Se o cidadão relatar um problema urbano, responda EXATAMENTE com este JSON (nada mais):
 {"action":"detectar_demanda","descricao":"<resumo objetivo>","categoria_id":"<id da categoria>","categoria_nome":"<nome da categoria>"}
-Se nenhuma categoria for adequada, use categoria_nome:"Outros" e categoria_id:"".
+Se nenhuma categoria for adequada pro problema relatado, NÃO use esse JSON — responda normalmente em texto explicando que esse tipo de problema não pode ser registrado como demanda no sistema no momento, já que não há uma categoria adequada pra encaminhá-lo a uma autoridade.
 Se não for um relato de problema, responda normalmente em texto.
 `
 
@@ -576,14 +554,15 @@ async function processarMensagem(body: EvolutionWebhookBody) {
     // e também perderia o JSON se o modelo adicionar texto antes dele.
     const acaoDetectada = extrairAcao(resposta)
     if (acaoDetectada?.action === 'detectar_demanda') {
-      const categoriaIdBruta = (acaoDetectada.categoria_id as string) || ''
-      // Já buscado (e cacheado) por montarSystemPrompt logo acima — não é
-      // uma segunda consulta ao banco.
-      const { categoriasRaw } = await carregarConfigs()
+      // A IA não emite mais este JSON quando nenhuma categoria da lista é
+      // adequada (ver blocoDeteccao em montarSystemPrompt) — categoria_id
+      // sempre deveria vir preenchido aqui. Se vier vazio mesmo assim (a IA
+      // não segue a instrução à risca), o fluxo mais adiante já trata isso
+      // como "sem autoridade vinculada", sem travar.
       const novosDados: DadosPendentes = {
         descricao: (acaoDetectada.descricao as string) || texto || 'Problema relatado por áudio',
-        categoria_id: categoriaIdBruta || idDaCategoriaOutros(categoriasRaw),
-        categoria_nome: (acaoDetectada.categoria_nome as string) || 'Outros',
+        categoria_id: (acaoDetectada.categoria_id as string) || '',
+        categoria_nome: (acaoDetectada.categoria_nome as string) || '',
       }
 
       // Mensagem fixa para perguntar sobre registro — evita segunda chamada ao Gemini

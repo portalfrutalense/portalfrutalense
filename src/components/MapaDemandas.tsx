@@ -135,7 +135,7 @@ export default function MapaDemandas() {
   // `startState` guarda de que estado o arraste começou — usado pra travar
   // a saída do "full" só soltando o dedo (ver aoSoltarArraste).
   const arrasteRef = useRef<{ startY: number; startFrac: number; startState: 'peek' | 'half' | 'full' } | null>(null)
-  const SNAP: Record<'peek' | 'half' | 'full', number> = { peek: 0.15, half: 0.75, full: 0.87 }
+  const SNAP: Record<'peek' | 'half' | 'full', number> = { peek: 0.15, half: 0.80, full: 0.80 }
 
   // Filtros
   const [filtroStatus, setFiltroStatus] = useState('')
@@ -392,6 +392,19 @@ export default function MapaDemandas() {
     setEmpregoSelecionado(null)
     setImovelSelecionado(null)
     setSheetState('peek')
+  }
+
+  // Dropdown de filtro no chip da camada (MapaTopBar.tsx, pedido do
+  // usuário): escolher uma opção já troca de camada E aplica o filtro
+  // correspondente na mesma ação — os selects de filtro que existiam nos
+  // sidebars de Pets/Classificados/Imóveis, e o de categoria em Demandas,
+  // saíram de lá por ficarem redundantes com isso.
+  function aoEscolherFiltroCamada(nova: Camada, filtro: string) {
+    trocarCamada(nova)
+    if (nova === 'demandas') setFiltroCategoria(filtro)
+    else if (nova === 'classificados') setFiltroClassificado(filtro)
+    else if (nova === 'imoveis') setFiltroImovel(filtro)
+    else if (nova === 'pets') setFiltroPet(filtro)
   }
 
   useEffect(() => {
@@ -659,10 +672,10 @@ export default function MapaDemandas() {
       {/* Layout principal: sidebar + mapa */}
       <div className="mapa-layout" style={layoutEstilo}>
 
-        {/* Overlay escuro no mapa quando sheet está aberto (mobile) */}
-        {isMobile && sheetState === 'full' && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 1400, background: 'rgba(0,0,0,0.25)', pointerEvents: 'none', transition: 'opacity 0.25s ease' }} />
-        )}
+        {/* Overlay escuro removido (pedido do usuário, 2026-09-04): "full"
+            deve ficar visualmente igual ao "half", sem escurecer o mapa por
+            baixo — agora que os dois têm a mesma altura (80vh), fazia
+            sentido os dois se comportarem igual aqui também. */}
 
         {/* SIDEBAR */}
         <div ref={sidebarRef} className="mapa-sidebar" style={sidebarEstilo}>
@@ -719,12 +732,25 @@ export default function MapaDemandas() {
             // cabeçalho, até o filtro) e a lista tem scroll de dedo normal
             // — por isso este wrapper externo só assume overflow/arrasto
             // "global" quando existe algo selecionado (tela de detalhe).
-            style={algumSelecionado
-              ? { flex: 1, overflowY: isMobile ? 'hidden' : 'auto', minHeight: 0, touchAction: isMobile ? 'none' : undefined, display: 'flex', flexDirection: 'column' }
-              : { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
-            onTouchStart={algumSelecionado && isMobile ? aoIniciarArraste : undefined}
-            onTouchMove={algumSelecionado && isMobile ? aoArrastar : undefined}
-            onTouchEnd={algumSelecionado && isMobile ? aoSoltarArraste : undefined}
+            //
+            // BUG CORRIGIDO (pedido do usuário, 2026-09-04): no "full", o
+            // sheet ficava travado em overflow:hidden e o conteúdo inteiro
+            // virava uma "alça de arrasto" (redimensionava o sheet ao
+            // arrastar em qualquer lugar) — mas "full" agora é fixo (mesma
+            // altura de "half", sem alcinha nenhuma pra redimensionar), então
+            // faz mais sentido o conteúdo ter scroll de dedo normal em vez
+            // de disputar o gesto com o redimensionamento. Só continua
+            // "bloco só arrastável" quando tem algo selecionado FORA do
+            // "full" (desktop, ou o raríssimo caso de mobile sem isMobile
+            // ainda resolvido no primeiro render).
+            style={algumSelecionado && isMobile && sheetState !== 'full'
+              ? { flex: 1, overflowY: 'hidden', minHeight: 0, touchAction: 'none', display: 'flex', flexDirection: 'column' }
+              : algumSelecionado
+                ? { flex: 1, overflowY: 'auto', minHeight: 0, display: 'flex', flexDirection: 'column' }
+                : { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
+            onTouchStart={algumSelecionado && isMobile && sheetState !== 'full' ? aoIniciarArraste : undefined}
+            onTouchMove={algumSelecionado && isMobile && sheetState !== 'full' ? aoArrastar : undefined}
+            onTouchEnd={algumSelecionado && isMobile && sheetState !== 'full' ? aoSoltarArraste : undefined}
           >
 
           {camada === 'todos' ? (
@@ -774,7 +800,6 @@ export default function MapaDemandas() {
               pets={pets}
               cores={coresPets}
               filtro={filtroPet}
-              setFiltro={setFiltroPet}
               selecionado={petSelecionado}
               setSelecionado={(p) => { setPetSelecionado(p); if (!p) setSheetState('half'); else if (isMobile) setSheetState('full') }}
               onRegistrar={() => user ? setFormPet({ aberto: true, editando: null }) : setModalAuth(true)}
@@ -794,7 +819,6 @@ export default function MapaDemandas() {
             <SidebarClassificados
               classificados={classificados}
               filtro={filtroClassificado}
-              setFiltro={setFiltroClassificado}
               selecionado={classificadoSelecionado}
               setSelecionado={(c) => { setClassificadoSelecionado(c); if (!c) setSheetState('half'); else if (isMobile) setSheetState('full') }}
               onRegistrar={() => user ? setFormClassificado({ aberto: true, editando: null }) : setModalAuth(true)}
@@ -831,7 +855,6 @@ export default function MapaDemandas() {
             <SidebarImoveis
               imoveis={imoveis}
               filtro={filtroImovel}
-              setFiltro={setFiltroImovel}
               selecionado={imovelSelecionado}
               setSelecionado={(i) => { setImovelSelecionado(i); if (!i) setSheetState('half'); else if (isMobile) setSheetState('full') }}
               onRegistrar={() => user ? setFormImovel({ aberto: true, editando: null }) : setModalAuth(true)}
@@ -1060,21 +1083,10 @@ export default function MapaDemandas() {
                   </button>
                 )}
 
-                {/* Filtro de categoria */}
-                {categorias.length > 0 && (
-                  <div style={{ marginBottom: '10px' }}>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#111827', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Categoria</label>
-                    <select
-                      value={filtroCategoria}
-                      onChange={(e) => setFiltroCategoria(e.target.value)}
-                      style={{ width: '100%', fontSize: '13px', fontWeight: 500, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 28px 8px 10px', cursor: 'pointer', outline: 'none', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', boxSizing: 'border-box' }}>
-                      <option value="">Todas as categorias</option>
-                      {categorias.map((c) => (
-                        <option key={c.id} value={c.id}>{c.nome}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                {/* Filtro de categoria — saiu daqui (pedido do usuário,
+                    2026-09-04): agora é o dropdown do próprio chip "Demandas
+                    Municipais" na barra flutuante (MapaTopBar.tsx) quem
+                    escolhe a categoria, junto com a troca de camada. */}
 
                 {/* Filtro de status */}
                 <div>
@@ -1149,7 +1161,17 @@ export default function MapaDemandas() {
 
           {/* Barra flutuante (chips de camada + conta) — substitui a Navbar
               nesta página, que agora ocupa a tela inteira. */}
-          <MapaTopBar camada={camada} isMobile={isMobile} onAbrirLogin={() => setModalAuth(true)} />
+          <MapaTopBar
+            camada={camada}
+            isMobile={isMobile}
+            onAbrirLogin={() => setModalAuth(true)}
+            categorias={categorias}
+            filtroCategoria={filtroCategoria}
+            filtroClassificado={filtroClassificado}
+            filtroImovel={filtroImovel}
+            filtroPet={filtroPet}
+            onEscolherFiltro={aoEscolherFiltroCamada}
+          />
 
           {/* Banner de login */}
           {!user && (

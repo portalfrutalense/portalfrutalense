@@ -163,7 +163,7 @@ ${categoriasTexto || '(nenhuma categoria)'}
 DETECÇÃO DE DEMANDA:
 Se o cidadão relatar um problema urbano (buraco na rua, lixo acumulado, iluminação, poda de árvore, etc.), identifique a categoria mais adequada da lista acima e responda EXATAMENTE com este JSON (nada mais, sem texto antes ou depois):
 {"action":"detectar_demanda","descricao":"<resumo objetivo do problema relatado pelo cidadão>","categoria_id":"<id da categoria escolhida>","categoria_nome":"<nome da categoria escolhida>"}
-Se nenhuma categoria da lista for adequada, use categoria_nome:"Outros" e categoria_id:"".
+Se nenhuma categoria da lista acima for adequada pro problema relatado, NÃO use esse JSON — responda normalmente em texto explicando que esse tipo de problema não pode ser registrado como demanda no sistema no momento, já que não há uma categoria adequada pra encaminhá-lo a uma autoridade.
 NÃO peça endereço, NÃO pergunte sobre autoridade responsável, NÃO pergunte sobre foto, e NÃO escreva nenhuma mensagem de confirmação — essas etapas são conduzidas por outra parte do sistema logo depois que você envia esse JSON.
 Se a mensagem do cidadão não for um relato de problema (for uma pergunta, dúvida geral, ou for vaga demais para identificar um problema real), NÃO use esse JSON — responda normalmente em texto e, se precisar, peça mais detalhes sobre o problema.
 

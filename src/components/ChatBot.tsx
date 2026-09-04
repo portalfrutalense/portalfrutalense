@@ -7,7 +7,7 @@ import { useSheet } from '@/contexts/SheetContext'
 // Precisa ficar em sincronia com o SNAP de MapaDemandas.tsx (mesmos valores,
 // cópia local porque este componente não tem acesso direto ao estado do
 // sheet, só ao valor já publicado via SheetContext).
-const SNAP: Record<string, number> = { peek: 0.15, half: 0.75, full: 0.87 }
+const SNAP: Record<string, number> = { peek: 0.15, half: 0.80, full: 0.80 }
 
 /**
  * Botão flutuante que leva pro assistente de IA (/assistenteia, com sua
@@ -25,11 +25,15 @@ export default function ChatBot() {
   const router = useRouter()
 
   // Posição do botão: acompanha o sheet quando no mapa, caso contrário canto inferior direito
-  const botaoBottom = sheetState && sheetState !== 'full'
-    ? `calc(${SNAP[sheetState] * 100}vh + 12px)`
+  const botaoBottom = sheetState === 'peek'
+    ? `calc(${SNAP.peek * 100}vh + 12px)`
     : sheetState === null ? '24px' : undefined
 
-  if (!user || sheetState === 'full') return null
+  // BUG CORRIGIDO (pedido do usuário, 2026-09-04): antes só sumia no "full"
+  // — agora "half" e "full" têm a mesma altura (80vh) e o mesmo tratamento
+  // visual, então o botão passa a sumir nos dois, só aparece no "peek" (ou
+  // fora do /mapa, onde sheetState é null).
+  if (!user || sheetState === 'full' || sheetState === 'half') return null
 
   return (
     <button

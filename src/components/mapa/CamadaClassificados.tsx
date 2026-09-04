@@ -241,13 +241,14 @@ function IconeWhatsapp() {
 }
 
 export function SidebarClassificados({
-  classificados, filtro, setFiltro, selecionado, setSelecionado,
+  classificados, filtro, selecionado, setSelecionado,
   onRegistrar, onEditar, onExcluir, onMarcarVendido, onFoto, aoExigirLogin,
   isMobile, aoIniciarArraste, aoArrastar, aoSoltarArraste, onCentralizar,
 }: {
   classificados: Classificado[]
+  // Só leitura aqui — quem escolhe o filtro agora é o dropdown do chip
+  // "Veículos" na barra flutuante (MapaTopBar.tsx via MapaDemandas.tsx).
   filtro: string
-  setFiltro: (f: string) => void
   selecionado: Classificado | null
   setSelecionado: (c: Classificado | null) => void
   onRegistrar: () => void
@@ -378,18 +379,12 @@ export function SidebarClassificados({
         </p>
 
         <button onClick={onRegistrar}
-          style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '9px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', marginBottom: '10px' }}>
+          style={{ width: '100%', backgroundColor: '#4256c8', color: 'white', fontWeight: 600, padding: '9px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px' }}>
           {user ? 'Anunciar veículo' : 'Entrar para anunciar'}
         </button>
-
-        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#111827', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Tipo</label>
-        <select value={filtro} onChange={e => setFiltro(e.target.value)}
-          style={{ width: '100%', fontSize: '13px', fontWeight: 500, color: '#111827', background: 'white', border: '1px solid #e5e7eb', borderRadius: '7px', padding: '8px 28px 8px 10px', cursor: 'pointer', outline: 'none', appearance: 'none', fontFamily: 'inherit', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', boxSizing: 'border-box' }}>
-          <option value=''>Todos</option>
-          {TIPOS.map(t => (
-            <option key={t} value={t}>{ROTULO_VEICULO[t]}</option>
-          ))}
-        </select>
+        {/* Filtro de tipo saiu daqui (pedido do usuário, 2026-09-04): agora
+            é o dropdown do próprio chip "Veículos" na barra flutuante
+            (MapaTopBar.tsx) quem escolhe, junto com a troca de camada. */}
       </div>
 
       <div
