@@ -1,12 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { useAuth } from '@/components/AuthProvider'
 import Navbar from '@/components/Navbar'
 import MapaVivo from '@/components/MapaVivo'
+import PainelInicial from '@/components/PainelInicial'
 
 /* ---------------------------------------------------------------- ícones -- */
 
@@ -293,7 +293,6 @@ function CardAcesso() {
 
 export default function LandingPage() {
   const { user } = useAuth()
-  const router = useRouter()
   const cardRef = useRef<HTMLDivElement>(null)
   const [tremendo, setTremendo] = useState(false)
   // Só mostra o gate se: veio de um navegador in-app E ainda não dispensou
@@ -309,7 +308,11 @@ export default function LandingPage() {
     setTimeout(() => setTremendo(false), 600)
   }
 
+  // Trava de scroll só serve pro palco de "deslogado" (tela cheia, sem
+  // scroll) — o painel pós-login (PainelInicial) é conteúdo normal, que
+  // pode passar de 100vh e precisa de scroll de verdade.
   useEffect(() => {
+    if (user) return
     const html = document.documentElement
     const body = document.body
     html.classList.add('landing-lock-body')
@@ -318,14 +321,17 @@ export default function LandingPage() {
       html.classList.remove('landing-lock-body')
       body.classList.remove('landing-lock-body')
     }
-  }, [])
+  }, [user])
 
-  // Já logado — vai direto pro painel
-  useEffect(() => {
-    if (user) router.replace('/mapa')
-  }, [user, router])
-
-  if (user) return null
+  // Já logado — mostra o painel inicial (pedido do usuário: antes ia direto
+  // pro /mapa sem passar por aqui; agora "/" vira um "guia inicial" com
+  // atalhos, resumo e ranking, e o cidadão escolhe aonde ir).
+  if (user) return (
+    <>
+      <Navbar />
+      <PainelInicial />
+    </>
+  )
 
   return (
     <div className="palco">

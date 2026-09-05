@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import MapaVivo from '@/components/MapaVivo'
 
 type Autoridade = {
   id: string
@@ -13,57 +14,6 @@ type Autoridade = {
 }
 
 type Aba = 'taxa' | 'quantidade'
-
-// Ilustração do cabeçalho (mockup de celular + card de perfil + gráfico em
-// alta + selo de aprovado) — reproduz a arte da referência enviada pelo
-// usuário, sem depender de nenhum asset externo.
-function IlustracaoHero() {
-  return (
-    <svg viewBox="0 0 240 160" width="220" height="147" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* linha de tendência + eixo */}
-      <path d="M118 118H228" stroke="#e4e8f7" strokeWidth="1.5" />
-      <path d="M126 78L158 60L188 40L222 16" stroke="#c7d0f0" strokeWidth="1.5" strokeDasharray="3 4" />
-      <circle cx="126" cy="78" r="2.5" fill="#aab6ec" />
-      <circle cx="158" cy="60" r="2.5" fill="#aab6ec" />
-      <circle cx="188" cy="40" r="2.5" fill="#aab6ec" />
-      <circle cx="222" cy="16" r="2.5" fill="#aab6ec" />
-
-      {/* barras crescentes */}
-      <rect x="150" y="90" width="20" height="28" rx="4" fill="#dde3f8" />
-      <rect x="178" y="72" width="20" height="46" rx="4" fill="#c9d2f5" />
-      <rect x="206" y="48" width="20" height="70" rx="4" fill="#4256c8" />
-
-      {/* card flutuante com avatar + linhas */}
-      <g>
-        <rect x="4" y="58" width="98" height="42" rx="10" fill="#ffffff" stroke="#e4e8f7" strokeWidth="1.5" />
-        <circle cx="22" cy="79" r="9" fill="#eef1fb" />
-        <path d="M17 83c0-3 2.2-5 5-5s5 2 5 5" stroke="#4256c8" strokeWidth="1.6" strokeLinecap="round" />
-        <circle cx="22" cy="76" r="2.6" fill="#4256c8" />
-        <rect x="38" y="72" width="52" height="4" rx="2" fill="#dde3f8" />
-        <rect x="38" y="82" width="36" height="4" rx="2" fill="#eef1fb" />
-      </g>
-
-      {/* mockup do celular */}
-      <g>
-        <rect x="60" y="8" width="92" height="150" rx="18" fill="#ffffff" stroke="#4256c8" strokeWidth="2.5" />
-        <rect x="98" y="18" width="16" height="4" rx="2" fill="#c7d0f0" />
-
-        <rect x="74" y="34" width="64" height="34" rx="9" fill="#eef1fb" />
-        <path d="M106 43l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8z" fill="#4256c8" />
-        <rect x="80" y="76" width="52" height="4" rx="2" fill="#dde3f8" />
-        <rect x="80" y="85" width="36" height="4" rx="2" fill="#dde3f8" />
-
-        <rect x="74" y="100" width="64" height="4" rx="2" fill="#eef1fb" />
-        <rect x="74" y="110" width="64" height="4" rx="2" fill="#eef1fb" />
-        <rect x="74" y="120" width="44" height="4" rx="2" fill="#eef1fb" />
-      </g>
-
-      {/* selo de aprovado */}
-      <circle cx="152" cy="128" r="16" fill="#4256c8" />
-      <path d="M144.5 128.5l4.5 4.5 9-9.5" stroke="white" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-    </svg>
-  )
-}
 
 function Avatar({ nome, foto_url, size }: { nome: string; foto_url: string | null; size: number }) {
   if (foto_url) {
@@ -88,18 +38,35 @@ function Avatar({ nome, foto_url, size }: { nome: string; foto_url: string | nul
   )
 }
 
-// Estrela dourada do 1º lugar — sai pra fora do card, canto superior direito.
-function EstrelaOuro() {
+// Medalha de ouro do 1º lugar — sobe por cima do card, canto superior
+// direito, mas sem passar da borda direita do card (pedido do usuário: sem
+// reserva de espaço extra e sem cortar nada — só sai pra cima, não pro lado).
+// Borda recortada (várias bolinhas sobrepostas formando o contorno
+// "engrenagem"), número 1 no meio, fita bipartida caindo por trás do disco —
+// modelo escolhido pelo usuário entre as opções desenhadas.
+function MedalhaOuro() {
+  const bumps = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((deg) => {
+    const rad = (deg * Math.PI) / 180
+    return { x: 32 + 21 * Math.cos(rad), y: 34 + 21 * Math.sin(rad) }
+  })
   return (
-    <div style={{
-      position: 'absolute', top: '-12px', right: '-10px', zIndex: 1,
-      width: '30px', height: '30px', borderRadius: '50%',
-      background: 'linear-gradient(135deg, #ffd76a, #f5a623)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      boxShadow: '0 3px 8px rgba(180,120,0,0.35)',
-    }}>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-        <path d="M12 2l2.9 6.6 7.1.7-5.4 4.7 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.7 7.1-.7z" />
+    <div style={{ position: 'absolute', top: '-14px', right: '2px', zIndex: 1 }}>
+      <svg width="40" height="56" viewBox="0 0 64 90" style={{ filter: 'drop-shadow(0 3px 6px rgba(180,120,0,0.35))' }}>
+        {/* fitas — atrás do disco */}
+        <g transform="translate(24 48) rotate(-24)">
+          <path d="M-8 0H8V30L0 22L-8 30Z" fill="#ff6b6b" />
+        </g>
+        <g transform="translate(40 48) rotate(24)">
+          <path d="M-8 0H8V30L0 22L-8 30Z" fill="#e5484d" />
+        </g>
+        {/* borda recortada (bolinhas sobrepostas) */}
+        {bumps.map((b, i) => (
+          <circle key={i} cx={b.x} cy={b.y} r="8.5" fill={b.x <= 32 ? '#ffd76a' : '#f5a623'} />
+        ))}
+        {/* disco interno */}
+        <circle cx="32" cy="34" r="17" fill="#f5a623" />
+        <path d="M32 17A17 17 0 0 0 32 51Z" fill="#ffd76a" />
+        <text x="32" y="42" textAnchor="middle" fontSize="24" fontWeight="800" fill="#fff3d6" fontFamily="Inter, sans-serif">1</text>
       </svg>
     </div>
   )
@@ -136,7 +103,7 @@ function Cartao({ autoridade, posicao, aba }: { autoridade: Autoridade; posicao:
       gap: '1px',
       boxShadow: '0 1px 2px rgba(13,20,37,0.03), 0 10px 20px -16px rgba(13,20,37,0.18)',
     }}>
-      {posicao === 1 && <EstrelaOuro />}
+      {posicao === 1 && <MedalhaOuro />}
 
       <span style={{ alignSelf: 'flex-start', fontSize: '13.5px', fontWeight: 800, color: '#4256c8' }}>
         {posicao}º
@@ -179,7 +146,7 @@ function Linha({ autoridade, posicao, aba }: { autoridade: Autoridade; posicao: 
       background: '#ffffff', border: '1px solid rgba(66,86,200,0.12)', borderRadius: '14px',
       padding: '12px 14px',
     }}>
-      {posicao === 1 && <EstrelaOuro />}
+      {posicao === 1 && <MedalhaOuro />}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <span style={{ fontSize: '17px', fontWeight: 800, color: '#4256c8', flexShrink: 0 }}>
@@ -218,11 +185,7 @@ function ListaVertical({ lista, aba }: { lista: Autoridade[]; aba: Aba }) {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', overflowX: 'hidden', minHeight: 0,
-      // paddingRight extra: a estrela do 1º lugar (EstrelaOuro) sai 10px pra
-      // fora do card à direita, de propósito — sem essa folga ela ficava
-      // cortada pelo overflowX:hidden deste container (achado testando no
-      // celular de verdade).
-      padding: '14px 18px 0 0',
+      paddingTop: '14px',
     }}>
       {lista.map((a, i) => <Linha key={a.id} autoridade={a} posicao={i + 1} aba={aba} />)}
     </div>
@@ -325,18 +288,27 @@ export default function RankingPage() {
       position: 'relative', overflow: 'hidden',
       display: 'flex', flexDirection: 'column',
     }}>
-      {/* Glow de fundo — mesmo padrão da landing (page.tsx), radial azul suave nos cantos */}
-      <div style={{
-        position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
-        background:
-          'radial-gradient(60% 50% at 88% 4%, rgba(66,86,200,0.10) 0%, rgba(66,86,200,0) 70%), ' +
-          'radial-gradient(50% 40% at 8% 96%, rgba(66,86,200,0.07) 0%, rgba(66,86,200,0) 70%)',
-      }} />
+      {/* Fundo — o mesmo traçado urbano animado da landing (page.tsx):
+          MapaVivo (canvas com a malha de ruas + pins pulsando) coberto por
+          um véu claro (pro texto não disputar leitura com o traçado) e um
+          halo azul suave no canto. */}
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
+        <MapaVivo />
+        <div style={{
+          position: 'absolute', inset: 0,
+          background:
+            'radial-gradient(115% 90% at 6% 44%, rgba(247,248,251,0.97) 0%, rgba(247,248,251,0.88) 34%, rgba(247,248,251,0.42) 66%, rgba(247,248,251,0.30) 100%), ' +
+            'linear-gradient(180deg, rgba(247,248,251,0.92) 0%, rgba(247,248,251,0.20) 26%, rgba(247,248,251,0.26) 68%, rgba(247,248,251,0.94) 100%)',
+        }} />
+        <div style={{
+          position: 'absolute', left: '-14%', top: '16%',
+          width: '60vw', height: '60vw', maxWidth: '800px', maxHeight: '800px',
+          background: 'radial-gradient(circle, rgba(66,86,200,0.10) 0%, rgba(66,86,200,0) 70%)',
+          filter: 'blur(16px)',
+        }} />
+      </div>
 
       <style>{`
-        @media (max-width: 720px) {
-          .ranking-ilustracao { display: none; }
-        }
         @media (max-width: 560px) {
           .ranking-secao-titulo { flex-direction: column; align-items: flex-start !important; }
           .ranking-abas { width: 100%; }
@@ -361,20 +333,15 @@ export default function RankingPage() {
         flex: 1, minHeight: 0, justifyContent: 'center',
       }}>
 
-        {/* Header — texto à esquerda, ilustração à direita (como na referência) */}
-        <div style={{ marginBottom: '20px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px' }}>
-          <div style={{ maxWidth: '620px' }}>
-            <h1 style={{ fontSize: 'clamp(26px, 3.4vw, 36px)', fontWeight: 800, color: '#111827', margin: '0 0 8px', lineHeight: 1.15 }}>
-              Autoridades que mais responderam a demandas
-            </h1>
-            <p style={{ fontSize: '14px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-              Acompanhe o desempenho das autoridades que mais respondem
-              às demandas dos cidadãos de Frutal.
-            </p>
-          </div>
-          <div className="ranking-ilustracao" style={{ flexShrink: 0 }}>
-            <IlustracaoHero />
-          </div>
+        {/* Header */}
+        <div style={{ marginBottom: '20px', flexShrink: 0 }}>
+          <h1 style={{ fontSize: 'clamp(26px, 3.4vw, 36px)', fontWeight: 800, color: '#111827', margin: '0 0 8px', lineHeight: 1.15 }}>
+            Autoridades que mais responderam a demandas
+          </h1>
+          <p style={{ fontSize: '14px', color: '#6b7280', margin: 0, lineHeight: 1.5, maxWidth: '620px' }}>
+            Acompanhe o desempenho das autoridades que mais respondem
+            às demandas dos cidadãos de Frutal.
+          </p>
         </div>
 
         {/* Lista */}

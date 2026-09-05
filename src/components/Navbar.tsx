@@ -196,6 +196,9 @@ export default function Navbar({ overlay = false, onEntrar }: { overlay?: boolea
                     {email && <p style={{ margin: 0, fontSize: '11px', color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email}</p>}
                   </div>
                 </div>
+                <Link href="/" onClick={() => setMenuMobile(false)} style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#111827', padding: '9px 10px', borderRadius: '8px', textDecoration: 'none' }}>
+                  Início
+                </Link>
                 <Link href="/mapa" onClick={() => setMenuMobile(false)} style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#111827', padding: '9px 10px', borderRadius: '8px', textDecoration: 'none' }}>
                   Mapas
                 </Link>
